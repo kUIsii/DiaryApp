@@ -53,4 +53,13 @@ interface DiaryDao {
 
     @Query("SELECT * FROM diary_entries WHERE id IN (SELECT diaryId FROM diary_tag_cross_ref WHERE tagId = :tagId) ORDER BY createdAt DESC")
     fun getEntriesByTag(tagId: Long): Flow<List<DiaryEntry>>
+
+    @Query("SELECT COUNT(*) FROM tags")
+    suspend fun getTagCount(): Int
+
+    @Query("SELECT * FROM tags WHERE isPreset = 1")
+    suspend fun getPresetTags(): List<Tag>
+
+    @Query("UPDATE tags SET name = :name, color = :color WHERE id = :id")
+    suspend fun updateTagById(id: Long, name: String, color: Long)
 }

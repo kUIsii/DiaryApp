@@ -173,9 +173,9 @@ private fun DiaryCard(entry: DiaryEntry, onClick: () -> Unit) {
             }
             if (entry.moodLevel != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                val moodLabels = arrayOf("", "沮丧", "低落", "平静", "还好", "不错", "愉快", "开心", "兴奋", "狂喜", "巅峰")
+                val moodLabels = arrayOf("", "沮丧", "低落", "平静", "开心", "愉快", "兴奋")
                 Text(
-                    text = "心情 ${moodLabels[entry.moodLevel.coerceIn(1, 10)]}",
+                    text = "心情 ${moodLabels[entry.moodLevel.coerceIn(1, 6)]}",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium

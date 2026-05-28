@@ -8,7 +8,11 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +37,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,8 +76,8 @@ fun EditorScreen(
 ) {
     val today = LocalDate.now()
     val currentTime = LocalTime.now()
-    val dateTitle = "${today.year}年${today.monthValue}月${today.dayOfMonth}日的日记"
-    val timeText = "今天 ${currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
+    val dateTitle = "${today.year}年${today.monthValue}月${today.dayOfMonth}日"
+    val timeText = currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
@@ -89,10 +93,13 @@ fun EditorScreen(
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
-    var showMetadata by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
 
-    // Toolbar state: 0=format, 1=heading, 2=list, 3=insert, 4=color
+    // Which metadata panel is open: null = none, "mood", "weather", "tags"
+    var activePanel by remember { mutableStateOf<String?>(null) }
+
+    // Toolbar state
+    var showToolbar by remember { mutableStateOf(false) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var colorTab by remember { mutableIntStateOf(0) }
 
@@ -136,7 +143,9 @@ fun EditorScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
     val accentColor = MaterialTheme.colorScheme.primary
-    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    val moodLabels = arrayOf("", "沮丧", "低落", "平静", "开心", "愉快", "兴奋")
 
     if (showTagDialog) {
         AddTagDialog(
@@ -184,104 +193,82 @@ fun EditorScreen(
                     }
                     onNavigateBack()
                 }) {
-                    Text(
-                        text = "保存",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor
-                    )
+                    Text("保存", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accentColor)
                 }
             }
 
-            // Date title + metadata toggle
+            // Date + time
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                Text(text = dateTitle, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text(text = timeText, fontSize = 12.sp, color = textSecondary)
+            }
+
+            // Metadata buttons row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showMetadata = !showMetadata }
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = dateTitle,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor,
-                    modifier = Modifier.weight(1f)
+                // Mood button
+                MetadataButton(
+                    label = if (selectedMood != null) "心情 ${moodLabels[selectedMood!!]}" else "心情",
+                    isActive = activePanel == "mood",
+                    accentColor = accentColor,
+                    surfaceVariant = surfaceVariant,
+                    onClick = { activePanel = if (activePanel == "mood") null else "mood" }
                 )
-                Text(
-                    text = if (showMetadata) "收起" else "详情",
-                    fontSize = 12.sp,
-                    color = accentColor
+                // Weather button
+                MetadataButton(
+                    label = if (selectedWeather != null) "天气 $selectedWeather" else "天气",
+                    isActive = activePanel == "weather",
+                    accentColor = accentColor,
+                    surfaceVariant = surfaceVariant,
+                    onClick = { activePanel = if (activePanel == "weather") null else "weather" }
+                )
+                // Tags button
+                MetadataButton(
+                    label = if (selectedTagIds.isNotEmpty()) "标签 ${selectedTagIds.size}" else "标签",
+                    isActive = activePanel == "tags",
+                    accentColor = accentColor,
+                    surfaceVariant = surfaceVariant,
+                    onClick = { activePanel = if (activePanel == "tags") null else "tags" }
                 )
             }
 
-            // Time
-            Text(
-                text = timeText,
-                fontSize = 12.sp,
-                color = textSecondary,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            // Expandable metadata section
+            // Expandable panels
             AnimatedVisibility(
-                visible = showMetadata,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+                visible = activePanel != null,
+                enter = expandVertically(tween(250)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(surfaceColor.copy(alpha = 0.5f))
+                        .background(surfaceColor)
+                        .animateContentSize()
                         .padding(12.dp)
                 ) {
-                    // Mood
-                    Text(text = "心情", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
-                    MoodSlider(
-                        selectedLevel = selectedMood,
-                        onLevelChange = { selectedMood = it },
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Weather
-                    Text(text = "天气", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
-                    WeatherSelector(
-                        selectedWeather = selectedWeather,
-                        onWeatherSelected = { selectedWeather = it },
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Tags
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "标签", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
-                        Text(
-                            text = "+ 新建",
-                            fontSize = 12.sp,
-                            color = accentColor,
-                            modifier = Modifier.clickable { showTagDialog = true }
+                    when (activePanel) {
+                        "mood" -> MoodSlider(
+                            selectedLevel = selectedMood,
+                            onLevelChange = { selectedMood = it }
+                        )
+                        "weather" -> WeatherSelector(
+                            selectedWeather = selectedWeather,
+                            onWeatherSelected = { selectedWeather = it }
+                        )
+                        "tags" -> TagEditor(
+                            allTags = allTags,
+                            selectedTagIds = selectedTagIds,
+                            onTagToggle = { viewModel.toggleTag(it) },
+                            onAddTag = { showTagDialog = true }
                         )
                     }
-                    TagEditor(
-                        allTags = allTags,
-                        selectedTagIds = selectedTagIds,
-                        onTagToggle = { viewModel.toggleTag(it) },
-                        onAddTag = { showTagDialog = true },
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
                 }
             }
-
-            Divider(color = dividerColor, thickness = 0.5.dp)
 
             // WebView (fills remaining space)
             AndroidView(
@@ -304,6 +291,8 @@ fun EditorScreen(
 
             // Bottom toolbar
             EditorToolbar(
+                showToolbar = showToolbar,
+                onToggleToolbar = { showToolbar = !showToolbar; activeCategory = -1 },
                 activeCategory = activeCategory,
                 onCategoryChange = { cat ->
                     activeCategory = if (activeCategory == cat) -1 else cat
@@ -332,7 +321,32 @@ fun EditorScreen(
 }
 
 @Composable
+private fun MetadataButton(
+    label: String,
+    isActive: Boolean,
+    accentColor: Color,
+    surfaceVariant: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isActive) accentColor.copy(alpha = 0.12f) else surfaceVariant.copy(alpha = 0.5f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = if (isActive) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
 private fun EditorToolbar(
+    showToolbar: Boolean,
+    onToggleToolbar: () -> Unit,
     activeCategory: Int,
     onCategoryChange: (Int) -> Unit,
     onFormat: (String) -> Unit,
@@ -354,69 +368,84 @@ private fun EditorToolbar(
         modifier = Modifier
             .fillMaxWidth()
             .background(surfaceColor)
-            .border(0.5.dp, borderColor)
+            .animateContentSize()
     ) {
-        // Primary row - 5 icon categories
+        // Toggle bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .clickable(onClick = onToggleToolbar)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            val categories = listOf(
-                ToolbarCategory("Aa", "格式"),
-                ToolbarCategory("H", "标题"),
-                ToolbarCategory("≡", "列表"),
-                ToolbarCategory("▢", "插入"),
-                ToolbarCategory("◉", "颜色")
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(borderColor)
             )
-            categories.forEachIndexed { index, cat ->
-                val isActive = activeCategory == index
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
-                        .clickable { onCategoryChange(index) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = cat.icon,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isActive) activeColor else textColor
-                    )
-                    Text(
-                        text = cat.label,
-                        fontSize = 10.sp,
-                        color = if (isActive) activeColor else textColor
-                    )
-                }
-            }
         }
 
-        // Secondary row - tools
+        // Full toolbar
         AnimatedVisibility(
-            visible = activeCategory >= 0,
-            enter = expandVertically(),
-            exit = shrinkVertically()
+            visible = showToolbar,
+            enter = expandVertically(tween(250)) + fadeIn(tween(200)),
+            exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
         ) {
             Column {
-                Divider(color = borderColor, thickness = 0.5.dp)
+                // Category row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    when (activeCategory) {
-                        0 -> FormatTools(onFormat, textColor, btnBg)
-                        1 -> HeadingTools(onHeading, textColor, btnBg)
-                        2 -> ListTools(onList, textColor, btnBg)
-                        3 -> InsertTools(onInsert, textColor, btnBg)
-                        4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                    val categories = listOf(
+                        ToolbarCategory("Aa", "格式"),
+                        ToolbarCategory("H", "标题"),
+                        ToolbarCategory("≡", "列表"),
+                        ToolbarCategory("▢", "插入"),
+                        ToolbarCategory("◉", "颜色")
+                    )
+                    categories.forEachIndexed { index, cat ->
+                        val isActive = activeCategory == index
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
+                                .clickable { onCategoryChange(index) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(cat.icon, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
+                            Text(cat.label, fontSize = 10.sp, color = if (isActive) activeColor else textColor)
+                        }
+                    }
+                }
+
+                // Tools panel
+                AnimatedVisibility(
+                    visible = activeCategory >= 0,
+                    enter = expandVertically(tween(200)) + fadeIn(),
+                    exit = shrinkVertically(tween(150)) + fadeOut()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when (activeCategory) {
+                            0 -> FormatTools(onFormat, textColor, btnBg)
+                            1 -> HeadingTools(onHeading, textColor, btnBg)
+                            2 -> ListTools(onList, textColor, btnBg)
+                            3 -> InsertTools(onInsert, textColor, btnBg)
+                            4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                        }
                     }
                 }
             }
@@ -428,15 +457,14 @@ private data class ToolbarCategory(val icon: String, val label: String)
 
 @Composable
 private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    val items = listOf(
+    listOf(
         "B" to "toggleBold()",
         "I" to "toggleItalic()",
         "U" to "toggleUnderline()",
-        "̶" to "toggleStrike()",
+        "S" to "toggleStrike()",
         "❝" to "toggleBlockquote()",
         "—" to "insertDivider()"
-    )
-    items.forEach { (label, cmd) ->
+    ).forEach { (label, cmd) ->
         ToolChip(label = label, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
     }
 }
@@ -450,17 +478,17 @@ private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Colo
 
 @Composable
 private fun ListTools(onList: (String) -> Unit, textColor: Color, btnBg: Color) {
-    ToolChip(label = "1. …", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
-    ToolChip(label = "• …", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
+    ToolChip(label = "1.", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
+    ToolChip(label = "•", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
 }
 
 @Composable
 private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Color) {
     listOf(
-        "▣ 图片" to "image",
-        "▷ 视频" to "video",
-        "▶ 音频" to "audio",
-        "‖ 链接" to "link"
+        "图片" to "image",
+        "视频" to "video",
+        "音频" to "audio",
+        "链接" to "link"
     ).forEach { (label, action) ->
         ToolChip(label = label, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
     }
@@ -520,16 +548,16 @@ private fun ColorTools(
 
 @Composable
 private fun ToolChip(label: String, onClick: () -> Unit, textColor: Color, bg: Color) {
-    Text(
-        text = label,
-        fontSize = 13.sp,
-        color = textColor,
+    Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = label, fontSize = 14.sp, color = textColor)
+    }
 }
 
 @Composable
@@ -558,7 +586,7 @@ private fun AddTagDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "选择颜色", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("选择颜色", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     presetColors.forEach { color ->
@@ -582,14 +610,10 @@ private fun AddTagDialog(
             TextButton(
                 onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor) },
                 enabled = name.isNotBlank()
-            ) {
-                Text("确定")
-            }
+            ) { Text("确定") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
+            TextButton(onClick = onDismiss) { Text("取消") }
         }
     )
 }

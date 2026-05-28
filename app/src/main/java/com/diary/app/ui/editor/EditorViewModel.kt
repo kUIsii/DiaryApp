@@ -25,6 +25,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
+            if (dao.getTagCount() == 0) {
+                val presets = listOf(
+                    Tag(name = "生活", color = 0xFF667EEA, isPreset = true),
+                    Tag(name = "工作", color = 0xFFE74C3C, isPreset = true),
+                    Tag(name = "学习", color = 0xFF2ECC71, isPreset = true),
+                    Tag(name = "旅行", color = 0xFFE67E22, isPreset = true),
+                    Tag(name = "感悟", color = 0xFF9B59B6, isPreset = true),
+                    Tag(name = "健康", color = 0xFF1ABC9C, isPreset = true),
+                    Tag(name = "财务", color = 0xFFF1C40F, isPreset = true),
+                    Tag(name = "社交", color = 0xFFE91E63, isPreset = true)
+                )
+                presets.forEach { dao.insertTag(it) }
+            }
             dao.getAllTags().collect { _allTags.value = it }
         }
     }

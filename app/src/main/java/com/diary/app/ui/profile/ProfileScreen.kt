@@ -1,6 +1,10 @@
 package com.diary.app.ui.profile
 
 import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,7 +52,10 @@ import com.diary.app.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(onNavigateToChangelog: () -> Unit = {}) {
+fun ProfileScreen(
+    onNavigateToChangelog: () -> Unit = {},
+    onNavigateToTagManagement: () -> Unit = {}
+) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
     val currentThemeMode by app.themeMode.collectAsState()
@@ -133,6 +141,21 @@ fun ProfileScreen(onNavigateToChangelog: () -> Unit = {}) {
 
                     if (showThemeMenu) {
                         ThemeMode.entries.forEach { mode ->
+                            val isSelected = currentThemeMode == mode
+                            val dotColor by animateColorAsState(
+                                targetValue = if (isSelected) DarkAccentStart else DarkTextTertiary.copy(alpha = 0.3f),
+                                animationSpec = tween(200),
+                                label = "dotColor"
+                            )
+                            val scale by androidx.compose.animation.core.animateFloatAsState(
+                                targetValue = if (isSelected) 1.2f else 1f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                ),
+                                label = "scale"
+                            )
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -146,11 +169,9 @@ fun ProfileScreen(onNavigateToChangelog: () -> Unit = {}) {
                                 Box(
                                     modifier = Modifier
                                         .size(16.dp)
+                                        .scale(scale)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (currentThemeMode == mode) DarkAccentStart
-                                            else DarkTextTertiary.copy(alpha = 0.3f)
-                                        )
+                                        .background(dotColor)
                                 )
                                 Text(
                                     text = mode.label,
@@ -215,6 +236,23 @@ fun ProfileScreen(onNavigateToChangelog: () -> Unit = {}) {
                             color = DarkTextTertiary
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Tag management
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToTagManagement() }
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("分类管理", fontSize = 16.sp, color = DarkTextPrimary)
+                    Text("查看", fontSize = 14.sp, color = DarkTextTertiary)
                 }
             }
 

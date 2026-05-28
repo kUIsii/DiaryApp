@@ -38,6 +38,19 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
+private fun stripMarkdown(text: String): String {
+    return text
+        .replace(Regex("^#{1,6}\\s+", RegexOption.MULTILINE), "")
+        .replace(Regex("^[-*+]\\s+", RegexOption.MULTILINE), "")
+        .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+        .replace(Regex("\\*(.+?)\\*"), "$1")
+        .replace(Regex("~~(.+?)~~"), "$1")
+        .replace(Regex("`(.+?)`"), "$1")
+        .replace(Regex("\\[(.+?)\\]\\(.+?\\)"), "$1")
+        .replace(Regex("^\\s*\\n", RegexOption.MULTILINE), "\n")
+        .trim()
+}
+
 data class ChangelogRelease(
     @SerializedName("tag_name") val tagName: String,
     val name: String?,
@@ -194,7 +207,7 @@ private fun ReleaseItem(
             if (!release.body.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = release.body,
+                    text = stripMarkdown(release.body),
                     fontSize = 13.sp,
                     color = textSecondary,
                     lineHeight = 20.sp
