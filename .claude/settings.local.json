@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s /b \"C:\\\\Users\\\\陈仕杰\\\\Desktop\\\\文档收集器\\\\日记APP\\\\*.kt\")",
+      "Bash(powershell *)",
+      "Bash(git -C \"/c/Users/陈仕杰/Desktop/文档收集器/日记APP\" log --oneline -5)",
+      "Bash(C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(cmd //c \".\\\\gradlew.bat assembleDebug\")",
+      "Bash(/c/Users/陈仕杰/Desktop/文档收集器/手机备忘录/WordNoteApp/gradlew.bat assembleDebug)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" status *)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" diff *)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" add *)",
+      "Bash(D:/Git/Git/cmd/git.exe commit -m ' *)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" commit *)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" push *)",
+      "Bash(\"D:/Git/Git/cmd/git.exe\" tag *)",
+      "Bash(D:/Node.js/node.exe -e ' *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m '初始化项目：创建基础结构和UI骨架 *)"
+    ]
+  }
+}
