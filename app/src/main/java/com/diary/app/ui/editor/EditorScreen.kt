@@ -7,6 +7,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,10 +31,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,10 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,8 +59,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.isDark
 import java.time.LocalDate
 import java.time.LocalTime
@@ -84,13 +84,27 @@ fun EditorScreen(
     val jsBridge = remember { DiaryJsBridge() }
     val viewModel: EditorViewModel = viewModel()
 
+    val allTags by viewModel.allTags.collectAsState()
+    val selectedTagIds by viewModel.selectedTagIds.collectAsState()
+
+    var selectedMood by remember { mutableStateOf<Int?>(null) }
+    var selectedWeather by remember { mutableStateOf<String?>(null) }
+    var showMetadata by remember { mutableStateOf(false) }
+    var showTagDialog by remember { mutableStateOf(false) }
+
     // Toolbar state: 0=format, 1=heading, 2=list, 3=insert, 4=color
     var activeCategory by remember { mutableIntStateOf(-1) }
-    // Color sub-tab: 0=text, 1=background
     var colorTab by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
+    }
+
+    LaunchedEffect(viewModel.currentEntry.value) {
+        viewModel.currentEntry.value?.let { entry ->
+            selectedMood = entry.moodLevel
+            selectedWeather = entry.weather
+        }
     }
 
     LaunchedEffect(themeMode) {
@@ -118,12 +132,21 @@ fun EditorScreen(
         }
     }
 
-    // Theme-aware colors
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
     val accentColor = MaterialTheme.colorScheme.primary
     val dividerColor = MaterialTheme.colorScheme.outlineVariant
+
+    if (showTagDialog) {
+        AddTagDialog(
+            onDismiss = { showTagDialog = false },
+            onConfirm = { name, color ->
+                viewModel.addTag(name, color)
+                showTagDialog = false
+            }
+        )
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -144,59 +167,121 @@ fun EditorScreen(
                 IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }) {
                     Icon(Icons.Default.Redo, contentDescription = "重做", tint = textSecondary)
                 }
-                TextButton(onClick = {
+                IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
                         webView?.evaluateJavascript("getPlainText()") { plain ->
                             val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
                             val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                            viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId)
+                            viewModel.saveEntry(
+                                title = dateTitle,
+                                content = cleanJson,
+                                plainText = cleanPlain,
+                                diaryId = diaryId,
+                                moodLevel = selectedMood,
+                                weather = selectedWeather
+                            )
                         }
                     }
                     onNavigateBack()
                 }) {
                     Text(
                         text = "保存",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            brush = Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd))
-                        )
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor
                     )
                 }
             }
 
-            // Date title
-            Text(
-                text = dateTitle,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-            )
-
-            // Metadata row
+            // Date title + metadata toggle
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showMetadata = !showMetadata }
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = timeText, fontSize = 12.sp, color = textSecondary)
-                MetadataChip(text = "心情", textColor = textSecondary)
-                MetadataChip(text = "天气", textColor = textSecondary)
-                MetadataChip(text = "位置", textColor = textSecondary)
-            }
-
-            // Tags
-            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
                 Text(
-                    text = "添加标签",
+                    text = dateTitle,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = if (showMetadata) "收起" else "详情",
                     fontSize = 12.sp,
-                    color = textSecondary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(surfaceColor.copy(alpha = 0.5f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    color = accentColor
                 )
             }
+
+            // Time
+            Text(
+                text = timeText,
+                fontSize = 12.sp,
+                color = textSecondary,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            // Expandable metadata section
+            AnimatedVisibility(
+                visible = showMetadata,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(surfaceColor.copy(alpha = 0.5f))
+                        .padding(12.dp)
+                ) {
+                    // Mood
+                    Text(text = "心情", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+                    MoodSlider(
+                        selectedLevel = selectedMood,
+                        onLevelChange = { selectedMood = it },
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Weather
+                    Text(text = "天气", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+                    WeatherSelector(
+                        selectedWeather = selectedWeather,
+                        onWeatherSelected = { selectedWeather = it },
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Tags
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "标签", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+                        Text(
+                            text = "+ 新建",
+                            fontSize = 12.sp,
+                            color = accentColor,
+                            modifier = Modifier.clickable { showTagDialog = true }
+                        )
+                    }
+                    TagEditor(
+                        allTags = allTags,
+                        selectedTagIds = selectedTagIds,
+                        onTagToggle = { viewModel.toggleTag(it) },
+                        onAddTag = { showTagDialog = true },
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+            Divider(color = dividerColor, thickness = 0.5.dp)
 
             // WebView (fills remaining space)
             AndroidView(
@@ -217,7 +302,7 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
 
-            // Bottom toolbar (above keyboard)
+            // Bottom toolbar
             EditorToolbar(
                 activeCategory = activeCategory,
                 onCategoryChange = { cat ->
@@ -240,8 +325,7 @@ fun EditorScreen(
                 },
                 onClearFormat = { webView?.evaluateJavascript("clearFormatting()", null) },
                 colorTab = colorTab,
-                onColorTabChange = { colorTab = it },
-                isDark = isDark
+                onColorTabChange = { colorTab = it }
             )
         }
     }
@@ -258,68 +342,89 @@ private fun EditorToolbar(
     onColor: (String, String) -> Unit,
     onClearFormat: () -> Unit,
     colorTab: Int,
-    onColorTabChange: (Int) -> Unit,
-    isDark: Boolean
+    onColorTabChange: (Int) -> Unit
 ) {
-    val surfaceColor = if (isDark) Color(0xFF1E1E2E) else Color(0xFFF5F5F5)
-    val borderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
-    val textColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val activeColor = MaterialTheme.colorScheme.primary
-    val btnBg = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+    val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(surfaceColor)
-            .border(1.dp, borderColor)
+            .border(0.5.dp, borderColor)
     ) {
-        // Primary row - category buttons
+        // Primary row - 5 icon categories
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            val categories = listOf("格式", "标题", "列表", "插入", "颜色")
-            categories.forEachIndexed { index, label ->
+            val categories = listOf(
+                ToolbarCategory("Aa", "格式"),
+                ToolbarCategory("H", "标题"),
+                ToolbarCategory("≡", "列表"),
+                ToolbarCategory("▢", "插入"),
+                ToolbarCategory("◉", "颜色")
+            )
+            categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
-                Text(
-                    text = label,
-                    fontSize = 15.sp,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) activeColor else textColor,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
                         .clickable { onCategoryChange(index) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = cat.icon,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isActive) activeColor else textColor
+                    )
+                    Text(
+                        text = cat.label,
+                        fontSize = 10.sp,
+                        color = if (isActive) activeColor else textColor
+                    )
+                }
             }
         }
 
         // Secondary row - tools
-        if (activeCategory >= 0) {
-            Divider(color = borderColor)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                when (activeCategory) {
-                    0 -> FormatTools(onFormat, textColor, btnBg)
-                    1 -> HeadingTools(onHeading, textColor, btnBg)
-                    2 -> ListTools(onList, textColor, btnBg)
-                    3 -> InsertTools(onInsert, textColor, btnBg)
-                    4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor, isDark)
+        AnimatedVisibility(
+            visible = activeCategory >= 0,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column {
+                Divider(color = borderColor, thickness = 0.5.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    when (activeCategory) {
+                        0 -> FormatTools(onFormat, textColor, btnBg)
+                        1 -> HeadingTools(onHeading, textColor, btnBg)
+                        2 -> ListTools(onList, textColor, btnBg)
+                        3 -> InsertTools(onInsert, textColor, btnBg)
+                        4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                    }
                 }
             }
         }
     }
 }
+
+private data class ToolbarCategory(val icon: String, val label: String)
 
 @Composable
 private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
@@ -327,32 +432,37 @@ private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Col
         "B" to "toggleBold()",
         "I" to "toggleItalic()",
         "U" to "toggleUnderline()",
-        "S" to "toggleStrike()",
-        "引用" to "toggleBlockquote()",
-        "---" to "insertDivider()"
+        "̶" to "toggleStrike()",
+        "❝" to "toggleBlockquote()",
+        "—" to "insertDivider()"
     )
     items.forEach { (label, cmd) ->
-        ToolButton(label = label, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = label, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
     }
 }
 
 @Composable
 private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
-    listOf("标题1" to 1, "标题2" to 2, "标题3" to 3, "正文" to 0).forEach { (label, level) ->
-        ToolButton(label = label, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
+    listOf("H1" to 1, "H2" to 2, "H3" to 3, "正文" to 0).forEach { (label, level) ->
+        ToolChip(label = label, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
     }
 }
 
 @Composable
 private fun ListTools(onList: (String) -> Unit, textColor: Color, btnBg: Color) {
-    ToolButton(label = "有序列表", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
-    ToolButton(label = "无序列表", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
+    ToolChip(label = "1. …", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
+    ToolChip(label = "• …", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
 }
 
 @Composable
 private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Color) {
-    listOf("图片" to "image", "视频" to "video", "音频" to "audio", "链接" to "link").forEach { (label, action) ->
-        ToolButton(label = label, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
+    listOf(
+        "▣ 图片" to "image",
+        "▷ 视频" to "video",
+        "▶ 音频" to "audio",
+        "‖ 链接" to "link"
+    ).forEach { (label, action) ->
+        ToolChip(label = label, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -364,13 +474,11 @@ private fun ColorTools(
     onTabChange: (Int) -> Unit,
     textColor: Color,
     btnBg: Color,
-    accentColor: Color,
-    isDark: Boolean
+    accentColor: Color
 ) {
     Column {
-        // Tab row
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf("文字颜色" to 0, "背景颜色" to 1).forEach { (label, t) ->
+            listOf("文字" to 0, "背景" to 1).forEach { (label, t) ->
                 Text(
                     text = label,
                     fontSize = 13.sp,
@@ -384,18 +492,16 @@ private fun ColorTools(
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        // Color palette
         val colors = listOf(
-            "#000000" to "黑色", "#FFFFFF" to "白色", "#667EEA" to "蓝色",
-            "#764BA2" to "紫色", "#E74C3C" to "红色", "#E67E22" to "橙色",
-            "#F1C40F" to "黄色", "#2ECC71" to "绿色", "#9B59B6" to "紫红"
+            "#000000", "#FFFFFF", "#667EEA", "#764BA2", "#E74C3C",
+            "#E67E22", "#F1C40F", "#2ECC71", "#9B59B6"
         )
         val type = if (tab == 0) "text" else "background"
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            colors.forEach { (hex, _) ->
+            colors.forEach { hex ->
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
                         .background(Color(android.graphics.Color.parseColor(hex)))
                         .then(
@@ -407,13 +513,13 @@ private fun ColorTools(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        ToolButton(label = "清除格式", onClick = onClear, textColor = textColor, bg = btnBg)
+        Spacer(modifier = Modifier.height(6.dp))
+        ToolChip(label = "清除格式", onClick = onClear, textColor = textColor, bg = btnBg)
     }
 }
 
 @Composable
-private fun ToolButton(label: String, onClick: () -> Unit, textColor: Color, bg: Color) {
+private fun ToolChip(label: String, onClick: () -> Unit, textColor: Color, bg: Color) {
     Text(
         text = label,
         fontSize = 13.sp,
@@ -427,15 +533,63 @@ private fun ToolButton(label: String, onClick: () -> Unit, textColor: Color, bg:
 }
 
 @Composable
-private fun MetadataChip(text: String, textColor: Color) {
-    Text(
-        text = text,
-        fontSize = 12.sp,
-        color = textColor,
-        modifier = Modifier
-            .padding(start = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+private fun AddTagDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, Long) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var selectedColor by remember { mutableStateOf(0xFF667EEAL) }
+
+    val presetColors = listOf(
+        0xFF667EEA, 0xFF764BA2, 0xFFE74C3C, 0xFFE67E22,
+        0xFFF1C40F, 0xFF2ECC71, 0xFF9B59B6, 0xFF1ABC9C
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建标签") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("标签名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "选择颜色", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    presetColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(color))
+                                .then(
+                                    if (selectedColor == color)
+                                        Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                    else Modifier
+                                )
+                                .clickable { selectedColor = color }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor) },
+                enabled = name.isNotBlank()
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
     )
 }

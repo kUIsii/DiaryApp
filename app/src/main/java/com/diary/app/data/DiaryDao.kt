@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -30,4 +31,26 @@ interface DiaryDao {
 
     @Query("SELECT createdAt FROM diary_entries")
     fun getAllTimestamps(): Flow<List<Long>>
+
+    // Tag queries
+    @Query("SELECT * FROM tags ORDER BY isPreset DESC, name ASC")
+    fun getAllTags(): Flow<List<Tag>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTag(tag: Tag): Long
+
+    @Delete
+    suspend fun deleteTag(tag: Tag)
+
+    @Query("SELECT * FROM diary_tag_cross_ref WHERE diaryId = :diaryId")
+    suspend fun getTagsForDiary(diaryId: Long): List<DiaryTag>
+
+    @Query("DELETE FROM diary_tag_cross_ref WHERE diaryId = :diaryId")
+    suspend fun deleteTagsForDiary(diaryId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiaryTag(diaryTag: DiaryTag)
+
+    @Query("SELECT * FROM diary_entries WHERE id IN (SELECT diaryId FROM diary_tag_cross_ref WHERE tagId = :tagId) ORDER BY createdAt DESC")
+    fun getEntriesByTag(tagId: Long): Flow<List<DiaryEntry>>
 }

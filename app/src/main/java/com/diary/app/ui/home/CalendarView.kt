@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -31,8 +32,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.TemporalAdjusters
+
+enum class CalendarMode(val label: String) {
+    MONTH("月"),
+    WEEK("周")
+}
 
 @Composable
 fun CalendarView(
@@ -42,31 +50,97 @@ fun CalendarView(
     modifier: Modifier = Modifier
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    var calendarMode by remember { mutableStateOf(CalendarMode.MONTH) }
     val today = remember { LocalDate.now() }
 
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val accent = MaterialTheme.colorScheme.primary
 
+    // For week mode, track the week start date
+    var weekStart by remember {
+        mutableStateOf(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+    }
+
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column {
-            // Month navigation
+            // Navigation row with mode toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = "上月", tint = onSurfaceVariant)
+                IconButton(onClick = {
+                    if (calendarMode == CalendarMode.MONTH) {
+                        currentMonth = currentMonth.minusMonths(1)
+                    } else {
+                        weekStart = weekStart.minusWeeks(1)
+                        currentMonth = YearMonth.from(weekStart)
+                    }
+                }) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "上", tint = onSurfaceVariant)
                 }
-                Text(
-                    text = "${currentMonth.year}年${currentMonth.monthValue}月",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = onBackground
-                )
-                IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = "下月", tint = onSurfaceVariant)
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = if (calendarMode == CalendarMode.MONTH)
+                            "${currentMonth.year}年${currentMonth.monthValue}月"
+                        else {
+                            val weekEnd = weekStart.plusDays(6)
+                            if (weekStart.monthValue == weekEnd.monthValue)
+                                "${weekStart.monthValue}月${weekStart.dayOfMonth}-${weekEnd.dayOfMonth}日"
+                            else
+                                "${weekStart.monthValue}月${weekStart.dayOfMonth}-${weekEnd.monthValue}月${weekEnd.dayOfMonth}日"
+                        },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onBackground
+                    )
+
+                    // Mode toggle
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(onSurfaceVariant.copy(alpha = 0.1f))
+                            .padding(2.dp)
+                    ) {
+                        CalendarMode.values().forEach { mode ->
+                            Text(
+                                text = mode.label,
+                                fontSize = 11.sp,
+                                fontWeight = if (calendarMode == mode) FontWeight.Bold else FontWeight.Normal,
+                                color = if (calendarMode == mode) accent else onSurfaceVariant,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (calendarMode == mode) accent.copy(alpha = 0.12f)
+                                        else MaterialTheme.colorScheme.surface
+                                    )
+                                    .clickable {
+                                        calendarMode = mode
+                                        if (mode == CalendarMode.WEEK) {
+                                            weekStart = (selectedDate ?: today)
+                                                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+
+                IconButton(onClick = {
+                    if (calendarMode == CalendarMode.MONTH) {
+                        currentMonth = currentMonth.plusMonths(1)
+                    } else {
+                        weekStart = weekStart.plusWeeks(1)
+                        currentMonth = YearMonth.from(weekStart)
+                    }
+                }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = "下", tint = onSurfaceVariant)
                 }
             }
 
@@ -83,61 +157,81 @@ fun CalendarView(
                 }
             }
 
-            // Calendar grid
-            val firstDayOfMonth = currentMonth.atDay(1)
-            val daysInMonth = currentMonth.lengthOfMonth()
-            val startOffset = firstDayOfMonth.dayOfWeek.value % 7
-            val totalCells = startOffset + daysInMonth
-            val rows = (totalCells + 6) / 7
+            if (calendarMode == CalendarMode.MONTH) {
+                // Month grid
+                val firstDayOfMonth = currentMonth.atDay(1)
+                val daysInMonth = currentMonth.lengthOfMonth()
+                val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+                val totalCells = startOffset + daysInMonth
+                val rows = (totalCells + 6) / 7
 
-            for (row in 0 until rows) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    for (col in 0..6) {
-                        val cellIndex = row * 7 + col
-                        val dayNum = cellIndex - startOffset + 1
+                for (row in 0 until rows) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        for (col in 0..6) {
+                            val cellIndex = row * 7 + col
+                            val dayNum = cellIndex - startOffset + 1
 
-                        if (dayNum in 1..daysInMonth) {
-                            val date = currentMonth.atDay(dayNum)
-                            val hasEntry = date in entryDates
-                            val isSelected = date == selectedDate
-                            val isToday = date == today
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .padding(2.dp)
-                                    .clip(CircleShape)
-                                    .then(
-                                        if (isSelected) Modifier.background(accent)
-                                        else if (isToday) Modifier.background(accent.copy(alpha = 0.15f))
-                                        else Modifier
-                                    )
-                                    .clickable { onDateSelected(date) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "$dayNum",
-                                        fontSize = 13.sp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else onBackground,
-                                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                    if (hasEntry) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .clip(CircleShape)
-                                                .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else accent)
-                                        )
-                                    }
-                                }
+                            if (dayNum in 1..daysInMonth) {
+                                val date = currentMonth.atDay(dayNum)
+                                CalendarDay(date, date in entryDates, date == selectedDate, date == today, onDateSelected, accent, Modifier.weight(1f))
+                            } else {
+                                Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                             }
-                        } else {
-                            Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                         }
                     }
                 }
+            } else {
+                // Week grid (single row)
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0..6) {
+                        val date = weekStart.plusDays(col.toLong())
+                        CalendarDay(date, date in entryDates, date == selectedDate, date == today, onDateSelected, accent, Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarDay(
+    date: LocalDate,
+    hasEntry: Boolean,
+    isSelected: Boolean,
+    isToday: Boolean,
+    onDateSelected: (LocalDate) -> Unit,
+    accent: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    val onBackground = MaterialTheme.colorScheme.onBackground
+
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .clip(CircleShape)
+            .then(
+                if (isSelected) Modifier.background(accent)
+                else if (isToday) Modifier.background(accent.copy(alpha = 0.15f))
+                else Modifier
+            )
+            .clickable { onDateSelected(date) },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "${date.dayOfMonth}",
+                fontSize = 13.sp,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else onBackground,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+            )
+            if (hasEntry) {
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else accent)
+                )
             }
         }
     }

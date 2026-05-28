@@ -10,13 +10,11 @@ data class DiaryEntry(
     val title: String = "",
     val content: String = "",        // Quill.js delta JSON
     val plainText: String = "",      // Plain text for preview/search
-    val mood: String? = null,        // 开心/平静/低落/焦虑/兴奋/疲惫/感恩
-    val weather: String? = null,
+    val moodLevel: Int? = null,      // 1-10, 1=沮丧 10=兴奋
+    val weather: String? = null,     // 晴/多云/阴/雨/雪/风
     val location: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val tags: String? = null,        // JSON array
-    val images: String? = null,      // JSON array of paths
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
