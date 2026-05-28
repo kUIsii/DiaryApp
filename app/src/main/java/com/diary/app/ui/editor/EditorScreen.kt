@@ -118,10 +118,12 @@ fun EditorScreen(
                 }) {
                     Text(
                         text = "保存",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(DarkAccentStart, DarkAccentEnd)
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(DarkAccentStart, DarkAccentEnd)
+                            )
                         )
                     )
                 }
