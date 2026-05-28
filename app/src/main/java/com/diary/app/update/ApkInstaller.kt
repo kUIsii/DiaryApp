@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -39,27 +38,13 @@ object ApkInstaller {
                     val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
-                            // Get the actual file URI from DownloadManager
-                            val localUriIndex = it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
-                            val localUri = if (localUriIndex >= 0) it.getString(localUriIndex) else null
-
-                            val file = if (localUri != null) {
-                                // Use the URI from DownloadManager
-                                val uri = Uri.parse(localUri)
-                                File(uri.path!!)
+                            // Copy APK to app cache for reliable install
+                            val cachedApk = copyToCache(context, downloadManager, downloadId, fileName)
+                            if (cachedApk != null) {
+                                emit(DownloadState.Completed(cachedApk))
+                                installApk(context, cachedApk)
                             } else {
-                                // Fallback to expected path
-                                File(
-                                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                                    fileName
-                                )
-                            }
-
-                            if (file.exists()) {
-                                emit(DownloadState.Completed(file))
-                                installApk(context, file)
-                            } else {
-                                emit(DownloadState.Failed("下载文件不存在"))
+                                emit(DownloadState.Failed("下载文件读取失败"))
                             }
                             return@flow
                         }
@@ -74,16 +59,31 @@ object ApkInstaller {
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun installApk(context: Context, file: File) {
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-        } else {
-            Uri.fromFile(file)
+    private fun copyToCache(context: Context, dm: DownloadManager, downloadId: Long, fileName: String): File? {
+        return try {
+            val uri = dm.getUriForDownloadedFile(downloadId) ?: return null
+            val cacheDir = File(context.cacheDir, "updates")
+            cacheDir.mkdirs()
+            val cacheFile = File(cacheDir, fileName)
+
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                cacheFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            if (cacheFile.exists() && cacheFile.length() > 0) cacheFile else null
+        } catch (e: Exception) {
+            null
         }
+    }
+
+    private fun installApk(context: Context, file: File) {
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
