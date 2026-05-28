@@ -37,3 +37,15 @@ val MoodAnxious = Color(0xFFF093FB) to Color(0xFFF5576C)
 val MoodExcited = Color(0xFFFF9A9E) to Color(0xFFFECFEF)
 val MoodTired = Color(0xFFA18CD1) to Color(0xFFDBC2EF)
 val MoodGrateful = Color(0xFF667EEA) to Color(0xFF764BA2)
+
+// Pure Light mode
+val PureLightBackground = Color(0xFFFFFFFF)
+val PureLightSurface = Color(0xFFF5F5F5)
+val PureLightCardBackground = Color(0xFFF0F0F0)
+val PureLightCardBorder = Color(0xFFE0E0E0)
+
+// Pure Dark mode
+val PureDarkBackground = Color(0xFF000000)
+val PureDarkSurface = Color(0xFF111111)
+val PureDarkCardBackground = Color(0xFF1A1A1A)
+val PureDarkCardBorder = Color(0xFF2A2A2A)
