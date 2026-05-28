@@ -1,4 +1,4 @@
-package com.diary.app.ui.map
+package com.diary.app.ui.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,7 +14,7 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkTextSecondary
 
 @Composable
-fun MapScreen() {
+fun ProfileScreen() {
     GradientBackground {
         Column(
             modifier = Modifier
@@ -24,7 +24,7 @@ fun MapScreen() {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "地图功能开发中",
+                text = "个人设置开发中",
                 fontSize = 16.sp,
                 color = DarkTextSecondary
             )
