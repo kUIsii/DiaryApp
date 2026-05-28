@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
@@ -56,6 +58,14 @@ fun EditorScreen(
     val timeText = "今天 ${currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
 
     var webView by remember { mutableStateOf<WebView?>(null) }
+
+    val viewModel: EditorViewModel = viewModel()
+
+    LaunchedEffect(diaryId) {
+        if (diaryId != null) {
+            viewModel.loadEntry(diaryId)
+        }
+    }
 
     GradientBackground {
         Column(
@@ -98,7 +108,11 @@ fun EditorScreen(
 
                 TextButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
-                        // TODO: save to database
+                        webView?.evaluateJavascript("getPlainText()") { plain ->
+                            val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId)
+                        }
                     }
                     onNavigateBack()
                 }) {
