@@ -22,7 +22,7 @@ object ApkInstaller {
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle("下载更新")
             .setDescription("正在下载新版本...")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)

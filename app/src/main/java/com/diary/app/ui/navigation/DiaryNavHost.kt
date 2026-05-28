@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.diary.app.update.ChangelogScreen
 import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.map.MapScreen
@@ -44,6 +45,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
             return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
         }
     }
+    object Changelog : Screen("changelog", "更新日志", Icons.Default.DateRange)
 }
 
 val bottomNavItems = listOf(Screen.Home, Screen.Map, Screen.Stats, Screen.Profile)
@@ -97,7 +99,12 @@ fun DiaryNavHost() {
             }
             composable(Screen.Map.route) { MapScreen() }
             composable(Screen.Stats.route) { StatsScreen() }
-            composable(Screen.Profile.route) { ProfileScreen() }
+            composable(Screen.Profile.route) {
+                ProfileScreen(onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) })
+            }
+            composable(Screen.Changelog.route) {
+                ChangelogScreen(onNavigateBack = { navController.popBackStack() })
+            }
             composable(
                 route = Screen.Editor.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }),

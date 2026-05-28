@@ -47,7 +47,7 @@ import com.diary.app.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onNavigateToChangelog: () -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
     val currentThemeMode by app.themeMode.collectAsState()
@@ -215,6 +215,31 @@ fun ProfileScreen() {
                             color = DarkTextTertiary
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Changelog
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToChangelog() }
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "更新日志",
+                        fontSize = 16.sp,
+                        color = DarkTextPrimary
+                    )
+                    Text(
+                        text = "查看",
+                        fontSize = 14.sp,
+                        color = DarkTextTertiary
+                    )
                 }
             }
 
