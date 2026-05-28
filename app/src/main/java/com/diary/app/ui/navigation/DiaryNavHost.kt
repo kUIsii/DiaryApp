@@ -1,19 +1,24 @@
 package com.diary.app.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -25,60 +30,60 @@ import androidx.navigation.navArgument
 import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.map.MapScreen
-import com.diary.app.ui.media.MediaScreen
 import com.diary.app.ui.stats.StatsScreen
+import com.diary.app.ui.profile.ProfileScreen
+import com.diary.app.ui.theme.DarkAccentStart
+import com.diary.app.ui.theme.DarkTextTertiary
 
-sealed class Screen(val route: String, val title: String) {
-    object Home : Screen("home", "日记")
-    object Media : Screen("media", "媒体库")
-    object Map : Screen("map", "地图")
-    object Stats : Screen("stats", "统计")
-    object Editor : Screen("editor?diaryId={diaryId}", "编辑日记") {
+sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
+    object Home : Screen("home", "首页", Icons.Default.DateRange)
+    object Map : Screen("map", "地图", Icons.Default.Map)
+    object Stats : Screen("stats", "统计", Icons.Default.BarChart)
+    object Profile : Screen("profile", "我的", Icons.Default.Person)
+    object Editor : Screen("editor?diaryId={diaryId}", "编辑日记", Icons.Default.DateRange) {
         fun createRoute(diaryId: Long? = null): String {
             return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
         }
     }
 }
 
-data class BottomNavItem(
-    val screen: Screen,
-    val icon: @Composable () -> Unit
-)
+val bottomNavItems = listOf(Screen.Home, Screen.Map, Screen.Stats, Screen.Profile)
 
 @Composable
 fun DiaryNavHost() {
     val navController = rememberNavController()
 
-    val bottomNavItems = listOf(
-        BottomNavItem(Screen.Home) { Icon(Icons.Default.DateRange, contentDescription = "日记") },
-        BottomNavItem(Screen.Media) { Icon(Icons.Default.PhotoLibrary, contentDescription = "媒体库") },
-        BottomNavItem(Screen.Map) { Icon(Icons.Default.Map, contentDescription = "地图") },
-        BottomNavItem(Screen.Stats) { Icon(Icons.Default.BarChart, contentDescription = "统计") }
-    )
-
     Scaffold(
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
+            val showBottomBar = currentDestination?.route in bottomNavItems.map { it.route }
 
-            // 只在主页面显示底部导航栏
-            val showBottomBar = currentDestination?.route in bottomNavItems.map { it.screen.route }
             if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
+                NavigationBar(
+                    containerColor = Color.Transparent
+                ) {
+                    bottomNavItems.forEach { screen ->
                         NavigationBarItem(
-                            icon = item.icon,
-                            label = { Text(item.screen.title) },
-                            selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true,
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             onClick = {
-                                navController.navigate(item.screen.route) {
+                                navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                            }
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = DarkAccentStart,
+                                selectedTextColor = DarkAccentStart,
+                                unselectedIconColor = DarkTextTertiary,
+                                unselectedTextColor = DarkTextTertiary,
+                                indicatorColor = Color.Transparent
+                            )
                         )
                     }
                 }
@@ -88,7 +93,9 @@ fun DiaryNavHost() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = { fadeIn() },
+            exitTransition = { fadeOut() }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
@@ -97,14 +104,14 @@ fun DiaryNavHost() {
                     }
                 )
             }
-            composable(Screen.Media.route) {
-                MediaScreen()
-            }
             composable(Screen.Map.route) {
                 MapScreen()
             }
             composable(Screen.Stats.route) {
                 StatsScreen()
+            }
+            composable(Screen.Profile.route) {
+                ProfileScreen()
             }
             composable(
                 route = Screen.Editor.route,
@@ -113,7 +120,9 @@ fun DiaryNavHost() {
                         type = NavType.LongType
                         defaultValue = -1L
                     }
-                )
+                ),
+                enterTransition = { fadeIn() },
+                exitTransition = { fadeOut() }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
                 EditorScreen(
