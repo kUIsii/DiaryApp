@@ -23,9 +23,15 @@ android {
         buildConfigField("String", "GITHUB_REPO", "\"DiaryApp\"")
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // 使用默认 debug keystore 签名 release
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
