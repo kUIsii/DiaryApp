@@ -1,29 +1,23 @@
 package com.diary.app.update
 
 import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.io.File
 
 object ApkInstaller {
 
-    private var downloadId: Long = -1L
-
-    fun downloadAndInstall(context: Context, url: String, fileName: String): Flow<DownloadState> = callbackFlow {
+    fun downloadAndInstall(context: Context, url: String, fileName: String): Flow<DownloadState> = flow {
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
         val request = DownloadManager.Request(Uri.parse(url))
@@ -34,61 +28,51 @@ object ApkInstaller {
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
 
-        downloadId = downloadManager.enqueue(request)
+        val downloadId = downloadManager.enqueue(request)
 
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                if (id == downloadId) {
-                    val file = File(
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                        fileName
-                    )
-                    if (file.exists()) {
-                        trySend(DownloadState.Completed(file))
-                        installApk(ctx, file)
-                    } else {
-                        trySend(DownloadState.Failed("下载文件不存在"))
-                    }
-                    close()
-                }
-            }
-        }
+        // Poll for download completion
+        while (true) {
+            val query = DownloadManager.Query().setFilterById(downloadId)
+            val cursor: Cursor? = downloadManager.query(query)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            // Get the actual file URI from DownloadManager
+                            val localUriIndex = it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+                            val localUri = if (localUriIndex >= 0) it.getString(localUriIndex) else null
 
-        val intentFilter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, intentFilter)
-        }
+                            val file = if (localUri != null) {
+                                // Use the URI from DownloadManager
+                                val uri = Uri.parse(localUri)
+                                File(uri.path!!)
+                            } else {
+                                // Fallback to expected path
+                                File(
+                                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                                    fileName
+                                )
+                            }
 
-        val progressJob = CoroutineScope(Dispatchers.IO).launch {
-            var complete = false
-            while (!complete) {
-                val query = DownloadManager.Query().setFilterById(downloadId)
-                val cursor: Cursor? = downloadManager.query(query)
-                cursor?.use {
-                    if (it.moveToFirst()) {
-                        val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            complete = true
-                        } else if (status == DownloadManager.STATUS_FAILED) {
-                            trySend(DownloadState.Failed("下载失败"))
-                            complete = true
+                            if (file.exists()) {
+                                emit(DownloadState.Completed(file))
+                                installApk(context, file)
+                            } else {
+                                emit(DownloadState.Failed("下载文件不存在"))
+                            }
+                            return@flow
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            emit(DownloadState.Failed("下载失败"))
+                            return@flow
                         }
                     }
                 }
-                delay(500)
             }
+            delay(1000)
         }
-
-        awaitClose {
-            progressJob.cancel()
-            try {
-                context.unregisterReceiver(receiver)
-            } catch (_: Exception) {}
-        }
-    }
+    }.flowOn(Dispatchers.IO)
 
     private fun installApk(context: Context, file: File) {
         val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
