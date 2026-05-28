@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: transparent;
+            color: #E0E0E0;
+        }
+        .ql-toolbar.ql-snow {
+            border: none !important;
+            padding: 8px 0 !important;
+            background: transparent;
+        }
+        .ql-container.ql-snow {
+            border: none !important;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        .ql-editor {
+            min-height: 60vh;
+            padding: 0 16px;
+            color: #E0E0E0;
+        }
+        .ql-editor.ql-blank::before {
+            color: rgba(255,255,255,0.3);
+            font-style: normal;
+        }
+        .ql-snow .ql-stroke { stroke: rgba(255,255,255,0.5); }
+        .ql-snow .ql-fill { fill: rgba(255,255,255,0.5); }
+        .ql-snow .ql-picker { color: rgba(255,255,255,0.5); }
+        .ql-snow .ql-picker-options {
+            background: #1E1E2E;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        .ql-snow .ql-active .ql-stroke { stroke: #667EEA; }
+        .ql-snow .ql-active .ql-fill { fill: #667EEA; }
+        .ql-snow .ql-active { color: #667EEA; }
+        .ql-toolbar.ql-snow .ql-formats { margin-right: 12px; }
+        hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 16px 0; }
+        blockquote {
+            border-left: 3px solid #667EEA;
+            padding-left: 12px;
+            color: rgba(255,255,255,0.6);
+            margin: 8px 0;
+        }
+        img { max-width: 100%; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <span class="ql-formats">
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+            <button class="ql-underline"></button>
+            <button class="ql-strike"></button>
+        </span>
+        <span class="ql-formats">
+            <select class="ql-header">
+                <option value="1">H1</option>
+                <option value="2">H2</option>
+                <option value="3">H3</option>
+                <option selected>正文</option>
+            </select>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-blockquote"></button>
+            <button class="ql-list" value="ordered"></button>
+            <button class="ql-list" value="bullet"></button>
+        </span>
+        <span class="ql-formats">
+            <select class="ql-color"></select>
+            <select class="ql-background"></select>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-link"></button>
+            <button class="ql-image"></button>
+            <button class="ql-video"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-divider"></button>
+        </span>
+    </div>
+    <div id="editor"></div>
+
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <script>
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: '开始写日记...',
+            modules: {
+                toolbar: '#toolbar'
+            }
+        });
+
+        // Custom divider button
+        document.querySelector('.ql-divider').addEventListener('click', function() {
+            var range = quill.getSelection(true);
+            quill.insertText(range.index, '\n');
+            quill.insertEmbed(range.index + 1, 'divider', true);
+            quill.setSelection(range.index + 2);
+        });
+
+        // Register divider format
+        var BlockEmbed = Quill.import('blots/block/embed');
+        class DividerBlot extends BlockEmbed {}
+        DividerBlot.blotName = 'divider';
+        DividerBlot.tagName = 'hr';
+        Quill.register(DividerBlot);
+
+        // Bridge functions
+        function getContent() {
+            return JSON.stringify(quill.getContents());
+        }
+
+        function getPlainText() {
+            return quill.getText();
+        }
+
+        function setContent(deltaJSON) {
+            try {
+                var delta = JSON.parse(deltaJSON);
+                quill.setContents(delta);
+            } catch(e) {
+                quill.setText(deltaJSON);
+            }
+        }
+
+        function focusEditor() {
+            quill.focus();
+        }
+    </script>
+</body>
+</html>
