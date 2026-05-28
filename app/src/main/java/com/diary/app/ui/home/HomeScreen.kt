@@ -37,8 +37,8 @@ import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.DarkTextPrimary
 import com.diary.app.ui.theme.DarkTextSecondary
 import com.diary.app.ui.theme.DarkTextTertiary
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -47,6 +47,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val entries by viewModel.entries.collectAsState()
+    val entryDates by viewModel.entryDates.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -64,6 +66,43 @@ fun HomeScreen(
                         color = DarkTextPrimary,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
+                }
+
+                // Calendar
+                item {
+                    CalendarView(
+                        entryDates = entryDates,
+                        selectedDate = selectedDate,
+                        onDateSelected = { date ->
+                            viewModel.selectDate(
+                                if (date == selectedDate) null else date
+                            )
+                        }
+                    )
+                }
+
+                // Filter indicator
+                if (selectedDate != null) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日的日记",
+                                fontSize = 14.sp,
+                                color = DarkAccentStart,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "查看全部",
+                                fontSize = 13.sp,
+                                color = DarkTextTertiary,
+                                modifier = Modifier.clickable { viewModel.selectDate(null) }
+                            )
+                        }
+                    }
                 }
 
                 if (entries.isEmpty()) {
@@ -143,6 +182,7 @@ private fun DiaryCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 0.dp)
+            .clickable { onClick() }
     ) {
         Column {
             Text(
@@ -192,6 +232,8 @@ private fun MoodTag(mood: String) {
 }
 
 private fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("yyyy年M月d日", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+    val formatter = DateTimeFormatter.ofPattern("yyyy年M月d日", Locale.getDefault())
+    return java.time.Instant.ofEpochMilli(timestamp)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(formatter)
 }

@@ -27,4 +27,7 @@ interface DiaryDao {
 
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
+
+    @Query("SELECT createdAt FROM diary_entries")
+    fun getAllTimestamps(): Flow<List<Long>>
 }
