@@ -5,123 +5,328 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <style>
+        :root {
+            --bg: transparent;
+            --text: #E0E0E0;
+            --text-secondary: rgba(255,255,255,0.5);
+            --text-placeholder: rgba(255,255,255,0.3);
+            --toolbar-bg: rgba(30,30,46,0.95);
+            --toolbar-border: rgba(255,255,255,0.08);
+            --btn-active: #667EEA;
+            --btn-default: rgba(255,255,255,0.5);
+            --divider: rgba(255,255,255,0.1);
+        }
+        .theme-light {
+            --text: #1A1A2E;
+            --text-secondary: #666680;
+            --text-placeholder: rgba(0,0,0,0.3);
+            --toolbar-bg: rgba(245,245,245,0.95);
+            --toolbar-border: rgba(0,0,0,0.08);
+            --btn-default: rgba(0,0,0,0.45);
+            --divider: rgba(0,0,0,0.1);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: transparent;
-            color: #E0E0E0;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
-        .ql-toolbar.ql-snow {
-            border: none !important;
-            padding: 8px 0 !important;
-            background: transparent;
-        }
+        /* Hide default Quill toolbar */
+        .ql-toolbar.ql-snow { display: none !important; }
         .ql-container.ql-snow {
             border: none !important;
             font-size: 16px;
             line-height: 1.8;
+            flex: 1;
+            overflow-y: auto;
         }
         .ql-editor {
-            min-height: 60vh;
+            min-height: 100%;
             padding: 0 16px;
-            color: #E0E0E0;
+            color: var(--text);
         }
         .ql-editor.ql-blank::before {
-            color: rgba(255,255,255,0.3);
+            color: var(--text-placeholder);
             font-style: normal;
         }
-        .ql-snow .ql-stroke { stroke: rgba(255,255,255,0.5); }
-        .ql-snow .ql-fill { fill: rgba(255,255,255,0.5); }
-        .ql-snow .ql-picker { color: rgba(255,255,255,0.5); }
-        .ql-snow .ql-picker-options {
-            background: #1E1E2E;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-        }
-        .ql-snow .ql-active .ql-stroke { stroke: #667EEA; }
-        .ql-snow .ql-active .ql-fill { fill: #667EEA; }
-        .ql-snow .ql-active { color: #667EEA; }
-        .ql-toolbar.ql-snow .ql-formats { margin-right: 12px; }
-        hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 16px 0; }
+        hr { border: none; border-top: 1px solid var(--divider); margin: 16px 0; }
         blockquote {
-            border-left: 3px solid #667EEA;
+            border-left: 3px solid var(--btn-active);
             padding-left: 12px;
-            color: rgba(255,255,255,0.6);
+            color: var(--text-secondary);
             margin: 8px 0;
         }
-        img { max-width: 100%; border-radius: 8px; }
+        img, video { max-width: 100%; border-radius: 8px; }
+
+        /* Custom toolbar */
+        #custom-toolbar {
+            background: var(--toolbar-bg);
+            border-top: 1px solid var(--toolbar-border);
+            flex-shrink: 0;
+        }
+        #toolbar-primary {
+            display: flex;
+            overflow-x: auto;
+            padding: 6px 8px;
+            gap: 2px;
+            border-bottom: 1px solid var(--toolbar-border);
+        }
+        #toolbar-primary::-webkit-scrollbar { display: none; }
+        .tool-btn {
+            min-width: 40px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            color: var(--btn-default);
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .tool-btn.active {
+            background: rgba(102,126,234,0.15);
+            color: var(--btn-active);
+        }
+        .tool-btn:active { background: rgba(102,126,234,0.1); }
+        #toolbar-secondary {
+            display: none;
+            padding: 6px 8px;
+            gap: 6px;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+        }
+        #toolbar-secondary::-webkit-scrollbar { display: none; }
+        #toolbar-secondary.visible { display: flex; }
+        .sub-btn {
+            min-width: 36px;
+            height: 32px;
+            border: 1px solid var(--toolbar-border);
+            background: transparent;
+            color: var(--btn-default);
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            padding: 0 8px;
+        }
+        .sub-btn.active {
+            border-color: var(--btn-active);
+            color: var(--btn-active);
+            background: rgba(102,126,234,0.1);
+        }
+        .sub-btn:active { opacity: 0.7; }
+        .color-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .color-dot.active { border-color: var(--btn-active); }
+        .color-dot:active { opacity: 0.7; }
     </style>
 </head>
 <body>
-    <div id="toolbar">
-        <span class="ql-formats">
-            <button class="ql-bold"></button>
-            <button class="ql-italic"></button>
-            <button class="ql-underline"></button>
-            <button class="ql-strike"></button>
-        </span>
-        <span class="ql-formats">
-            <select class="ql-header">
-                <option value="1">H1</option>
-                <option value="2">H2</option>
-                <option value="3">H3</option>
-                <option selected>正文</option>
-            </select>
-        </span>
-        <span class="ql-formats">
-            <button class="ql-blockquote"></button>
-            <button class="ql-list" value="ordered"></button>
-            <button class="ql-list" value="bullet"></button>
-        </span>
-        <span class="ql-formats">
-            <select class="ql-color"></select>
-            <select class="ql-background"></select>
-        </span>
-        <span class="ql-formats">
-            <button class="ql-link"></button>
-            <button class="ql-image"></button>
-            <button class="ql-video"></button>
-        </span>
-        <span class="ql-formats">
-            <button class="ql-divider"></button>
-        </span>
-    </div>
     <div id="editor"></div>
+    <div id="custom-toolbar">
+        <div id="toolbar-primary">
+            <button class="tool-btn active" data-cat="format">Aa</button>
+            <button class="tool-btn" data-cat="heading">H</button>
+            <button class="tool-btn" data-cat="list">List</button>
+            <button class="tool-btn" data-cat="insert">Insert</button>
+            <button class="tool-btn" data-cat="color">Color</button>
+        </div>
+        <div id="toolbar-secondary"></div>
+    </div>
 
     <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <script>
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: '开始写日记...',
-            modules: {
-                toolbar: '#toolbar'
-            }
-        });
-
-        // Custom divider button
-        document.querySelector('.ql-divider').addEventListener('click', function() {
-            var range = quill.getSelection(true);
-            quill.insertText(range.index, '\n');
-            quill.insertEmbed(range.index + 1, 'divider', true);
-            quill.setSelection(range.index + 2);
-        });
-
-        // Register divider format
+        // Register divider blot
         var BlockEmbed = Quill.import('blots/block/embed');
         class DividerBlot extends BlockEmbed {}
         DividerBlot.blotName = 'divider';
         DividerBlot.tagName = 'hr';
         Quill.register(DividerBlot);
 
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: '开始写日记...',
+            modules: { toolbar: false }
+        });
+
+        var currentCat = 'format';
+        var secondary = document.getElementById('toolbar-secondary');
+
+        var categories = {
+            format: [
+                { label: 'B', action: function(){ toggleFormat('bold'); }, check: function(){ return quill.getFormat().bold; } },
+                { label: 'I', action: function(){ toggleFormat('italic'); }, check: function(){ return quill.getFormat().italic; }, style: 'font-style:italic' },
+                { label: 'U', action: function(){ toggleFormat('underline'); }, check: function(){ return quill.getFormat().underline; }, style: 'text-decoration:underline' },
+                { label: 'S', action: function(){ toggleFormat('strike'); }, check: function(){ return quill.getFormat().strike; }, style: 'text-decoration:line-through' },
+                { label: 'Quote', action: function(){ toggleBlockquote(); }, check: function(){ return quill.getFormat().blockquote; } },
+                { label: '---', action: function(){ insertDivider(); } }
+            ],
+            heading: [
+                { label: 'H1', action: function(){ quill.format('header', 1); updateActive(); } },
+                { label: 'H2', action: function(){ quill.format('header', 2); updateActive(); } },
+                { label: 'H3', action: function(){ quill.format('header', 3); updateActive(); } },
+                { label: 'Text', action: function(){ quill.format('header', false); updateActive(); } }
+            ],
+            list: [
+                { label: '1.', action: function(){ toggleList('ordered'); }, check: function(){ return quill.getFormat().list === 'ordered'; } },
+                { label: '•', action: function(){ toggleList('bullet'); }, check: function(){ return quill.getFormat().list === 'bullet'; } }
+            ],
+            insert: [
+                { label: 'Image', action: function(){ window.DiaryBridge.pickImage(); } },
+                { label: 'Video', action: function(){ window.DiaryBridge.pickVideo(); } },
+                { label: 'Audio', action: function(){ window.DiaryBridge.pickAudio(); } },
+                { label: 'Link', action: function(){ insertLink(); } }
+            ],
+            color: []
+        };
+
+        function toggleFormat(fmt) {
+            var current = quill.getFormat()[fmt];
+            quill.format(fmt, !current);
+            updateActive();
+        }
+
+        function toggleBlockquote() {
+            var current = quill.getFormat().blockquote;
+            quill.format('blockquote', !current);
+            updateActive();
+        }
+
+        function toggleList(type) {
+            var current = quill.getFormat().list;
+            quill.format('list', current === type ? false : type);
+            updateActive();
+        }
+
+        function insertDivider() {
+            var range = quill.getSelection(true);
+            quill.insertText(range.index, '\n');
+            quill.insertEmbed(range.index + 1, 'divider', true);
+            quill.setSelection(range.index + 2);
+        }
+
+        function insertLink() {
+            var url = prompt('输入链接地址:', 'https://');
+            if (url) {
+                var range = quill.getSelection(true);
+                quill.insertText(range.index, url, 'link', url);
+            }
+        }
+
+        function buildColorPalette() {
+            var colors = ['#000000','#FFFFFF','#667EEA','#764BA2','#E74C3C','#E67E22','#F1C40F','#2ECC71','#3498DB','#9B59B6'];
+            var bgColors = ['#000000','#FFFFFF','#F1C40F','#2ECC71','#3498DB','#9B59B6','#E74C3C','#E67E22','#1ABC9C','#34495E'];
+            var html = '<div style="display:flex;flex-direction:column;gap:8px;width:100%">';
+            html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto">';
+            html += '<span style="font-size:11px;color:var(--text-secondary);min-width:48px">Text</span>';
+            colors.forEach(function(c) {
+                var isActive = quill.getFormat().color === c;
+                html += '<div class="color-dot' + (isActive ? ' active' : '') + '" style="background:' + c + (c === '#FFFFFF' ? ';border:1px solid var(--toolbar-border)' : '') + '" onclick="applyColor(\'' + c + '\',\'color\')"></div>';
+            });
+            html += '</div>';
+            html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto">';
+            html += '<span style="font-size:11px;color:var(--text-secondary);min-width:48px">BG</span>';
+            bgColors.forEach(function(c) {
+                var isActive = quill.getFormat().background === c;
+                html += '<div class="color-dot' + (isActive ? ' active' : '') + '" style="background:' + c + (c === '#FFFFFF' ? ';border:1px solid var(--toolbar-border)' : '') + '" onclick="applyColor(\'' + c + '\',\'background\')"></div>';
+            });
+            html += '</div>';
+            html += '<div><button class="sub-btn" onclick="clearFormatting()">Clear</button></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function applyColor(color, type) {
+            quill.format(type, type === 'color' ? color : color);
+            updateActive();
+        }
+
+        function clearFormatting() {
+            var range = quill.getSelection();
+            if (range) {
+                quill.removeFormat(range.index, range.length);
+            }
+            updateActive();
+        }
+
+        function switchCategory(cat) {
+            currentCat = cat;
+            document.querySelectorAll('#toolbar-primary .tool-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.cat === cat);
+            });
+            renderSecondary();
+        }
+
+        function renderSecondary() {
+            if (currentCat === 'color') {
+                secondary.innerHTML = buildColorPalette();
+                secondary.classList.add('visible');
+                return;
+            }
+            var items = categories[currentCat] || [];
+            if (items.length === 0) {
+                secondary.classList.remove('visible');
+                return;
+            }
+            secondary.innerHTML = '';
+            items.forEach(function(item) {
+                var btn = document.createElement('button');
+                btn.className = 'sub-btn';
+                if (item.style) btn.style.cssText = item.style;
+                btn.textContent = item.label;
+                btn.onclick = function() { item.action(); };
+                if (item.check && item.check()) btn.classList.add('active');
+                secondary.appendChild(btn);
+            });
+            secondary.classList.add('visible');
+        }
+
+        function updateActive() {
+            renderSecondary();
+        }
+
+        // Category button clicks
+        document.querySelectorAll('#toolbar-primary .tool-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                switchCategory(this.dataset.cat);
+            });
+        });
+
+        // Quill selection change
+        quill.on('selection-change', function(range) {
+            if (range && currentCat !== 'color') {
+                renderSecondary();
+            }
+        });
+
+        // Initialize
+        renderSecondary();
+
         // Bridge functions
         function getContent() {
             return JSON.stringify(quill.getContents());
         }
-
         function getPlainText() {
             return quill.getText();
         }
-
         function setContent(deltaJSON) {
             try {
                 var delta = JSON.parse(deltaJSON);
@@ -130,9 +335,20 @@
                 quill.setText(deltaJSON);
             }
         }
-
         function focusEditor() {
             quill.focus();
+        }
+        function setTheme(mode) {
+            document.body.className = mode === 'light' ? 'theme-light' : '';
+        }
+        function insertMedia(type, url) {
+            var range = quill.getSelection(true);
+            if (type === 'image') {
+                quill.insertEmbed(range.index, 'image', url);
+            } else if (type === 'video') {
+                quill.insertEmbed(range.index, 'video', url);
+            }
+            quill.setSelection(range.index + 1);
         }
     </script>
 </body>

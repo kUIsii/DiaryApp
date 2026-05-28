@@ -1,8 +1,12 @@
 package com.diary.app.ui.editor
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,26 +26,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.DarkTextPrimary
 import com.diary.app.ui.theme.DarkTextSecondary
 import com.diary.app.ui.theme.DarkTextTertiary
+import com.diary.app.ui.theme.isDark
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -57,13 +67,65 @@ fun EditorScreen(
     val dateTitle = "${today.year}年${today.monthValue}月${today.dayOfMonth}日的日记"
     val timeText = "今天 ${currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
 
+    val context = LocalContext.current
+    val app = context.applicationContext as DiaryApplication
+    val themeMode by app.themeMode.collectAsState()
+    val scope = rememberCoroutineScope()
+
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val jsBridge = remember { DiaryJsBridge() }
 
     val viewModel: EditorViewModel = viewModel()
+
+    val isDark = themeMode.isDark()
 
     LaunchedEffect(diaryId) {
         if (diaryId != null) {
             viewModel.loadEntry(diaryId)
+        }
+    }
+
+    // Inject theme when theme changes
+    LaunchedEffect(themeMode) {
+        val wv = webView ?: return@LaunchedEffect
+        val themeStr = if (isDark) "dark" else "light"
+        wv.evaluateJavascript("setTheme('$themeStr')", null)
+    }
+
+    // Media pickers
+    val imageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val wv = webView ?: return@let
+            wv.evaluateJavascript("insertMedia('image', '$it')", null)
+        }
+    }
+    val videoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val wv = webView ?: return@let
+            wv.evaluateJavascript("insertMedia('video', '$it')", null)
+        }
+    }
+    val audioLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val wv = webView ?: return@let
+            wv.evaluateJavascript("insertMedia('audio', '$it')", null)
+        }
+    }
+
+    // Collect JS bridge events
+    LaunchedEffect(Unit) {
+        jsBridge.events.collect { event ->
+            when (event) {
+                "image" -> imageLauncher.launch("image/*")
+                "video" -> videoLauncher.launch("video/*")
+                "audio" -> audioLauncher.launch("audio/*")
+            }
         }
     }
 
@@ -175,14 +237,23 @@ fun EditorScreen(
 
             // WebView editor
             AndroidView(
-                factory = { context ->
-                    WebView(context).apply {
+                factory = { ctx ->
+                    WebView(ctx).apply {
                         webViewClient = WebViewClient()
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+                        addJavascriptInterface(jsBridge, "DiaryBridge")
 
                         loadUrl("file:///android_asset/editor.html")
                         webView = this
+
+                        // Inject theme after page loads
+                        post {
+                            val themeStr = if (isDark) "dark" else "light"
+                            evaluateJavascript("setTheme('$themeStr')", null)
+                        }
                     }
                 },
                 modifier = Modifier
