@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -32,8 +33,6 @@ import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.map.MapScreen
 import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.ui.profile.ProfileScreen
-import com.diary.app.ui.theme.DarkAccentStart
-import com.diary.app.ui.theme.DarkTextTertiary
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.DateRange)
@@ -60,9 +59,7 @@ fun DiaryNavHost() {
             val showBottomBar = currentDestination?.route in bottomNavItems.map { it.route }
 
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = Color.Transparent
-                ) {
+                NavigationBar(containerColor = Color.Transparent) {
                     bottomNavItems.forEach { screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.title) },
@@ -70,18 +67,16 @@ fun DiaryNavHost() {
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             onClick = {
                                 navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkAccentStart,
-                                selectedTextColor = DarkAccentStart,
-                                unselectedIconColor = DarkTextTertiary,
-                                unselectedTextColor = DarkTextTertiary,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 indicatorColor = Color.Transparent
                             )
                         )
@@ -98,29 +93,14 @@ fun DiaryNavHost() {
             exitTransition = { fadeOut() }
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(
-                    onNavigateToEditor = { diaryId ->
-                        navController.navigate(Screen.Editor.createRoute(diaryId))
-                    }
-                )
+                HomeScreen(onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) })
             }
-            composable(Screen.Map.route) {
-                MapScreen()
-            }
-            composable(Screen.Stats.route) {
-                StatsScreen()
-            }
-            composable(Screen.Profile.route) {
-                ProfileScreen()
-            }
+            composable(Screen.Map.route) { MapScreen() }
+            composable(Screen.Stats.route) { StatsScreen() }
+            composable(Screen.Profile.route) { ProfileScreen() }
             composable(
                 route = Screen.Editor.route,
-                arguments = listOf(
-                    navArgument("diaryId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                ),
+                arguments = listOf(navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }),
                 enterTransition = { fadeIn() },
                 exitTransition = { fadeOut() }
             ) { backStackEntry ->

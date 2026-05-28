@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,10 +35,8 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
-import com.diary.app.ui.theme.DarkTextPrimary
-import com.diary.app.ui.theme.DarkTextSecondary
-import com.diary.app.ui.theme.DarkTextTertiary
-import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -49,6 +48,9 @@ fun HomeScreen(
     val entries by viewModel.entries.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
+
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -63,25 +65,21 @@ fun HomeScreen(
                         text = "日记",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = DarkTextPrimary,
+                        color = onBackground,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
 
-                // Calendar
                 item {
                     CalendarView(
                         entryDates = entryDates,
                         selectedDate = selectedDate,
                         onDateSelected = { date ->
-                            viewModel.selectDate(
-                                if (date == selectedDate) null else date
-                            )
+                            viewModel.selectDate(if (date == selectedDate) null else date)
                         }
                     )
                 }
 
-                // Filter indicator
                 if (selectedDate != null) {
                     item {
                         Row(
@@ -92,13 +90,13 @@ fun HomeScreen(
                             Text(
                                 text = "${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日的日记",
                                 fontSize = 14.sp,
-                                color = DarkAccentStart,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "查看全部",
                                 fontSize = 13.sp,
-                                color = DarkTextTertiary,
+                                color = onSurfaceVariant,
                                 modifier = Modifier.clickable { viewModel.selectDate(null) }
                             )
                         }
@@ -106,44 +104,28 @@ fun HomeScreen(
                 }
 
                 if (entries.isEmpty()) {
-                    item {
-                        EmptyState()
-                    }
+                    item { EmptyState() }
                 } else {
                     items(entries) { entry ->
-                        DiaryCard(
-                            entry = entry,
-                            onClick = { onNavigateToEditor(entry.id) }
-                        )
+                        DiaryCard(entry = entry, onClick = { onNavigateToEditor(entry.id) })
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
-                }
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
-            // Gradient FAB
+            // FAB
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 16.dp)
                     .size(52.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(DarkAccentStart, DarkAccentEnd)
-                        )
-                    )
+                    .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
                     .clickable { onNavigateToEditor(null) },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "+",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Light
-                )
+                Text(text = "+", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
             }
         }
     }
@@ -151,89 +133,58 @@ fun HomeScreen(
 
 @Composable
 private fun EmptyState() {
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 80.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 80.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "还没有日记",
-                fontSize = 16.sp,
-                color = DarkTextSecondary
-            )
+            Text(text = "还没有日记", fontSize = 16.sp, color = onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "点击右下角 + 开始记录",
-                fontSize = 13.sp,
-                color = DarkTextTertiary
-            )
+            Text(text = "点击右下角 + 开始记录", fontSize = 13.sp, color = onSurfaceVariant.copy(alpha = 0.6f))
         }
     }
 }
 
 @Composable
-private fun DiaryCard(
-    entry: DiaryEntry,
-    onClick: () -> Unit
-) {
+private fun DiaryCard(entry: DiaryEntry, onClick: () -> Unit) {
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 0.dp)
-            .clickable { onClick() }
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Column {
             Text(
                 text = formatDate(entry.createdAt),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = DarkTextPrimary
+                color = onBackground
             )
-
             if (entry.plainText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = entry.plainText,
                     fontSize = 14.sp,
-                    color = DarkTextSecondary,
+                    color = onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 20.sp
                 )
             }
-
             if (entry.mood != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                MoodTag(mood = entry.mood)
+                Text(
+                    text = entry.mood,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun MoodTag(mood: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(end = 6.dp)
-        ) {
-            Text(
-                text = mood,
-                fontSize = 11.sp,
-                color = DarkAccentStart,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
 
 private fun formatDate(timestamp: Long): String {
     val formatter = DateTimeFormatter.ofPattern("yyyy年M月d日", Locale.getDefault())
-    return java.time.Instant.ofEpochMilli(timestamp)
-        .atZone(java.time.ZoneId.systemDefault())
-        .format(formatter)
+    return Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).format(formatter)
 }

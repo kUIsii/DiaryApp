@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +16,7 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,15 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
-import com.diary.app.ui.theme.DarkAccentStart
-import com.diary.app.ui.theme.DarkTextPrimary
-import com.diary.app.ui.theme.DarkTextSecondary
-import com.diary.app.ui.theme.DarkTextTertiary
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun CalendarView(
@@ -51,6 +44,10 @@ fun CalendarView(
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = remember { LocalDate.now() }
 
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = MaterialTheme.colorScheme.primary
+
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column {
             // Month navigation
@@ -59,41 +56,28 @@ fun CalendarView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    currentMonth = currentMonth.minusMonths(1)
-                }) {
-                    Icon(
-                        Icons.Default.ChevronLeft,
-                        contentDescription = "上月",
-                        tint = DarkTextSecondary
-                    )
+                IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "上月", tint = onSurfaceVariant)
                 }
                 Text(
                     text = "${currentMonth.year}年${currentMonth.monthValue}月",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = DarkTextPrimary
+                    color = onBackground
                 )
-                IconButton(onClick = {
-                    currentMonth = currentMonth.plusMonths(1)
-                }) {
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "下月",
-                        tint = DarkTextSecondary
-                    )
+                IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = "下月", tint = onSurfaceVariant)
                 }
             }
 
             // Day of week headers
             Row(modifier = Modifier.fillMaxWidth()) {
-                val daysOfWeek = listOf("日", "一", "二", "三", "四", "五", "六")
-                daysOfWeek.forEach { day ->
+                listOf("日", "一", "二", "三", "四", "五", "六").forEach { day ->
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
-                        color = DarkTextTertiary,
+                        color = onSurfaceVariant.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -102,7 +86,6 @@ fun CalendarView(
             // Calendar grid
             val firstDayOfMonth = currentMonth.atDay(1)
             val daysInMonth = currentMonth.lengthOfMonth()
-            // dayOfWeek: 1=Monday ... 7=Sunday, we want Sunday=0
             val startOffset = firstDayOfMonth.dayOfWeek.value % 7
             val totalCells = startOffset + daysInMonth
             val rows = (totalCells + 6) / 7
@@ -126,13 +109,9 @@ fun CalendarView(
                                     .padding(2.dp)
                                     .clip(CircleShape)
                                     .then(
-                                        if (isSelected) {
-                                            Modifier.background(DarkAccentStart)
-                                        } else if (isToday) {
-                                            Modifier.background(DarkAccentStart.copy(alpha = 0.15f))
-                                        } else {
-                                            Modifier
-                                        }
+                                        if (isSelected) Modifier.background(accent)
+                                        else if (isToday) Modifier.background(accent.copy(alpha = 0.15f))
+                                        else Modifier
                                     )
                                     .clickable { onDateSelected(date) },
                                 contentAlignment = Alignment.Center
@@ -141,11 +120,7 @@ fun CalendarView(
                                     Text(
                                         text = "$dayNum",
                                         fontSize = 13.sp,
-                                        color = if (isSelected) {
-                                            DarkTextPrimary
-                                        } else {
-                                            DarkTextPrimary
-                                        },
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else onBackground,
                                         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
                                     )
                                     if (hasEntry) {
@@ -153,10 +128,7 @@ fun CalendarView(
                                             modifier = Modifier
                                                 .size(4.dp)
                                                 .clip(CircleShape)
-                                                .background(
-                                                    if (isSelected) DarkTextPrimary
-                                                    else DarkAccentStart
-                                                )
+                                                .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else accent)
                                         )
                                     }
                                 }

@@ -6,43 +6,24 @@
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <style>
         :root {
-            --bg: transparent;
-            --text: #E0E0E0;
-            --text-secondary: rgba(255,255,255,0.5);
-            --text-placeholder: rgba(255,255,255,0.3);
-            --toolbar-bg: rgba(30,30,46,0.95);
-            --toolbar-border: rgba(255,255,255,0.08);
-            --btn-active: #667EEA;
-            --btn-default: rgba(255,255,255,0.5);
-            --divider: rgba(255,255,255,0.1);
-        }
-        .theme-light {
             --text: #1A1A2E;
-            --text-secondary: #666680;
-            --text-placeholder: rgba(0,0,0,0.3);
-            --toolbar-bg: rgba(245,245,245,0.95);
-            --toolbar-border: rgba(0,0,0,0.08);
-            --btn-default: rgba(0,0,0,0.45);
-            --divider: rgba(0,0,0,0.1);
+            --placeholder: rgba(0,0,0,0.3);
+        }
+        .theme-dark {
+            --text: #E0E0E0;
+            --placeholder: rgba(255,255,255,0.3);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
+            background: transparent;
             color: var(--text);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
         }
-        /* Hide default Quill toolbar */
         .ql-toolbar.ql-snow { display: none !important; }
         .ql-container.ql-snow {
             border: none !important;
             font-size: 16px;
             line-height: 1.8;
-            flex: 1;
-            overflow-y: auto;
         }
         .ql-editor {
             min-height: 100%;
@@ -50,111 +31,24 @@
             color: var(--text);
         }
         .ql-editor.ql-blank::before {
-            color: var(--text-placeholder);
+            color: var(--placeholder);
             font-style: normal;
         }
-        hr { border: none; border-top: 1px solid var(--divider); margin: 16px 0; }
+        hr { border: none; border-top: 1px solid rgba(128,128,128,0.3); margin: 16px 0; }
         blockquote {
-            border-left: 3px solid var(--btn-active);
+            border-left: 3px solid #667EEA;
             padding-left: 12px;
-            color: var(--text-secondary);
+            color: rgba(128,128,128,0.8);
             margin: 8px 0;
         }
         img, video { max-width: 100%; border-radius: 8px; }
-
-        /* Custom toolbar */
-        #custom-toolbar {
-            background: var(--toolbar-bg);
-            border-top: 1px solid var(--toolbar-border);
-            flex-shrink: 0;
-        }
-        #toolbar-primary {
-            display: flex;
-            overflow-x: auto;
-            padding: 6px 8px;
-            gap: 2px;
-            border-bottom: 1px solid var(--toolbar-border);
-        }
-        #toolbar-primary::-webkit-scrollbar { display: none; }
-        .tool-btn {
-            min-width: 40px;
-            height: 36px;
-            border: none;
-            background: transparent;
-            color: var(--btn-default);
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background 0.15s;
-        }
-        .tool-btn.active {
-            background: rgba(102,126,234,0.15);
-            color: var(--btn-active);
-        }
-        .tool-btn:active { background: rgba(102,126,234,0.1); }
-        #toolbar-secondary {
-            display: none;
-            padding: 6px 8px;
-            gap: 6px;
-            overflow-x: auto;
-            flex-wrap: nowrap;
-        }
-        #toolbar-secondary::-webkit-scrollbar { display: none; }
-        #toolbar-secondary.visible { display: flex; }
-        .sub-btn {
-            min-width: 36px;
-            height: 32px;
-            border: 1px solid var(--toolbar-border);
-            background: transparent;
-            color: var(--btn-default);
-            font-size: 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            padding: 0 8px;
-        }
-        .sub-btn.active {
-            border-color: var(--btn-active);
-            color: var(--btn-active);
-            background: rgba(102,126,234,0.1);
-        }
-        .sub-btn:active { opacity: 0.7; }
-        .color-dot {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .color-dot.active { border-color: var(--btn-active); }
-        .color-dot:active { opacity: 0.7; }
     </style>
 </head>
 <body>
     <div id="editor"></div>
-    <div id="custom-toolbar">
-        <div id="toolbar-primary">
-            <button class="tool-btn active" data-cat="format">Aa</button>
-            <button class="tool-btn" data-cat="heading">H</button>
-            <button class="tool-btn" data-cat="list">List</button>
-            <button class="tool-btn" data-cat="insert">Insert</button>
-            <button class="tool-btn" data-cat="color">Color</button>
-        </div>
-        <div id="toolbar-secondary"></div>
-    </div>
 
     <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <script>
-        // Register divider blot
         var BlockEmbed = Quill.import('blots/block/embed');
         class DividerBlot extends BlockEmbed {}
         DividerBlot.blotName = 'divider';
@@ -167,189 +61,52 @@
             modules: { toolbar: false }
         });
 
-        var currentCat = 'format';
-        var secondary = document.getElementById('toolbar-secondary');
-
-        var categories = {
-            format: [
-                { label: 'B', action: function(){ toggleFormat('bold'); }, check: function(){ return quill.getFormat().bold; } },
-                { label: 'I', action: function(){ toggleFormat('italic'); }, check: function(){ return quill.getFormat().italic; }, style: 'font-style:italic' },
-                { label: 'U', action: function(){ toggleFormat('underline'); }, check: function(){ return quill.getFormat().underline; }, style: 'text-decoration:underline' },
-                { label: 'S', action: function(){ toggleFormat('strike'); }, check: function(){ return quill.getFormat().strike; }, style: 'text-decoration:line-through' },
-                { label: 'Quote', action: function(){ toggleBlockquote(); }, check: function(){ return quill.getFormat().blockquote; } },
-                { label: '---', action: function(){ insertDivider(); } }
-            ],
-            heading: [
-                { label: 'H1', action: function(){ quill.format('header', 1); updateActive(); } },
-                { label: 'H2', action: function(){ quill.format('header', 2); updateActive(); } },
-                { label: 'H3', action: function(){ quill.format('header', 3); updateActive(); } },
-                { label: 'Text', action: function(){ quill.format('header', false); updateActive(); } }
-            ],
-            list: [
-                { label: '1.', action: function(){ toggleList('ordered'); }, check: function(){ return quill.getFormat().list === 'ordered'; } },
-                { label: '•', action: function(){ toggleList('bullet'); }, check: function(){ return quill.getFormat().list === 'bullet'; } }
-            ],
-            insert: [
-                { label: 'Image', action: function(){ window.DiaryBridge.pickImage(); } },
-                { label: 'Video', action: function(){ window.DiaryBridge.pickVideo(); } },
-                { label: 'Audio', action: function(){ window.DiaryBridge.pickAudio(); } },
-                { label: 'Link', action: function(){ insertLink(); } }
-            ],
-            color: []
-        };
-
-        function toggleFormat(fmt) {
-            var current = quill.getFormat()[fmt];
-            quill.format(fmt, !current);
-            updateActive();
+        function setTheme(mode) {
+            document.body.className = mode === 'dark' ? 'theme-dark' : '';
         }
 
-        function toggleBlockquote() {
-            var current = quill.getFormat().blockquote;
-            quill.format('blockquote', !current);
-            updateActive();
-        }
-
-        function toggleList(type) {
-            var current = quill.getFormat().list;
-            quill.format('list', current === type ? false : type);
-            updateActive();
-        }
-
+        // Format commands (called from Compose toolbar)
+        function toggleBold() { var f = quill.getFormat(); quill.format('bold', !f.bold); }
+        function toggleItalic() { var f = quill.getFormat(); quill.format('italic', !f.italic); }
+        function toggleUnderline() { var f = quill.getFormat(); quill.format('underline', !f.underline); }
+        function toggleStrike() { var f = quill.getFormat(); quill.format('strike', !f.strike); }
+        function toggleBlockquote() { var f = quill.getFormat(); quill.format('blockquote', !f.blockquote); }
+        function setHeading(level) { quill.format('header', level); }
+        function setOrderedList() { var f = quill.getFormat(); quill.format('list', f.list === 'ordered' ? false : 'ordered'); }
+        function setBulletList() { var f = quill.getFormat(); quill.format('list', f.list === 'bullet' ? false : 'bullet'); }
         function insertDivider() {
-            var range = quill.getSelection(true);
-            quill.insertText(range.index, '\n');
-            quill.insertEmbed(range.index + 1, 'divider', true);
-            quill.setSelection(range.index + 2);
+            var r = quill.getSelection(true);
+            quill.insertText(r.index, '\n');
+            quill.insertEmbed(r.index + 1, 'divider', true);
+            quill.setSelection(r.index + 2);
         }
-
+        function setTextColor(color) { quill.format('color', color); }
+        function setBackgroundColor(color) { quill.format('background', color); }
+        function clearFormatting() {
+            var r = quill.getSelection();
+            if (r) quill.removeFormat(r.index, r.length);
+        }
+        function insertMedia(type, url) {
+            var r = quill.getSelection(true);
+            quill.insertEmbed(r.index, type, url);
+            quill.setSelection(r.index + 1);
+        }
         function insertLink() {
             var url = prompt('输入链接地址:', 'https://');
             if (url) {
-                var range = quill.getSelection(true);
-                quill.insertText(range.index, url, 'link', url);
+                var r = quill.getSelection(true);
+                quill.insertText(r.index, url, 'link', url);
             }
         }
-
-        function buildColorPalette() {
-            var colors = ['#000000','#FFFFFF','#667EEA','#764BA2','#E74C3C','#E67E22','#F1C40F','#2ECC71','#3498DB','#9B59B6'];
-            var bgColors = ['#000000','#FFFFFF','#F1C40F','#2ECC71','#3498DB','#9B59B6','#E74C3C','#E67E22','#1ABC9C','#34495E'];
-            var html = '<div style="display:flex;flex-direction:column;gap:8px;width:100%">';
-            html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto">';
-            html += '<span style="font-size:11px;color:var(--text-secondary);min-width:48px">Text</span>';
-            colors.forEach(function(c) {
-                var isActive = quill.getFormat().color === c;
-                html += '<div class="color-dot' + (isActive ? ' active' : '') + '" style="background:' + c + (c === '#FFFFFF' ? ';border:1px solid var(--toolbar-border)' : '') + '" onclick="applyColor(\'' + c + '\',\'color\')"></div>';
-            });
-            html += '</div>';
-            html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto">';
-            html += '<span style="font-size:11px;color:var(--text-secondary);min-width:48px">BG</span>';
-            bgColors.forEach(function(c) {
-                var isActive = quill.getFormat().background === c;
-                html += '<div class="color-dot' + (isActive ? ' active' : '') + '" style="background:' + c + (c === '#FFFFFF' ? ';border:1px solid var(--toolbar-border)' : '') + '" onclick="applyColor(\'' + c + '\',\'background\')"></div>';
-            });
-            html += '</div>';
-            html += '<div><button class="sub-btn" onclick="clearFormatting()">Clear</button></div>';
-            html += '</div>';
-            return html;
-        }
-
-        function applyColor(color, type) {
-            quill.format(type, type === 'color' ? color : color);
-            updateActive();
-        }
-
-        function clearFormatting() {
-            var range = quill.getSelection();
-            if (range) {
-                quill.removeFormat(range.index, range.length);
-            }
-            updateActive();
-        }
-
-        function switchCategory(cat) {
-            currentCat = cat;
-            document.querySelectorAll('#toolbar-primary .tool-btn').forEach(function(b) {
-                b.classList.toggle('active', b.dataset.cat === cat);
-            });
-            renderSecondary();
-        }
-
-        function renderSecondary() {
-            if (currentCat === 'color') {
-                secondary.innerHTML = buildColorPalette();
-                secondary.classList.add('visible');
-                return;
-            }
-            var items = categories[currentCat] || [];
-            if (items.length === 0) {
-                secondary.classList.remove('visible');
-                return;
-            }
-            secondary.innerHTML = '';
-            items.forEach(function(item) {
-                var btn = document.createElement('button');
-                btn.className = 'sub-btn';
-                if (item.style) btn.style.cssText = item.style;
-                btn.textContent = item.label;
-                btn.onclick = function() { item.action(); };
-                if (item.check && item.check()) btn.classList.add('active');
-                secondary.appendChild(btn);
-            });
-            secondary.classList.add('visible');
-        }
-
-        function updateActive() {
-            renderSecondary();
-        }
-
-        // Category button clicks
-        document.querySelectorAll('#toolbar-primary .tool-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                switchCategory(this.dataset.cat);
-            });
-        });
-
-        // Quill selection change
-        quill.on('selection-change', function(range) {
-            if (range && currentCat !== 'color') {
-                renderSecondary();
-            }
-        });
-
-        // Initialize
-        renderSecondary();
 
         // Bridge functions
-        function getContent() {
-            return JSON.stringify(quill.getContents());
-        }
-        function getPlainText() {
-            return quill.getText();
-        }
+        function getContent() { return JSON.stringify(quill.getContents()); }
+        function getPlainText() { return quill.getText(); }
         function setContent(deltaJSON) {
-            try {
-                var delta = JSON.parse(deltaJSON);
-                quill.setContents(delta);
-            } catch(e) {
-                quill.setText(deltaJSON);
-            }
+            try { quill.setContents(JSON.parse(deltaJSON)); }
+            catch(e) { quill.setText(deltaJSON); }
         }
-        function focusEditor() {
-            quill.focus();
-        }
-        function setTheme(mode) {
-            document.body.className = mode === 'light' ? 'theme-light' : '';
-        }
-        function insertMedia(type, url) {
-            var range = quill.getSelection(true);
-            if (type === 'image') {
-                quill.insertEmbed(range.index, 'image', url);
-            } else if (type === 'video') {
-                quill.insertEmbed(range.index, 'video', url);
-            }
-            quill.setSelection(range.index + 1);
-        }
+        function focusEditor() { quill.focus(); }
     </script>
 </body>
 </html>
