@@ -79,6 +79,8 @@ import com.diary.app.ui.components.WordCloud
 import com.diary.app.ui.components.WritingHeatmap
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconForType
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import kotlin.math.roundToInt
 
 @Composable
@@ -101,7 +103,7 @@ fun StatsScreen(
                 // Header
                 item {
                     Text(
-                        text = "统计",
+                        text = stringResource(R.string.stats_title),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -116,21 +118,21 @@ fun StatsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OverviewCard(
-                            label = "总日记",
+                            label = stringResource(R.string.stat_total_diaries),
                             value = state.totalEntries,
                             icon = Icons.Default.Edit,
                             gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2)),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
-                            label = "连续天数",
+                            label = stringResource(R.string.stat_streak),
                             value = state.currentStreak,
                             icon = Icons.Default.LocalFireDepartment,
                             gradientColors = listOf(Color(0xFFf093fb), Color(0xFFf5576c)),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
-                            label = "本月",
+                            label = stringResource(R.string.stat_this_month),
                             value = state.thisMonthEntries,
                             icon = Icons.Default.CalendarMonth,
                             gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe)),
@@ -147,7 +149,7 @@ fun StatsScreen(
                 // Word count stats
                 state.wordStats?.let { wordStats ->
                     item {
-                        SectionTitle(text = "文字统计")
+                        SectionTitle(text = stringResource(R.string.stats_total_words))
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             Column {
@@ -157,7 +159,7 @@ fun StatsScreen(
                                 ) {
                                     WordStatItem(
                                         icon = Icons.Default.TextSnippet,
-                                        label = "总字数",
+                                        label = stringResource(R.string.stats_total_words),
                                         value = formatWordCount(wordStats.totalWords)
                                     )
                                     Box(
@@ -170,7 +172,7 @@ fun StatsScreen(
                                     )
                                     WordStatItem(
                                         icon = Icons.Default.Edit,
-                                        label = "篇均字数",
+                                        label = stringResource(R.string.stats_avg_words),
                                         value = "${wordStats.avgWordsPerEntry}"
                                     )
                                 }
@@ -198,7 +200,7 @@ fun StatsScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "最近30天写了 ${state.moodTrendPoints.size} 篇日记",
+                                            text = stringResource(R.string.stats_recent_entries, state.moodTrendPoints.size),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -212,7 +214,7 @@ fun StatsScreen(
                 // Mood trend
                 state.moodTrend?.let { moodTrend ->
                     item {
-                        SectionTitle(text = "心情趋势")
+                        SectionTitle(text = stringResource(R.string.stats_mood_trend))
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             MoodTrendRow(moodTrend)
@@ -223,7 +225,7 @@ fun StatsScreen(
                 // Mood line chart
                 if (state.moodTrendPoints.size >= 2) {
                     item {
-                        SectionTitle(text = "心情曲线")
+                        SectionTitle(text = stringResource(R.string.stats_mood_chart))
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             MoodLineChart(points = state.moodTrendPoints)
@@ -266,7 +268,7 @@ fun StatsScreen(
 
                 // Monthly trend
                 item {
-                    SectionTitle(text = "近6个月趋势")
+                    SectionTitle(text = stringResource(R.string.stats_6month_trend))
                     Spacer(modifier = Modifier.height(8.dp))
                     GlassCard {
                         MonthlyTrendChart(state.monthlyTrend)
@@ -276,7 +278,7 @@ fun StatsScreen(
                 // Writing habit
                 state.writingHabit?.let { habit ->
                     item {
-                        SectionTitle(text = "写作习惯")
+                        SectionTitle(text = stringResource(R.string.stats_writing_habit))
                         Spacer(modifier = Modifier.height(8.dp))
                         WritingHabitSection(habit)
                     }
@@ -284,7 +286,7 @@ fun StatsScreen(
 
                 // Mood distribution
                 item {
-                    SectionTitle(text = "心情分布")
+                    SectionTitle(text = stringResource(R.string.stats_mood_distribution))
                     Spacer(modifier = Modifier.height(8.dp))
                     GlassCard {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -304,7 +306,7 @@ fun StatsScreen(
                 // Weather statistics
                 if (state.weatherDistribution.isNotEmpty()) {
                     item {
-                        SectionTitle(text = "天气统计")
+                        SectionTitle(text = stringResource(R.string.stats_weather))
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -323,7 +325,7 @@ fun StatsScreen(
                 // Tag statistics
                 if (state.tagUsage.isNotEmpty()) {
                     item {
-                        SectionTitle(text = "标签统计")
+                        SectionTitle(text = stringResource(R.string.stats_tags))
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             val maxTagCount = state.tagUsage.maxOfOrNull { it.count } ?: 1
@@ -363,13 +365,13 @@ private fun EmptyState() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "还没有日记",
+                text = stringResource(R.string.stats_no_entries),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "开始记录你的生活吧",
+                text = stringResource(R.string.stats_start_recording),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
@@ -579,13 +581,13 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "写作日历",
+                    text = stringResource(R.string.stats_writing_calendar),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "最近12周",
+                    text = stringResource(R.string.stats_recent_12_weeks),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -648,7 +650,7 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "少",
+                    text = stringResource(R.string.stats_less),
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -668,7 +670,7 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                 }
                 Spacer(modifier = Modifier.width(2.dp))
                 Text(
-                    text = "多",
+                    text = stringResource(R.string.stats_more),
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -721,9 +723,9 @@ private fun formatWordCount(count: Int): String {
 @Composable
 private fun MoodTrendRow(trend: MoodTrend) {
     val (icon, description) = when (trend.direction) {
-        TrendDirection.UP -> Icons.Default.TrendingUp to "最近心情不错"
-        TrendDirection.DOWN -> Icons.Default.TrendingDown to "最近心情低落"
-        TrendDirection.FLAT -> Icons.Default.TrendingFlat to "心情平稳"
+        TrendDirection.UP -> Icons.Default.TrendingUp to stringResource(R.string.stats_mood_up)
+        TrendDirection.DOWN -> Icons.Default.TrendingDown to stringResource(R.string.stats_mood_down)
+        TrendDirection.FLAT -> Icons.Default.TrendingFlat to stringResource(R.string.stats_mood_flat)
     }
     val iconTint = when (trend.direction) {
         TrendDirection.UP -> Color(0xFF66BB6A)
@@ -751,7 +753,7 @@ private fun MoodTrendRow(trend: MoodTrend) {
             )
             trend.recent30Avg?.let { avg ->
                 Text(
-                    text = "近30天平均心情 ${String.format("%.1f", avg)}",
+                    text = stringResource(R.string.stats_mood_avg, String.format("%.1f", avg)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1108,19 +1110,19 @@ private fun WritingHabitSection(habit: WritingHabit) {
     ) {
         HabitCard(
             icon = Icons.Default.Edit,
-            label = "每周写作",
+            label = stringResource(R.string.stats_weekly_writing),
             value = "${String.format("%.1f", habit.avgPerWeek)} 篇",
             modifier = Modifier.weight(1f)
         )
         HabitCard(
             icon = Icons.Default.Weekend,
-            label = "最活跃日",
+            label = stringResource(R.string.stats_most_active_day),
             value = habit.mostActiveDay,
             modifier = Modifier.weight(1f)
         )
         HabitCard(
             icon = Icons.Default.Schedule,
-            label = "活跃时段",
+            label = stringResource(R.string.stats_active_time),
             value = habit.mostActiveTime,
             modifier = Modifier.weight(1f)
         )
@@ -1281,7 +1283,7 @@ private fun WeatherRow(
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "$count 篇",
+            text = stringResource(R.string.stats_entries_count, count),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

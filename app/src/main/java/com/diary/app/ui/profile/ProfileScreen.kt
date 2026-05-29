@@ -69,6 +69,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -109,6 +110,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.data.BackupManager
 import com.diary.app.update.ApkInstaller
@@ -192,7 +195,7 @@ fun ProfileScreen(
             ReminderManager.scheduleReminder(context, reminderHour, reminderMinute)
             reminderEnabled = true
         } else {
-            Toast.makeText(context, "需要通知权限才能开启提醒", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.profile_notification_permission), Toast.LENGTH_SHORT).show()
             reminderEnabled = false
         }
     }
@@ -205,7 +208,7 @@ fun ProfileScreen(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("选择提醒时间") },
+            title = { Text(stringResource(R.string.profile_select_reminder_time)) },
             text = {
                 TimePicker(state = timePickerState)
             },
@@ -218,12 +221,12 @@ fun ProfileScreen(
                         showTimePicker = false
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -237,7 +240,7 @@ fun ProfileScreen(
                 val backup = DiaryImporter.readAndValidate(context, uri)
                 pendingBackup = backup
             } catch (e: Exception) {
-                Toast.makeText(context, "读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.profile_read_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -275,7 +278,7 @@ fun ProfileScreen(
                     } catch (e: Exception) {
                         isDownloading = false
                         showUpdateDialog = false
-                        Toast.makeText(context, "更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.profile_update_failed_msg, e.message ?: ""), Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -287,11 +290,11 @@ fun ProfileScreen(
     if (showPinDialog) {
         PinSetupDialog(
             onDismiss = { showPinDialog = false },
-            onPinSet = { pin ->
-                BiometricHelper.setPin(context, pin)
+            onPinSet = { pin, hint ->
+                BiometricHelper.setPin(context, pin, hint)
                 pinLockEnabled = true
                 showPinDialog = false
-                Toast.makeText(context, "PIN码已设置", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.profile_pin_set_success), Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -300,21 +303,21 @@ fun ProfileScreen(
     if (showRemovePinDialog) {
         AlertDialog(
             onDismissRequest = { showRemovePinDialog = false },
-            title = { Text("移除PIN码") },
-            text = { Text("确定要移除PIN码锁吗？移除后将无法使用PIN码解锁应用。") },
+            title = { Text(stringResource(R.string.profile_remove_pin_title)) },
+            text = { Text(stringResource(R.string.profile_remove_pin_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     BiometricHelper.removePin(context)
                     pinLockEnabled = false
                     showRemovePinDialog = false
-                    Toast.makeText(context, "PIN码已移除", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.profile_pin_removed), Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("移除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.profile_remove), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRemovePinDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -325,9 +328,9 @@ fun ProfileScreen(
         val tagCount = backup.tags?.size ?: 0
         AlertDialog(
             onDismissRequest = { pendingBackup = null },
-            title = { Text("确认导入") },
+            title = { Text(stringResource(R.string.profile_import_confirm)) },
             text = {
-                Text("将导入 $entryCount 篇日记和 $tagCount 个分类，现有数据不会被覆盖。确定继续？")
+                Text(stringResource(R.string.profile_import_confirm_message, entryCount, tagCount))
             },
             confirmButton = {
                 TextButton(
@@ -341,26 +344,26 @@ fun ProfileScreen(
                                 isImporting = false
                                 Toast.makeText(
                                     context,
-                                    "导入成功: ${result.entryCount} 篇日记, ${result.tagCount} 个新分类",
+                                    context.getString(R.string.profile_import_success, result.entryCount, result.tagCount),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } catch (e: Exception) {
                                 isImporting = false
                                 Toast.makeText(
                                     context,
-                                    "导入失败: ${e.message}",
+                                    context.getString(R.string.profile_import_failed, e.message ?: ""),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
                         }
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingBackup = null }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -386,7 +389,7 @@ fun ProfileScreen(
 
             // Group: Appearance
             StaggeredItem(index = 0, showContent = showContent) {
-                SectionHeader(title = "外观设置", icon = Icons.Default.Palette, color = AppearanceIconTint)
+                SectionHeader(title = stringResource(R.string.profile_appearance), icon = Icons.Default.Palette, color = AppearanceIconTint)
             }
             Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 1, showContent = showContent) {
@@ -431,7 +434,7 @@ fun ProfileScreen(
 
             // Group: Data management
             StaggeredItem(index = 2, showContent = showContent) {
-                SectionHeader(title = "数据管理", icon = Icons.Default.Backup, color = DataIconTint)
+                SectionHeader(title = stringResource(R.string.profile_data_management), icon = Icons.Default.Backup, color = DataIconTint)
             }
             Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 3, showContent = showContent) {
@@ -442,8 +445,8 @@ fun ProfileScreen(
                     Column {
                         SettingItem(
                             icon = Icons.Default.Label,
-                            title = "分类管理",
-                            subtitle = "管理日记分类标签",
+                            title = stringResource(R.string.profile_tag_management),
+                            subtitle = stringResource(R.string.profile_tag_management_desc),
                             iconBg = DataIconBg,
                             iconTint = DataIconTint,
                             textColor = textColor,
@@ -453,8 +456,8 @@ fun ProfileScreen(
                         SettingDivider()
                         SettingItem(
                             icon = Icons.Default.Backup,
-                            title = "导出备份",
-                            subtitle = if (isExporting) "正在导出..." else "导出全部日记为 JSON 文件",
+                            title = stringResource(R.string.profile_export_backup),
+                            subtitle = if (isExporting) stringResource(R.string.profile_exporting) else stringResource(R.string.profile_export_backup_desc),
                             iconBg = DataIconBg,
                             iconTint = DataIconTint,
                             textColor = textColor,
@@ -479,14 +482,14 @@ fun ProfileScreen(
                                             isExporting = false
                                             Toast.makeText(
                                                 context,
-                                                "导出成功: $path",
+                                                context.getString(R.string.profile_export_success, path),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         } catch (e: Exception) {
                                             isExporting = false
                                             Toast.makeText(
                                                 context,
-                                                "导出失败: ${e.message}",
+                                                context.getString(R.string.profile_export_failed, e.message ?: ""),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -497,8 +500,8 @@ fun ProfileScreen(
                         SettingDivider()
                         SettingItem(
                             icon = Icons.Default.Description,
-                            title = "导出为 Markdown",
-                            subtitle = if (isMarkdownExporting) "正在导出..." else "导出全部日记为 Markdown 文件",
+                            title = stringResource(R.string.profile_export_markdown),
+                            subtitle = if (isMarkdownExporting) stringResource(R.string.profile_exporting) else stringResource(R.string.profile_export_markdown_desc),
                             iconBg = DataIconBg,
                             iconTint = DataIconTint,
                             textColor = textColor,
@@ -523,14 +526,14 @@ fun ProfileScreen(
                                             isMarkdownExporting = false
                                             Toast.makeText(
                                                 context,
-                                                "导出成功: $path",
+                                                context.getString(R.string.profile_export_success, path),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         } catch (e: Exception) {
                                             isMarkdownExporting = false
                                             Toast.makeText(
                                                 context,
-                                                "导出失败: ${e.message}",
+                                                context.getString(R.string.profile_export_failed, e.message ?: ""),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -541,8 +544,8 @@ fun ProfileScreen(
                         SettingDivider()
                         SettingItem(
                             icon = Icons.Default.GetApp,
-                            title = "导入备份",
-                            subtitle = if (isImporting) "正在导入..." else "从 JSON 文件导入日记",
+                            title = stringResource(R.string.profile_import_backup),
+                            subtitle = if (isImporting) stringResource(R.string.profile_importing) else stringResource(R.string.profile_import_backup_desc),
                             iconBg = DataIconBg,
                             iconTint = DataIconTint,
                             textColor = textColor,
@@ -571,7 +574,7 @@ fun ProfileScreen(
 
             // Group: Reminders
             StaggeredItem(index = 4, showContent = showContent) {
-                SectionHeader(title = "提醒设置", icon = Icons.Default.Notifications, color = ReminderIconTint)
+                SectionHeader(title = stringResource(R.string.profile_reminder_settings), icon = Icons.Default.Notifications, color = ReminderIconTint)
             }
             Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 5, showContent = showContent) {
@@ -628,7 +631,7 @@ fun ProfileScreen(
 
             // Group: Privacy
             StaggeredItem(index = 6, showContent = showContent) {
-                SectionHeader(title = "隐私与安全", icon = Icons.Default.Security, color = PrivacyIconTint)
+                SectionHeader(title = stringResource(R.string.profile_privacy_security), icon = Icons.Default.Security, color = PrivacyIconTint)
             }
             Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 7, showContent = showContent) {
@@ -666,7 +669,7 @@ fun ProfileScreen(
 
             // Group: About
             StaggeredItem(index = 8, showContent = showContent) {
-                SectionHeader(title = "关于", icon = Icons.Default.Info, color = AboutIconTint)
+                SectionHeader(title = stringResource(R.string.profile_about), icon = Icons.Default.Info, color = AboutIconTint)
             }
             Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 9, showContent = showContent) {
@@ -716,8 +719,8 @@ fun ProfileScreen(
 
                         SettingItem(
                             icon = Icons.Default.SystemUpdate,
-                            title = "检查更新",
-                            subtitle = if (isChecking) "正在检查..." else "检查是否有新版本",
+                            title = stringResource(R.string.profile_check_update),
+                            subtitle = if (isChecking) stringResource(R.string.profile_checking) else stringResource(R.string.profile_check_update_desc),
                             iconBg = AboutIconBg,
                             iconTint = AboutIconTint,
                             textColor = textColor,
@@ -749,7 +752,7 @@ fun ProfileScreen(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "已是最新版本",
+                                                    context.getString(R.string.profile_latest_version),
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -757,7 +760,7 @@ fun ProfileScreen(
                                             isChecking = false
                                             Toast.makeText(
                                                 context,
-                                                "检查更新失败",
+                                                context.getString(R.string.profile_update_failed),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -768,8 +771,8 @@ fun ProfileScreen(
                         SettingDivider()
                         SettingItem(
                             icon = Icons.Default.History,
-                            title = "更新日志",
-                            subtitle = "查看历史版本记录",
+                            title = stringResource(R.string.profile_changelog),
+                            subtitle = stringResource(R.string.profile_changelog_desc),
                             iconBg = AboutIconBg,
                             iconTint = AboutIconTint,
                             textColor = textColor,
@@ -779,8 +782,8 @@ fun ProfileScreen(
                         SettingDivider()
                         SettingItem(
                             icon = Icons.Default.Security,
-                            title = "更多设置",
-                            subtitle = "备份管理、应用锁、隐私设置",
+                            title = stringResource(R.string.profile_more_settings),
+                            subtitle = stringResource(R.string.profile_more_settings_desc),
                             iconBg = AboutIconBg,
                             iconTint = AboutIconTint,
                             textColor = textColor,
@@ -796,7 +799,7 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Made with ",
+                                text = stringResource(R.string.made_with_love),
                                 fontSize = 12.sp,
                                 color = textTertiary
                             )
@@ -807,7 +810,7 @@ fun ProfileScreen(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = " by Diary Team",
+                                text = stringResource(R.string.made_by),
                                 fontSize = 12.sp,
                                 color = textTertiary
                             )
@@ -941,7 +944,7 @@ private fun HeaderSection(
         Spacer(modifier = Modifier.height(18.dp))
 
         Text(
-            text = "日记本",
+            text = stringResource(R.string.app_name),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
@@ -952,7 +955,7 @@ private fun HeaderSection(
 
         // Subtitle / signature
         Text(
-            text = "记录生活的每一天",
+            text = stringResource(R.string.app_subtitle),
             fontSize = 14.sp,
             fontWeight = FontWeight.Normal,
             color = textTertiary,
@@ -1044,7 +1047,7 @@ private fun ThemeCardSelector(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "主题模式",
+                text = stringResource(R.string.profile_theme_mode),
                 fontSize = 15.sp,
                 color = textColor
             )
@@ -1242,7 +1245,7 @@ private fun FontSizeSliderItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "编辑器字体大小",
+                text = stringResource(R.string.profile_font_size),
                 fontSize = 15.sp,
                 color = textColor
             )
@@ -1454,12 +1457,12 @@ private fun BiometricLockSettingItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "应用锁",
+                    text = stringResource(R.string.profile_app_lock),
                     fontSize = 15.sp,
                     color = textColor
                 )
                 Text(
-                    text = if (canUseBiometric) "使用指纹或面部识别解锁" else "设备不支持生物识别",
+                    text = if (canUseBiometric) stringResource(R.string.profile_biometric_desc) else stringResource(R.string.profile_no_biometric),
                     fontSize = 12.sp,
                     color = textTertiary,
                     modifier = Modifier.padding(top = 2.dp)
@@ -1492,7 +1495,7 @@ private fun ReminderSettingItem(
     onToggle: (Boolean) -> Unit,
     onTimeClick: () -> Unit
 ) {
-    val timeText = String.format("每天 %02d:%02d", hour, minute)
+    val timeText = stringResource(R.string.profile_reminder_time, hour, minute)
 
     Row(
         modifier = Modifier
@@ -1513,12 +1516,12 @@ private fun ReminderSettingItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "每日提醒",
+                    text = stringResource(R.string.profile_daily_reminder),
                     fontSize = 15.sp,
                     color = textColor
                 )
                 Text(
-                    text = if (enabled) timeText else "已关闭",
+                    text = if (enabled) timeText else stringResource(R.string.profile_reminder_off),
                     fontSize = 12.sp,
                     color = textTertiary,
                     modifier = Modifier
@@ -1577,12 +1580,12 @@ private fun PinLockSettingItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "PIN码锁",
+                    text = stringResource(R.string.profile_pin_lock),
                     fontSize = 15.sp,
                     color = textColor
                 )
                 Text(
-                    text = if (enabled) "已设置4位PIN码" else "设置4位数字PIN码作为备选解锁方式",
+                    text = if (enabled) stringResource(R.string.profile_pin_set) else stringResource(R.string.profile_pin_set_desc),
                     fontSize = 12.sp,
                     color = textTertiary,
                     modifier = Modifier.padding(top = 2.dp)
@@ -1593,7 +1596,7 @@ private fun PinLockSettingItem(
             onClick = { if (enabled) onRemovePin() else onSetPin() }
         ) {
             Text(
-                text = if (enabled) "移除" else "设置",
+                text = if (enabled) stringResource(R.string.profile_pin_remove) else stringResource(R.string.profile_pin_setup),
                 fontSize = 13.sp,
                 color = if (enabled) MaterialTheme.colorScheme.error else accentColor
             )
@@ -1606,144 +1609,178 @@ private fun PinLockSettingItem(
 @Composable
 private fun PinSetupDialog(
     onDismiss: () -> Unit,
-    onPinSet: (String) -> Unit
+    onPinSet: (String, String) -> Unit
 ) {
-    var step by remember { mutableIntStateOf(0) } // 0 = enter, 1 = confirm
+    var step by remember { mutableIntStateOf(0) } // 0 = enter, 1 = confirm, 2 = hint
     var firstPin by remember { mutableStateOf("") }
     var currentInput by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
+    var hint by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (step == 0) "设置PIN码" else "确认PIN码",
+                text = when (step) {
+                    0 -> stringResource(R.string.pin_setup_title)
+                    1 -> stringResource(R.string.pin_confirm_title)
+                    else -> stringResource(R.string.pin_hint_title)
+                },
                 fontWeight = FontWeight.SemiBold
             )
         },
         text = {
             Column {
                 Text(
-                    text = if (step == 0) "请输入4位数字PIN码" else "请再次输入PIN码确认",
+                    text = when (step) {
+                        0 -> stringResource(R.string.pin_enter_message)
+                        1 -> stringResource(R.string.pin_confirm_message)
+                        else -> stringResource(R.string.pin_hint_message)
+                    },
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // PIN dots
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    repeat(4) { index ->
-                        val filled = index < currentInput.length
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (filled) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                                )
+                if (step < 2) {
+                    // PIN dots
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        repeat(4) { index ->
+                            val filled = index < currentInput.length
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (filled) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                    )
+                            )
+                        }
+                    }
+
+                    if (error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.pin_mismatch),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }
-                }
 
-                if (error) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "两次输入不一致，请重新设置",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Number pad (compact)
+                    val padItems = listOf(
+                        listOf("1", "2", "3"),
+                        listOf("4", "5", "6"),
+                        listOf("7", "8", "9"),
+                        listOf("", "0", "DEL")
                     )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Number pad (compact)
-                val padItems = listOf(
-                    listOf("1", "2", "3"),
-                    listOf("4", "5", "6"),
-                    listOf("7", "8", "9"),
-                    listOf("", "0", "DEL")
-                )
-                padItems.forEach { row ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(vertical = 4.dp)
-                    ) {
-                        row.forEach { key ->
-                            if (key.isEmpty()) {
-                                Spacer(modifier = Modifier.size(48.dp))
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        .clickable {
-                                            when (key) {
-                                                "DEL" -> {
-                                                    if (currentInput.isNotEmpty()) {
-                                                        currentInput = currentInput.dropLast(1)
-                                                        error = false
+                    padItems.forEach { row ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(vertical = 4.dp)
+                        ) {
+                            row.forEach { key ->
+                                if (key.isEmpty()) {
+                                    Spacer(modifier = Modifier.size(48.dp))
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .clickable {
+                                                when (key) {
+                                                    "DEL" -> {
+                                                        if (currentInput.isNotEmpty()) {
+                                                            currentInput = currentInput.dropLast(1)
+                                                            error = false
+                                                        }
                                                     }
-                                                }
-                                                else -> {
-                                                    if (currentInput.length < 4) {
-                                                        currentInput += key
-                                                        error = false
-                                                        if (currentInput.length == 4) {
-                                                            if (step == 0) {
-                                                                firstPin = currentInput
-                                                                currentInput = ""
-                                                                step = 1
-                                                            } else {
-                                                                if (currentInput == firstPin) {
-                                                                    onPinSet(currentInput)
-                                                                } else {
-                                                                    error = true
+                                                    else -> {
+                                                        if (currentInput.length < 4) {
+                                                            currentInput += key
+                                                            error = false
+                                                            if (currentInput.length == 4) {
+                                                                if (step == 0) {
+                                                                    firstPin = currentInput
                                                                     currentInput = ""
-                                                                    step = 0
-                                                                    firstPin = ""
+                                                                    step = 1
+                                                                } else {
+                                                                    if (currentInput == firstPin) {
+                                                                        step = 2
+                                                                        currentInput = ""
+                                                                    } else {
+                                                                        error = true
+                                                                        currentInput = ""
+                                                                        step = 0
+                                                                        firstPin = ""
+                                                                    }
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (key == "DEL") {
-                                        Icon(
-                                            imageVector = Icons.Default.Backspace,
-                                            contentDescription = "删除",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    } else {
-                                        Text(
-                                            text = key,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (key == "DEL") {
+                                            Icon(
+                                                imageVector = Icons.Default.Backspace,
+                                                contentDescription = "删除",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        } else {
+                                            Text(
+                                                text = key,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                } else {
+                    // Hint input step
+                    OutlinedTextField(
+                        value = hint,
+                        onValueChange = { if (it.length <= 50) hint = it },
+                        label = { Text(stringResource(R.string.pin_hint_label)) },
+                        placeholder = { Text(stringResource(R.string.pin_hint_placeholder)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.pin_hint_desc),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = {
+            if (step == 2) {
+                TextButton(onClick = { onPinSet(firstPin, hint) }) {
+                    Text(stringResource(R.string.pin_hint_done))
+                }
+            }
+        },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

@@ -1,0 +1,28 @@
+
+> Configure project :app
+WARNING: The option setting 'android.overridePathCheck=true' is experimental.
+The current default is 'false'.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preExperimentalDebugBuild UP-TO-DATE
+> Task :app:generateExperimentalDebugBuildConfig UP-TO-DATE
+> Task :app:checkExperimentalDebugAarMetadata UP-TO-DATE
+> Task :app:generateExperimentalDebugResValues UP-TO-DATE
+> Task :app:mapExperimentalDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateExperimentalDebugResources UP-TO-DATE
+> Task :app:mergeExperimentalDebugResources UP-TO-DATE
+> Task :app:packageExperimentalDebugResources UP-TO-DATE
+> Task :app:parseExperimentalDebugLocalResources UP-TO-DATE
+> Task :app:createExperimentalDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksExperimentalDebug UP-TO-DATE
+> Task :app:processExperimentalDebugMainManifest UP-TO-DATE
+> Task :app:processExperimentalDebugManifest UP-TO-DATE
+> Task :app:processExperimentalDebugManifestForPackage UP-TO-DATE
+> Task :app:processExperimentalDebugResources UP-TO-DATE
+> Task :app:kspExperimentalDebugKotlin
+
+> Task :app:compileExperimentalDebugKotlin
+
+> Task :app:compileExperimentalDebugKotlin FAILED
+16 actionable tasks: 3 executed, 13 up-to-date

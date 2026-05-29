@@ -12,6 +12,9 @@ object BiometricHelper {
     private const val KEY_BIOMETRIC_LOCK = "biometric_lock_enabled"
     private const val KEY_PIN_HASH = "pin_lock_hash"
     private const val KEY_PIN_LOCK = "pin_lock_enabled"
+    private const val KEY_PIN_HINT = "pin_hint"
+    private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
+    private const val KEY_LOCKOUT_UNTIL = "lockout_until"
 
     fun isLockEnabled(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -36,12 +39,15 @@ object BiometricHelper {
     }
 
     // PIN management
-    fun setPin(context: Context, pin: String) {
+    fun setPin(context: Context, pin: String, hint: String = "") {
         val hash = hashPin(pin)
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_PIN_HASH, hash)
             .putBoolean(KEY_PIN_LOCK, true)
+            .putString(KEY_PIN_HINT, hint)
+            .putInt(KEY_FAILED_ATTEMPTS, 0)
+            .remove(KEY_LOCKOUT_UNTIL)
             .apply()
     }
 
@@ -50,18 +56,74 @@ object BiometricHelper {
             .edit()
             .remove(KEY_PIN_HASH)
             .putBoolean(KEY_PIN_LOCK, false)
+            .remove(KEY_PIN_HINT)
+            .putInt(KEY_FAILED_ATTEMPTS, 0)
+            .remove(KEY_LOCKOUT_UNTIL)
             .apply()
     }
 
     fun verifyPin(context: Context, pin: String): Boolean {
-        val storedHash = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_PIN_HASH, null) ?: return false
-        return hashPin(pin) == storedHash
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val storedHash = prefs.getString(KEY_PIN_HASH, null) ?: return false
+
+        // Check lockout
+        if (isLockedOut(context)) return false
+
+        return if (hashPin(pin) == storedHash) {
+            // Reset failed attempts on success
+            prefs.edit()
+                .putInt(KEY_FAILED_ATTEMPTS, 0)
+                .remove(KEY_LOCKOUT_UNTIL)
+                .apply()
+            true
+        } else {
+            // Increment failed attempts
+            val attempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0) + 1
+            prefs.edit().putInt(KEY_FAILED_ATTEMPTS, attempts).apply()
+
+            // Lockout after 5 failed attempts for 30 seconds
+            if (attempts >= 5) {
+                prefs.edit()
+                    .putLong(KEY_LOCKOUT_UNTIL, System.currentTimeMillis() + 30000)
+                    .apply()
+            }
+            false
+        }
     }
 
     fun hasPinSet(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_PIN_HASH, null) != null
+    }
+
+    fun getPinHint(context: Context): String {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_PIN_HINT, "") ?: ""
+    }
+
+    fun setPinHint(context: Context, hint: String) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_PIN_HINT, hint)
+            .apply()
+    }
+
+    fun isLockedOut(context: Context): Boolean {
+        val lockoutUntil = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getLong(KEY_LOCKOUT_UNTIL, 0)
+        return System.currentTimeMillis() < lockoutUntil
+    }
+
+    fun getLockoutRemainingSeconds(context: Context): Int {
+        val lockoutUntil = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getLong(KEY_LOCKOUT_UNTIL, 0)
+        val remaining = ((lockoutUntil - System.currentTimeMillis()) / 1000).toInt()
+        return if (remaining > 0) remaining else 0
+    }
+
+    fun getFailedAttempts(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt(KEY_FAILED_ATTEMPTS, 0)
     }
 
     private fun hashPin(pin: String): String {

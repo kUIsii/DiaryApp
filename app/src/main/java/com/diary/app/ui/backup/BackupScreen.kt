@@ -64,6 +64,8 @@ import com.diary.app.data.BackupFrequency
 import com.diary.app.data.BackupManager
 import com.diary.app.data.BackupRecord
 import com.diary.app.data.DiaryExporter
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import kotlinx.coroutines.delay
@@ -101,21 +103,21 @@ fun BackupScreen(
     deleteTarget?.let { record ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("删除备份") },
-            text = { Text("确定删除此备份文件吗？删除后无法恢复。") },
+            title = { Text(stringResource(R.string.backup_delete_title)) },
+            text = { Text(stringResource(R.string.backup_delete_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     BackupManager.deleteBackup(context, record)
                     backupHistory = BackupManager.getBackupHistory(context)
                     deleteTarget = null
-                    Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.backup_deleted), Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -124,7 +126,7 @@ fun BackupScreen(
     if (showFrequencyDialog) {
         AlertDialog(
             onDismissRequest = { showFrequencyDialog = false },
-            title = { Text("备份频率") },
+            title = { Text(stringResource(R.string.backup_frequency)) },
             text = {
                 Column {
                     BackupFrequency.entries.forEach { option ->
@@ -162,7 +164,7 @@ fun BackupScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showFrequencyDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -192,7 +194,7 @@ fun BackupScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "备份管理",
+                    text = stringResource(R.string.backup_title),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
@@ -218,8 +220,8 @@ fun BackupScreen(
                             Column {
                                 BackupSettingRow(
                                     icon = Icons.Default.Schedule,
-                                    title = "自动备份",
-                                    subtitle = if (autoBackupEnabled) "已开启 - ${frequency.label}" else "已关闭",
+                                    title = stringResource(R.string.backup_auto),
+                                    subtitle = if (autoBackupEnabled) stringResource(R.string.backup_auto_on, frequency.label) else stringResource(R.string.backup_auto_off),
                                     iconBg = Color(0x1A2196F3),
                                     iconTint = Color(0xFF2196F3),
                                     textColor = textColor,
@@ -241,7 +243,7 @@ fun BackupScreen(
                                         SettingDivider()
                                         BackupSettingRow(
                                             icon = Icons.Default.Schedule,
-                                            title = "备份频率",
+                                            title = stringResource(R.string.backup_frequency),
                                             subtitle = frequency.label,
                                             iconBg = Color(0x1AFF9800),
                                             iconTint = Color(0xFFFF9800),
@@ -258,7 +260,7 @@ fun BackupScreen(
                                     SettingDivider()
                                     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                                     BackupInfoRow(
-                                        label = "上次备份",
+                                        label = stringResource(R.string.backup_last),
                                         value = dateFormat.format(Date(lastBackup)),
                                         textSecondary = textSecondary,
                                         textTertiary = textTertiary
@@ -296,7 +298,7 @@ fun BackupScreen(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "正在备份...",
+                                            text = stringResource(R.string.backup_in_progress),
                                             fontSize = 12.sp,
                                             color = textTertiary,
                                             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -306,8 +308,8 @@ fun BackupScreen(
 
                                 BackupActionButton(
                                     icon = Icons.Default.Backup,
-                                    title = "立即备份",
-                                    subtitle = "导出全部日记为 JSON 文件",
+                                    title = stringResource(R.string.backup_now),
+                                    subtitle = stringResource(R.string.backup_now_desc),
                                     iconBg = Color(0x1A4CAF50),
                                     iconTint = Color(0xFF4CAF50),
                                     textColor = textColor,
@@ -337,9 +339,9 @@ fun BackupScreen(
                                                 backupHistory = BackupManager.getBackupHistory(context)
                                                 backupProgress = 1f
                                                 delay(300)
-                                                Toast.makeText(context, "备份成功: $path", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, context.getString(R.string.backup_success, path), Toast.LENGTH_LONG).show()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "备份失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, context.getString(R.string.backup_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
                                             }
                                             isBackingUp = false
                                         }
@@ -356,7 +358,7 @@ fun BackupScreen(
                     item {
                         StaggeredBackupItem(index = 2, showContent = showContent) {
                             SectionHeader(
-                                title = "备份历史",
+                                title = stringResource(R.string.backup_history),
                                 icon = Icons.Default.History,
                                 color = Color(0xFF9C27B0)
                             )
@@ -435,7 +437,7 @@ private fun BackupHistoryItem(
                     )
                     if (record.entryCount > 0) {
                         Text(
-                            text = "  |  ${record.entryCount} 篇",
+                            text = "  |  ${stringResource(R.string.backup_entry_count, record.entryCount)}",
                             fontSize = 11.sp,
                             color = textTertiary
                         )

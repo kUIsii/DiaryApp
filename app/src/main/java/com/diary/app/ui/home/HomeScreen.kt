@@ -104,7 +104,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.R
 import com.diary.app.data.DiaryEntry
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -161,20 +163,20 @@ fun HomeScreen(
     if (entryToDelete != null) {
         AlertDialog(
             onDismissRequest = { entryToDelete = null },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除这篇日记吗？删除后无法恢复。") },
+            title = { Text(stringResource(R.string.confirm_delete)) },
+            text = { Text(stringResource(R.string.confirm_delete_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     haptic.warning()
                     entryToDelete?.let { viewModel.deleteEntry(it) }
                     entryToDelete = null
                 }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { entryToDelete = null }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -278,13 +280,13 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日的日记",
+                                text = stringResource(R.string.diary_for_date, selectedDate!!.monthValue, selectedDate!!.dayOfMonth),
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "查看全部",
+                                text = stringResource(R.string.view_all),
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.clickable { viewModel.selectDate(null) }
@@ -342,9 +344,9 @@ fun HomeScreen(
 private fun GreetingHeader() {
     val now = LocalTime.now()
     val greeting = when {
-        now.hour < 12 -> "早安"
-        now.hour < 18 -> "下午好"
-        else -> "晚上好"
+        now.hour < 12 -> stringResource(R.string.greeting_morning)
+        now.hour < 18 -> stringResource(R.string.greeting_afternoon)
+        else -> stringResource(R.string.greeting_evening)
     }
     val greetingIcon: ImageVector = when {
         now.hour < 12 -> Icons.Default.WbSunny
@@ -439,7 +441,7 @@ private fun SearchBar(
                 keyboardActions = KeyboardActions(onSearch = { onCommitSearch(query) }),
                 placeholder = {
                     Text(
-                        "搜索日记...",
+                        stringResource(R.string.search_placeholder),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -544,7 +546,7 @@ private fun SearchBar(
         if (resultCount >= 0) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "找到 $resultCount 篇日记",
+                text = stringResource(R.string.search_result_count, resultCount),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp)
@@ -586,13 +588,13 @@ private fun SearchFilterPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "筛选条件",
+                    text = stringResource(R.string.filter_conditions),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "清除全部",
+                    text = stringResource(R.string.clear_all_filters),
                     fontSize = 12.sp,
                     color = primary.copy(alpha = 0.7f),
                     modifier = Modifier.clickable(onClick = onClear)
@@ -603,7 +605,7 @@ private fun SearchFilterPanel(
 
             // Mood filter
             Text(
-                text = "心情",
+                text = stringResource(R.string.mood_filter),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
@@ -655,7 +657,7 @@ private fun SearchFilterPanel(
 
             // Weather filter
             Text(
-                text = "天气",
+                text = stringResource(R.string.weather_filter),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
@@ -667,7 +669,14 @@ private fun SearchFilterPanel(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                val weatherOptions = listOf("晴", "多云", "阴", "雨", "风", "雷雨")
+                val weatherOptions = listOf(
+                    stringResource(R.string.weather_opt_sunny),
+                    stringResource(R.string.weather_opt_cloudy),
+                    stringResource(R.string.weather_opt_overcast),
+                    stringResource(R.string.weather_opt_rainy),
+                    stringResource(R.string.weather_opt_windy),
+                    stringResource(R.string.weather_opt_thunderstorm)
+                )
                 weatherOptions.forEach { weather ->
                     val isSelected = filters.weather == weather
                     FilterChip(
@@ -704,7 +713,7 @@ private fun StatsCard(stats: HomeStats) {
     ) {
         StatItem(
             value = stats.total,
-            label = "总日记",
+            label = stringResource(R.string.stat_total_diaries),
             icon = Icons.Default.Edit,
             gradientColors = if (dark) listOf(Color(0xFF667eea).copy(alpha = 0.25f), Color(0xFF764ba2).copy(alpha = 0.15f))
             else listOf(Color(0xFF667eea).copy(alpha = 0.12f), Color(0xFF764ba2).copy(alpha = 0.08f)),
@@ -712,7 +721,7 @@ private fun StatsCard(stats: HomeStats) {
         )
         StatItem(
             value = stats.streak,
-            label = "连续天数",
+            label = stringResource(R.string.stat_streak),
             icon = Icons.Default.LocalFireDepartment,
             gradientColors = if (dark) listOf(Color(0xFFf093fb).copy(alpha = 0.25f), Color(0xFFf5576c).copy(alpha = 0.15f))
             else listOf(Color(0xFFf093fb).copy(alpha = 0.12f), Color(0xFFf5576c).copy(alpha = 0.08f)),
@@ -720,7 +729,7 @@ private fun StatsCard(stats: HomeStats) {
         )
         StatItem(
             value = stats.thisMonth,
-            label = "本月日记",
+            label = stringResource(R.string.stat_this_month),
             icon = Icons.Default.CalendarMonth,
             gradientColors = if (dark) listOf(Color(0xFF4facfe).copy(alpha = 0.25f), Color(0xFF00f2fe).copy(alpha = 0.15f))
             else listOf(Color(0xFF4facfe).copy(alpha = 0.12f), Color(0xFF00f2fe).copy(alpha = 0.08f)),
@@ -922,20 +931,20 @@ private fun EmptyState() {
             }
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "开始你的故事",
+                text = stringResource(R.string.start_your_story),
                 fontSize = 18.sp,
                 color = onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "每一天都值得被记录",
+                text = stringResource(R.string.every_day_worth_recording),
                 fontSize = 14.sp,
                 color = onSurfaceVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "点击右下角按钮写下第一篇",
+                text = stringResource(R.string.click_to_write_first),
                 fontSize = 12.sp,
                 color = onSurfaceVariant.copy(alpha = 0.5f)
             )
@@ -1113,7 +1122,7 @@ private fun DiaryCardWithContextMenu(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             DropdownMenuItem(
-                text = { Text("编辑") },
+                text = { Text(stringResource(R.string.edit)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Edit,
@@ -1127,7 +1136,7 @@ private fun DiaryCardWithContextMenu(
                 }
             )
             DropdownMenuItem(
-                text = { Text(if (entry.isFavorite) "取消收藏" else "收藏") },
+                text = { Text(if (entry.isFavorite) stringResource(R.string.unfavorite) else stringResource(R.string.favorite)) },
                 leadingIcon = {
                     Icon(
                         if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
@@ -1141,7 +1150,7 @@ private fun DiaryCardWithContextMenu(
                 }
             )
             DropdownMenuItem(
-                text = { Text("分享") },
+                text = { Text(stringResource(R.string.share)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Share,
@@ -1163,7 +1172,7 @@ private fun DiaryCardWithContextMenu(
             Divider()
             DropdownMenuItem(
                 text = {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 },
                 leadingIcon = {
                     Icon(
@@ -1506,14 +1515,14 @@ private fun OnThisDayCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "那年今日",
+                    text = stringResource(R.string.on_this_day),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "${entries.size} 篇回忆",
+                    text = stringResource(R.string.memories_count, entries.size),
                     fontSize = 12.sp,
                     color = onSurfaceVariant.copy(alpha = 0.6f)
                 )
@@ -1562,7 +1571,7 @@ private fun OnThisDayCard(
                         }
                     }
                     Text(
-                        text = "${yearDiff}年前",
+                        text = stringResource(R.string.years_ago, yearDiff),
                         fontSize = 11.sp,
                         color = onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -1572,7 +1581,7 @@ private fun OnThisDayCard(
             if (entries.size > 3) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "还有 ${entries.size - 3} 篇...",
+                    text = stringResource(R.string.more_entries, entries.size - 3),
                     fontSize = 12.sp,
                     color = onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1615,14 +1624,14 @@ private fun ReviewCardHome(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "日记回顾",
+                        text = stringResource(R.string.diary_review),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = primary
                     )
                 }
                 Text(
-                    text = "查看全部",
+                    text = stringResource(R.string.view_all),
                     fontSize = 12.sp,
                     color = primary.copy(alpha = 0.7f),
                     modifier = Modifier.clickable(onClick = onViewAll)
@@ -1708,13 +1717,13 @@ private fun RecentSearchesRow(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "最近搜索",
+                    text = stringResource(R.string.recent_searches),
                     fontSize = 12.sp,
                     color = onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
             Text(
-                text = "清除",
+                text = stringResource(R.string.clear),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                 modifier = Modifier.clickable { onClear() }

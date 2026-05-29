@@ -89,11 +89,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
+import com.diary.app.data.DiaryTemplate
+import com.diary.app.data.TemplateCategory
+import com.diary.app.data.TemplateManager
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.theme.isDark
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -129,6 +134,7 @@ fun EditorScreen(
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
     var showTagDialog by remember { mutableStateOf(false) }
+    var showTemplateDialog by remember { mutableStateOf(false) }
 
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
@@ -320,8 +326,8 @@ fun EditorScreen(
     if (showUnsavedDialog) {
         AlertDialog(
             onDismissRequest = { showUnsavedDialog = false },
-            title = { Text("未保存的更改") },
-            text = { Text("当前有未保存的更改，是否保存？") },
+            title = { Text(stringResource(R.string.unsaved_changes)) },
+            text = { Text(stringResource(R.string.unsaved_changes_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
@@ -335,13 +341,13 @@ fun EditorScreen(
                             }
                         }
                     }
-                }) { Text("保存并退出") }
+                }) { Text(stringResource(R.string.save_and_exit)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showUnsavedDialog = false
                     onNavigateBack()
-                }) { Text("不保存退出") }
+                }) { Text(stringResource(R.string.exit_without_saving)) }
             }
         )
     }
@@ -353,8 +359,8 @@ fun EditorScreen(
                 viewModel.clearDraft(null)
                 showDraftDialog = false
             },
-            title = { Text("发现草稿") },
-            text = { Text("发现上次未保存的草稿，是否恢复？") },
+            title = { Text(stringResource(R.string.draft_found)) },
+            text = { Text(stringResource(R.string.draft_found_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     val draft = pendingDraft!!
@@ -362,13 +368,26 @@ fun EditorScreen(
                     selectedMood = draft.moodLevel
                     selectedWeather = draft.weather
                     showDraftDialog = false
-                }) { Text("恢复") }
+                }) { Text(stringResource(R.string.restore)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     viewModel.clearDraft(null)
                     showDraftDialog = false
-                }) { Text("丢弃") }
+                }) { Text(stringResource(R.string.discard)) }
+            }
+        )
+    }
+
+    // Template selection dialog
+    if (showTemplateDialog) {
+        TemplateDialog(
+            onDismiss = { showTemplateDialog = false },
+            onTemplateSelected = { template ->
+                webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
+                showTemplateDialog = false
+                // Hide inline template selector if visible
+                showTemplateSelector = false
             }
         )
     }
@@ -418,6 +437,9 @@ fun EditorScreen(
                 IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Redo, contentDescription = "重做", tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
+                IconButton(onClick = { showTemplateDialog = true }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.MenuBook, contentDescription = "模板", tint = textSecondary, modifier = Modifier.size(20.dp))
+                }
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
                         webView?.evaluateJavascript("getPlainText()") { plain ->
@@ -438,7 +460,7 @@ fun EditorScreen(
                         }
                     }
                 }) {
-                    Text("保存", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = accentColor)
+                    Text(stringResource(R.string.save), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = accentColor)
                 }
             }
 
@@ -481,7 +503,7 @@ fun EditorScreen(
                 ) {
                     // Mood button
                     MetadataButton(
-                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
+                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else stringResource(R.string.mood_label),
                         icon = moodIconForLevel(selectedMood ?: 3).icon,
                         isSelected = selectedMood != null,
                         isActive = activePanel == "mood",
@@ -493,7 +515,7 @@ fun EditorScreen(
                     )
                     // Weather button
                     MetadataButton(
-                        label = selectedWeather ?: "天气",
+                        label = selectedWeather ?: stringResource(R.string.weather_label),
                         icon = weatherIconFor(selectedWeather).icon,
                         isSelected = selectedWeather != null,
                         isActive = activePanel == "weather",
@@ -505,7 +527,7 @@ fun EditorScreen(
                     )
                     // Tags button
                     MetadataButton(
-                        label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size} 个标签" else "标签",
+                        label = if (selectedTagIds.isNotEmpty()) stringResource(R.string.tag_count_format, selectedTagIds.size) else stringResource(R.string.tag_label),
                         icon = Icons.Default.Sell,
                         isSelected = selectedTagIds.isNotEmpty(),
                         isActive = activePanel == "tags",
@@ -579,7 +601,7 @@ fun EditorScreen(
                 exit = fadeOut(tween(200))
             ) {
                 Text(
-                    text = "$charCount 字 | $wordCount 词",
+                    text = stringResource(R.string.word_count_format, charCount, wordCount),
                     fontSize = 10.sp,
                     color = textSecondary.copy(alpha = 0.5f),
                     modifier = Modifier
@@ -714,11 +736,11 @@ private fun EditorToolbar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val categories = listOf(
-                ToolbarCategory("Aa", "格式", Icons.Default.FormatSize),
-                ToolbarCategory("H", "标题", Icons.Default.FormatSize),
-                ToolbarCategory("≡", "列表", Icons.Default.FormatSize),
-                ToolbarCategory("▢", "插入", Icons.Default.Flight),
-                ToolbarCategory("◉", "颜色", Icons.Default.Palette)
+                ToolbarCategory("Aa", stringResource(R.string.toolbar_format), Icons.Default.FormatSize),
+                ToolbarCategory("H", stringResource(R.string.toolbar_heading), Icons.Default.FormatSize),
+                ToolbarCategory("≡", stringResource(R.string.toolbar_list), Icons.Default.FormatSize),
+                ToolbarCategory("▢", stringResource(R.string.toolbar_insert), Icons.Default.Flight),
+                ToolbarCategory("◉", stringResource(R.string.toolbar_color), Icons.Default.Palette)
             )
             categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
@@ -810,12 +832,12 @@ private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Col
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listOf(
-            Triple("B", "加粗", "toggleBold()"),
-            Triple("I", "斜体", "toggleItalic()"),
-            Triple("U", "下划线", "toggleUnderline()"),
-            Triple("S", "删除线", "toggleStrike()"),
-            Triple("❝", "引用", "toggleBlockquote()"),
-            Triple("—", "分割线", "insertDivider()")
+            Triple("B", stringResource(R.string.format_bold), "toggleBold()"),
+            Triple("I", stringResource(R.string.format_italic), "toggleItalic()"),
+            Triple("U", stringResource(R.string.format_underline), "toggleUnderline()"),
+            Triple("S", stringResource(R.string.format_strikethrough), "toggleStrike()"),
+            Triple("❝", stringResource(R.string.format_quote), "toggleBlockquote()"),
+            Triple("—", stringResource(R.string.format_divider), "insertDivider()")
         ).forEach { (label, desc, cmd) ->
             ToolChip(label = label, description = desc, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
         }
@@ -830,10 +852,10 @@ private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Colo
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listOf(
-            Triple("H1", "大标题", 1),
-            Triple("H2", "中标题", 2),
-            Triple("H3", "小标题", 3),
-            Triple("正文", "默认", 0)
+            Triple("H1", stringResource(R.string.heading_h1), 1),
+            Triple("H2", stringResource(R.string.heading_h2), 2),
+            Triple("H3", stringResource(R.string.heading_h3), 3),
+            Triple("正文", stringResource(R.string.heading_normal), 0)
         ).forEach { (label, desc, level) ->
             ToolChip(label = label, description = desc, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
         }
@@ -847,8 +869,8 @@ private fun ListTools(onList: (String) -> Unit, textColor: Color, btnBg: Color) 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = "1.", description = "有序列表", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "•", description = "无序列表", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "1.", description = stringResource(R.string.list_ordered), onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "•", description = stringResource(R.string.list_bullet), onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -860,10 +882,10 @@ private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Col
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listOf(
-            Triple("图片", "插入图片", "image"),
-            Triple("视频", "插入视频", "video"),
-            Triple("音频", "插入音频", "audio"),
-            Triple("链接", "插入链接", "link")
+            Triple(stringResource(R.string.insert_image), stringResource(R.string.insert_image), "image"),
+            Triple(stringResource(R.string.insert_video), stringResource(R.string.insert_video), "video"),
+            Triple(stringResource(R.string.insert_audio), stringResource(R.string.insert_audio), "audio"),
+            Triple(stringResource(R.string.insert_link), stringResource(R.string.insert_link), "link")
         ).forEach { (label, desc, action) ->
             ToolChip(label = label, description = desc, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
         }
@@ -882,7 +904,7 @@ private fun ColorTools(
 ) {
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf("文字" to 0, "背景" to 1).forEach { (label, t) ->
+            listOf(stringResource(R.string.color_text) to 0, stringResource(R.string.color_background) to 1).forEach { (label, t) ->
                 Text(
                     text = label,
                     fontSize = 13.sp,
@@ -918,7 +940,7 @@ private fun ColorTools(
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        ToolChip(label = "清除格式", onClick = onClear, textColor = textColor, bg = btnBg)
+        ToolChip(label = stringResource(R.string.clear_formatting), onClick = onClear, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -1008,18 +1030,18 @@ private fun AddTagDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("新建标签") },
+        title = { Text(stringResource(R.string.new_tag)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("标签名称") },
+                    label = { Text(stringResource(R.string.tag_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("选择颜色", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.select_color), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     presetColors.forEach { color ->
@@ -1043,23 +1065,13 @@ private fun AddTagDialog(
             TextButton(
                 onClick = { if (name.isNotBlank()) onConfirm(name, selectedColor) },
                 enabled = name.isNotBlank()
-            ) { Text("确定") }
+            ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
-
-private data class DiaryTemplate(val name: String, val icon: ImageVector, val content: String)
-
-private val diaryTemplates = listOf(
-    DiaryTemplate("日常记录", Icons.Default.Today, "今天发生了什么？\n\n印象深刻的事：\n心情：\n想对自己说："),
-    DiaryTemplate("感恩日记", Icons.Default.Favorite, "今天感恩的三件事：\n1. \n2. \n3. \n\n今天的小确幸：\n明天的期待："),
-    DiaryTemplate("读书笔记", Icons.Default.MenuBook, "书名：\n作者：\n\n精彩摘录：\n我的感想：\n推荐指数：/5"),
-    DiaryTemplate("旅行日记", Icons.Default.Flight, "目的地：\n同行者：\n\n今天的经历：\n最喜欢的瞬间：\n美食记录："),
-    DiaryTemplate("工作复盘", Icons.Default.Work, "今日完成：\n遇到的问题：\n解决方案：\n明日计划：\n学到了什么：")
-)
 
 @Composable
 private fun TemplateSelector(
@@ -1069,6 +1081,7 @@ private fun TemplateSelector(
     val accentColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val templates = remember { TemplateManager.getAllTemplates() }
 
     Column(
         modifier = Modifier
@@ -1081,7 +1094,7 @@ private fun TemplateSelector(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "选择模板",
+                text = stringResource(R.string.select_template),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = textSecondary
@@ -1102,7 +1115,7 @@ private fun TemplateSelector(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            diaryTemplates.forEach { template ->
+            templates.forEach { template ->
                 TemplateChip(
                     template = template,
                     accentColor = accentColor,
@@ -1145,7 +1158,7 @@ private fun TemplateChip(
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Icon(
-            imageVector = template.icon,
+            imageVector = iconForTemplate(template.icon),
             contentDescription = template.name,
             tint = accentColor,
             modifier = Modifier.size(18.dp)
@@ -1156,5 +1169,188 @@ private fun TemplateChip(
             fontWeight = FontWeight.Medium,
             color = textSecondary
         )
+    }
+}
+
+@Composable
+private fun TemplateDialog(
+    onDismiss: () -> Unit,
+    onTemplateSelected: (DiaryTemplate) -> Unit
+) {
+    var selectedCategory by remember { mutableStateOf<TemplateCategory?>(null) }
+    val templates = remember(selectedCategory) {
+        if (selectedCategory == null) TemplateManager.getAllTemplates()
+        else TemplateManager.getTemplatesByCategory(selectedCategory!!)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(R.string.select_template), fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Category filter chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CategoryChip(
+                        label = "全部",
+                        isSelected = selectedCategory == null,
+                        onClick = { selectedCategory = null }
+                    )
+                    TemplateManager.getCategories().forEach { category ->
+                        CategoryChip(
+                            label = templateCategoryLabel(category),
+                            isSelected = selectedCategory == category,
+                            onClick = { selectedCategory = category }
+                        )
+                    }
+                }
+
+                // Template list
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    templates.forEach { template ->
+                        TemplateItem(
+                            template = template,
+                            onClick = { onTemplateSelected(template) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun CategoryChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = contentColor
+        )
+    }
+}
+
+@Composable
+private fun TemplateItem(
+    template: DiaryTemplate,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
+    val accentColor = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    Row(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(surfaceVariant.copy(alpha = 0.4f))
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = iconForTemplate(template.icon),
+            contentDescription = template.name,
+            tint = accentColor,
+            modifier = Modifier.size(24.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = template.name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (template.content.isNotBlank()) {
+                Text(
+                    text = template.content.take(40) + if (template.content.length > 40) "..." else "",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1
+                )
+            } else {
+                Text(
+                    text = "空白模板",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+private fun iconForTemplate(iconName: String): ImageVector {
+    return when (iconName) {
+        "today" -> Icons.Default.Today
+        "favorite" -> Icons.Default.Favorite
+        "mood" -> Icons.Default.Favorite
+        "psychology" -> Icons.Default.Favorite
+        "edit" -> Icons.Default.FormatSize
+        "menu_book" -> Icons.Default.MenuBook
+        "flight" -> Icons.Default.Flight
+        "work" -> Icons.Default.Work
+        else -> Icons.Default.Today
+    }
+}
+
+private fun templateCategoryLabel(category: TemplateCategory): String {
+    return when (category) {
+        TemplateCategory.DAILY -> "日常"
+        TemplateCategory.EMOTIONAL -> "情感"
+        TemplateCategory.CREATIVE -> "创意"
+        TemplateCategory.TRAVEL -> "旅行"
+        TemplateCategory.WORK -> "工作"
     }
 }

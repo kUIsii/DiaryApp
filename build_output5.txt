@@ -1,0 +1,49 @@
+
+> Configure project :app
+WARNING: The option setting 'android.overridePathCheck=true' is experimental.
+The current default is 'false'.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preExperimentalDebugBuild UP-TO-DATE
+> Task :app:mergeExperimentalDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateExperimentalDebugBuildConfig
+> Task :app:generateExperimentalDebugResValues
+> Task :app:mapExperimentalDebugSourceSetPaths
+> Task :app:generateExperimentalDebugResources
+> Task :app:checkExperimentalDebugAarMetadata
+
+> Task :app:mergeExperimentalDebugResources
+C:\Users\³ÂÊË½Ü\Desktop\DiaryApp\app\src\main\res\values\strings.xml:41:4: Multiple substitutions specified in non-positional format of string resource string/diary_for_date. Did you mean to add the formatted="false" attribute?
+C:\Users\³ÂÊË½Ü\Desktop\DiaryApp\app\src\main\res\values\strings.xml:257:4: Multiple substitutions specified in non-positional format of string resource string/profile_import_confirm_message. Did you mean to add the formatted="false" attribute?
+C:\Users\³ÂÊË½Ü\Desktop\DiaryApp\app\src\main\res\values\strings.xml:224:4: Multiple substitutions specified in non-positional format of string resource string/profile_import_success. Did you mean to add the formatted="false" attribute?
+C:\Users\³ÂÊË½Ü\Desktop\DiaryApp\app\src\main\res\values\strings.xml:39:4: Multiple substitutions specified in non-positional format of string resource string/word_count_format. Did you mean to add the formatted="false" attribute?
+
+> Task :app:packageExperimentalDebugResources
+> Task :app:createExperimentalDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksExperimentalDebug
+> Task :app:parseExperimentalDebugLocalResources
+> Task :app:processExperimentalDebugMainManifest
+> Task :app:processExperimentalDebugManifest
+> Task :app:processExperimentalDebugManifestForPackage UP-TO-DATE
+> Task :app:mergeExperimentalDebugShaders
+> Task :app:compileExperimentalDebugShaders NO-SOURCE
+> Task :app:generateExperimentalDebugAssets UP-TO-DATE
+> Task :app:javaPreCompileExperimentalDebug
+> Task :app:mergeExperimentalDebugAssets
+> Task :app:compressExperimentalDebugAssets
+> Task :app:desugarExperimentalDebugFileDependencies
+> Task :app:mergeExperimentalDebugJniLibFolders
+> Task :app:mergeExperimentalDebugNativeLibs NO-SOURCE
+> Task :app:stripExperimentalDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningExperimentalDebug
+> Task :app:writeExperimentalDebugAppMetadata
+> Task :app:writeExperimentalDebugSigningConfigVersions
+> Task :app:checkExperimentalDebugDuplicateClasses
+> Task :app:mergeLibDexExperimentalDebug UP-TO-DATE
+aapt2. W 05-30 01:16:50 11912 25504 AssetsProvider.cpp:114] Failed to stat file 'C:\Users\³ÂÊË½Ü\AppData\Local\Android\Sdk\platforms\android-34\android.jar': No such file or directory
+
+> Task :app:processExperimentalDebugResources
+> Task :app:mergeExtDexExperimentalDebug
+> Task :app:kspExperimentalDebugKotlin
+> Task :app:compileExperimentalDebugKotlin

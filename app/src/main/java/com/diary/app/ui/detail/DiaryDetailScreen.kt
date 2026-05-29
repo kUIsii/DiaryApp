@@ -79,6 +79,8 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.sharedElementTransition
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.theme.isDark
 import java.time.Instant
 import java.time.LocalDate
@@ -168,7 +170,7 @@ fun DiaryDetailScreen(
                         onDismissRequest = { showShareMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("分享文字") },
+                            text = { Text(stringResource(R.string.share_text)) },
                             onClick = {
                                 showShareMenu = false
                                 val shareText = viewModel.getShareText()
@@ -184,7 +186,7 @@ fun DiaryDetailScreen(
                         )
                         DropdownMenuItem(
                             text = {
-                                Text(if (isExportingImage) "生成图片中..." else "分享为图片")
+                                Text(if (isExportingImage) stringResource(R.string.generating_image) else stringResource(R.string.share_as_image))
                             },
                             enabled = !isExportingImage,
                             onClick = {
@@ -206,7 +208,7 @@ fun DiaryDetailScreen(
                         )
                         DropdownMenuItem(
                             text = {
-                                Text(if (isExportingMarkdown) "导出中..." else "导出为 Markdown")
+                                Text(if (isExportingMarkdown) stringResource(R.string.exporting) else stringResource(R.string.export_markdown))
                             },
                             enabled = !isExportingMarkdown,
                             onClick = {
@@ -253,7 +255,7 @@ fun DiaryDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "编辑",
+                            stringResource(R.string.edit),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
@@ -267,8 +269,8 @@ fun DiaryDetailScreen(
             if (showDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
-                    title = { Text("删除日记") },
-                    text = { Text("确定要删除这篇日记吗？此操作无法撤销。") },
+                    title = { Text(stringResource(R.string.delete_diary)) },
+                    text = { Text(stringResource(R.string.delete_diary_message)) },
                     confirmButton = {
                         TextButton(onClick = {
                             showDeleteDialog = false
@@ -278,12 +280,12 @@ fun DiaryDetailScreen(
                                 onNavigateBack()
                             }
                         }) {
-                            Text("删除", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("取消")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -532,14 +534,14 @@ private fun DetailTimestamps(
     ) {
         Column {
             Text(
-                text = "创建于 $createdText",
+                text = stringResource(R.string.created_at, createdText),
                 fontSize = 12.sp,
                 color = textSecondary.copy(alpha = 0.6f)
             )
             if (isEdited) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "修改于 $updatedText",
+                    text = stringResource(R.string.modified_at, updatedText),
                     fontSize = 12.sp,
                     color = textSecondary.copy(alpha = 0.6f)
                 )

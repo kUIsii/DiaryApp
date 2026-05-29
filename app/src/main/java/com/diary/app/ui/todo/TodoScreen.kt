@@ -71,6 +71,8 @@ import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.WarningColor
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.theme.themeMode
 import com.diary.app.ui.theme.isDark
 import java.time.Instant
@@ -109,14 +111,14 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column {
                     Text(
-                        text = "今日待办",
+                        text = stringResource(R.string.todo_title),
                         color = textPrimary,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${today.format(dateFormatter)} · 剩余 $pendingCount 项",
+                        text = "${today.format(dateFormatter)} · ${stringResource(R.string.todo_remaining, pendingCount)}",
                         color = textSecondary,
                         fontSize = 14.sp
                     )
@@ -238,20 +240,20 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("清除已完成") },
-            text = { Text("将删除7天前已完成的待办事项") },
+            title = { Text(stringResource(R.string.clear_completed_title)) },
+            text = { Text(stringResource(R.string.clear_completed_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     haptic.warning()
                     viewModel.clearCompleted()
                     showClearDialog = false
                 }) {
-                    Text("确认", color = ErrorColor)
+                    Text(stringResource(R.string.confirm), color = ErrorColor)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -279,7 +281,7 @@ private fun InputRow(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        "添加新待办...",
+                        stringResource(R.string.todo_add_placeholder),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 },
@@ -465,14 +467,14 @@ private fun EmptyState(textSecondary: Color) {
             }
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "暂无待办事项",
+                text = stringResource(R.string.todo_empty_title),
                 color = textSecondary.copy(alpha = 0.7f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "添加你的第一个待办吧",
+                text = stringResource(R.string.todo_empty_subtitle),
                 color = textSecondary.copy(alpha = 0.4f),
                 fontSize = 14.sp
             )
@@ -509,7 +511,7 @@ private fun ClearCompletedButton(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "清除已完成",
+                text = stringResource(R.string.clear_completed),
                 color = textSecondary,
                 fontSize = 14.sp
             )

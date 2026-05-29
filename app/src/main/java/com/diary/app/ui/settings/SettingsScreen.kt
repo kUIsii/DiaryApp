@@ -61,6 +61,8 @@ import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import androidx.compose.ui.res.stringResource
+import com.diary.app.R
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import kotlinx.coroutines.delay
@@ -116,7 +118,7 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "设置",
+                    text = stringResource(R.string.settings_title),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
@@ -133,7 +135,7 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SettingsStaggeredItem(index = 0, showContent = showContent) {
-                    SettingsSectionHeader(title = "外观", icon = Icons.Default.Palette, color = AppearanceIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_appearance), icon = Icons.Default.Palette, color = AppearanceIconTint)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 1, showContent = showContent) {
@@ -143,8 +145,8 @@ fun SettingsScreen(
                     ) {
                         SettingsNavigateItem(
                             icon = Icons.Default.Palette,
-                            title = "主题设置",
-                            subtitle = "当前: ${currentThemeMode.label}",
+                            title = stringResource(R.string.settings_theme),
+                            subtitle = stringResource(R.string.settings_current_theme, currentThemeMode.label),
                             iconBg = AppearanceIconBg,
                             iconTint = AppearanceIconTint,
                             textColor = textColor,
@@ -156,7 +158,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 2, showContent = showContent) {
-                    SettingsSectionHeader(title = "数据管理", icon = Icons.Default.Backup, color = DataIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_data), icon = Icons.Default.Backup, color = DataIconTint)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 3, showContent = showContent) {
@@ -167,8 +169,8 @@ fun SettingsScreen(
                         Column {
                             SettingsNavigateItem(
                                 icon = Icons.Default.Backup,
-                                title = "备份管理",
-                                subtitle = "自动备份、备份历史、恢复数据",
+                                title = stringResource(R.string.settings_backup),
+                                subtitle = stringResource(R.string.settings_backup_desc),
                                 iconBg = DataIconBg,
                                 iconTint = DataIconTint,
                                 textColor = textColor,
@@ -178,8 +180,8 @@ fun SettingsScreen(
                             SettingsDivider()
                             SettingsNavigateItem(
                                 icon = Icons.Default.Label,
-                                title = "分类管理",
-                                subtitle = "管理日记分类标签",
+                                title = stringResource(R.string.settings_tags),
+                                subtitle = stringResource(R.string.settings_tags_desc),
                                 iconBg = DataIconBg,
                                 iconTint = DataIconTint,
                                 textColor = textColor,
@@ -193,7 +195,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 4, showContent = showContent) {
-                    SettingsSectionHeader(title = "隐私与安全", icon = Icons.Default.Security, color = PrivacyIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_privacy), icon = Icons.Default.Security, color = PrivacyIconTint)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 5, showContent = showContent) {
@@ -203,8 +205,8 @@ fun SettingsScreen(
                     ) {
                         SettingsNavigateItem(
                             icon = Icons.Default.Lock,
-                            title = "应用锁",
-                            subtitle = "指纹、面部识别或PIN码保护",
+                            title = stringResource(R.string.settings_app_lock),
+                            subtitle = stringResource(R.string.settings_app_lock_desc),
                             iconBg = PrivacyIconBg,
                             iconTint = PrivacyIconTint,
                             textColor = textColor,
@@ -216,7 +218,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 6, showContent = showContent) {
-                    SettingsSectionHeader(title = "关于", icon = Icons.Default.Info, color = AboutIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_about), icon = Icons.Default.Info, color = AboutIconTint)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 7, showContent = showContent) {
@@ -264,8 +266,8 @@ fun SettingsScreen(
 
                             SettingsNavigateItem(
                                 icon = Icons.Default.SystemUpdate,
-                                title = "检查更新",
-                                subtitle = "检查是否有新版本",
+                                title = stringResource(R.string.settings_check_update),
+                                subtitle = stringResource(R.string.settings_check_update_desc),
                                 iconBg = AboutIconBg,
                                 iconTint = AboutIconTint,
                                 textColor = textColor,
@@ -274,8 +276,8 @@ fun SettingsScreen(
                             SettingsDivider()
                             SettingsNavigateItem(
                                 icon = Icons.Default.History,
-                                title = "更新日志",
-                                subtitle = "查看历史版本记录",
+                                title = stringResource(R.string.settings_changelog),
+                                subtitle = stringResource(R.string.settings_changelog_desc),
                                 iconBg = AboutIconBg,
                                 iconTint = AboutIconTint,
                                 textColor = textColor,
@@ -289,14 +291,14 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text(text = "Made with ", fontSize = 12.sp, color = textTertiary)
+                                Text(text = stringResource(R.string.made_with_love), fontSize = 12.sp, color = textTertiary)
                                 Icon(
                                     Icons.Default.Favorite,
                                     contentDescription = "心形图标",
                                     tint = Color(0xFFE91E63),
                                     modifier = Modifier.size(14.dp)
                                 )
-                                Text(text = " by Diary Team", fontSize = 12.sp, color = textTertiary)
+                                Text(text = stringResource(R.string.made_by), fontSize = 12.sp, color = textTertiary)
                             }
                         }
                     }

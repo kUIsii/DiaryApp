@@ -95,31 +95,29 @@ class MainActivity : FragmentActivity() {
                     GradientBackground {
                         Box(modifier = Modifier.fillMaxSize()) {
                             if (showPinScreen) {
-                                // PIN entry screen
+                                // PIN entry screen with enhanced features
+                                var pinError by remember { mutableStateOf(false) }
+
                                 PinEntryScreen(
                                     title = "输入PIN码",
                                     subtitle = if (biometricLockEnabled) "或切换到生物识别" else "",
+                                    hint = BiometricHelper.getPinHint(context),
+                                    lockoutSeconds = BiometricHelper.getLockoutRemainingSeconds(context),
                                     onPinEntered = { pin ->
                                         if (BiometricHelper.verifyPin(context, pin)) {
                                             isAuthenticated = true
+                                            pinError = false
                                         } else {
-                                            Toast.makeText(context, "PIN码错误", Toast.LENGTH_SHORT).show()
+                                            pinError = true
+                                            if (BiometricHelper.isLockedOut(context)) {
+                                                Toast.makeText(context, "输入错误次数过多，请等待", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
-                                    }
+                                    },
+                                    onBiometricClick = if (biometricLockEnabled) {
+                                        { showPinScreen = false }
+                                    } else null
                                 )
-
-                                // Switch to biometric button (only if biometric is also enabled)
-                                if (biometricLockEnabled) {
-                                    Text(
-                                        text = "使用生物识别",
-                                        fontSize = 13.sp,
-                                        color = Color.White.copy(alpha = 0.5f),
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .padding(bottom = 64.dp)
-                                            .clickable { showPinScreen = false }
-                                    )
-                                }
 
                                 // Version info at the bottom
                                 Text(
