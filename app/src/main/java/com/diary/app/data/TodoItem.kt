@@ -1,9 +1,16 @@
 package com.diary.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "todo_items")
+@Entity(
+    tableName = "todo_items",
+    indices = [
+        Index(value = ["dueDate"]),
+        Index(value = ["isCompleted"])
+    ]
+)
 data class TodoItem(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

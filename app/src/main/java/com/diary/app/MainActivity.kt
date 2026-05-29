@@ -14,6 +14,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.biometric.BiometricHelper
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.lock.PinEntryScreen
 import com.diary.app.ui.navigation.DiaryNavHost
 import com.diary.app.ui.theme.DiaryAppTheme
 import com.diary.app.ui.theme.ThemeMode
@@ -82,133 +84,189 @@ class MainActivity : FragmentActivity() {
                 var hasChecked by remember { mutableStateOf(false) }
                 val pendingNavigation by navigateTo
 
-                val lockEnabled = BiometricHelper.isLockEnabled(context)
+                val biometricLockEnabled = BiometricHelper.isBiometricLockEnabled(context)
+                val pinLockEnabled = BiometricHelper.isPinLockEnabled(context)
+                val lockEnabled = biometricLockEnabled || pinLockEnabled
                 var isAuthenticated by remember { mutableStateOf(!lockEnabled) }
+                // If both are enabled, default to PIN; otherwise use whichever is set
+                var showPinScreen by remember { mutableStateOf(pinLockEnabled) }
 
                 if (!isAuthenticated) {
                     GradientBackground {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            // Entrance animation state
-                            var visible by remember { mutableStateOf(false) }
-                            LaunchedEffect(Unit) { visible = true }
-
-                            // Breathing animation for the lock icon
-                            val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-                            val breathScale by infiniteTransition.animateFloat(
-                                initialValue = 1f,
-                                targetValue = 1.05f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-                                    repeatMode = RepeatMode.Reverse
-                                ),
-                                label = "breathScale"
-                            )
-                            // Entrance fade + scale
-                            val entranceAlpha by animateFloatAsState(
-                                targetValue = if (visible) 1f else 0f,
-                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-                                label = "entranceAlpha"
-                            )
-                            val entranceScale by animateFloatAsState(
-                                targetValue = if (visible) 1f else 0.92f,
-                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-                                label = "entranceScale"
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(entranceAlpha)
-                                    .scale(entranceScale),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                // Breathing lock icon
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier
-                                        .size(72.dp)
-                                        .scale(breathScale)
+                            if (showPinScreen) {
+                                // PIN entry screen
+                                PinEntryScreen(
+                                    title = "输入PIN码",
+                                    subtitle = if (biometricLockEnabled) "或切换到生物识别" else "",
+                                    onPinEntered = { pin ->
+                                        if (BiometricHelper.verifyPin(context, pin)) {
+                                            isAuthenticated = true
+                                        } else {
+                                            Toast.makeText(context, "PIN码错误", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 )
 
-                                Spacer(modifier = Modifier.height(28.dp))
-
-                                // App name
-                                Text(
-                                    text = "日记本",
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    letterSpacing = 4.sp
-                                )
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                // Subtitle
-                                Text(
-                                    text = "记录生活的每一刻",
-                                    fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.55f),
-                                    letterSpacing = 2.sp
-                                )
-
-                                Spacer(modifier = Modifier.height(52.dp))
-
-                                // Gradient-bordered unlock button
-                                val buttonShape = RoundedCornerShape(20.dp)
-                                val gradientBrush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.6f),
-                                        Color.White.copy(alpha = 0.25f)
+                                // Switch to biometric button (only if biometric is also enabled)
+                                if (biometricLockEnabled) {
+                                    Text(
+                                        text = "使用生物识别",
+                                        fontSize = 13.sp,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(bottom = 64.dp)
+                                            .clickable { showPinScreen = false }
                                     )
-                                )
-                                OutlinedButton(
-                                    onClick = {
-                                        BiometricHelper.showBiometricPrompt(
-                                            activity = activity,
-                                            onSuccess = { isAuthenticated = true },
-                                            onError = { msg ->
-                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                            }
-                                        )
-                                    },
-                                    shape = buttonShape,
-                                    border = BorderStroke(1.dp, gradientBrush),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = Color.White.copy(alpha = 0.12f),
-                                        contentColor = Color.White
-                                    ),
+                                }
+
+                                // Version info at the bottom
+                                Text(
+                                    text = "v${BuildConfig.VERSION_NAME}",
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.5f),
                                     modifier = Modifier
-                                        .padding(horizontal = 48.dp)
-                                        .height(52.dp)
-                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 32.dp)
+                                )
+                            } else {
+                                // Biometric unlock screen (original)
+                                // Entrance animation state
+                                var visible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) { visible = true }
+
+                                // Breathing animation for the lock icon
+                                val infiniteTransition = rememberInfiniteTransition(label = "breathing")
+                                val breathScale by infiniteTransition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 1.05f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                                        repeatMode = RepeatMode.Reverse
+                                    ),
+                                    label = "breathScale"
+                                )
+                                // Entrance fade + scale
+                                val entranceAlpha by animateFloatAsState(
+                                    targetValue = if (visible) 1f else 0f,
+                                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                                    label = "entranceAlpha"
+                                )
+                                val entranceScale by animateFloatAsState(
+                                    targetValue = if (visible) 1f else 0.92f,
+                                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                                    label = "entranceScale"
+                                )
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .alpha(entranceAlpha)
+                                        .scale(entranceScale),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
+                                    // Breathing lock icon
                                     Icon(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .scale(breathScale)
                                     )
-                                    Spacer(modifier = Modifier.size(10.dp))
+
+                                    Spacer(modifier = Modifier.height(28.dp))
+
+                                    // App name
                                     Text(
-                                        text = "解锁",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 1.sp
+                                        text = "日记本",
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        letterSpacing = 4.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Subtitle
+                                    Text(
+                                        text = "记录生活的每一刻",
+                                        fontSize = 14.sp,
+                                        color = Color.White.copy(alpha = 0.55f),
+                                        letterSpacing = 2.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(52.dp))
+
+                                    // Gradient-bordered unlock button
+                                    val buttonShape = RoundedCornerShape(20.dp)
+                                    val gradientBrush = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.6f),
+                                            Color.White.copy(alpha = 0.25f)
+                                        )
+                                    )
+                                    OutlinedButton(
+                                        onClick = {
+                                            BiometricHelper.showBiometricPrompt(
+                                                activity = activity,
+                                                onSuccess = { isAuthenticated = true },
+                                                onError = { msg ->
+                                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        },
+                                        shape = buttonShape,
+                                        border = BorderStroke(1.dp, gradientBrush),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White.copy(alpha = 0.12f),
+                                            contentColor = Color.White
+                                        ),
+                                        modifier = Modifier
+                                            .padding(horizontal = 48.dp)
+                                            .height(52.dp)
+                                            .fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.size(10.dp))
+                                        Text(
+                                            text = "解锁",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            letterSpacing = 1.sp
+                                        )
+                                    }
+                                }
+
+                                // Switch to PIN button (only if PIN is also enabled)
+                                if (pinLockEnabled) {
+                                    Text(
+                                        text = "使用PIN码",
+                                        fontSize = 13.sp,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(bottom = 64.dp)
+                                            .clickable { showPinScreen = true }
                                     )
                                 }
-                            }
 
-                            // Version info at the bottom
-                            Text(
-                                text = "v${BuildConfig.VERSION_NAME}",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 32.dp)
-                            )
+                                // Version info at the bottom
+                                Text(
+                                    text = "v${BuildConfig.VERSION_NAME}",
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 32.dp)
+                                )
+                            }
                         }
                     }
                 } else {

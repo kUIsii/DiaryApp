@@ -1,9 +1,17 @@
 package com.diary.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "diary_entries")
+@Entity(
+    tableName = "diary_entries",
+    indices = [
+        Index(value = ["createdAt"]),
+        Index(value = ["isFavorite"]),
+        Index(value = ["moodLevel"])
+    ]
+)
 data class DiaryEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

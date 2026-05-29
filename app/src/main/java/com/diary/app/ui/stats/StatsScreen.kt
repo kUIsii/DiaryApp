@@ -1,6 +1,12 @@
 package com.diary.app.ui.stats
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,19 +42,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -59,11 +70,13 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.MoodChart
+import com.diary.app.ui.components.WordCloud
+import com.diary.app.ui.components.WritingHeatmap
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconForType
 import kotlin.math.roundToInt
@@ -179,7 +192,7 @@ fun StatsScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.TextSnippet,
-                                            contentDescription = null,
+                                            contentDescription = "文字统计",
                                             modifier = Modifier.size(18.dp),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
@@ -214,6 +227,39 @@ fun StatsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             MoodLineChart(points = state.moodTrendPoints)
+                        }
+                    }
+                }
+
+                // Enhanced Mood Chart with interaction
+                if (state.moodTrendPoints.size >= 2) {
+                    item {
+                        GlassCard {
+                            MoodChart(points = state.moodTrendPoints)
+                        }
+                    }
+                }
+
+                // Writing Heatmap (365 days)
+                if (state.dailyWordCounts.isNotEmpty()) {
+                    item {
+                        GlassCard {
+                            WritingHeatmap(dailyWordCounts = state.dailyWordCounts)
+                        }
+                    }
+                }
+
+                // Word Cloud
+                if (state.wordFrequency.isNotEmpty()) {
+                    item {
+                        GlassCard {
+                            WordCloud(
+                                words = state.wordFrequency,
+                                onWordClick = { _ ->
+                                    // Navigate to search with the word
+                                    // For now, we can just show the word
+                                }
+                            )
                         }
                     }
                 }
@@ -311,7 +357,7 @@ private fun EmptyState() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = Icons.Default.SelfImprovement,
-                contentDescription = null,
+                contentDescription = "还没有日记",
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
@@ -341,22 +387,22 @@ private fun AnimatedCounter(
     fontWeight: FontWeight = FontWeight.Bold,
     color: Color = Color.White
 ) {
-    var currentValue by remember { mutableIntStateOf(0) }
+    var animatedValue by remember { mutableFloatStateOf(0f) }
+    val animatedFloat by animateFloatAsState(
+        targetValue = animatedValue,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = FastOutSlowInEasing
+        ),
+        label = "counter"
+    )
+
     LaunchedEffect(targetValue) {
-        if (targetValue == 0) {
-            currentValue = 0
-            return@LaunchedEffect
-        }
-        val steps = 20
-        val stepDelay = 30L
-        for (i in 0..steps) {
-            currentValue = (targetValue * i / steps)
-            delay(stepDelay)
-        }
-        currentValue = targetValue
+        animatedValue = targetValue.toFloat()
     }
+
     Text(
-        text = "$currentValue",
+        text = "${animatedFloat.toInt()}",
         style = style,
         fontWeight = fontWeight,
         color = color,
@@ -374,10 +420,61 @@ private fun OverviewCard(
     gradientColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
+    // Shimmer animation
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -0.5f,
+        targetValue = 1.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerOffset"
+    )
+    // Subtle glow pulse
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(Brush.linearGradient(gradientColors))
+            .drawBehind {
+                // Subtle glow at top
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = glowAlpha),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.3f, size.height * 0.2f),
+                        radius = size.width * 0.6f
+                    ),
+                    size = size
+                )
+                // Shimmer stripe
+                val shimmerWidth = size.width * 0.4f
+                val shimmerX = shimmerOffset * (size.width + shimmerWidth) - shimmerWidth
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = 0.12f),
+                            Color.Transparent
+                        ),
+                        startX = shimmerX,
+                        endX = shimmerX + shimmerWidth
+                    ),
+                    size = size
+                )
+            }
             .padding(14.dp)
     ) {
         Column(
@@ -386,7 +483,7 @@ private fun OverviewCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 modifier = Modifier.size(22.dp),
                 tint = Color.White.copy(alpha = 0.85f)
             )
@@ -409,12 +506,29 @@ private fun OverviewCard(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(16.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        )
+                    )
+                )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 // ── Writing calendar heatmap ──
@@ -427,7 +541,9 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
     val startDate = today.minusDays((daysToShow - 1).toLong())
     val alignedStart = startDate.with(DayOfWeek.MONDAY)
 
-    val entryDates = moodPoints.map { it.date }.toSet()
+    // Count entries per date for intensity levels
+    val entryDateCounts = moodPoints.groupBy { it.date }.mapValues { it.value.size }
+    val maxCount = entryDateCounts.values.maxOrNull()?.coerceAtLeast(1) ?: 1
 
     val cellSize = 16.dp
     val cellGap = 3.dp
@@ -435,7 +551,27 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
     val accentColor = MaterialTheme.colorScheme.primary
     val emptyColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
 
-    GlassCard {
+    // Fade-in animation
+    var visible by remember { mutableStateOf(false) }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "heatmapAlpha"
+    )
+    val offsetY by animateFloatAsState(
+        targetValue = if (visible) 0f else 12f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "heatmapOffset"
+    )
+    LaunchedEffect(Unit) { visible = true }
+
+    GlassCard(
+        modifier = Modifier
+            .graphicsLayer {
+                this.alpha = alpha
+                translationY = offsetY
+            }
+    ) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -478,8 +614,15 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                     Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
                         for (dayOfWeek in 0 until 7) {
                             val date = alignedStart.plusDays((week * 7 + dayOfWeek).toLong())
-                            val hasEntry = entryDates.contains(date)
+                            val count = entryDateCounts[date] ?: 0
                             val isFuture = date.isAfter(today)
+                            val intensity = when {
+                                isFuture -> 0f
+                                count == 0 -> 0f
+                                count == 1 -> 0.3f
+                                count == 2 -> 0.6f
+                                else -> 1f
+                            }
                             Box(
                                 modifier = Modifier
                                     .size(cellSize)
@@ -487,7 +630,7 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                                     .background(
                                         when {
                                             isFuture -> emptyColor.copy(alpha = 0.04f)
-                                            hasEntry -> accentColor
+                                            intensity > 0f -> accentColor.copy(alpha = intensity)
                                             else -> emptyColor
                                         }
                                     )
@@ -496,6 +639,40 @@ private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
                     }
                     Spacer(modifier = Modifier.width(cellGap))
                 }
+            }
+            // Intensity legend
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "少",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 8.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                listOf(0f, 0.3f, 0.6f, 1f).forEach { intensity ->
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(
+                                if (intensity == 0f) emptyColor
+                                else accentColor.copy(alpha = intensity)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                }
+                Spacer(modifier = Modifier.width(2.dp))
+                Text(
+                    text = "多",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 8.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -512,7 +689,7 @@ private fun WordStatItem(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = label,
             modifier = Modifier.size(22.dp),
             tint = MaterialTheme.colorScheme.primary
         )
@@ -560,7 +737,7 @@ private fun MoodTrendRow(trend: MoodTrend) {
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = description,
             modifier = Modifier.size(28.dp),
             tint = iconTint
         )
@@ -607,6 +784,22 @@ private fun MoodLineChart(points: List<MoodPoint>) {
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val textAlpha = textColor.alpha
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    // Progressive draw animation
+    var drawProgress by remember { mutableFloatStateOf(0f) }
+    val animatedProgress by animateFloatAsState(
+        targetValue = drawProgress,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "lineProgress"
+    )
+    LaunchedEffect(Unit) { drawProgress = 1f }
+
+    // Dot fade-in
+    val dotAlpha by animateFloatAsState(
+        targetValue = if (drawProgress > 0.9f) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "dotAlpha"
+    )
 
     Row {
         Column(
@@ -660,6 +853,9 @@ private fun MoodLineChart(points: List<MoodPoint>) {
                 PxPoint(x, y, p.level)
             }
 
+            // Progressive clip: only draw up to animatedProgress
+            val clipX = w * animatedProgress
+
             // Gradient fill under curve
             val fillPath = Path().apply {
                 moveTo(pxPoints.first().x, h - padBottom)
@@ -683,63 +879,79 @@ private fun MoodLineChart(points: List<MoodPoint>) {
 
             val avgLevel = points.map { it.level }.average().roundToInt().coerceIn(1, 6)
             val fillColor = levelColorMap[avgLevel] ?: primaryColor
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        fillColor.copy(alpha = 0.3f),
-                        fillColor.copy(alpha = 0.05f)
-                    ),
-                    startY = padTop,
-                    endY = h - padBottom
-                )
-            )
 
-            // Curve segments
-            for (i in 0 until pxPoints.size - 1) {
-                val p0 = pxPoints[(i - 1).coerceAtLeast(0)]
-                val p1 = pxPoints[i]
-                val p2 = pxPoints[i + 1]
-                val p3 = pxPoints[(i + 2).coerceAtMost(pxPoints.lastIndex)]
-
-                val cp1x = p1.x + (p2.x - p0.x) / 6f
-                val cp1y = p1.y + (p2.y - p0.y) / 6f
-                val cp2x = p2.x - (p3.x - p1.x) / 6f
-                val cp2y = p2.y - (p3.y - p1.y) / 6f
-
-                val segPath = Path().apply {
-                    moveTo(p1.x, p1.y)
-                    cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
-                }
-
-                val c1 = levelColorMap[p1.level] ?: Color.Gray
-                val c2 = levelColorMap[p2.level] ?: Color.Gray
-                val segColor = lerpColor(c1, c2, 0.5f)
-
+            // Clip fill to progress
+            clipRect(left = 0f, top = 0f, right = clipX, bottom = h) {
                 drawPath(
-                    path = segPath,
-                    color = segColor,
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            fillColor.copy(alpha = 0.3f),
+                            fillColor.copy(alpha = 0.05f)
+                        ),
+                        startY = padTop,
+                        endY = h - padBottom
                     )
                 )
             }
 
-            // Data point dots
-            pxPoints.forEach { p ->
-                val dotColor = levelColorMap[p.level] ?: Color.Gray
-                drawCircle(
-                    color = Color.White,
-                    radius = 5.5.dp.toPx(),
-                    center = Offset(p.x, p.y)
-                )
-                drawCircle(
-                    color = dotColor,
-                    radius = 5.dp.toPx(),
-                    center = Offset(p.x, p.y)
-                )
+            // Curve segments (clipped to progress)
+            clipRect(left = 0f, top = 0f, right = clipX, bottom = h) {
+                for (i in 0 until pxPoints.size - 1) {
+                    val p0 = pxPoints[(i - 1).coerceAtLeast(0)]
+                    val p1 = pxPoints[i]
+                    val p2 = pxPoints[i + 1]
+                    val p3 = pxPoints[(i + 2).coerceAtMost(pxPoints.lastIndex)]
+
+                    val cp1x = p1.x + (p2.x - p0.x) / 6f
+                    val cp1y = p1.y + (p2.y - p0.y) / 6f
+                    val cp2x = p2.x - (p3.x - p1.x) / 6f
+                    val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+                    val segPath = Path().apply {
+                        moveTo(p1.x, p1.y)
+                        cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+                    }
+
+                    val c1 = levelColorMap[p1.level] ?: Color.Gray
+                    val c2 = levelColorMap[p2.level] ?: Color.Gray
+                    val segColor = lerpColor(c1, c2, 0.5f)
+
+                    drawPath(
+                        path = segPath,
+                        color = segColor,
+                        style = Stroke(
+                            width = 3.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
+                }
+            }
+
+            // Data point dots with glow (faded in after line completes)
+            if (dotAlpha > 0f) {
+                pxPoints.forEach { p ->
+                    val dotColor = levelColorMap[p.level] ?: Color.Gray
+                    // Outer glow
+                    drawCircle(
+                        color = dotColor.copy(alpha = 0.25f * dotAlpha),
+                        radius = 9.dp.toPx(),
+                        center = Offset(p.x, p.y)
+                    )
+                    // White background
+                    drawCircle(
+                        color = Color.White.copy(alpha = dotAlpha),
+                        radius = 5.5.dp.toPx(),
+                        center = Offset(p.x, p.y)
+                    )
+                    // Colored center
+                    drawCircle(
+                        color = dotColor.copy(alpha = dotAlpha),
+                        radius = 4.5.dp.toPx(),
+                        center = Offset(p.x, p.y)
+                    )
+                }
             }
 
             // X-axis labels
@@ -787,52 +999,82 @@ private fun lerpColor(c1: Color, c2: Color, fraction: Float): Color {
 private fun MonthlyTrendChart(data: List<MonthTrend>) {
     if (data.isEmpty()) return
     val maxCount = data.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Column {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
+                .height(120.dp)
         ) {
-            data.forEachIndexed { index, month ->
-                val fraction = month.count.toFloat() / maxCount
-                val animatedFraction by animateFloatAsState(
-                    targetValue = fraction,
-                    animationSpec = tween(durationMillis = 600, delayMillis = index * 80),
-                    label = "monthBar"
-                )
-                val isCurrentMonth = index == data.lastIndex
-                val barColor = if (isCurrentMonth)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            // Background grid lines
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val gridColor = Color.Gray.copy(alpha = 0.08f)
+                for (i in 0..3) {
+                    val y = size.height * i / 3f
+                    drawLine(
+                        color = gridColor,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1f
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                data.forEachIndexed { index, month ->
+                    val fraction = month.count.toFloat() / maxCount
+                    val animatedFraction by animateFloatAsState(
+                        targetValue = fraction,
+                        animationSpec = tween(
+                            durationMillis = 700,
+                            delayMillis = index * 100,
+                            easing = FastOutSlowInEasing
+                        ),
+                        label = "monthBar"
+                    )
+                    val isCurrentMonth = index == data.lastIndex
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (month.count > 0) {
-                        Text(
-                            text = "${month.count}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (month.count > 0) {
+                            Text(
+                                text = "${month.count}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .fillMaxHeight(animatedFraction.coerceAtLeast(0.02f))
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .background(
+                                    if (isCurrentMonth) {
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                primaryColor.copy(alpha = 0.6f),
+                                                primaryColor
+                                            )
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                primaryColor.copy(alpha = 0.12f),
+                                                primaryColor.copy(alpha = 0.28f)
+                                            )
+                                        )
+                                    }
+                                )
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .width(24.dp)
-                            .fillMaxHeight(animatedFraction.coerceAtLeast(0.02f))
-                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(barColor.copy(alpha = 0.5f), barColor)
-                                )
-                            )
-                    )
                 }
             }
         }
@@ -841,11 +1083,13 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            data.forEach { month ->
+            data.forEachIndexed { index, month ->
+                val isCurrentMonth = index == data.lastIndex
                 Text(
                     text = month.month,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isCurrentMonth) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isCurrentMonth) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
@@ -900,12 +1144,19 @@ private fun HabitCard(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(primaryColor.copy(alpha = 0.12f)),
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.15f),
+                                primaryColor.copy(alpha = 0.06f)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = label,
                     modifier = Modifier.size(18.dp),
                     tint = primaryColor
                 )
@@ -938,10 +1189,11 @@ private fun MoodBar(
     maxCount: Int,
     level: Int
 ) {
-    val fraction = if (maxCount > 0) count.toFloat() / maxCount else 0f
+    val totalCount = remember(maxCount) { maxCount }
+    val fraction = if (totalCount > 0) count.toFloat() / totalCount else 0f
     val animatedFraction by animateFloatAsState(
         targetValue = fraction,
-        animationSpec = tween(durationMillis = 600),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "moodBar"
     )
 
@@ -953,7 +1205,7 @@ private fun MoodBar(
     ) {
         Icon(
             imageVector = iconData.icon,
-            contentDescription = null,
+            contentDescription = label,
             modifier = Modifier.size(20.dp),
             tint = iconData.tint
         )
@@ -970,7 +1222,7 @@ private fun MoodBar(
                 .weight(1f)
                 .height(20.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(color.copy(alpha = 0.1f))
+                .background(color.copy(alpha = 0.08f))
         ) {
             Box(
                 modifier = Modifier
@@ -979,19 +1231,29 @@ private fun MoodBar(
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(color.copy(alpha = 0.6f), color)
+                            colors = listOf(color.copy(alpha = 0.5f), color)
                         )
                     )
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "$count",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(28.dp)
-        )
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.width(40.dp)
+        ) {
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${(animatedFraction * 100).toInt()}%",
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 9.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
     }
 }
 
@@ -1007,7 +1269,7 @@ private fun WeatherRow(
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = type,
             modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.primary
         )
@@ -1038,7 +1300,7 @@ private fun TagRow(
     val fraction = if (maxCount > 0) count.toFloat() / maxCount else 0f
     val animatedFraction by animateFloatAsState(
         targetValue = fraction,
-        animationSpec = tween(durationMillis = 500),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "tagBar"
     )
 
@@ -1048,9 +1310,11 @@ private fun TagRow(
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
+                .size(10.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(
+                    Brush.linearGradient(listOf(color, color.copy(alpha = 0.7f)))
+                )
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
@@ -1062,16 +1326,20 @@ private fun TagRow(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(color.copy(alpha = 0.1f))
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(color.copy(alpha = 0.08f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(animatedFraction)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(color.copy(alpha = 0.6f))
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(color.copy(alpha = 0.4f), color)
+                        )
+                    )
             )
         }
         Spacer(modifier = Modifier.width(10.dp))

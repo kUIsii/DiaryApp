@@ -52,6 +52,7 @@ fun UpdateDialog(
     versionName: String,
     releaseNotes: String,
     isDownloading: Boolean,
+    isForceUpdate: Boolean = false,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -59,7 +60,7 @@ fun UpdateDialog(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Dialog(
-        onDismissRequest = { if (!isDownloading) onDismiss() },
+        onDismissRequest = { if (!isDownloading && !isForceUpdate) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
@@ -175,30 +176,32 @@ fun UpdateDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    // Dismiss button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .border(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.outlineVariant,
-                                                RoundedCornerShape(12.dp)
+                                    // Dismiss button (hidden for force update)
+                                    if (!isForceUpdate) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.outlineVariant,
+                                                    RoundedCornerShape(12.dp)
+                                                )
+                                                .padding(vertical = 14.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "稍后提醒",
+                                                fontSize = 15.sp,
+                                                color = textSecondary
                                             )
-                                            .padding(vertical = 14.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "稍后提醒",
-                                            fontSize = 15.sp,
-                                            color = textSecondary
-                                        )
+                                        }
                                     }
 
                                     // Confirm button
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
+                                            .then(if (isForceUpdate) Modifier.fillMaxWidth() else Modifier.weight(1f))
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(
                                                 Brush.horizontalGradient(
@@ -209,7 +212,7 @@ fun UpdateDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "立即更新",
+                                            text = if (isForceUpdate) "立即更新（必须）" else "立即更新",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White

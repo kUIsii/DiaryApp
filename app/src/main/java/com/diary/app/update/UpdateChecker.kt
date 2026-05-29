@@ -22,7 +22,8 @@ data class GitHubAsset(
 data class UpdateInfo(
     val versionName: String,
     val releaseNotes: String,
-    val downloadUrl: String
+    val downloadUrl: String,
+    val isForceUpdate: Boolean = false
 )
 
 object UpdateChecker {
@@ -66,10 +67,18 @@ object UpdateChecker {
                     it.name.endsWith(".apk")
                 } ?: return@withContext null
 
+                val releaseBody = matchingRelease.body ?: ""
+                val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
+                        releaseBody.contains("[强制更新]")
+
                 UpdateInfo(
                     versionName = latestVersion,
-                    releaseNotes = matchingRelease.body ?: "",
-                    downloadUrl = apkAsset.downloadUrl
+                    releaseNotes = releaseBody
+                        .replace("[force]", "", ignoreCase = true)
+                        .replace("[强制更新]", "")
+                        .trim(),
+                    downloadUrl = apkAsset.downloadUrl,
+                    isForceUpdate = isForce
                 )
             } catch (e: Exception) {
                 null

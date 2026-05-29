@@ -1,10 +1,12 @@
 package com.diary.app.ui.detail
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryExporter
 import com.diary.app.data.Tag
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.weatherLabelFor
@@ -80,5 +82,22 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         val entryDate = java.time.Instant.ofEpochMilli(currentEntry.createdAt)
             .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
         return "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
+    }
+
+    suspend fun exportAsImage(context: Context): String? {
+        val currentEntry = _entry.value ?: return null
+        val tagNames = _tags.value.map { it.name }
+        return DiaryExporter.exportAsImage(context, currentEntry, tagNames)
+    }
+
+    suspend fun deleteEntry() {
+        val currentEntry = _entry.value ?: return
+        dao.deleteEntry(currentEntry)
+    }
+
+    suspend fun exportToMarkdown(context: Context): String? {
+        val currentEntry = _entry.value ?: return null
+        val entryTags = _tags.value
+        return DiaryExporter.exportSingleAsMarkdown(context, currentEntry, entryTags.map { it.name })
     }
 }

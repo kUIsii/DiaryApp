@@ -46,9 +46,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Today
@@ -65,6 +67,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +92,7 @@ import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.theme.isDark
 import kotlinx.coroutines.launch
@@ -100,6 +106,7 @@ fun EditorScreen(
     diaryId: Long?,
     onNavigateBack: () -> Unit
 ) {
+    val haptic = rememberHapticFeedback()
     val today = LocalDate.now()
     val currentTime = LocalTime.now()
     val dateTitle = "${today.year}年${today.monthValue}月${today.dayOfMonth}日"
@@ -174,10 +181,13 @@ fun EditorScreen(
     val prefs = remember { context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE) }
     var editorFontSize by remember { mutableIntStateOf(getEditorFontSize(prefs)) }
 
-    // Re-read font size on each recomposition (catches changes from ProfileScreen)
-    androidx.compose.runtime.SideEffect {
-        val current = getEditorFontSize(prefs)
-        if (current != editorFontSize) editorFontSize = current
+    // Re-read font size periodically instead of on every recomposition
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(2000)
+            val current = getEditorFontSize(prefs)
+            if (current != editorFontSize) editorFontSize = current
+        }
     }
 
     LaunchedEffect(themeMode) {
@@ -241,6 +251,29 @@ fun EditorScreen(
         if (autoSaveVisible) {
             kotlinx.coroutines.delay(2000)
             viewModel.hideAutoSaveIndicator()
+        }
+    }
+
+    // Auto-save when app goes to background (focus loss)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, webView) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                webView?.evaluateJavascript("getContent()") { json ->
+                    webView?.evaluateJavascript("getPlainText()") { plain ->
+                        val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                        val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                        if (cleanPlain.isNotBlank()) {
+                            viewModel.updateLatestContent(cleanJson, cleanPlain, dateTitle)
+                            viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
+                        }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -399,6 +432,7 @@ fun EditorScreen(
                                     moodLevel = selectedMood,
                                     weather = selectedWeather
                                 )
+                                haptic.success()
                                 onNavigateBack()
                             }
                         }
@@ -433,65 +467,70 @@ fun EditorScreen(
                 )
             }
 
-            // Metadata buttons row
-            Row(
+            // Metadata buttons row - wrapped in GlassCard
+            com.diary.app.ui.components.GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                cornerRadius = 16.dp,
+                innerPadding = 6.dp
             ) {
-                // Mood button
-                MetadataButton(
-                    label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
-                    icon = moodIconForLevel(selectedMood ?: 3).icon,
-                    isSelected = selectedMood != null,
-                    isActive = activePanel == "mood",
-                    accentColor = accentColor,
-                    surfaceVariant = surfaceVariant,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onClick = { activePanel = if (activePanel == "mood") null else "mood" }
-                )
-                // Weather button
-                MetadataButton(
-                    label = selectedWeather ?: "天气",
-                    icon = weatherIconFor(selectedWeather).icon,
-                    isSelected = selectedWeather != null,
-                    isActive = activePanel == "weather",
-                    accentColor = accentColor,
-                    surfaceVariant = surfaceVariant,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onClick = { activePanel = if (activePanel == "weather") null else "weather" }
-                )
-                // Tags button
-                MetadataButton(
-                    label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size} 个标签" else "标签",
-                    icon = Icons.Default.Sell,
-                    isSelected = selectedTagIds.isNotEmpty(),
-                    isActive = activePanel == "tags",
-                    accentColor = accentColor,
-                    surfaceVariant = surfaceVariant,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onClick = { activePanel = if (activePanel == "tags") null else "tags" }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // Mood button
+                    MetadataButton(
+                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
+                        icon = moodIconForLevel(selectedMood ?: 3).icon,
+                        isSelected = selectedMood != null,
+                        isActive = activePanel == "mood",
+                        accentColor = accentColor,
+                        surfaceVariant = surfaceVariant,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        onClick = { activePanel = if (activePanel == "mood") null else "mood" }
+                    )
+                    // Weather button
+                    MetadataButton(
+                        label = selectedWeather ?: "天气",
+                        icon = weatherIconFor(selectedWeather).icon,
+                        isSelected = selectedWeather != null,
+                        isActive = activePanel == "weather",
+                        accentColor = accentColor,
+                        surfaceVariant = surfaceVariant,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        onClick = { activePanel = if (activePanel == "weather") null else "weather" }
+                    )
+                    // Tags button
+                    MetadataButton(
+                        label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size} 个标签" else "标签",
+                        icon = Icons.Default.Sell,
+                        isSelected = selectedTagIds.isNotEmpty(),
+                        isActive = activePanel == "tags",
+                        accentColor = accentColor,
+                        surfaceVariant = surfaceVariant,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        onClick = { activePanel = if (activePanel == "tags") null else "tags" }
+                    )
+                }
             }
 
-            // Expandable panels
+            // Expandable panels with GlassCard
             AnimatedVisibility(
                 visible = activePanel != null,
                 enter = expandVertically(tween(250)) + fadeIn(tween(200)),
                 exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
             ) {
-                Column(
+                com.diary.app.ui.components.GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(surfaceColor)
-                        .animateContentSize()
-                        .padding(12.dp)
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                        .animateContentSize(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 12.dp
                 ) {
                     when (activePanel) {
                         "mood" -> MoodSlider(
@@ -675,18 +714,18 @@ private fun EditorToolbar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val categories = listOf(
-                ToolbarCategory("Aa", "格式"),
-                ToolbarCategory("H", "标题"),
-                ToolbarCategory("≡", "列表"),
-                ToolbarCategory("▢", "插入"),
-                ToolbarCategory("◉", "颜色")
+                ToolbarCategory("Aa", "格式", Icons.Default.FormatSize),
+                ToolbarCategory("H", "标题", Icons.Default.FormatSize),
+                ToolbarCategory("≡", "列表", Icons.Default.FormatSize),
+                ToolbarCategory("▢", "插入", Icons.Default.Flight),
+                ToolbarCategory("◉", "颜色", Icons.Default.Palette)
             )
             categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
                         .clickable {
                             if (showToolbar) {
@@ -696,10 +735,16 @@ private fun EditorToolbar(
                                 onCategoryChange(index)
                             }
                         }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Text(cat.icon, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
-                    Text(cat.label, fontSize = 10.sp, color = if (isActive) activeColor else textColor)
+                    Icon(
+                        imageVector = cat.materialIcon ?: Icons.Default.FormatSize,
+                        contentDescription = cat.label,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (isActive) activeColor else textColor
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(cat.label, fontSize = 10.sp, fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal, color = if (isActive) activeColor else textColor)
                 }
             }
 
@@ -755,7 +800,7 @@ private fun EditorToolbar(
     }
 }
 
-private data class ToolbarCategory(val icon: String, val label: String)
+private data class ToolbarCategory(val icon: String, val label: String, val materialIcon: ImageVector? = null)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -852,8 +897,8 @@ private fun ColorTools(
         }
         Spacer(modifier = Modifier.height(6.dp))
         val colors = listOf(
-            "#000000", "#FFFFFF", "#667EEA", "#764BA2", "#E74C3C",
-            "#E67E22", "#F1C40F", "#2ECC71", "#9B59B6"
+            "#000000", "#FFFFFF", "#6366F1", "#818CF8", "#E74C3C",
+            "#F59E0B", "#10B981", "#A78BFA", "#F472B6"
         )
         val type = if (tab == 0) "text" else "background"
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -954,11 +999,11 @@ private fun AddTagDialog(
     onConfirm: (String, Long) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf(0xFF667EEAL) }
+    var selectedColor by remember { mutableStateOf(0xFF6366F1L) }
 
     val presetColors = listOf(
-        0xFF667EEA, 0xFF764BA2, 0xFFE74C3C, 0xFFE67E22,
-        0xFFF1C40F, 0xFF2ECC71, 0xFF9B59B6, 0xFF1ABC9C
+        0xFF6366F1, 0xFF818CF8, 0xFFA78BFA, 0xFFF472B6,
+        0xFFE74C3C, 0xFFF59E0B, 0xFF10B981, 0xFF06B6D4
     )
 
     AlertDialog(

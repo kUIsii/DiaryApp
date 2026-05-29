@@ -1,10 +1,13 @@
 package com.diary.app.ui.home
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -88,7 +93,36 @@ fun CalendarView(
         mutableStateOf(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
     }
 
-    GlassCard(modifier = modifier.fillMaxWidth()) {
+    // Swipe threshold for month navigation
+    val swipeThreshold = 80f
+
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { _, dragAmount ->
+                    if (dragAmount > swipeThreshold) {
+                        // Swiped right -> previous month
+                        slideDirection = -1
+                        if (calendarMode == CalendarMode.MONTH) {
+                            currentMonth = currentMonth.minusMonths(1)
+                        } else {
+                            weekStart = weekStart.minusWeeks(1)
+                            currentMonth = YearMonth.from(weekStart)
+                        }
+                    } else if (dragAmount < -swipeThreshold) {
+                        // Swiped left -> next month
+                        slideDirection = 1
+                        if (calendarMode == CalendarMode.MONTH) {
+                            currentMonth = currentMonth.plusMonths(1)
+                        } else {
+                            weekStart = weekStart.plusWeeks(1)
+                            currentMonth = YearMonth.from(weekStart)
+                        }
+                    }
+                }
+            }
+    ) {
         Column {
             // Navigation row with mode toggle
             Row(
@@ -250,7 +284,10 @@ fun CalendarView(
                 // Month grid with crossfade
                 Crossfade(
                     targetState = currentMonth,
-                    animationSpec = tween(durationMillis = 300),
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
                     label = "monthCrossfade"
                 ) { month ->
                     val firstDayOfMonth = month.atDay(1)
@@ -337,7 +374,10 @@ private fun CalendarDay(
     val targetScale = if (isSelected) 1f else 0.9f
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "dayScale"
     )
 
@@ -382,18 +422,23 @@ private fun CalendarDay(
                 textAlign = TextAlign.Center
             )
             if (hasEntry) {
-                // Entry indicator: mood-colored circle or neutral line
+                // Entry indicator: mood-colored dot with glow or neutral line
                 val moodLevel = dayInfo?.moodLevel
                 if (moodLevel != null) {
+                    val dotColor = if (isSelected) Color.White.copy(alpha = 0.9f)
+                    else moodColorForLevel(moodLevel).copy(alpha = 0.9f)
                     Box(
                         modifier = Modifier
                             .padding(top = 2.dp)
-                            .size(8.dp)
+                            .size(7.dp)
+                            .graphicsLayer {
+                                // Subtle glow effect
+                                shadowElevation = 4f
+                                ambientShadowColor = dotColor.copy(alpha = 0.5f)
+                                spotShadowColor = dotColor.copy(alpha = 0.5f)
+                            }
                             .clip(CircleShape)
-                            .background(
-                                if (isSelected) Color.White.copy(alpha = 0.8f)
-                                else moodColorForLevel(moodLevel).copy(alpha = 0.8f)
-                            )
+                            .background(dotColor)
                     )
                 } else {
                     Box(

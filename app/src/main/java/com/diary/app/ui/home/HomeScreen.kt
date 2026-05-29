@@ -4,11 +4,13 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -21,6 +23,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,7 +32,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,14 +44,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
@@ -68,7 +80,9 @@ import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -80,20 +94,32 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryEntry
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.staggeredListItem
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
+import com.diary.app.ui.components.rememberHapticFeedback
+import com.diary.app.ui.theme.LightAccentEnd
+import com.diary.app.ui.theme.LightAccentStart
+import com.diary.app.ui.theme.isDark
+import com.diary.app.ui.theme.themeMode
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -105,8 +131,10 @@ import java.util.Locale
 fun HomeScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToEditor: (Long?) -> Unit,
+    onNavigateToReview: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
+    val haptic = rememberHapticFeedback()
     val entries by viewModel.entries.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
@@ -118,13 +146,14 @@ fun HomeScreen(
     val allTags by viewModel.allTags.collectAsState()
     val sortOrder by viewModel.sortOrder.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val onThisDayEntries by viewModel.onThisDayEntries.collectAsState()
+    val reviewEntries by viewModel.reviewEntries.collectAsState()
+    val searchResultCount by viewModel.searchResultCount.collectAsState()
+    val recentSearches by viewModel.recentSearches.collectAsState()
+    val searchFilters by viewModel.searchFilters.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
     val isTagFilterActive = selectedTagFilter != null
-
-    LaunchedEffect(entries) {
-        viewModel.loadTagsForEntries(entries)
-    }
 
     var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
 
@@ -136,6 +165,7 @@ fun HomeScreen(
             text = { Text("确定要删除这篇日记吗？删除后无法恢复。") },
             confirmButton = {
                 TextButton(onClick = {
+                    haptic.warning()
                     entryToDelete?.let { viewModel.deleteEntry(it) }
                     entryToDelete = null
                 }) {
@@ -168,9 +198,46 @@ fun HomeScreen(
                     SearchBar(
                         query = searchQuery,
                         onQueryChange = { viewModel.setSearchQuery(it) },
+                        onCommitSearch = { viewModel.commitSearch(it) },
                         sortOrder = sortOrder,
-                        onSortOrderChange = { viewModel.setSortOrder(it) }
+                        onSortOrderChange = { viewModel.setSortOrder(it) },
+                        filters = searchFilters,
+                        onFiltersChange = { viewModel.setSearchFilters(it) },
+                        onClearFilters = { viewModel.clearSearchFilters() },
+                        resultCount = if (isSearchActive) searchResultCount else -1
                     )
+                }
+
+                // Recent searches
+                if (isSearchActive && searchQuery.isBlank() && recentSearches.isNotEmpty()) {
+                    item {
+                        RecentSearchesRow(
+                            searches = recentSearches,
+                            onSelect = { viewModel.setSearchQuery(it) },
+                            onClear = { viewModel.clearSearchHistory() }
+                        )
+                    }
+                }
+
+                // On This Day card
+                if (!isSearchActive && onThisDayEntries.isNotEmpty()) {
+                    item {
+                        OnThisDayCard(
+                            entries = onThisDayEntries,
+                            onEntryClick = onNavigateToDetail
+                        )
+                    }
+                }
+
+                // Review card
+                if (!isSearchActive && reviewEntries.isNotEmpty()) {
+                    item {
+                        ReviewCardHome(
+                            reviewEntries = reviewEntries,
+                            onEntryClick = onNavigateToDetail,
+                            onViewAll = onNavigateToReview
+                        )
+                    }
                 }
 
                 // Tag filter chips
@@ -235,18 +302,28 @@ fun HomeScreen(
                         var visible by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) { visible = true }
 
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = fadeIn(tween(300, delayMillis = index * 50)) +
-                                    slideInVertically(tween(300, delayMillis = index * 50)) { it / 4 }
+                        Box(
+                            modifier = Modifier.staggeredListItem(
+                                index = index,
+                                visible = visible,
+                                initialDelayMs = 30,
+                                itemDelayMs = 30
+                            )
                         ) {
                             DiaryCardWithContextMenu(
                                 entry = entry,
                                 tags = tagsMap[entry.id] ?: emptyList(),
-                                onClick = { onNavigateToDetail(entry.id) },
+                                searchQuery = searchQuery,
+                                onClick = {
+                                    haptic.click()
+                                    onNavigateToDetail(entry.id)
+                                },
                                 onEdit = { onNavigateToEditor(entry.id) },
                                 onDelete = { entryToDelete = entry },
-                                onToggleFavorite = { viewModel.toggleFavorite(entry) }
+                                onToggleFavorite = {
+                                    haptic.success()
+                                    viewModel.toggleFavorite(entry)
+                                }
                             )
                         }
                     }
@@ -256,7 +333,7 @@ fun HomeScreen(
             }
 
             // FAB
-            FAB(onClick = { onNavigateToEditor(null) })
+            FAB(onClick = { onNavigateToEditor(null) }, isEmpty = entries.isEmpty() && !isLoading)
         }
     }
 }
@@ -269,17 +346,57 @@ private fun GreetingHeader() {
         now.hour < 18 -> "下午好"
         else -> "晚上好"
     }
+    val greetingIcon: ImageVector = when {
+        now.hour < 12 -> Icons.Default.WbSunny
+        now.hour < 18 -> Icons.Default.LightMode
+        else -> Icons.Default.NightsStay
+    }
     val today = LocalDate.now()
     val dateFormatter = DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINESE)
     val dateText = today.format(dateFormatter)
 
+    // Shimmer effect for greeting text
+    val shimmerTransition = rememberInfiniteTransition(label = "greetingShimmer")
+    val shimmerTranslate by shimmerTransition.animateFloat(
+        initialValue = -300f,
+        targetValue = 800f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerTranslate"
+    )
+    val primary = MaterialTheme.colorScheme.primary
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.onBackground,
+            MaterialTheme.colorScheme.onBackground,
+            primary.copy(alpha = 0.22f),
+            MaterialTheme.colorScheme.onBackground,
+            MaterialTheme.colorScheme.onBackground
+        ),
+        start = Offset(shimmerTranslate - 150f, 0f),
+        end = Offset(shimmerTranslate + 150f, 0f)
+    )
+
     Column(modifier = Modifier.padding(bottom = 4.dp)) {
-        Text(
-            text = greeting,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = greetingIcon,
+                contentDescription = greeting,
+                tint = primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = greeting,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    brush = shimmerBrush
+                )
+            )
+        }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = dateText,
@@ -294,23 +411,32 @@ private fun GreetingHeader() {
 private fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
+    onCommitSearch: (String) -> Unit,
     sortOrder: HomeViewModel.SortOrder,
-    onSortOrderChange: (HomeViewModel.SortOrder) -> Unit
+    onSortOrderChange: (HomeViewModel.SortOrder) -> Unit,
+    filters: SearchFilters = SearchFilters(),
+    onFiltersChange: (SearchFilters) -> Unit = {},
+    onClearFilters: () -> Unit = {},
+    resultCount: Int = -1
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
+    var showFilterPanel by remember { mutableStateOf(false) }
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
-    ) {
-        Row(
+    Column {
+        GlassCard(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            cornerRadius = 16.dp
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             TextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onCommitSearch(query) }),
                 placeholder = {
                     Text(
                         "搜索日记...",
@@ -349,6 +475,19 @@ private fun SearchBar(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
             )
 
+            // Filter button
+            Icon(
+                imageVector = Icons.Default.Tune,
+                contentDescription = "筛选",
+                tint = if (filters.isActive) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { showFilterPanel = !showFilterPanel }
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Box {
                 Icon(
                     imageVector = Icons.Default.Sort,
@@ -382,7 +521,7 @@ private fun SearchBar(
                                 if (isSelected) {
                                     Icon(
                                         imageVector = Icons.Default.Star,
-                                        contentDescription = null,
+                                        contentDescription = order.label,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -398,58 +537,294 @@ private fun SearchBar(
             }
 
             Spacer(modifier = Modifier.width(12.dp))
+            }
+        }
+
+        // Search result count
+        if (resultCount >= 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "找到 $resultCount 篇日记",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+
+        // Filter panel
+        if (showFilterPanel) {
+            Spacer(modifier = Modifier.height(8.dp))
+            SearchFilterPanel(
+                filters = filters,
+                onFiltersChange = onFiltersChange,
+                onClear = {
+                    onClearFilters()
+                    showFilterPanel = false
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchFilterPanel(
+    filters: SearchFilters,
+    onFiltersChange: (SearchFilters) -> Unit,
+    onClear: () -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "筛选条件",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "清除全部",
+                    fontSize = 12.sp,
+                    color = primary.copy(alpha = 0.7f),
+                    modifier = Modifier.clickable(onClick = onClear)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Mood filter
+            Text(
+                text = "心情",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                (1..6).forEach { level ->
+                    val label = moodLabelForLevel(level)
+                    val color = moodColorForLevel(level)
+                    val isSelected = filters.moodLevel == level
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            onFiltersChange(
+                                filters.copy(moodLevel = if (isSelected) null else level)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else color)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = color.copy(alpha = 0.1f),
+                            labelColor = color
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Weather filter
+            Text(
+                text = "天气",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val weatherOptions = listOf("晴", "多云", "阴", "雨", "风", "雷雨")
+                weatherOptions.forEach { weather ->
+                    val isSelected = filters.weather == weather
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            onFiltersChange(
+                                filters.copy(weather = if (isSelected) null else weather)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = weather,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun StatsCard(stats: HomeStats) {
-    GlassCard(
+    val dark = themeMode().isDark()
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+        StatItem(
+            value = stats.total,
+            label = "总日记",
+            icon = Icons.Default.Edit,
+            gradientColors = if (dark) listOf(Color(0xFF667eea).copy(alpha = 0.25f), Color(0xFF764ba2).copy(alpha = 0.15f))
+            else listOf(Color(0xFF667eea).copy(alpha = 0.12f), Color(0xFF764ba2).copy(alpha = 0.08f)),
+            modifier = Modifier.weight(1f)
+        )
+        StatItem(
+            value = stats.streak,
+            label = "连续天数",
+            icon = Icons.Default.LocalFireDepartment,
+            gradientColors = if (dark) listOf(Color(0xFFf093fb).copy(alpha = 0.25f), Color(0xFFf5576c).copy(alpha = 0.15f))
+            else listOf(Color(0xFFf093fb).copy(alpha = 0.12f), Color(0xFFf5576c).copy(alpha = 0.08f)),
+            modifier = Modifier.weight(1f)
+        )
+        StatItem(
+            value = stats.thisMonth,
+            label = "本月日记",
+            icon = Icons.Default.CalendarMonth,
+            gradientColors = if (dark) listOf(Color(0xFF4facfe).copy(alpha = 0.25f), Color(0xFF00f2fe).copy(alpha = 0.15f))
+            else listOf(Color(0xFF4facfe).copy(alpha = 0.12f), Color(0xFF00f2fe).copy(alpha = 0.08f)),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun AnimatedCounter(
+    targetValue: Int,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
+    fontWeight: FontWeight = FontWeight.Bold,
+    color: Color = Color.White
+) {
+    var currentValue by remember { mutableIntStateOf(0) }
+    LaunchedEffect(targetValue) {
+        if (targetValue == 0) {
+            currentValue = 0
+            return@LaunchedEffect
+        }
+        val steps = 20
+        val stepDelay = 30L
+        for (i in 0..steps) {
+            currentValue = (targetValue * i / steps)
+            delay(stepDelay)
+        }
+        currentValue = targetValue
+    }
+    Text(
+        text = "$currentValue",
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun StatItem(
+    value: Int,
+    label: String,
+    icon: ImageVector,
+    gradientColors: List<Color>,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Brush.linearGradient(gradientColors))
+            .padding(12.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            StatItem(value = stats.total, label = "总日记")
-            StatItem(value = stats.streak, label = "连续天数")
-            StatItem(value = stats.thisMonth, label = "本月日记")
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            AnimatedCounter(
+                targetValue = value,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
-private fun StatItem(value: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value.toString(),
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
+    val dark = themeMode().isDark()
+    val fabGradient = if (dark) {
+        Brush.linearGradient(listOf(LightAccentStart, LightAccentEnd))
+    } else {
+        Brush.linearGradient(listOf(LightAccentStart, LightAccentEnd))
     }
-}
 
-@Composable
-private fun FAB(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(end = 20.dp, bottom = 16.dp),
         contentAlignment = Alignment.BottomEnd
     ) {
+        // Pulse ring behind FAB - only create infinite transition when needed
+        if (isEmpty) {
+            FABPulseRing()
+        }
         Box(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
+                .background(fabGradient)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
@@ -464,9 +839,65 @@ private fun FAB(onClick: () -> Unit) {
 }
 
 @Composable
+private fun FABPulseRing() {
+    val infiniteTransition = rememberInfiniteTransition(label = "fabPulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fabPulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fabPulseAlpha"
+    )
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+                alpha = pulseAlpha
+            }
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+    )
+}
+
+@Composable
 private fun EmptyState() {
     val primary = MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    // Floating animation
+    val infiniteTransition = rememberInfiniteTransition(label = "emptyFloat")
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floatOffset"
+    )
+    val floatAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floatAlpha"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -477,14 +908,15 @@ private fun EmptyState() {
             Box(
                 modifier = Modifier
                     .size(80.dp)
+                    .offset(y = floatOffset.dp)
                     .clip(CircleShape)
                     .background(primary.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = primary.copy(alpha = 0.5f),
+                    contentDescription = "开始写作",
+                    tint = primary.copy(alpha = floatAlpha),
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -505,7 +937,7 @@ private fun EmptyState() {
             Text(
                 text = "点击右下角按钮写下第一篇",
                 fontSize = 12.sp,
-                color = onSurfaceVariant.copy(alpha = 0.38f)
+                color = onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
@@ -645,6 +1077,7 @@ private fun TagFilterRow(
 private fun DiaryCardWithContextMenu(
     entry: DiaryEntry,
     tags: List<TagInfo>,
+    searchQuery: String = "",
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -657,10 +1090,19 @@ private fun DiaryCardWithContextMenu(
         SwipeableDiaryCard(
             entry = entry,
             tags = tags,
+            searchQuery = searchQuery,
             onClick = onClick,
             onLongClick = { showContextMenu = true },
             onDelete = onDelete,
-            onToggleFavorite = onToggleFavorite
+            onShare = {
+                val shareText = formatShareText(entry)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    putExtra(Intent.EXTRA_SUBJECT, "日记")
+                }
+                context.startActivity(Intent.createChooser(intent, "分享日记"))
+            }
         )
 
         DropdownMenu(
@@ -675,7 +1117,7 @@ private fun DiaryCardWithContextMenu(
                 leadingIcon = {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = null,
+                        contentDescription = "编辑",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 },
@@ -689,7 +1131,7 @@ private fun DiaryCardWithContextMenu(
                 leadingIcon = {
                     Icon(
                         if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = null,
+                        contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
                         tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 },
@@ -703,7 +1145,7 @@ private fun DiaryCardWithContextMenu(
                 leadingIcon = {
                     Icon(
                         Icons.Default.Share,
-                        contentDescription = null,
+                        contentDescription = "分享",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 },
@@ -726,7 +1168,7 @@ private fun DiaryCardWithContextMenu(
                 leadingIcon = {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = null,
+                        contentDescription = "删除",
                         tint = MaterialTheme.colorScheme.error
                     )
                 },
@@ -744,16 +1186,17 @@ private fun DiaryCardWithContextMenu(
 private fun SwipeableDiaryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
+    searchQuery: String = "",
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onDelete: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onShare: () -> Unit
 ) {
     val dismissState = rememberDismissState(
         confirmValueChange = { value ->
             when (value) {
                 DismissValue.DismissedToEnd -> {
-                    onToggleFavorite()
+                    onShare()
                     false
                 }
                 DismissValue.DismissedToStart -> {
@@ -777,7 +1220,7 @@ private fun SwipeableDiaryCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isSwipeRight) Color(0xFFFFCA28) else errorColor)
+                    .background(if (isSwipeRight) Color(0xFF66BB6A) else errorColor)
                     .padding(
                         start = if (isSwipeRight) 24.dp else 0.dp,
                         end = if (isSwipeRight) 0.dp else 24.dp
@@ -785,13 +1228,9 @@ private fun SwipeableDiaryCard(
                 contentAlignment = if (isSwipeRight) Alignment.CenterStart else Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = if (isSwipeRight) {
-                        if (entry.isFavorite) Icons.Default.StarBorder else Icons.Default.Star
-                    } else {
-                        Icons.Default.Delete
-                    },
-                    contentDescription = if (isSwipeRight) "收藏" else "删除",
-                    tint = if (isSwipeRight) Color(0xFF5D4037) else Color.White,
+                    imageVector = if (isSwipeRight) Icons.Default.Share else Icons.Default.Delete,
+                    contentDescription = if (isSwipeRight) "分享" else "删除",
+                    tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -800,9 +1239,9 @@ private fun SwipeableDiaryCard(
             DiaryCard(
                 entry = entry,
                 tags = tags,
+                searchQuery = searchQuery,
                 onClick = onClick,
-                onLongClick = onLongClick,
-                onToggleFavorite = onToggleFavorite
+                onLongClick = onLongClick
             )
         },
         directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart)
@@ -814,20 +1253,26 @@ private fun SwipeableDiaryCard(
 private fun DiaryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
+    searchQuery: String = "",
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onLongClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "cardScale"
     )
     val elevation by animateDpAsState(
-        targetValue = if (isPressed) 1.dp else 6.dp,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 2.dp else 6.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "cardElevation"
     )
 
@@ -835,109 +1280,172 @@ private fun DiaryCard(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
 
-    GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                shadowElevation = elevation.toPx()
-                ambientShadowColor = accentColor.copy(alpha = 0.08f)
-                spotShadowColor = accentColor.copy(alpha = 0.12f)
-            }
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
-    ) {
-        Column {
-            // Date row with favorite star
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = formatCardDate(entry.createdAt),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = onBackground
-                )
-                Icon(
-                    imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
-                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.38f),
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onToggleFavorite() }
-                )
-            }
+    // Mood-based accent bar color
+    val accentBarColor = entry.moodLevel?.let { moodColorForLevel(it) } ?: accentColor
 
-            // Text preview
-            if (entry.plainText.isNotBlank()) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    shadowElevation = elevation.toPx()
+                    ambientShadowColor = accentColor.copy(alpha = 0.08f)
+                    spotShadowColor = accentColor.copy(alpha = 0.12f)
+                }
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                )
+        ) {
+            Column {
+                // Date row with favorite star
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatCardDate(entry.createdAt),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onBackground
+                    )
+                    Icon(
+                        imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
+                        tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { /* handled by context menu */ }
+                    )
+                }
+
+                // Text preview with keyword highlighting (memoized)
+                if (entry.plainText.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val displayText by remember(entry.plainText, searchQuery, accentColor) {
+                        derivedStateOf {
+                            if (searchQuery.isNotBlank()) {
+                                highlightText(entry.plainText, searchQuery, accentColor)
+                            } else {
+                                AnnotatedString(entry.plainText)
+                            }
+                        }
+                    }
+                    Text(
+                        text = displayText,
+                        fontSize = 14.sp,
+                        color = onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 20.sp
+                    )
+                }
+
+                // Bottom info row
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = entry.plainText,
-                    fontSize = 14.sp,
-                    color = onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
-                )
-            }
-
-            // Bottom info row
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Mood icon
-                if (entry.moodLevel != null) {
-                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                    Icon(
-                        imageVector = moodIcon,
-                        contentDescription = "心情",
-                        tint = moodTint,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                // Weather icon
-                if (entry.weather != null) {
-                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                    Icon(
-                        imageVector = weatherIcon,
-                        contentDescription = "天气",
-                        tint = weatherTint,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                // Spacer to push tags right
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Tag chips
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    tags.take(3).forEach { tag ->
-                        TagChip(name = tag.name, color = tag.color)
-                    }
-                    if (tags.size > 3) {
-                        Text(
-                            text = "+${tags.size - 3}",
-                            fontSize = 11.sp,
-                            color = onSurfaceVariant.copy(alpha = 0.5f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Mood icon
+                    if (entry.moodLevel != null) {
+                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = "心情",
+                            tint = moodTint,
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+
+                    // Weather icon
+                    if (entry.weather != null) {
+                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = "天气",
+                            tint = weatherTint,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+
+                    // Spacer to push tags right
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Tag chips
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        tags.take(3).forEach { tag ->
+                            TagChip(name = tag.name, color = tag.color)
+                        }
+                        if (tags.size > 3) {
+                            Text(
+                                text = "+${tags.size - 3}",
+                                fontSize = 11.sp,
+                                color = onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        // Left accent bar
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .width(3.dp)
+                .height(40.dp)
+                .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            accentBarColor.copy(alpha = 0.7f),
+                            accentBarColor.copy(alpha = 0.25f)
+                        )
+                    )
+                )
+        )
+    }
+}
+
+/** Highlight matching keyword in text with primary color background */
+private fun highlightText(text: String, query: String, highlightColor: Color): AnnotatedString {
+    if (query.isBlank()) return AnnotatedString(text)
+    val lowerText = text.lowercase()
+    val lowerQuery = query.lowercase()
+    val highlightBg = highlightColor.copy(alpha = 0.2f)
+    val highlightFg = highlightColor
+
+    return buildAnnotatedString {
+        var start = 0
+        while (start < text.length) {
+            val index = lowerText.indexOf(lowerQuery, start)
+            if (index == -1) {
+                append(text.substring(start))
+                break
+            }
+            append(text.substring(start, index))
+            withStyle(
+                SpanStyle(
+                    color = highlightFg,
+                    background = highlightBg,
+                    fontWeight = FontWeight.SemiBold
+                )
+            ) {
+                append(text.substring(index, index + query.length))
+            }
+            start = index + query.length
         }
     }
 }
@@ -947,24 +1455,289 @@ private fun TagChip(name: String, color: Color) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(6.dp)
+                .size(5.dp)
                 .clip(CircleShape)
-                .background(color)
+                .background(color.copy(alpha = 0.8f))
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = name,
-            fontSize = 11.sp,
-            color = color,
+            fontSize = 10.sp,
+            color = color.copy(alpha = 0.85f),
             fontWeight = FontWeight.Medium,
             maxLines = 1
         )
+    }
+}
+
+@Composable
+private fun OnThisDayCard(
+    entries: List<DiaryEntry>,
+    onEntryClick: (Long) -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        gradientColors = listOf(
+            primary.copy(alpha = 0.08f),
+            primary.copy(alpha = 0.03f)
+        )
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = "那年今日",
+                    tint = primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "那年今日",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${entries.size} 篇回忆",
+                    fontSize = 12.sp,
+                    color = onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+
+            entries.take(3).forEach { entry ->
+                val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                val yearDiff = LocalDate.now().year - entryDate.year
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onEntryClick(entry.id) }
+                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${entryDate.year}年",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = primary.copy(alpha = 0.8f),
+                        modifier = Modifier.width(56.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (entry.title.isNotBlank()) {
+                            Text(
+                                text = entry.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = onBackground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (entry.plainText.isNotBlank()) {
+                            Text(
+                                text = entry.plainText,
+                                fontSize = 12.sp,
+                                color = onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${yearDiff}年前",
+                        fontSize = 11.sp,
+                        color = onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+
+            if (entries.size > 3) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "还有 ${entries.size - 3} 篇...",
+                    fontSize = 12.sp,
+                    color = onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCardHome(
+    reviewEntries: List<ReviewEntry>,
+    onEntryClick: (Long) -> Unit,
+    onViewAll: () -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        gradientColors = listOf(
+            primary.copy(alpha = 0.06f),
+            primary.copy(alpha = 0.02f)
+        )
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "日记回顾",
+                        tint = primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "日记回顾",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = primary
+                    )
+                }
+                Text(
+                    text = "查看全部",
+                    fontSize = 12.sp,
+                    color = primary.copy(alpha = 0.7f),
+                    modifier = Modifier.clickable(onClick = onViewAll)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            reviewEntries.take(3).forEach { reviewItem ->
+                val entry = reviewItem.entry
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onEntryClick(entry.id) }
+                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = reviewItem.label,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = primary.copy(alpha = 0.8f),
+                        modifier = Modifier.width(64.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (entry.title.isNotBlank()) {
+                            Text(
+                                text = entry.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = onBackground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (entry.plainText.isNotBlank()) {
+                            Text(
+                                text = entry.plainText,
+                                fontSize = 12.sp,
+                                color = onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    if (entry.moodLevel != null) {
+                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = "心情",
+                            tint = moodTint,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentSearchesRow(
+    searches: List<String>,
+    onSelect: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "最近搜索",
+                    tint = onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "最近搜索",
+                    fontSize = 12.sp,
+                    color = onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+            Text(
+                text = "清除",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                modifier = Modifier.clickable { onClear() }
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            searches.forEach { search ->
+                Text(
+                    text = search,
+                    fontSize = 12.sp,
+                    color = onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { onSelect(search) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
     }
 }
 

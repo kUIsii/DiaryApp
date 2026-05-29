@@ -100,17 +100,17 @@ fun AnimatedGradientBackground(
     // 4 gradient color schemes for cycling
     val gradientSets = if (dark) {
         listOf(
-            listOf(Color(0xFF080810), Color(0xFF0C0C1E)),
-            listOf(Color(0xFF0A0A1E), Color(0xFF101030)),
-            listOf(Color(0xFF08101A), Color(0xFF0C1A2C)),
-            listOf(Color(0xFF100A1A), Color(0xFF1A0C2C))
+            listOf(Color(0xFF0B0A1A), Color(0xFF100F24)),
+            listOf(Color(0xFF0D0C20), Color(0xFF141330)),
+            listOf(Color(0xFF0A0E18), Color(0xFF0E1428)),
+            listOf(Color(0xFF100C1A), Color(0xFF161030))
         )
     } else {
         listOf(
-            listOf(Color(0xFFF0F1F5), Color(0xFFEAECF3), Color(0xFFF2F0F5)),
-            listOf(Color(0xFFF0F5FF), Color(0xFFE8F0FF), Color(0xFFF0F3FF)),
-            listOf(Color(0xFFF0FFF5), Color(0xFFE8FFF0), Color(0xFFF0FFF3)),
-            listOf(Color(0xFFFFF0F5), Color(0xFFFFE8F0), Color(0xFFFFF0F3))
+            listOf(Color(0xFFF5F3FF), Color(0xFFF0EEFA), Color(0xFFF8F6FF)),
+            listOf(Color(0xFFF2F0FF), Color(0xFFECE8FA), Color(0xFFF4F2FF)),
+            listOf(Color(0xFFF0F3FF), Color(0xFFEAF0FA), Color(0xFFF2F5FF)),
+            listOf(Color(0xFFFFF0F5), Color(0xFFFCEAF0), Color(0xFFFFF4F8))
         )
     }
 

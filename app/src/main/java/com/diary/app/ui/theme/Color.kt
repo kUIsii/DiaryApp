@@ -2,93 +2,137 @@ package com.diary.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light mode - Morning Glow (softer, reduced saturation)
-val LightBackgroundStart = Color(0xFFF0F1F5)
-val LightBackgroundMid = Color(0xFFEAECF3)
-val LightBackgroundEnd = Color(0xFFF2F0F5)
-val LightSurface = Color(0x99FFFFFF) // rgba(255,255,255,0.6)
-val LightSurfaceBorder = Color(0x80FFFFFF) // rgba(255,255,255,0.5)
-val LightTextPrimary = Color(0xFF1A1A2E)
-val LightTextSecondary = Color(0xFF4A4A68)
-val LightTextTertiary = Color(0xFF9999AA)
-val LightAccentStart = Color(0xFF667EEA)
-val LightAccentEnd = Color(0xFF764BA2)
-val LightCardBackground = Color(0x99FFFFFF) // rgba(255,255,255,0.6)
-val LightCardBorder = Color(0x80FFFFFF)
+// ============================================================
+//  Primary palette — Refined Indigo-to-Violet
+//  Soft, modern, calming. Replaces the harsh purple system.
+// ============================================================
 
-// Dark mode - Deep Galaxy (blue-tinted, modern)
-val DarkBackgroundStart = Color(0xFF080810)
-val DarkBackgroundMid = Color(0xFF0C0C1E)
-val DarkBackgroundEnd = Color(0xFF10102C)
-val DarkSurface = Color(0x0FFFFFFF) // rgba(255,255,255,0.06)
-val DarkSurfaceBorder = Color(0x14FFFFFF) // rgba(255,255,255,0.08)
-val DarkTextPrimary = Color(0xE6FFFFFF) // rgba(255,255,255,0.9)
-val DarkTextSecondary = Color(0x80FFFFFF) // rgba(255,255,255,0.5)
-val DarkTextTertiary = Color(0x66FFFFFF) // rgba(255,255,255,0.4)
-val DarkAccentStart = Color(0xFF667EEA)
-val DarkAccentEnd = Color(0xFF764BA2)
-val DarkCardBackground = Color(0x0FFFFFFF)
-val DarkCardBorder = Color(0x14FFFFFF)
+val PrimaryIndigo = Color(0xFF6366F1)        // Indigo 500 — main brand
+val PrimaryIndigoVariant = Color(0xFF818CF8)  // Indigo 400 — lighter variant
+val SecondaryViolet = Color(0xFFA78BFA)       // Violet 400 — secondary accent
+val AccentPink = Color(0xFFF472B6)            // Pink 400 — highlight only
 
-// Semantic colors
-val SuccessColor = Color(0xFF2ECC71)
-val WarningColor = Color(0xFFF39C12)
-val ErrorColor = Color(0xFFE74C3C)
-val InfoColor = Color(0xFF3498DB)
+// ============================================================
+//  Light mode — Soft Dawn
+//  Warm undertone, layered surfaces, gentle transparency
+// ============================================================
 
-// Mood colors (gradient pairs)
-val MoodDepressed = Color(0xFFE74C3C) to Color(0xFFC0392B)
-val MoodDown = Color(0xFFE67E22) to Color(0xFFD35400)
-val MoodCalm = Color(0xFF3498DB) to Color(0xFF2980B9)
-val MoodHappy = Color(0xFF2ECC71) to Color(0xFF27AE60)
-val MoodCheerful = Color(0xFF1ABC9C) to Color(0xFF16A085)
-val MoodExcited = Color(0xFF9B59B6) to Color(0xFF8E44AD)
-val MoodSad = Color(0xFF667EEA) to Color(0xFF764BA2)
-val MoodAnxious = Color(0xFFF093FB) to Color(0xFFF5576C)
-val MoodTired = Color(0xFFA18CD1) to Color(0xFFDBC2EF)
-val MoodGrateful = Color(0xFF667EEA) to Color(0xFF764BA2)
+val LightBackgroundStart = Color(0xFFF5F3FF)  // faint violet tint
+val LightBackgroundMid = Color(0xFFF0EEFA)    // slightly deeper
+val LightBackgroundEnd = Color(0xFFF8F6FF)    // lift at bottom
+val LightSurface = Color(0xCCFFFFFF)          // rgba(255,255,255,0.8)
+val LightSurfaceBorder = Color(0x99FFFFFF)    // rgba(255,255,255,0.6)
+val LightTextPrimary = Color(0xFF1C1930)      // deep warm gray, high contrast
+val LightTextSecondary = Color(0xFF55526B)    // medium contrast
+val LightTextTertiary = Color(0xFF9895AD)     // still readable
+val LightAccentStart = PrimaryIndigo          // #6366F1
+val LightAccentEnd = SecondaryViolet          // #A78BFA
+val LightCardBackground = Color(0xBBFFFFFF)   // rgba(255,255,255,0.73)
+val LightCardBorder = Color(0x80FFFFFF)       // rgba(255,255,255,0.5)
 
-// Weather colors
-val WeatherSunny = Color(0xFFFFCA28)
-val WeatherCloudy = Color(0xFF90A4AE)
-val WeatherOvercast = Color(0xFF78909C)
-val WeatherRainy = Color(0xFF64B5F6)
-val WeatherStormy = Color(0xFFBA68C8)
-val WeatherWindy = Color(0xFF80CBC4)
+// ============================================================
+//  Dark mode — Deep Indigo Night
+//  Cool blue-indigo undertone, sophisticated layering
+// ============================================================
 
-// Gradient color collections
-val GradientPurple = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
-val GradientSunset = listOf(Color(0xFFFF9A9E), Color(0xFFFECFEF))
-val GradientOcean = listOf(Color(0xFF43E97B), Color(0xFF38F9D7))
-val GradientBerry = listOf(Color(0xFF0D0D0D), Color(0xFF1A1A3E))
-val GradientPeach = listOf(Color(0xFFFF9A9E), Color(0xFFFAD0C4))
+val DarkBackgroundStart = Color(0xFF0B0A1A)   // near-black with indigo cast
+val DarkBackgroundMid = Color(0xFF100F24)     // slightly lighter
+val DarkBackgroundEnd = Color(0xFF0E0D20)     // cohesive depth
+val DarkSurface = Color(0x14FFFFFF)           // rgba(255,255,255,0.08)
+val DarkSurfaceBorder = Color(0x1AFFFFFF)     // rgba(255,255,255,0.10)
+val DarkTextPrimary = Color(0xF0F0F2FF)       // near-white with cool cast
+val DarkTextSecondary = Color(0x99CBC8E0)     // muted lavender-gray
+val DarkTextTertiary = Color(0x669E9BB8)      // subtle, still readable
+val DarkAccentStart = PrimaryIndigoVariant    // #818CF8 — brighter on dark
+val DarkAccentEnd = SecondaryViolet           // #A78BFA
+val DarkCardBackground = Color(0x11FFFFFF)    // rgba(255,255,255,0.07)
+val DarkCardBorder = Color(0x1AFFFFFF)        // rgba(255,255,255,0.10)
 
-// Pure Light mode
-val PureLightBackground = Color(0xFFFFFFFF)
-val PureLightSurface = Color(0xFFF5F5F5)
-val PureLightCardBackground = Color(0xFFF0F0F0)
-val PureLightCardBorder = Color(0xFFE0E0E0)
+// ============================================================
+//  Semantic colors — Softer, less alarming
+// ============================================================
 
-// Pure Dark mode
-val PureDarkBackground = Color(0xFF000000)
-val PureDarkSurface = Color(0xFF111111)
-val PureDarkCardBackground = Color(0xFF1A1A1A)
-val PureDarkCardBorder = Color(0xFF2A2A2A)
+val SuccessColor = Color(0xFF6ABF8A)          // desaturated sage green
+val WarningColor = Color(0xFFE8A84C)          // warm amber, not harsh yellow
+val ErrorColor = Color(0xFFE07070)            // soft coral-red
+val InfoColor = Color(0xFF7BA7E0)             // muted sky blue
 
-// Warm Rose theme - light variant
-val WarmRoseBackground = Color(0xFFFDF5F3)
-val WarmRoseSurface = Color(0xFFFFF0EB)
-val WarmRoseSurfaceVariant = Color(0xFFF5E6E0)
-val WarmRosePrimary = Color(0xFFBF7B6B)
-val WarmRosePrimaryVariant = Color(0xFFA66353)
-val WarmRoseSecondary = Color(0xFFC49B8A)
-val WarmRoseOnBackground = Color(0xFF3D2B26)
-val WarmRoseOnSurface = Color(0xFF4A3530)
-val WarmRoseOnSurfaceVariant = Color(0xFF8A7068)
+// ============================================================
+//  Mood colors — Nuanced, desaturated gradient pairs
+//  6 levels: 1=depressed ... 6=excited
+// ============================================================
 
-// Warm Rose theme - dark variant
-val WarmRoseDarkBackground = Color(0xFF1A1312)
-val WarmRoseDarkSurface = Color(0xFF2A1F1D)
-val WarmRoseDarkSurfaceVariant = Color(0xFF3A2D2A)
-val WarmRoseDarkPrimary = Color(0xFFD4978A)
-val WarmRoseDarkOnBackground = Color(0xFFF0E0DC)
+val MoodDepressed = Color(0xFFCF7B7B) to Color(0xFFB86060)   // muted rose-red
+val MoodDown = Color(0xFFD4A06A) to Color(0xFFC08A50)        // warm sand
+val MoodCalm = Color(0xFF7BA7C9) to Color(0xFF6090B5)        // soft steel blue
+val MoodHappy = Color(0xFF7BC9A0) to Color(0xFF5FB88A)       // muted mint
+val MoodCheerful = Color(0xFF6BC0B0) to Color(0xFF50A898)    // desaturated teal
+val MoodExcited = Color(0xFFA88BC9) to Color(0xFF9070B8)     // soft violet
+val MoodSad = Color(0xFF818CF8) to Color(0xFFA78BFA)         // indigo-violet, ties to primary
+val MoodAnxious = Color(0xFFD99AB8) to Color(0xFFC87EA0)     // muted mauve
+val MoodTired = Color(0xFFA8A0C0) to Color(0xFFD0C8E0)       // lavender-gray
+val MoodGrateful = Color(0xFF7BC9A0) to Color(0xFF6BC0B0)    // warm teal blend
+
+// ============================================================
+//  Weather colors — Natural, muted
+// ============================================================
+
+val WeatherSunny = Color(0xFFE8B84C)          // warm amber, not neon yellow
+val WeatherCloudy = Color(0xFF8A9BB0)         // blue-gray slate
+val WeatherOvercast = Color(0xFF758898)       // deeper slate
+val WeatherRainy = Color(0xFF70A8D0)          // muted ocean blue
+val WeatherStormy = Color(0xFF9878B8)         // soft purple-gray
+val WeatherWindy = Color(0xFF78B8B0)          // desaturated teal
+
+// ============================================================
+//  Gradient presets — Sophisticated, cohesive
+// ============================================================
+
+val GradientPurple = listOf(PrimaryIndigo, SecondaryViolet)                    // indigo -> violet
+val GradientSunset = listOf(Color(0xFFF0908A), Color(0xFFF0C8A8))             // coral -> peach
+val GradientOcean = listOf(Color(0xFF6AB8A8), Color(0xFF70A8D0))              // teal -> steel blue
+val GradientBerry = listOf(Color(0xFF0E0D20), Color(0xFF1A1840))              // dark indigo depth
+val GradientPeach = listOf(Color(0xFFF0A8A0), Color(0xFFF0D0C0))             // soft rose -> cream
+
+// ============================================================
+//  Pure Light mode — Clean, minimal
+// ============================================================
+
+val PureLightBackground = Color(0xFFFCFCFF)   // faintest indigo tint
+val PureLightSurface = Color(0xFFF5F4FA)      // subtle cool undertone
+val PureLightCardBackground = Color(0xFFEFEEF6)
+val PureLightCardBorder = Color(0xFFE0DDE8)
+
+// ============================================================
+//  Pure Dark mode — True black with cool cast
+// ============================================================
+
+val PureDarkBackground = Color(0xFF08080E)    // near-black, cool undertone
+val PureDarkSurface = Color(0xFF12121C)       // subtle layer
+val PureDarkCardBackground = Color(0xFF1A1A28) // card depth
+val PureDarkCardBorder = Color(0xFF282838)    // visible but subtle
+
+// ============================================================
+//  Warm Rose theme — Light variant (refined, elegant)
+//  Warmer, more sophisticated terracotta-and-blush palette
+// ============================================================
+
+val WarmRoseBackground = Color(0xFFFBF5F3)       // soft warm white
+val WarmRoseSurface = Color(0xFFF8EFEB)          // blush surface
+val WarmRoseSurfaceVariant = Color(0xFFF0E4DE)   // deeper blush
+val WarmRosePrimary = Color(0xFFB76E79)           // terracotta rose
+val WarmRosePrimaryVariant = Color(0xFF9E5A65)    // deeper terracotta
+val WarmRoseSecondary = Color(0xFFC89098)         // muted rose
+val WarmRoseOnBackground = Color(0xFF382422)      // deep warm brown
+val WarmRoseOnSurface = Color(0xFF44302C)         // dark warm
+val WarmRoseOnSurfaceVariant = Color(0xFF8C706A)  // muted warm gray
+
+// ============================================================
+//  Warm Rose theme — Dark variant
+// ============================================================
+
+val WarmRoseDarkBackground = Color(0xFF161010)    // deep warm black
+val WarmRoseDarkSurface = Color(0xFF241A18)       // warm dark layer
+val WarmRoseDarkSurfaceVariant = Color(0xFF322824) // card depth
+val WarmRoseDarkPrimary = Color(0xFFD49898)       // soft rose for dark
+val WarmRoseDarkOnBackground = Color(0xFFF0DCD8)  // warm light text

@@ -25,6 +25,17 @@ data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
 
 data class DayInfo(val moodLevel: Int?, val weather: String?)
 
+data class ReviewEntry(val label: String, val entry: DiaryEntry)
+
+data class SearchFilters(
+    val moodLevel: Int? = null,
+    val weather: String? = null,
+    val dateRangeStart: LocalDate? = null,
+    val dateRangeEnd: LocalDate? = null
+) {
+    val isActive: Boolean get() = moodLevel != null || weather != null || dateRangeStart != null || dateRangeEnd != null
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -37,6 +48,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedTagFilter = MutableStateFlow<Long?>(null)
     val selectedTagFilter: StateFlow<Long?> = _selectedTagFilter
+
+    private val _searchFilters = MutableStateFlow(SearchFilters())
+    val searchFilters: StateFlow<SearchFilters> = _searchFilters
 
     enum class SortOrder(val label: String) {
         NEWEST("最新优先"),
@@ -69,6 +83,61 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // "On This Day" - entries from the same month+day in previous years
+    val onThisDayEntries: StateFlow<List<DiaryEntry>> = run {
+        val now = LocalDate.now()
+        dao.getOnThisDayEntries(now.monthValue, now.dayOfMonth, now.year)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+
+    // Review entries: last year today, one week ago, one month ago
+    private val _reviewEntries = MutableStateFlow<List<ReviewEntry>>(emptyList())
+    val reviewEntries: StateFlow<List<ReviewEntry>> = _reviewEntries
+
+    init {
+        loadReviewEntries()
+    }
+
+    private fun loadReviewEntries() {
+        viewModelScope.launch {
+            val now = LocalDate.now()
+            val zone = ZoneId.systemDefault()
+            val results = mutableListOf<ReviewEntry>()
+
+            // One week ago
+            val weekAgo = now.minusWeeks(1)
+            val weekStart = weekAgo.atStartOfDay(zone).toInstant().toEpochMilli()
+            val weekEnd = weekAgo.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            val weekEntries = dao.getEntriesByDateRange(weekStart, weekEnd)
+            weekEntries.firstOrNull()?.let { results.add(ReviewEntry("一周前", it)) }
+
+            // One month ago
+            val monthAgo = now.minusMonths(1)
+            val monthStart = monthAgo.atStartOfDay(zone).toInstant().toEpochMilli()
+            val monthEnd = monthAgo.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            val monthEntries = dao.getEntriesByDateRange(monthStart, monthEnd)
+            monthEntries.firstOrNull()?.let { results.add(ReviewEntry("一个月前", it)) }
+
+            // Last year today
+            val lastYearEntries = dao.getEntriesByMonthDay(now.monthValue, now.dayOfMonth)
+                .filter { entry ->
+                    val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                    entryDate.year < now.year
+                }
+            lastYearEntries.firstOrNull()?.let { results.add(ReviewEntry("去年今日", it)) }
+
+            _reviewEntries.value = results
+        }
+    }
+
+    fun refreshReview() {
+        loadReviewEntries()
+    }
+
+    // Search history (in-memory, last 5)
+    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
+    val recentSearches: StateFlow<List<String>> = _recentSearches
 
     private val allEntries: StateFlow<List<DiaryEntry>> = dao.getAllEntries()
         .onEach { _isLoading.value = false }
@@ -107,8 +176,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _selectedDate,
         _searchQuery,
         _selectedTagFilter,
-        tagsMap
-    ) { entries, date, query, tagFilter, tags ->
+        tagsMap,
+        _searchFilters
+    ) { args ->
+        @Suppress("UNCHECKED_CAST")
+        val entries = args[0] as List<DiaryEntry>
+        val date = args[1] as LocalDate?
+        val query = args[2] as String
+        val tagFilter = args[3] as Long?
+        val tags = args[4] as Map<Long, List<TagInfo>>
+        val filters = args[5] as SearchFilters
+
         entries.filter { entry ->
             val matchesDate = date == null || run {
                 val entryDate = Instant.ofEpochMilli(entry.createdAt)
@@ -118,13 +196,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             val matchesQuery = query.isBlank() || entry.plainText.contains(query, ignoreCase = true)
             val matchesTag = tagFilter == null || (tags[entry.id]?.any { it.id == tagFilter } == true)
-            matchesDate && matchesQuery && matchesTag
+            val matchesMood = filters.moodLevel == null || entry.moodLevel == filters.moodLevel
+            val matchesWeather = filters.weather == null || entry.weather == filters.weather
+            val matchesDateRange = run {
+                if (filters.dateRangeStart == null && filters.dateRangeEnd == null) true
+                else {
+                    val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                    val afterStart = filters.dateRangeStart == null || !entryDate.isBefore(filters.dateRangeStart)
+                    val beforeEnd = filters.dateRangeEnd == null || !entryDate.isAfter(filters.dateRangeEnd)
+                    afterStart && beforeEnd
+                }
+            }
+            matchesDate && matchesQuery && matchesTag && matchesMood && matchesWeather && matchesDateRange
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val entries: StateFlow<List<DiaryEntry>> = combine(filteredEntries, _sortOrder) { filtered, sort ->
         sortEntries(filtered, sort)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Search result count (derived from entries since count is unchanged by sorting)
+    val searchResultCount: StateFlow<Int> = entries
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun selectDate(date: LocalDate?) {
         _selectedDate.value = date
@@ -134,8 +230,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _searchQuery.value = query
     }
 
+    fun commitSearch(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return
+        val current = _recentSearches.value.toMutableList()
+        current.remove(trimmed)
+        current.add(0, trimmed)
+        if (current.size > 5) current.removeAt(current.lastIndex)
+        _recentSearches.value = current
+    }
+
+    fun clearSearchHistory() {
+        _recentSearches.value = emptyList()
+    }
+
     fun setTagFilter(tagId: Long?) {
         _selectedTagFilter.value = if (_selectedTagFilter.value == tagId) null else tagId
+    }
+
+    fun setSearchFilters(filters: SearchFilters) {
+        _searchFilters.value = filters
+    }
+
+    fun clearSearchFilters() {
+        _searchFilters.value = SearchFilters()
     }
 
     fun setSortOrder(order: SortOrder) {
@@ -152,11 +270,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dao.deleteEntry(entry)
         }
-    }
-
-    fun loadTagsForEntries(@Suppress("UNUSED_PARAMETER") entries: List<DiaryEntry>) {
-        // Tags are now loaded reactively via getAllDiaryTagPairs() Flow.
-        // This method is kept for call-site compatibility but is a no-op.
     }
 
     private fun computeStreak(dates: Set<LocalDate>): Int {

@@ -125,6 +125,31 @@ interface DiaryDao {
 
     @Query("DELETE FROM todo_items WHERE isCompleted = 1 AND completedAt < :before")
     suspend fun deleteCompletedTodosBefore(before: Long)
+
+    // "On This Day" - get entries from the same month+day in previous years
+    // We use SQLite strftime to extract month and day from the epoch timestamp
+    @Query("""
+        SELECT * FROM diary_entries
+        WHERE id != :excludeId
+          AND CAST(strftime('%m', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :month
+          AND CAST(strftime('%d', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :day
+          AND CAST(strftime('%Y', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) != :year
+        ORDER BY createdAt DESC
+    """)
+    fun getOnThisDayEntries(month: Int, day: Int, year: Int, excludeId: Long = -1): Flow<List<DiaryEntry>>
+
+    // Get entries within a timestamp range (one-shot)
+    @Query("SELECT * FROM diary_entries WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
+    suspend fun getEntriesByDateRange(start: Long, end: Long): List<DiaryEntry>
+
+    // Get entries matching month+day across all years (for review)
+    @Query("""
+        SELECT * FROM diary_entries
+        WHERE CAST(strftime('%m', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :month
+          AND CAST(strftime('%d', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :day
+        ORDER BY createdAt DESC
+    """)
+    suspend fun getEntriesByMonthDay(month: Int, day: Int): List<DiaryEntry>
 }
 
 data class TagUsage(

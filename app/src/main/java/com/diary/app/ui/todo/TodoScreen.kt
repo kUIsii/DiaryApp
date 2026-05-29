@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
+import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ErrorColor
@@ -80,6 +81,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
+    val haptic = rememberHapticFeedback()
     val todos by viewModel.allTodos.collectAsState()
     var inputText by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -196,8 +198,14 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     todo = todo,
                                     textPrimary = textPrimary,
                                     textSecondary = textSecondary,
-                                    onToggle = { viewModel.toggleTodo(todo) },
-                                    onDelete = { viewModel.deleteTodo(todo) }
+                                    onToggle = {
+                                        haptic.click()
+                                        viewModel.toggleTodo(todo)
+                                    },
+                                    onDelete = {
+                                        haptic.warning()
+                                        viewModel.deleteTodo(todo)
+                                    }
                                 )
                             }
                         )
@@ -234,6 +242,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             text = { Text("将删除7天前已完成的待办事项") },
             confirmButton = {
                 TextButton(onClick = {
+                    haptic.warning()
                     viewModel.clearCompleted()
                     showClearDialog = false
                 }) {
@@ -332,6 +341,14 @@ private fun TodoItemCard(
         animationSpec = tween(300),
         label = "item_alpha"
     )
+    val checkboxScale by animateFloatAsState(
+        targetValue = if (isCompleted) 1.15f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 400f
+        ),
+        label = "checkbox_scale"
+    )
 
     GlassCard(
         modifier = Modifier
@@ -344,7 +361,7 @@ private fun TodoItemCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Custom checkbox
+            // Custom checkbox with bounce animation
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -364,7 +381,12 @@ private fun TodoItemCard(
                     imageVector = if (isCompleted) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
                     contentDescription = if (isCompleted) "取消完成" else "标记完成",
                     tint = if (isCompleted) MaterialTheme.colorScheme.primary else textSecondary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier
+                        .size(22.dp)
+                        .graphicsLayer {
+                            scaleX = checkboxScale
+                            scaleY = checkboxScale
+                        }
                 )
             }
 
@@ -417,6 +439,7 @@ private fun TodoItemCard(
 
 @Composable
 private fun EmptyState(textSecondary: Color) {
+    val primary = MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -426,23 +449,31 @@ private fun EmptyState(textSecondary: Color) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                Icons.Default.EventNote,
-                contentDescription = null,
-                tint = textSecondary.copy(alpha = 0.3f),
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.EventNote,
+                    contentDescription = "暂无待办",
+                    tint = primary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = "暂无待办事项",
-                color = textSecondary.copy(alpha = 0.5f),
+                color = textSecondary.copy(alpha = 0.7f),
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "添加你的第一个待办吧",
-                color = textSecondary.copy(alpha = 0.35f),
+                color = textSecondary.copy(alpha = 0.4f),
                 fontSize = 14.sp
             )
         }
@@ -472,7 +503,7 @@ private fun ClearCompletedButton(
         ) {
             Icon(
                 Icons.Default.DeleteSweep,
-                contentDescription = null,
+                contentDescription = "清除已完成",
                 tint = textSecondary,
                 modifier = Modifier.size(18.dp)
             )

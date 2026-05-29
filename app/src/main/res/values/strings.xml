@@ -1,6 +1,325 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App -->
     <string name="app_name">日记</string>
+    <string name="app_subtitle">记录生活的每一天</string>
+    <string name="made_with_love">Made with </string>
+    <string name="made_by"> by Diary Team</string>
+
+    <!-- Shortcuts -->
     <string name="shortcut_new_diary_short">新建日记</string>
     <string name="shortcut_new_diary_long">快速创建一篇新日记</string>
+
+    <!-- Navigation -->
+    <string name="navigate_back">返回</string>
+    <string name="navigate_settings">更多设置</string>
+
+    <!-- Home Screen -->
+    <string name="greeting_morning">早安</string>
+    <string name="greeting_afternoon">下午好</string>
+    <string name="greeting_evening">晚上好</string>
+    <string name="search_placeholder">搜索日记...</string>
+    <string name="search_icon">搜索</string>
+    <string name="clear_search">清除</string>
+    <string name="filter">筛选</string>
+    <string name="sort">排序</string>
+    <string name="search_result_count">找到 %d 篇日记</string>
+    <string name="filter_conditions">筛选条件</string>
+    <string name="clear_all_filters">清除全部</string>
+    <string name="mood_filter">心情</string>
+    <string name="weather_filter">天气</string>
+    <string name="start_your_story">开始你的故事</string>
+    <string name="every_day_worth_recording">每一天都值得被记录</string>
+    <string name="click_to_write_first">点击右下角按钮写下第一篇</string>
+    <string name="today">今天</string>
+    <string name="yesterday">昨天</string>
+    <string name="view_all">查看全部</string>
+    <string name="diary_for_date">%d月%d日的日记</string>
+    <string name="on_this_day">那年今日</string>
+    <string name="memories_count">%d 篇回忆</string>
+    <string name="years_ago">%d年前</string>
+    <string name="more_entries">还有 %d 篇...</string>
+    <string name="diary_review">日记回顾</string>
+    <string name="recent_searches">最近搜索</string>
+    <string name="clear">清除</string>
+    <string name="new_diary">新建日记</string>
+    <string name="share_diary">分享日记</string>
+    <string name="favorite">收藏</string>
+    <string name="unfavorite">取消收藏</string>
+    <string name="delete">删除</string>
+    <string name="edit">编辑</string>
+    <string name="share">分享</string>
+    <string name="confirm_delete">确认删除</string>
+    <string name="confirm_delete_message">确定要删除这篇日记吗？删除后无法恢复。</string>
+    <string name="cancel">取消</string>
+    <string name="delete_diary">删除日记</string>
+    <string name="delete_diary_message">确定要删除这篇日记吗？此操作无法撤销。</string>
+
+    <!-- Stats Card -->
+    <string name="stat_total_diaries">总日记</string>
+    <string name="stat_streak">连续天数</string>
+    <string name="stat_this_month">本月日记</string>
+
+    <!-- Mood Labels -->
+    <string name="mood_1">沮丧</string>
+    <string name="mood_2">低落</string>
+    <string name="mood_3">平静</string>
+    <string name="mood_4">开心</string>
+    <string name="mood_5">愉快</string>
+    <string name="mood_6">兴奋</string>
+
+    <!-- Weather Labels -->
+    <string name="weather_sunny">晴天</string>
+    <string name="weather_cloudy">多云</string>
+    <string name="weather_overcast">阴天</string>
+    <string name="weather_rainy">雨天</string>
+    <string name="weather_thunderstorm">雷暴</string>
+    <string name="weather_windy">大风</string>
+
+    <!-- Weather Options (for filter) -->
+    <string name="weather_opt_sunny">晴</string>
+    <string name="weather_opt_cloudy">多云</string>
+    <string name="weather_opt_overcast">阴</string>
+    <string name="weather_opt_rainy">雨</string>
+    <string name="weather_opt_windy">风</string>
+    <string name="weather_opt_thunderstorm">雷雨</string>
+
+    <!-- Editor Screen -->
+    <string name="undo">撤销</string>
+    <string name="redo">重做</string>
+    <string name="save">保存</string>
+    <string name="unsaved_changes">未保存的更改</string>
+    <string name="unsaved_changes_message">当前有未保存的更改，是否保存？</string>
+    <string name="save_and_exit">保存并退出</string>
+    <string name="exit_without_saving">不保存退出</string>
+    <string name="draft_found">发现草稿</string>
+    <string name="draft_found_message">发现上次未保存的草稿，是否恢复？</string>
+    <string name="restore">恢复</string>
+    <string name="discard">丢弃</string>
+    <string name="word_count_format">%d 字 | %d 词</string>
+    <string name="mood_label">心情</string>
+    <string name="weather_label">天气</string>
+    <string name="tag_label">标签</string>
+    <string name="tag_count_format">%d 个标签</string>
+    <string name="select_template">选择模板</string>
+    <string name="close">关闭</string>
+
+    <!-- Toolbar Categories -->
+    <string name="toolbar_format">格式</string>
+    <string name="toolbar_heading">标题</string>
+    <string name="toolbar_list">列表</string>
+    <string name="toolbar_insert">插入</string>
+    <string name="toolbar_color">颜色</string>
+    <string name="toolbar_collapse">收起</string>
+    <string name="toolbar_expand">展开</string>
+
+    <!-- Format Tools -->
+    <string name="format_bold">加粗</string>
+    <string name="format_italic">斜体</string>
+    <string name="format_underline">下划线</string>
+    <string name="format_strikethrough">删除线</string>
+    <string name="format_quote">引用</string>
+    <string name="format_divider">分割线</string>
+
+    <!-- Heading Tools -->
+    <string name="heading_h1">大标题</string>
+    <string name="heading_h2">中标题</string>
+    <string name="heading_h3">小标题</string>
+    <string name="heading_normal">默认</string>
+
+    <!-- List Tools -->
+    <string name="list_ordered">有序列表</string>
+    <string name="list_bullet">无序列表</string>
+
+    <!-- Insert Tools -->
+    <string name="insert_image">插入图片</string>
+    <string name="insert_video">插入视频</string>
+    <string name="insert_audio">插入音频</string>
+    <string name="insert_link">插入链接</string>
+
+    <!-- Color Tools -->
+    <string name="color_text">文字</string>
+    <string name="color_background">背景</string>
+    <string name="clear_formatting">清除格式</string>
+
+    <!-- Templates -->
+    <string name="template_daily">日常记录</string>
+    <string name="template_gratitude">感恩日记</string>
+    <string name="template_reading">读书笔记</string>
+    <string name="template_travel">旅行日记</string>
+    <string name="template_work">工作复盘</string>
+
+    <!-- Tag Dialog -->
+    <string name="new_tag">新建标签</string>
+    <string name="tag_name">标签名称</string>
+    <string name="select_color">选择颜色</string>
+    <string name="confirm">确定</string>
+
+    <!-- Detail Screen -->
+    <string name="share_text">分享文字</string>
+    <string name="share_as_image">分享为图片</string>
+    <string name="generating_image">生成图片中...</string>
+    <string name="export_markdown">导出为 Markdown</string>
+    <string name="exporting">导出中...</string>
+    <string name="image_saved_to">图片已保存到 %s</string>
+    <string name="exported_to">已导出到 %s</string>
+    <string name="export_failed">导出失败: %s</string>
+    <string name="created_at">创建于 %s</string>
+    <string name="modified_at">修改于 %s</string>
+
+    <!-- Todo Screen -->
+    <string name="todo_title">今日待办</string>
+    <string name="todo_remaining">剩余 %d 项</string>
+    <string name="todo_add_placeholder">添加新待办...</string>
+    <string name="todo_add">添加</string>
+    <string name="todo_empty_title">暂无待办事项</string>
+    <string name="todo_empty_subtitle">添加你的第一个待办吧</string>
+    <string name="todo_mark_complete">标记完成</string>
+    <string name="todo_unmark_complete">取消完成</string>
+    <string name="todo_delete">删除</string>
+    <string name="clear_completed">清除已完成</string>
+    <string name="clear_completed_title">清除已完成</string>
+    <string name="clear_completed_message">将删除7天前已完成的待办事项</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_title">统计</string>
+    <string name="stats_no_entries">还没有日记</string>
+    <string name="stats_start_recording">开始记录你的生活吧</string>
+    <string name="stats_total_words">总字数</string>
+    <string name="stats_avg_words">篇均字数</string>
+    <string name="stats_recent_entries">最近30天写了 %d 篇日记</string>
+    <string name="stats_mood_trend">心情趋势</string>
+    <string name="stats_mood_chart">心情曲线</string>
+    <string name="stats_writing_calendar">写作日历</string>
+    <string name="stats_recent_12_weeks">最近12周</string>
+    <string name="stats_less">少</string>
+    <string name="stats_more">多</string>
+    <string name="stats_6month_trend">近6个月趋势</string>
+    <string name="stats_writing_habit">写作习惯</string>
+    <string name="stats_mood_distribution">心情分布</string>
+    <string name="stats_weather">天气统计</string>
+    <string name="stats_tags">标签统计</string>
+    <string name="stats_mood_up">最近心情不错</string>
+    <string name="stats_mood_down">最近心情低落</string>
+    <string name="stats_mood_flat">心情平稳</string>
+    <string name="stats_mood_avg">近30天平均心情 %s</string>
+    <string name="stats_entries_count">%d 篇</string>
+    <string name="stats_weekly_writing">每周写作</string>
+    <string name="stats_most_active_day">最活跃日</string>
+    <string name="stats_active_time">活跃时段</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_appearance">外观设置</string>
+    <string name="profile_theme_mode">主题模式</string>
+    <string name="profile_font_size">编辑器字体大小</string>
+    <string name="profile_data_management">数据管理</string>
+    <string name="profile_tag_management">分类管理</string>
+    <string name="profile_tag_management_desc">管理日记分类标签</string>
+    <string name="profile_export_backup">导出备份</string>
+    <string name="profile_export_backup_desc">导出全部日记为 JSON 文件</string>
+    <string name="profile_export_markdown">导出为 Markdown</string>
+    <string name="profile_export_markdown_desc">导出全部日记为 Markdown 文件</string>
+    <string name="profile_import_backup">导入备份</string>
+    <string name="profile_import_backup_desc">从 JSON 文件导入日记</string>
+    <string name="profile_exporting">正在导出...</string>
+    <string name="profile_importing">正在导入...</string>
+    <string name="profile_reminder_settings">提醒设置</string>
+    <string name="profile_daily_reminder">每日提醒</string>
+    <string name="profile_reminder_off">已关闭</string>
+    <string name="profile_privacy_security">隐私与安全</string>
+    <string name="profile_app_lock">应用锁</string>
+    <string name="profile_biometric_desc">使用指纹或面部识别解锁</string>
+    <string name="profile_no_biometric">设备不支持生物识别</string>
+    <string name="profile_pin_lock">PIN码锁</string>
+    <string name="profile_pin_set">已设置4位PIN码</string>
+    <string name="profile_pin_set_desc">设置4位数字PIN码作为备选解锁方式</string>
+    <string name="profile_pin_remove">移除</string>
+    <string name="profile_pin_setup">设置</string>
+    <string name="profile_about">关于</string>
+    <string name="profile_check_update">检查更新</string>
+    <string name="profile_check_update_desc">检查是否有新版本</string>
+    <string name="profile_checking">正在检查...</string>
+    <string name="profile_changelog">更新日志</string>
+    <string name="profile_changelog_desc">查看历史版本记录</string>
+    <string name="profile_more_settings">更多设置</string>
+    <string name="profile_more_settings_desc">备份管理、应用锁、隐私设置</string>
+    <string name="profile_latest_version">已是最新版本</string>
+    <string name="profile_update_failed">检查更新失败</string>
+    <string name="profile_select_reminder_time">选择提醒时间</string>
+    <string name="profile_notification_permission">需要通知权限才能开启提醒</string>
+    <string name="profile_pin_set_success">PIN码已设置</string>
+    <string name="profile_pin_removed">PIN码已移除</string>
+    <string name="profile_remove_pin_title">移除PIN码</string>
+    <string name="profile_remove_pin_message">确定要移除PIN码锁吗？移除后将无法使用PIN码解锁应用。</string>
+    <string name="profile_remove">移除</string>
+    <string name="profile_import_confirm">确认导入</string>
+    <string name="profile_import_confirm_message">将导入 %d 篇日记和 %d 个分类，现有数据不会被覆盖。确定继续？</string>
+    <string name="profile_import_success">导入成功: %d 篇日记, %d 个新分类</string>
+    <string name="profile_import_failed">导入失败: %s</string>
+    <string name="profile_export_success">导出成功: %s</string>
+    <string name="profile_export_failed">导出失败: %s</string>
+    <string name="profile_read_failed">读取失败: %s</string>
+    <string name="profile_update_failed_msg">更新失败: %s</string>
+
+    <!-- PIN Dialog -->
+    <string name="pin_setup_title">设置PIN码</string>
+    <string name="pin_confirm_title">确认PIN码</string>
+    <string name="pin_enter_message">请输入4位数字PIN码</string>
+    <string name="pin_confirm_message">请再次输入PIN码确认</string>
+    <string name="pin_mismatch">两次输入不一致，请重新设置</string>
+    <string name="pin_delete">删除</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">设置</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_theme">主题设置</string>
+    <string name="settings_current_theme">当前: %s</string>
+    <string name="settings_data">数据管理</string>
+    <string name="settings_backup">备份管理</string>
+    <string name="settings_backup_desc">自动备份、备份历史、恢复数据</string>
+    <string name="settings_tags">分类管理</string>
+    <string name="settings_tags_desc">管理日记分类标签</string>
+    <string name="settings_privacy">隐私与安全</string>
+    <string name="settings_app_lock">应用锁</string>
+    <string name="settings_app_lock_desc">指纹、面部识别或PIN码保护</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_check_update">检查更新</string>
+    <string name="settings_check_update_desc">检查是否有新版本</string>
+    <string name="settings_changelog">更新日志</string>
+    <string name="settings_changelog_desc">查看历史版本记录</string>
+
+    <!-- Backup Screen -->
+    <string name="backup_title">备份管理</string>
+
+    <!-- Map Screen -->
+    <string name="map_title">地图</string>
+
+    <!-- Review Screen -->
+    <string name="review_title">日记回顾</string>
+
+    <!-- Pin Entry Screen -->
+    <string name="pin_entry_title">输入PIN码</string>
+
+    <!-- Accessibility - Content Descriptions -->
+    <string name="cd_greeting_icon">问候图标</string>
+    <string name="cd_star_filled">已收藏</string>
+    <string name="cd_star_outline">未收藏</string>
+    <string name="cd_mood_icon">心情图标</string>
+    <string name="cd_weather_icon">天气图标</string>
+    <string name="cd_share_action">分享操作</string>
+    <string name="cd_delete_action">删除操作</string>
+    <string name="cd_arrow_forward">进入</string>
+    <string name="cd_app_logo">应用图标</string>
+    <string name="cd_calendar_icon">日历图标</string>
+    <string name="cd_history_icon">历史图标</string>
+    <string name="cd_self_improvement">冥想图标</string>
+    <string name="cd_text_snippet">文字图标</string>
+    <string name="cd_weekend">周末图标</string>
+    <string name="cd_schedule">时间图标</string>
+
+    <!-- Share -->
+    <string name="share_subject">日记</string>
+    <string name="share_from">来自 日记本 App</string>
+    <string name="share_mood">心情: %s</string>
+    <string name="share_weather">天气: %s</string>
 </resources>

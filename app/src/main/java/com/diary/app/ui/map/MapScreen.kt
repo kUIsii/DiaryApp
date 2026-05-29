@@ -66,6 +66,7 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.home.TagInfo
 import kotlinx.coroutines.delay
@@ -82,6 +83,7 @@ fun MapScreen(
     onNavigateToEditor: (Long?) -> Unit = {},
     viewModel: TimelineViewModel = viewModel()
 ) {
+    val haptic = rememberHapticFeedback()
     val monthGroups by viewModel.monthGroups.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
     val totalEntries = remember(monthGroups) { monthGroups.sumOf { it.entries.size } }
@@ -128,7 +130,10 @@ fun MapScreen(
                             index = entryIndex,
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
-                            onClick = { onNavigateToDetail(entry.id) }
+                            onClick = {
+                                haptic.click()
+                                onNavigateToDetail(entry.id)
+                            }
                         )
                     }
 
@@ -150,6 +155,7 @@ fun MapScreen(
 
 @Composable
 private fun MonthHeader(yearMonth: YearMonth, entryCount: Int) {
+    val accentColor = MaterialTheme.colorScheme.primary
     GlassCard(
         cornerRadius = 20.dp,
         modifier = Modifier
@@ -160,31 +166,49 @@ private fun MonthHeader(yearMonth: YearMonth, entryCount: Int) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "${yearMonth.year}年${yearMonth.monthValue}月",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            // Icon with subtle background
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accentColor.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "${yearMonth.year}年${yearMonth.monthValue}月",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "$entryCount 篇日记",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
+            // Entry count badge with gradient
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .background(accentColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "${entryCount}篇",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    text = "$entryCount",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
                 )
             }
         }

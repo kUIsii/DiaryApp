@@ -3,13 +3,19 @@ package com.diary.app.ui.detail
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.webkit.WebSettings
+import android.widget.Toast
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -29,12 +35,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +53,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +77,8 @@ import com.diary.app.data.DiaryEntry
 import com.diary.app.data.Tag
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.rememberHapticFeedback
+import com.diary.app.ui.components.sharedElementTransition
 import com.diary.app.ui.theme.isDark
 import java.time.Instant
 import java.time.LocalDate
@@ -77,12 +93,14 @@ fun DiaryDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditor: (Long) -> Unit
 ) {
+    val haptic = rememberHapticFeedback()
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
     val themeMode by app.themeMode.collectAsState()
     val isDark = themeMode.isDark()
 
     val viewModel: DiaryDetailViewModel = viewModel()
+    val scope = rememberCoroutineScope()
     val entry by viewModel.entry.collectAsState()
     val tags by viewModel.tags.collectAsState()
 
@@ -118,6 +136,10 @@ fun DiaryDetailScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    var showShareMenu by remember { mutableStateOf(false) }
+    var isExportingImage by remember { mutableStateOf(false) }
+    var isExportingMarkdown by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -132,22 +154,86 @@ fun DiaryDetailScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary)
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = {
-                    val shareText = viewModel.getShareText()
-                    if (shareText != null) {
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, shareText)
-                            putExtra(Intent.EXTRA_SUBJECT, "日记 - ${viewModel.getDateTitle()}")
-                        }
-                        context.startActivity(Intent.createChooser(intent, "分享日记"))
+                Box {
+                    IconButton(onClick = { showShareMenu = true }) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "分享",
+                            tint = textSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
-                }) {
+                    DropdownMenu(
+                        expanded = showShareMenu,
+                        onDismissRequest = { showShareMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("分享文字") },
+                            onClick = {
+                                showShareMenu = false
+                                val shareText = viewModel.getShareText()
+                                if (shareText != null) {
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        putExtra(Intent.EXTRA_SUBJECT, "日记 - ${viewModel.getDateTitle()}")
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "分享日记"))
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(if (isExportingImage) "生成图片中..." else "分享为图片")
+                            },
+                            enabled = !isExportingImage,
+                            onClick = {
+                                showShareMenu = false
+                                isExportingImage = true
+                                scope.launch {
+                                    try {
+                                        val path = viewModel.exportAsImage(context)
+                                        isExportingImage = false
+                                        if (path != null) {
+                                            Toast.makeText(context, "图片已保存到 $path", Toast.LENGTH_LONG).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        isExportingImage = false
+                                        Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(if (isExportingMarkdown) "导出中..." else "导出为 Markdown")
+                            },
+                            enabled = !isExportingMarkdown,
+                            onClick = {
+                                showShareMenu = false
+                                isExportingMarkdown = true
+                                scope.launch {
+                                    try {
+                                        val path = viewModel.exportToMarkdown(context)
+                                        isExportingMarkdown = false
+                                        if (path != null) {
+                                            Toast.makeText(context, "已导出到 $path", Toast.LENGTH_LONG).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        isExportingMarkdown = false
+                                        Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                IconButton(onClick = { showDeleteDialog = true }) {
                     Icon(
-                        Icons.Default.Share,
-                        contentDescription = "分享",
-                        tint = textSecondary,
-                        modifier = Modifier.size(22.dp)
+                        Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -177,21 +263,76 @@ fun DiaryDetailScreen(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
+            // Delete confirmation dialog
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("删除日记") },
+                    text = { Text("确定要删除这篇日记吗？此操作无法撤销。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            haptic.warning()
+                            scope.launch {
+                                viewModel.deleteEntry()
+                                onNavigateBack()
+                            }
+                        }) {
+                            Text("删除", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
+
             entry?.let { currentEntry ->
+                // Stagger animation states
+                var headerVisible by remember { mutableStateOf(false) }
+                var tagsVisible by remember { mutableStateOf(false) }
+                var contentVisible by remember { mutableStateOf(false) }
+
+                LaunchedEffect(currentEntry) {
+                    headerVisible = true
+                    delay(100)
+                    tagsVisible = true
+                    delay(100)
+                    contentVisible = true
+                }
+
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Header: date, time, mood, weather
-                    DetailHeader(
-                        entry = currentEntry,
-                        textColor = textColor,
-                        textSecondary = textSecondary
-                    )
+                    // Header: date, time, mood, weather with shared element transition
+                    Box(
+                        modifier = Modifier.sharedElementTransition(
+                            visible = headerVisible,
+                            durationMillis = 300
+                        )
+                    ) {
+                        DetailHeader(
+                            entry = currentEntry,
+                            textColor = textColor,
+                            textSecondary = textSecondary
+                        )
+                    }
 
                     // Tags
                     if (tags.isNotEmpty()) {
-                        DetailTags(tags = tags)
+                        AnimatedVisibility(
+                            visible = tagsVisible,
+                            enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 6 }
+                        ) {
+                            DetailTags(tags = tags)
+                        }
                     }
 
                     // Content WebView - takes remaining space, scrolls internally
+                    AnimatedVisibility(
+                        visible = contentVisible,
+                        enter = fadeIn(tween(400))
+                    ) {
                     AndroidView(
                         factory = { ctx ->
                             WebView(ctx).apply {
@@ -199,6 +340,11 @@ fun DiaryDetailScreen(
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
                                 settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                settings.setSupportZoom(true)
+                                settings.builtInZoomControls = true
+                                settings.displayZoomControls = false
+                                settings.loadWithOverviewMode = true
+                                settings.useWideViewPort = true
                                 setBackgroundColor(0)
                                 loadUrl("file:///android_asset/viewer.html")
                                 webView = this
@@ -227,6 +373,7 @@ fun DiaryDetailScreen(
                         updatedAt = currentEntry.updatedAt,
                         textSecondary = textSecondary
                     )
+                    }
                 }
             }
         }
@@ -248,62 +395,84 @@ private fun DetailHeader(
     val dayOfWeek = entryDate.format(DateTimeFormatter.ofPattern("EEEE", Locale.CHINESE))
     val timeText = entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+    // Mood color accent
+    val moodColor = if (entry.moodLevel != null) {
+        moodIconForLevel(entry.moodLevel).tint
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Date
-        Text(
-            text = dateText,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = textColor
+        // Mood color accent bar
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(60.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(moodColor, moodColor.copy(alpha = 0.3f))
+                    )
+                )
         )
-        Spacer(modifier = Modifier.height(2.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            // Date
             Text(
-                text = "$dayOfWeek $timeText",
-                fontSize = 14.sp,
-                color = textSecondary
+                text = dateText,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Mood icon
-            if (entry.moodLevel != null) {
-                val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                val moodLabel = moodLabelForLevel(entry.moodLevel)
-                Icon(
-                    imageVector = moodIcon,
-                    contentDescription = moodLabel,
-                    tint = moodTint,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = moodLabel,
-                    fontSize = 12.sp,
-                    color = moodTint,
-                    fontWeight = FontWeight.Medium
+                    text = "$dayOfWeek $timeText",
+                    fontSize = 14.sp,
+                    color = textSecondary
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-            }
 
-            // Weather icon
-            if (entry.weather != null) {
-                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                Icon(
-                    imageVector = weatherIcon,
-                    contentDescription = entry.weather,
-                    tint = weatherTint,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = entry.weather,
-                    fontSize = 12.sp,
-                    color = weatherTint,
-                    fontWeight = FontWeight.Medium
-                )
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Mood icon
+                if (entry.moodLevel != null) {
+                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                    val moodLabel = moodLabelForLevel(entry.moodLevel)
+                    Icon(
+                        imageVector = moodIcon,
+                        contentDescription = moodLabel,
+                        tint = moodTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = moodLabel,
+                        fontSize = 12.sp,
+                        color = moodTint,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                // Weather icon
+                if (entry.weather != null) {
+                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                    Icon(
+                        imageVector = weatherIcon,
+                        contentDescription = entry.weather,
+                        tint = weatherTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = entry.weather,
+                        fontSize = 12.sp,
+                        color = weatherTint,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -354,23 +523,27 @@ private fun DetailTimestamps(
     val updatedText = formatFullTimestamp(updatedAt)
     val isEdited = updatedAt - createdAt > 60_000 // More than 1 minute difference
 
-    Column(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        cornerRadius = 12.dp,
+        innerPadding = 12.dp
     ) {
-        Text(
-            text = "创建于 $createdText",
-            fontSize = 12.sp,
-            color = textSecondary.copy(alpha = 0.5f)
-        )
-        if (isEdited) {
-            Spacer(modifier = Modifier.height(2.dp))
+        Column {
             Text(
-                text = "修改于 $updatedText",
+                text = "创建于 $createdText",
                 fontSize = 12.sp,
-                color = textSecondary.copy(alpha = 0.5f)
+                color = textSecondary.copy(alpha = 0.6f)
             )
+            if (isEdited) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "修改于 $updatedText",
+                    fontSize = 12.sp,
+                    color = textSecondary.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }

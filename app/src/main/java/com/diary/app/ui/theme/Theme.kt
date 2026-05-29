@@ -59,11 +59,11 @@ private val PureLightColorScheme = lightColorScheme(
     onSecondary = Color.White,
     error = ErrorColor,
     background = PureLightBackground,
-    onBackground = Color(0xFF1A1A2E),
+    onBackground = LightTextPrimary,
     surface = PureLightSurface,
-    onSurface = Color(0xFF1A1A2E),
+    onSurface = LightTextPrimary,
     surfaceVariant = PureLightCardBackground,
-    onSurfaceVariant = Color(0xFF666680),
+    onSurfaceVariant = LightTextSecondary,
 )
 
 // ---- Dark mode color schemes (3-color gradient background, improved contrast) ----
@@ -77,11 +77,11 @@ private val GradientDarkColorScheme = darkColorScheme(
     onSecondary = Color.White,
     error = ErrorColor,
     background = DarkBackgroundStart,
-    onBackground = Color(0xF0FFFFFF),
-    surface = Color(0x14FFFFFF), // 0.08f alpha
-    onSurface = Color(0xF0FFFFFF),
+    onBackground = DarkTextPrimary,
+    surface = DarkSurface,
+    onSurface = DarkTextPrimary,
     surfaceVariant = DarkCardBackground,
-    onSurfaceVariant = Color(0xB3FFFFFF), // improved contrast 0.7
+    onSurfaceVariant = DarkTextSecondary,
 )
 
 private val PureDarkColorScheme = darkColorScheme(
@@ -93,11 +93,11 @@ private val PureDarkColorScheme = darkColorScheme(
     onSecondary = Color.White,
     error = ErrorColor,
     background = PureDarkBackground,
-    onBackground = Color(0xF0FFFFFF),
-    surface = Color(0x14FFFFFF), // 0.08f alpha
-    onSurface = Color(0xF0FFFFFF),
+    onBackground = DarkTextPrimary,
+    surface = DarkSurface,
+    onSurface = DarkTextPrimary,
     surfaceVariant = PureDarkCardBackground,
-    onSurfaceVariant = Color(0xB3FFFFFF), // improved contrast 0.7
+    onSurfaceVariant = DarkTextSecondary,
 )
 
 // ---- Warm Rose color schemes ----
@@ -131,7 +131,7 @@ private val WarmRoseDarkColorScheme = darkColorScheme(
     surface = WarmRoseDarkSurface,
     onSurface = WarmRoseDarkOnBackground,
     surfaceVariant = WarmRoseDarkSurfaceVariant,
-    onSurfaceVariant = Color(0xCCE0CCC8), // muted warm rose text ~0.8 alpha
+    onSurfaceVariant = Color(0xCCD8B8B0), // muted warm rose text ~0.8 alpha
 )
 
 // ---- Extended color presets per theme variant ----

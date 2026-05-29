@@ -7,7 +7,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,12 +63,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.diary.app.ui.backup.BackupScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
+import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.home.HomeScreen
+import com.diary.app.ui.review.DiaryReviewScreen
 import com.diary.app.ui.map.MapScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
+import com.diary.app.ui.settings.SettingsScreen
 import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.ui.todo.TodoScreen
 import com.diary.app.update.ChangelogScreen
@@ -89,6 +95,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Changelog : Screen("changelog", "\u66f4\u65b0\u65e5\u5fd7", Icons.Default.Home)
     object TagManagement : Screen("tag_management", "\u5206\u7c7b\u7ba1\u7406", Icons.Default.Home)
+    object Review : Screen("review", "\u65e5\u8bb0\u56de\u987e", Icons.Default.Home)
+    object Settings : Screen("settings", "\u8bbe\u7f6e", Icons.Default.Home)
+    object Backup : Screen("backup", "\u5907\u4efd", Icons.Default.Home)
 }
 
 // endregion
@@ -114,6 +123,7 @@ val bottomNavItems = listOf(
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val navController = rememberNavController()
+    val haptic = rememberHapticFeedback()
 
     Scaffold(
         bottomBar = {
@@ -126,6 +136,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     items = bottomNavItems,
                     currentRoute = currentDestination?.route,
                     onNavigate = { route ->
+                        haptic.click()
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true
@@ -148,28 +159,22 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
-                slideInVertically(
-                    initialOffsetY = { it / 3 },
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
-                ) + fadeIn(animationSpec = tween(200))
+                fadeIn(animationSpec = tween(300)) + slideInVertically(
+                    initialOffsetY = { it / 4 },
+                    animationSpec = spring(dampingRatio = 0.9f, stiffness = 300f)
+                )
             },
             exitTransition = {
-                slideOutVertically(
-                    targetOffsetY = { -it / 3 },
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
-                ) + fadeOut(animationSpec = tween(200))
+                fadeOut(animationSpec = tween(200))
             },
             popEnterTransition = {
-                slideInVertically(
-                    initialOffsetY = { -it / 3 },
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
-                ) + fadeIn(animationSpec = tween(200))
+                fadeIn(animationSpec = tween(300)) + slideInVertically(
+                    initialOffsetY = { -it / 4 },
+                    animationSpec = spring(dampingRatio = 0.9f, stiffness = 300f)
+                )
             },
             popExitTransition = {
-                slideOutVertically(
-                    targetOffsetY = { it / 3 },
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
-                ) + fadeOut(animationSpec = tween(200))
+                fadeOut(animationSpec = tween(200))
             }
         ) {
             // region Bottom nav destinations
@@ -177,7 +182,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
-                    onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }
+                    onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
+                    onNavigateToReview = { navController.navigate(Screen.Review.route) }
                 )
             }
             composable(Screen.Map.route) {
@@ -191,7 +197,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
-                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) }
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
 
@@ -205,6 +212,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.TagManagement.route) {
                 TagManagementScreen(onNavigateBack = { navController.popBackStack() })
             }
+            composable(Screen.Review.route) {
+                DiaryReviewScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) }
+                )
+            }
+            composable(Screen.Backup.route) {
+                BackupScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
 
             // endregion
 
@@ -214,26 +240,26 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 route = Screen.Editor.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }),
                 enterTransition = {
-                    slideInVertically(
-                        initialOffsetY = { it },
+                    slideInHorizontally(
+                        initialOffsetX = { it },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 exitTransition = {
-                    slideOutVertically(
-                        targetOffsetY = { it },
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 3 },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
-                    slideInVertically(
-                        initialOffsetY = { it },
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 3 },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 popExitTransition = {
-                    slideOutVertically(
-                        targetOffsetY = { it },
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeOut(animationSpec = tween(200))
                 }
@@ -248,26 +274,26 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 route = Screen.Detail.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType }),
                 enterTransition = {
-                    slideInVertically(
-                        initialOffsetY = { it },
+                    slideInHorizontally(
+                        initialOffsetX = { it },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 exitTransition = {
-                    slideOutVertically(
-                        targetOffsetY = { it },
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 3 },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
-                    slideInVertically(
-                        initialOffsetY = { it },
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 3 },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 popExitTransition = {
-                    slideOutVertically(
-                        targetOffsetY = { it },
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
                         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
                     ) + fadeOut(animationSpec = tween(200))
                 }
