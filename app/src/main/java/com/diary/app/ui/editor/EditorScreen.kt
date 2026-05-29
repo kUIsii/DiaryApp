@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -139,6 +140,18 @@ fun EditorScreen(
         }
     }
 
+    // Auto-show keyboard after WebView loads
+    LaunchedEffect(webView) {
+        webView?.let {
+            kotlinx.coroutines.delay(500)
+            it.requestFocus()
+            it.evaluateJavascript(
+                "document.querySelector('.ql-editor').focus()",
+                null
+            )
+        }
+    }
+
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -158,7 +171,7 @@ fun EditorScreen(
     }
 
     GradientBackground {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().imePadding()) {
             // Top bar
             Row(
                 modifier = Modifier
@@ -368,33 +381,38 @@ private fun EditorToolbar(
         modifier = Modifier
             .fillMaxWidth()
             .background(surfaceColor)
-            .animateContentSize()
     ) {
-        // Toggle bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggleToolbar)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(borderColor)
-            )
-        }
-
-        // Full toolbar
+        // Toolbar tools - expand upward to cover keyboard area
         AnimatedVisibility(
             visible = showToolbar,
-            enter = expandVertically(tween(250)) + fadeIn(tween(200)),
-            exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
+            enter = expandVertically(expandFrom = Alignment.Bottom, animationSpec = tween(250)) + fadeIn(tween(200)),
+            exit = shrinkVertically(shrinkTowards = Alignment.Bottom, animationSpec = tween(200)) + fadeOut(tween(150))
         ) {
-            Column {
+            Column(modifier = Modifier.animateContentSize()) {
+                // Tools panel
+                AnimatedVisibility(
+                    visible = activeCategory >= 0,
+                    enter = expandVertically(tween(200)) + fadeIn(),
+                    exit = shrinkVertically(tween(150)) + fadeOut()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when (activeCategory) {
+                            0 -> FormatTools(onFormat, textColor, btnBg)
+                            1 -> HeadingTools(onHeading, textColor, btnBg)
+                            2 -> ListTools(onList, textColor, btnBg)
+                            3 -> InsertTools(onInsert, textColor, btnBg)
+                            4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                        }
+                    }
+                }
+
                 // Category row
                 Row(
                     modifier = Modifier
@@ -424,31 +442,25 @@ private fun EditorToolbar(
                         }
                     }
                 }
-
-                // Tools panel
-                AnimatedVisibility(
-                    visible = activeCategory >= 0,
-                    enter = expandVertically(tween(200)) + fadeIn(),
-                    exit = shrinkVertically(tween(150)) + fadeOut()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        when (activeCategory) {
-                            0 -> FormatTools(onFormat, textColor, btnBg)
-                            1 -> HeadingTools(onHeading, textColor, btnBg)
-                            2 -> ListTools(onList, textColor, btnBg)
-                            3 -> InsertTools(onInsert, textColor, btnBg)
-                            4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
-                        }
-                    }
-                }
             }
+        }
+
+        // Toggle bar - always visible at bottom
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleToolbar)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(borderColor)
+            )
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,9 +46,6 @@ import com.diary.app.update.UpdateDialog
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkAccentStart
-import com.diary.app.ui.theme.DarkTextPrimary
-import com.diary.app.ui.theme.DarkTextSecondary
-import com.diary.app.ui.theme.DarkTextTertiary
 import com.diary.app.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -67,6 +65,10 @@ fun ProfileScreen(
     var updateUrl by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
     var showThemeMenu by remember { mutableStateOf(false) }
+
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
     if (showUpdateDialog) {
         UpdateDialog(
@@ -110,7 +112,7 @@ fun ProfileScreen(
                 text = "我的",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = DarkTextPrimary,
+                color = textColor,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp)
@@ -130,12 +132,12 @@ fun ProfileScreen(
                         Text(
                             text = "主题设置",
                             fontSize = 16.sp,
-                            color = DarkTextPrimary
+                            color = textColor
                         )
                         Text(
                             text = currentThemeMode.label,
                             fontSize = 14.sp,
-                            color = DarkTextTertiary
+                            color = textTertiary
                         )
                     }
 
@@ -143,7 +145,7 @@ fun ProfileScreen(
                         ThemeMode.entries.forEach { mode ->
                             val isSelected = currentThemeMode == mode
                             val dotColor by animateColorAsState(
-                                targetValue = if (isSelected) DarkAccentStart else DarkTextTertiary.copy(alpha = 0.3f),
+                                targetValue = if (isSelected) DarkAccentStart else textTertiary.copy(alpha = 0.3f),
                                 animationSpec = tween(200),
                                 label = "dotColor"
                             )
@@ -176,7 +178,7 @@ fun ProfileScreen(
                                 Text(
                                     text = mode.label,
                                     fontSize = 14.sp,
-                                    color = DarkTextSecondary,
+                                    color = textSecondary,
                                     modifier = Modifier.padding(start = 12.dp)
                                 )
                             }
@@ -222,7 +224,7 @@ fun ProfileScreen(
                     Text(
                         text = "检查更新",
                         fontSize = 16.sp,
-                        color = DarkTextPrimary
+                        color = textColor
                     )
                     if (isChecking) {
                         CircularProgressIndicator(
@@ -233,7 +235,7 @@ fun ProfileScreen(
                         Text(
                             text = "v${BuildConfig.VERSION_NAME}",
                             fontSize = 14.sp,
-                            color = DarkTextTertiary
+                            color = textTertiary
                         )
                     }
                 }
@@ -251,8 +253,8 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("分类管理", fontSize = 16.sp, color = DarkTextPrimary)
-                    Text("查看", fontSize = 14.sp, color = DarkTextTertiary)
+                    Text("分类管理", fontSize = 16.sp, color = textColor)
+                    Text("查看", fontSize = 14.sp, color = textTertiary)
                 }
             }
 
@@ -271,12 +273,12 @@ fun ProfileScreen(
                     Text(
                         text = "更新日志",
                         fontSize = 16.sp,
-                        color = DarkTextPrimary
+                        color = textColor
                     )
                     Text(
                         text = "查看",
                         fontSize = 14.sp,
-                        color = DarkTextTertiary
+                        color = textTertiary
                     )
                 }
             }
@@ -286,7 +288,7 @@ fun ProfileScreen(
             Text(
                 text = "版本 ${BuildConfig.VERSION_NAME}",
                 fontSize = 12.sp,
-                color = DarkTextTertiary,
+                color = textTertiary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
