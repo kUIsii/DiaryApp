@@ -9,6 +9,14 @@ class DiaryJsBridge {
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
+    private val _contentChanges = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val contentChanges: SharedFlow<String> = _contentChanges.asSharedFlow()
+
+    @JavascriptInterface
+    fun onContentChange(text: String) {
+        _contentChanges.tryEmit(text)
+    }
+
     @JavascriptInterface
     fun pickImage() {
         _events.tryEmit("image")

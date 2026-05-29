@@ -1,6 +1,8 @@
 package com.diary.app.ui.profile
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -32,16 +34,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -62,16 +67,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
+import com.diary.app.data.DiaryBackup
+import com.diary.app.data.DiaryExporter
+import com.diary.app.data.DiaryImporter
+import com.diary.app.ui.components.GlassCard
+import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.theme.DarkAccentEnd
+import com.diary.app.ui.theme.DarkAccentStart
+import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateDialog
-import com.diary.app.ui.components.GlassCard
-import com.diary.app.ui.components.GradientBackground
-import com.diary.app.data.DiaryExporter
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
-import com.diary.app.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 @Composable
@@ -91,6 +98,21 @@ fun ProfileScreen(
     var isDownloading by remember { mutableStateOf(false) }
     var showThemeMenu by remember { mutableStateOf(false) }
     var isExporting by remember { mutableStateOf(false) }
+    var isImporting by remember { mutableStateOf(false) }
+    var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val backup = DiaryImporter.readAndValidate(context, uri)
+                pendingBackup = backup
+            } catch (e: Exception) {
+                Toast.makeText(context, "读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -129,6 +151,53 @@ fun ProfileScreen(
                 }
             },
             onDismiss = { showUpdateDialog = false }
+        )
+    }
+
+    pendingBackup?.let { backup ->
+        val entryCount = backup.entries?.size ?: 0
+        val tagCount = backup.tags?.size ?: 0
+        AlertDialog(
+            onDismissRequest = { pendingBackup = null },
+            title = { Text("确认导入") },
+            text = {
+                Text("将导入 $entryCount 篇日记和 $tagCount 个分类，现有数据不会被覆盖。确定继续？")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val b = backup
+                        pendingBackup = null
+                        isImporting = true
+                        scope.launch {
+                            try {
+                                val dao = app.database.diaryDao()
+                                val result = DiaryImporter.import(dao, b)
+                                isImporting = false
+                                Toast.makeText(
+                                    context,
+                                    "导入成功: ${result.entryCount} 篇日记, ${result.tagCount} 个新分类",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } catch (e: Exception) {
+                                isImporting = false
+                                Toast.makeText(
+                                    context,
+                                    "导入失败: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingBackup = null }) {
+                    Text("取消")
+                }
+            }
         )
     }
 
@@ -250,6 +319,29 @@ fun ProfileScreen(
                                         ).show()
                                     }
                                 }
+                            }
+                        }
+                    )
+                    SettingDivider()
+                    SettingItem(
+                        icon = Icons.Default.GetApp,
+                        title = "导入备份",
+                        subtitle = if (isImporting) "正在导入..." else "从 JSON 文件导入日记",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        enabled = !isImporting,
+                        trailing = {
+                            if (isImporting) {
+                                CircularProgressIndicator(
+                                    color = accentColor,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        onClick = {
+                            if (!isImporting) {
+                                filePickerLauncher.launch(arrayOf("application/json"))
                             }
                         }
                     )

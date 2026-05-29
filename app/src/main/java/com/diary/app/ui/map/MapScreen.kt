@@ -70,6 +70,7 @@ import java.util.Locale
 
 @Composable
 fun MapScreen(
+    onNavigateToDetail: (Long) -> Unit = {},
     onNavigateToEditor: (Long?) -> Unit = {},
     viewModel: TimelineViewModel = viewModel()
 ) {
@@ -122,7 +123,7 @@ fun MapScreen(
                         TimelineItem(
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
-                            onClick = { onNavigateToEditor(entry.id) }
+                            onClick = { onNavigateToDetail(entry.id) }
                         )
                     }
 

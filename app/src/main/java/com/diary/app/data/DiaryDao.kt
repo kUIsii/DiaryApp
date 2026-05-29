@@ -78,6 +78,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_tag_cross_ref")
     suspend fun getAllDiaryTags(): List<DiaryTag>
 
+    @Query("SELECT * FROM tags WHERE name = :name LIMIT 1")
+    suspend fun getTagByName(name: String): Tag?
+
     @Query("UPDATE tags SET name = :name, color = :color WHERE id = :id")
     suspend fun updateTagById(id: Long, name: String, color: Long)
 

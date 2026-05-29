@@ -34,6 +34,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.map.MapScreen
@@ -51,6 +52,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(diaryId: Long? = null): String {
             return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
         }
+    }
+    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.DateRange) {
+        fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
     object Changelog : Screen("changelog", "更新日志", Icons.Default.DateRange)
     object TagManagement : Screen("tag_management", "分类管理", Icons.Default.DateRange)
@@ -136,9 +140,17 @@ fun DiaryNavHost() {
             }
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) })
+                HomeScreen(
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }
+                )
             }
-            composable(Screen.Map.route) { MapScreen(onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }) }
+            composable(Screen.Map.route) {
+                MapScreen(
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }
+                )
+            }
             composable(Screen.Stats.route) { StatsScreen() }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -162,6 +174,21 @@ fun DiaryNavHost() {
                 EditorScreen(
                     diaryId = if (diaryId == -1L) null else diaryId,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Screen.Detail.route,
+                arguments = listOf(navArgument("diaryId") { type = NavType.LongType }),
+                enterTransition = { fadeIn(animationSpec = tween(200)) },
+                exitTransition = { fadeOut(animationSpec = tween(200)) }
+            ) { backStackEntry ->
+                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
+                DiaryDetailScreen(
+                    diaryId = diaryId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditor = { id ->
+                        navController.navigate(Screen.Editor.createRoute(id))
+                    }
                 )
             }
         }

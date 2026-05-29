@@ -84,6 +84,7 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
+    onNavigateToDetail: (Long) -> Unit,
     onNavigateToEditor: (Long?) -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -187,7 +188,7 @@ fun HomeScreen(
                         SwipeableDiaryCard(
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
-                            onClick = { onNavigateToEditor(entry.id) },
+                            onClick = { onNavigateToDetail(entry.id) },
                             onDelete = { entryToDelete = entry }
                         )
                     }

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -124,6 +125,21 @@ fun EditorScreen(
     var activeCategory by remember { mutableIntStateOf(-1) }
     var colorTab by remember { mutableIntStateOf(0) }
 
+    // Word count state
+    var charCount by remember { mutableIntStateOf(0) }
+    var wordCount by remember { mutableIntStateOf(0) }
+    var latestPlainText by remember { mutableStateOf("") }
+    var contentVersion by remember { mutableIntStateOf(0) }
+
+    // Auto-save and unsaved changes
+    val autoSaveVisible by viewModel.autoSaveVisible.collectAsState()
+    val hasUnsavedChanges by viewModel.hasUnsavedChanges.collectAsState()
+
+    // Dialogs
+    var showUnsavedDialog by remember { mutableStateOf(false) }
+    var showDraftDialog by remember { mutableStateOf(false) }
+    var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
+
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
     }
@@ -156,6 +172,48 @@ fun EditorScreen(
                 "image" -> imageLauncher.launch("image/*")
                 "video" -> videoLauncher.launch("video/*")
                 "audio" -> audioLauncher.launch("audio/*")
+            }
+        }
+    }
+
+    // Collect content changes from bridge for word count
+    LaunchedEffect(Unit) {
+        jsBridge.contentChanges.collect { text ->
+            latestPlainText = text
+            charCount = text.length
+            wordCount = countWords(text)
+            viewModel.markContentChanged()
+            contentVersion++
+        }
+    }
+
+    // Auto-save with 3s debounce
+    LaunchedEffect(contentVersion) {
+        if (contentVersion > 0) {
+            kotlinx.coroutines.delay(3000)
+            webView?.evaluateJavascript("getContent()") { json ->
+                val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                viewModel.updateLatestContent(cleanJson, latestPlainText, dateTitle)
+                viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
+            }
+        }
+    }
+
+    // Auto-hide auto-save indicator after 2s
+    LaunchedEffect(autoSaveVisible) {
+        if (autoSaveVisible) {
+            kotlinx.coroutines.delay(2000)
+            viewModel.hideAutoSaveIndicator()
+        }
+    }
+
+    // Check for draft on new entry
+    LaunchedEffect(Unit) {
+        if (diaryId == null) {
+            val draft = viewModel.loadDraft(null)
+            if (draft != null && draft.plainText.isNotBlank()) {
+                pendingDraft = draft
+                showDraftDialog = true
             }
         }
     }
@@ -202,6 +260,70 @@ fun EditorScreen(
         )
     }
 
+    // Unsaved changes dialog
+    if (showUnsavedDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedDialog = false },
+            title = { Text("未保存的更改") },
+            text = { Text("当前有未保存的更改，是否保存？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    webView?.evaluateJavascript("getContent()") { json ->
+                        webView?.evaluateJavascript("getPlainText()") { plain ->
+                            val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather)
+                        }
+                    }
+                    showUnsavedDialog = false
+                    onNavigateBack()
+                }) { Text("保存并退出") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showUnsavedDialog = false
+                    onNavigateBack()
+                }) { Text("不保存退出") }
+            }
+        )
+    }
+
+    // Draft restoration dialog
+    if (showDraftDialog && pendingDraft != null) {
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.clearDraft(null)
+                showDraftDialog = false
+            },
+            title = { Text("发现草稿") },
+            text = { Text("发现上次未保存的草稿，是否恢复？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val draft = pendingDraft!!
+                    webView?.evaluateJavascript("setContent('${draft.content.replace("\\", "\\\\").replace("'", "\\'")}')", null)
+                    selectedMood = draft.moodLevel
+                    selectedWeather = draft.weather
+                    showDraftDialog = false
+                }) { Text("恢复") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.clearDraft(null)
+                    showDraftDialog = false
+                }) { Text("丢弃") }
+            }
+        )
+    }
+
+    // Back press handler
+    BackHandler {
+        if (hasUnsavedChanges) {
+            showUnsavedDialog = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize().imePadding()) {
             // Top bar
@@ -211,7 +333,10 @@ fun EditorScreen(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onNavigateBack) {
+                IconButton(onClick = {
+                    if (hasUnsavedChanges) showUnsavedDialog = true
+                    else onNavigateBack()
+                }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary)
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -346,6 +471,32 @@ fun EditorScreen(
                 },
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
+
+            // Word count + auto-save indicator bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$charCount 字 | $wordCount 词",
+                    fontSize = 11.sp,
+                    color = textSecondary.copy(alpha = 0.6f)
+                )
+                AnimatedVisibility(
+                    visible = autoSaveVisible,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(300))
+                ) {
+                    Text(
+                        text = "已自动保存",
+                        fontSize = 11.sp,
+                        color = textSecondary.copy(alpha = 0.6f)
+                    )
+                }
+            }
 
             // Bottom toolbar
             EditorToolbar(
@@ -704,6 +855,25 @@ private fun ToolChip(label: String, description: String = "", onClick: () -> Uni
             }
         }
     }
+}
+
+private fun countWords(text: String): Int {
+    var count = 0
+    var inWord = false
+    for (ch in text) {
+        if (ch.isWhitespace()) {
+            inWord = false
+        } else if (ch.code in 0x4E00..0x9FFF || ch.code in 0x3400..0x4DBF) {
+            count++
+            inWord = false
+        } else {
+            if (!inWord) {
+                count++
+                inWord = true
+            }
+        }
+    }
+    return count
 }
 
 @Composable

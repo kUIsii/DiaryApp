@@ -1,18 +1,32 @@
 package com.diary.app.ui.editor
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryTag
 import com.diary.app.data.Tag
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class DraftData(
+    val content: String,
+    val plainText: String,
+    val title: String,
+    val moodLevel: Int?,
+    val weather: String?,
+    val tagIds: Set<Long>,
+    val timestamp: Long
+)
+
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+    private val prefs = application.getSharedPreferences("editor_drafts", Context.MODE_PRIVATE)
+    private val gson = Gson()
 
     private val _currentEntry = MutableStateFlow<DiaryEntry?>(null)
     val currentEntry = _currentEntry.asStateFlow()
@@ -22,6 +36,66 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedTagIds = _selectedTagIds.asStateFlow()
+
+    // Auto-save and word count state
+    private val _autoSaveVisible = MutableStateFlow(false)
+    val autoSaveVisible = _autoSaveVisible.asStateFlow()
+
+    private val _hasUnsavedChanges = MutableStateFlow(false)
+    val hasUnsavedChanges = _hasUnsavedChanges.asStateFlow()
+
+    // Latest content cache for auto-save
+    private var latestContent: String = ""
+    private var latestPlainText: String = ""
+    private var latestTitle: String = ""
+
+    fun markContentChanged() {
+        _hasUnsavedChanges.value = true
+    }
+
+    fun updateLatestContent(content: String, plainText: String, title: String) {
+        latestContent = content
+        latestPlainText = plainText
+        latestTitle = title
+    }
+
+    fun performAutoSave(diaryId: Long?, moodLevel: Int?, weather: String?) {
+        if (latestContent.isEmpty() && latestPlainText.isEmpty()) return
+        saveDraft(latestContent, latestPlainText, diaryId, latestTitle, moodLevel, weather)
+        _autoSaveVisible.value = true
+        _hasUnsavedChanges.value = false
+    }
+
+    fun hideAutoSaveIndicator() {
+        _autoSaveVisible.value = false
+    }
+
+    fun onManualSaveCompleted(diaryId: Long?) {
+        clearDraft(diaryId)
+        _hasUnsavedChanges.value = false
+    }
+
+    // Draft management
+    private fun draftKey(diaryId: Long?): String {
+        return if (diaryId != null) "draft_$diaryId" else "draft_new"
+    }
+
+    fun saveDraft(
+        content: String, plainText: String, diaryId: Long?,
+        title: String, moodLevel: Int?, weather: String?
+    ) {
+        val data = DraftData(content, plainText, title, moodLevel, weather, _selectedTagIds.value, System.currentTimeMillis())
+        prefs.edit().putString(draftKey(diaryId), gson.toJson(data)).apply()
+    }
+
+    fun loadDraft(diaryId: Long?): DraftData? {
+        val json = prefs.getString(draftKey(diaryId), null) ?: return null
+        return try { gson.fromJson(json, DraftData::class.java) } catch (_: Exception) { null }
+    }
+
+    fun clearDraft(diaryId: Long?) {
+        prefs.edit().remove(draftKey(diaryId)).apply()
+    }
 
     init {
         viewModelScope.launch {
@@ -107,6 +181,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _selectedTagIds.value.forEach { tagId ->
                 dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
             }
+
+            clearDraft(diaryId)
+            _hasUnsavedChanges.value = false
 
             entryId
         }

@@ -57,7 +57,7 @@
 
         var quill = new Quill('#editor', {
             theme: 'snow',
-            placeholder: '开始写日记...',
+            readOnly: true,
             modules: { toolbar: false }
         });
 
@@ -71,55 +71,10 @@
             }
         }
 
-        // Format commands (called from Compose toolbar)
-        function toggleBold() { var f = quill.getFormat(); quill.format('bold', !f.bold); }
-        function toggleItalic() { var f = quill.getFormat(); quill.format('italic', !f.italic); }
-        function toggleUnderline() { var f = quill.getFormat(); quill.format('underline', !f.underline); }
-        function toggleStrike() { var f = quill.getFormat(); quill.format('strike', !f.strike); }
-        function toggleBlockquote() { var f = quill.getFormat(); quill.format('blockquote', !f.blockquote); }
-        function setHeading(level) { quill.format('header', level); }
-        function setOrderedList() { var f = quill.getFormat(); quill.format('list', f.list === 'ordered' ? false : 'ordered'); }
-        function setBulletList() { var f = quill.getFormat(); quill.format('list', f.list === 'bullet' ? false : 'bullet'); }
-        function insertDivider() {
-            var r = quill.getSelection(true);
-            quill.insertText(r.index, '\n');
-            quill.insertEmbed(r.index + 1, 'divider', true);
-            quill.setSelection(r.index + 2);
-        }
-        function setTextColor(color) { quill.format('color', color); }
-        function setBackgroundColor(color) { quill.format('background', color); }
-        function clearFormatting() {
-            var r = quill.getSelection();
-            if (r) quill.removeFormat(r.index, r.length);
-        }
-        function insertMedia(type, url) {
-            var r = quill.getSelection(true);
-            quill.insertEmbed(r.index, type, url);
-            quill.setSelection(r.index + 1);
-        }
-        function insertLink() {
-            var url = prompt('输入链接地址:', 'https://');
-            if (url) {
-                var r = quill.getSelection(true);
-                quill.insertText(r.index, url, 'link', url);
-            }
-        }
-
-        // Bridge functions
-        function getContent() { return JSON.stringify(quill.getContents()); }
-        function getPlainText() { return quill.getText(); }
         function setContent(deltaJSON) {
             try { quill.setContents(JSON.parse(deltaJSON)); }
             catch(e) { quill.setText(deltaJSON); }
         }
-        function focusEditor() { quill.focus(); }
-
-        // Content change callback for word count and auto-save
-        quill.on('text-change', function() {
-            if (window.DiaryBridge) {
-                DiaryBridge.onContentChange(quill.getText());
-            }
-        });
     </script>
 </body>
 </html>
