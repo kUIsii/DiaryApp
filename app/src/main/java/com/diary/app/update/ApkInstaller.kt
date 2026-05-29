@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object ApkInstaller {
@@ -42,7 +43,9 @@ object ApkInstaller {
                             val cachedApk = copyToCache(context, downloadManager, downloadId, fileName)
                             if (cachedApk != null) {
                                 emit(DownloadState.Completed(cachedApk))
-                                installApk(context, cachedApk)
+                                withContext(Dispatchers.Main) {
+                                    installApk(context, cachedApk)
+                                }
                             } else {
                                 emit(DownloadState.Failed("下载文件读取失败"))
                             }
@@ -79,18 +82,22 @@ object ApkInstaller {
     }
 
     private fun installApk(context: Context, file: File) {
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
 
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // 安装失败时静默处理，用户可以通过文件管理器手动安装
         }
-        context.startActivity(intent)
     }
 }
 
