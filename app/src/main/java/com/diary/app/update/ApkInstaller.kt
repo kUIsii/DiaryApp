@@ -18,47 +18,51 @@ import java.io.File
 object ApkInstaller {
 
     fun downloadAndInstall(context: Context, url: String, fileName: String): Flow<DownloadState> = flow {
-        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        try {
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-        val request = DownloadManager.Request(Uri.parse(url))
-            .setTitle("下载更新")
-            .setDescription("正在下载新版本...")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-            .setAllowedOverMetered(true)
-            .setAllowedOverRoaming(true)
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle("下载更新")
+                .setDescription("正在下载新版本...")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
 
-        val downloadId = downloadManager.enqueue(request)
+            val downloadId = downloadManager.enqueue(request)
 
-        // Poll for download completion
-        while (true) {
-            val query = DownloadManager.Query().setFilterById(downloadId)
-            val cursor: Cursor? = downloadManager.query(query)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-                    when (status) {
-                        DownloadManager.STATUS_SUCCESSFUL -> {
-                            // Copy APK to app cache for reliable install
-                            val cachedApk = copyToCache(context, downloadManager, downloadId, fileName)
-                            if (cachedApk != null) {
-                                emit(DownloadState.Completed(cachedApk))
-                                withContext(Dispatchers.Main) {
-                                    installApk(context, cachedApk)
+            // Poll for download completion
+            while (true) {
+                val query = DownloadManager.Query().setFilterById(downloadId)
+                val cursor: Cursor? = downloadManager.query(query)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                        when (status) {
+                            DownloadManager.STATUS_SUCCESSFUL -> {
+                                // Copy APK to app cache for reliable install
+                                val cachedApk = copyToCache(context, downloadManager, downloadId, fileName)
+                                if (cachedApk != null) {
+                                    emit(DownloadState.Completed(cachedApk))
+                                    withContext(Dispatchers.Main) {
+                                        installApk(context, cachedApk)
+                                    }
+                                } else {
+                                    emit(DownloadState.Failed("下载文件读取失败"))
                                 }
-                            } else {
-                                emit(DownloadState.Failed("下载文件读取失败"))
+                                return@flow
                             }
-                            return@flow
-                        }
-                        DownloadManager.STATUS_FAILED -> {
-                            emit(DownloadState.Failed("下载失败"))
-                            return@flow
+                            DownloadManager.STATUS_FAILED -> {
+                                emit(DownloadState.Failed("下载失败"))
+                                return@flow
+                            }
                         }
                     }
                 }
+                delay(1000)
             }
-            delay(1000)
+        } catch (e: Exception) {
+            emit(DownloadState.Failed("下载出错: ${e.message}"))
         }
     }.flowOn(Dispatchers.IO)
 

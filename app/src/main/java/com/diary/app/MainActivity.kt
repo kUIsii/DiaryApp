@@ -49,20 +49,26 @@ class MainActivity : ComponentActivity() {
                             isDownloading = true
                             val fileName = "DiaryApp-v$updateVersion.apk"
                             scope.launch {
-                                ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
-                                    .collect { state ->
-                                        when (state) {
-                                            is DownloadState.Completed -> {
-                                                isDownloading = false
-                                                showUpdateDialog = false
-                                            }
-                                            is DownloadState.Failed -> {
-                                                isDownloading = false
-                                                showUpdateDialog = false
-                                                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                                try {
+                                    ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
+                                        .collect { state ->
+                                            when (state) {
+                                                is DownloadState.Completed -> {
+                                                    isDownloading = false
+                                                    showUpdateDialog = false
+                                                }
+                                                is DownloadState.Failed -> {
+                                                    isDownloading = false
+                                                    showUpdateDialog = false
+                                                    Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                                                }
                                             }
                                         }
-                                    }
+                                } catch (e: Exception) {
+                                    isDownloading = false
+                                    showUpdateDialog = false
+                                    Toast.makeText(context, "更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         },
                         onDismiss = { showUpdateDialog = false }
@@ -72,12 +78,15 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     if (!hasChecked) {
                         hasChecked = true
-                        val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
-                        if (result != null) {
-                            updateVersion = result.versionName
-                            updateNotes = result.releaseNotes
-                            updateUrl = result.downloadUrl
-                            showUpdateDialog = true
+                        try {
+                            val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+                            if (result != null) {
+                                updateVersion = result.versionName
+                                updateNotes = result.releaseNotes
+                                updateUrl = result.downloadUrl
+                                showUpdateDialog = true
+                            }
+                        } catch (_: Exception) {
                         }
                     }
                 }

@@ -79,20 +79,26 @@ fun ProfileScreen(
                 isDownloading = true
                 val fileName = "DiaryApp-v$updateVersion.apk"
                 scope.launch {
-                    ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
-                        .collect { state ->
-                            when (state) {
-                                is DownloadState.Completed -> {
-                                    isDownloading = false
-                                    showUpdateDialog = false
-                                }
-                                is DownloadState.Failed -> {
-                                    isDownloading = false
-                                    showUpdateDialog = false
-                                    Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                    try {
+                        ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
+                            .collect { state ->
+                                when (state) {
+                                    is DownloadState.Completed -> {
+                                        isDownloading = false
+                                        showUpdateDialog = false
+                                    }
+                                    is DownloadState.Failed -> {
+                                        isDownloading = false
+                                        showUpdateDialog = false
+                                        Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
-                        }
+                    } catch (e: Exception) {
+                        isDownloading = false
+                        showUpdateDialog = false
+                        Toast.makeText(context, "更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             },
             onDismiss = { showUpdateDialog = false }
@@ -198,19 +204,28 @@ fun ProfileScreen(
                             if (!isChecking) {
                                 isChecking = true
                                 scope.launch {
-                                    val result = UpdateChecker.checkForUpdate(
-                                        BuildConfig.VERSION_NAME
-                                    )
-                                    isChecking = false
-                                    if (result != null) {
-                                        updateVersion = result.versionName
-                                        updateNotes = result.releaseNotes
-                                        updateUrl = result.downloadUrl
-                                        showUpdateDialog = true
-                                    } else {
+                                    try {
+                                        val result = UpdateChecker.checkForUpdate(
+                                            BuildConfig.VERSION_NAME
+                                        )
+                                        isChecking = false
+                                        if (result != null) {
+                                            updateVersion = result.versionName
+                                            updateNotes = result.releaseNotes
+                                            updateUrl = result.downloadUrl
+                                            showUpdateDialog = true
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "已是最新版本",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        isChecking = false
                                         Toast.makeText(
                                             context,
-                                            "已是最新版本",
+                                            "检查更新失败",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
