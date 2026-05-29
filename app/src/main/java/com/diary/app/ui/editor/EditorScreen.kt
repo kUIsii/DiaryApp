@@ -35,8 +35,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.Redo
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -100,7 +106,7 @@ fun EditorScreen(
     var activePanel by remember { mutableStateOf<String?>(null) }
 
     // Toolbar state
-    var showToolbar by remember { mutableStateOf(false) }
+    var showToolbar by remember { mutableStateOf(true) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var colorTab by remember { mutableIntStateOf(0) }
 
@@ -225,26 +231,35 @@ fun EditorScreen(
             ) {
                 // Mood button
                 MetadataButton(
-                    label = if (selectedMood != null) "心情 ${moodLabels[selectedMood!!]}" else "心情",
+                    label = if (selectedMood != null) moodLabels[selectedMood!!] else "心情",
+                    icon = Icons.Default.Mood,
                     isActive = activePanel == "mood",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
+                    textColor = textColor,
+                    textSecondary = textSecondary,
                     onClick = { activePanel = if (activePanel == "mood") null else "mood" }
                 )
                 // Weather button
                 MetadataButton(
-                    label = if (selectedWeather != null) "天气 $selectedWeather" else "天气",
+                    label = selectedWeather ?: "天气",
+                    icon = Icons.Default.Cloud,
                     isActive = activePanel == "weather",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
+                    textColor = textColor,
+                    textSecondary = textSecondary,
                     onClick = { activePanel = if (activePanel == "weather") null else "weather" }
                 )
                 // Tags button
                 MetadataButton(
-                    label = if (selectedTagIds.isNotEmpty()) "标签 ${selectedTagIds.size}" else "标签",
+                    label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size} 个标签" else "标签",
+                    icon = Icons.Default.Sell,
                     isActive = activePanel == "tags",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
+                    textColor = textColor,
+                    textSecondary = textSecondary,
                     onClick = { activePanel = if (activePanel == "tags") null else "tags" }
                 )
             }
@@ -291,6 +306,7 @@ fun EditorScreen(
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        setBackgroundColor(0)
                         addJavascriptInterface(jsBridge, "DiaryBridge")
                         loadUrl("file:///android_asset/editor.html")
                         webView = this
@@ -336,23 +352,47 @@ fun EditorScreen(
 @Composable
 private fun MetadataButton(
     label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     isActive: Boolean,
     accentColor: Color,
     surfaceVariant: Color,
+    textColor: Color,
+    textSecondary: Color,
     onClick: () -> Unit
 ) {
+    val bgColor = if (isActive) accentColor.copy(alpha = 0.12f) else surfaceVariant.copy(alpha = 0.5f)
+    val contentColor = if (isActive) accentColor else textSecondary
+    val borderColor = if (isActive) accentColor.copy(alpha = 0.3f) else Color.Transparent
+
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) accentColor.copy(alpha = 0.12f) else surfaceVariant.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .then(
+                if (isActive) Modifier.border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                else Modifier
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = if (isActive) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor
+            )
+        }
     }
 }
 
@@ -382,85 +422,94 @@ private fun EditorToolbar(
             .fillMaxWidth()
             .background(surfaceColor)
     ) {
-        // Toolbar tools - expand upward to cover keyboard area
-        AnimatedVisibility(
-            visible = showToolbar,
-            enter = expandVertically(expandFrom = Alignment.Bottom, animationSpec = tween(250)) + fadeIn(tween(200)),
-            exit = shrinkVertically(shrinkTowards = Alignment.Bottom, animationSpec = tween(200)) + fadeOut(tween(150))
-        ) {
-            Column(modifier = Modifier.animateContentSize()) {
-                // Tools panel
-                AnimatedVisibility(
-                    visible = activeCategory >= 0,
-                    enter = expandVertically(tween(200)) + fadeIn(),
-                    exit = shrinkVertically(tween(150)) + fadeOut()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        when (activeCategory) {
-                            0 -> FormatTools(onFormat, textColor, btnBg)
-                            1 -> HeadingTools(onHeading, textColor, btnBg)
-                            2 -> ListTools(onList, textColor, btnBg)
-                            3 -> InsertTools(onInsert, textColor, btnBg)
-                            4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
-                        }
-                    }
-                }
-
-                // Category row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val categories = listOf(
-                        ToolbarCategory("Aa", "格式"),
-                        ToolbarCategory("H", "标题"),
-                        ToolbarCategory("≡", "列表"),
-                        ToolbarCategory("▢", "插入"),
-                        ToolbarCategory("◉", "颜色")
-                    )
-                    categories.forEachIndexed { index, cat ->
-                        val isActive = activeCategory == index
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
-                                .clickable { onCategoryChange(index) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(cat.icon, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
-                            Text(cat.label, fontSize = 10.sp, color = if (isActive) activeColor else textColor)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Toggle bar - always visible at bottom
+        // Category row - always visible
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggleToolbar)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(borderColor)
+            val categories = listOf(
+                ToolbarCategory("Aa", "格式"),
+                ToolbarCategory("H", "标题"),
+                ToolbarCategory("≡", "列表"),
+                ToolbarCategory("▢", "插入"),
+                ToolbarCategory("◉", "颜色")
             )
+            categories.forEachIndexed { index, cat ->
+                val isActive = activeCategory == index
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
+                        .clickable {
+                            if (showToolbar) {
+                                onCategoryChange(index)
+                            } else {
+                                onToggleToolbar()
+                                onCategoryChange(index)
+                            }
+                        }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(cat.icon, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
+                    Text(cat.label, fontSize = 11.sp, color = if (isActive) activeColor else textColor)
+                }
+            }
+
+            // Collapse/expand button
+            IconButton(
+                onClick = onToggleToolbar,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (showToolbar) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (showToolbar) "收起" else "展开",
+                    tint = textColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Tools panel - expandable
+        AnimatedVisibility(
+            visible = showToolbar && activeCategory >= 0,
+            enter = expandVertically(tween(200)) + fadeIn(),
+            exit = shrinkVertically(tween(150)) + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(surfaceColor.copy(alpha = 0.95f))
+                    .animateContentSize()
+            ) {
+                // Divider
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(borderColor)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    when (activeCategory) {
+                        0 -> FormatTools(onFormat, textColor, btnBg)
+                        1 -> HeadingTools(onHeading, textColor, btnBg)
+                        2 -> ListTools(onList, textColor, btnBg)
+                        3 -> InsertTools(onInsert, textColor, btnBg)
+                        4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                    }
+                }
+            }
         }
     }
 }
@@ -562,13 +611,13 @@ private fun ColorTools(
 private fun ToolChip(label: String, onClick: () -> Unit, textColor: Color, bg: Color) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = label, fontSize = 14.sp, color = textColor)
+        Text(text = label, fontSize = 15.sp, color = textColor)
     }
 }
 

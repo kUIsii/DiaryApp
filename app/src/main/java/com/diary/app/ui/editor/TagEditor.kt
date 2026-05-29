@@ -45,7 +45,7 @@ fun TagEditor(
     ) {
         allTags.forEach { tag ->
             val isSelected = tag.id in selectedTagIds
-            val tagColor = Color(tag.color.toULong())
+            val tagColor = Color(tag.color.toInt())
 
             Box(
                 modifier = Modifier

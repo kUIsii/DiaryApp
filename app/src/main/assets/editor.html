@@ -62,7 +62,13 @@
         });
 
         function setTheme(mode) {
-            document.body.className = mode === 'dark' ? 'theme-dark' : '';
+            if (mode === 'dark') {
+                document.body.className = 'theme-dark';
+                document.body.style.background = '#1A1A2E';
+            } else {
+                document.body.className = '';
+                document.body.style.background = 'transparent';
+            }
         }
 
         // Format commands (called from Compose toolbar)
