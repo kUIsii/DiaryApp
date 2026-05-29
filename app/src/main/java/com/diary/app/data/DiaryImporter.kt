@@ -2,6 +2,7 @@ package com.diary.app.data
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 
@@ -58,65 +59,68 @@ object DiaryImporter {
         return backup
     }
 
-    suspend fun import(dao: DiaryDao, backup: DiaryBackup): ImportResult {
+    suspend fun import(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
+        val dao = database.diaryDao()
         val now = System.currentTimeMillis()
         val tagEntries = backup.tags.orEmpty()
         val diaryEntries = backup.entries.orEmpty()
 
-        // Import tags: skip if name already exists
-        var importedTagCount = 0
-        for (tagEntry in tagEntries) {
-            val name = tagEntry.name ?: continue
-            val existing = dao.getTagByName(name)
-            if (existing == null) {
-                dao.insertTag(
-                    Tag(
-                        name = name,
-                        color = tagEntry.color ?: 4278210282L,
-                        isPreset = tagEntry.isPreset ?: false
+        return database.withTransaction {
+            // Import tags: skip if name already exists, use existing tag ID
+            var importedTagCount = 0
+            for (tagEntry in tagEntries) {
+                val name = tagEntry.name ?: continue
+                val existing = dao.getTagByName(name)
+                if (existing == null) {
+                    dao.insertTag(
+                        Tag(
+                            name = name,
+                            color = tagEntry.color ?: 4278210282L,
+                            isPreset = tagEntry.isPreset ?: false
+                        )
                     )
-                )
-                importedTagCount++
-            }
-        }
-
-        // Import entries with current timestamps
-        var importedEntryCount = 0
-        for (entry in diaryEntries) {
-            val title = entry.title ?: ""
-            val content = entry.content ?: ""
-            val plainText = entry.plainText ?: ""
-
-            val newId = dao.insertEntry(
-                DiaryEntry(
-                    title = title,
-                    content = content,
-                    plainText = plainText,
-                    moodLevel = entry.moodLevel,
-                    weather = entry.weather,
-                    location = entry.location,
-                    latitude = entry.latitude,
-                    longitude = entry.longitude,
-                    createdAt = now,
-                    updatedAt = now
-                )
-            )
-
-            // Link tags by name
-            val tagNames = entry.tags.orEmpty()
-            for (tagName in tagNames) {
-                val tag = dao.getTagByName(tagName)
-                if (tag != null) {
-                    dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
+                    importedTagCount++
                 }
             }
 
-            importedEntryCount++
-        }
+            // Import entries preserving original timestamps
+            var importedEntryCount = 0
+            for (entry in diaryEntries) {
+                val title = entry.title ?: ""
+                val content = entry.content ?: ""
+                val plainText = entry.plainText ?: ""
 
-        return ImportResult(
-            entryCount = importedEntryCount,
-            tagCount = importedTagCount
-        )
+                val newId = dao.insertEntry(
+                    DiaryEntry(
+                        title = title,
+                        content = content,
+                        plainText = plainText,
+                        moodLevel = entry.moodLevel,
+                        weather = entry.weather,
+                        location = entry.location,
+                        latitude = entry.latitude,
+                        longitude = entry.longitude,
+                        createdAt = entry.createdAt ?: now,
+                        updatedAt = entry.updatedAt ?: now
+                    )
+                )
+
+                // Link tags by name, reusing existing tags
+                val tagNames = entry.tags.orEmpty()
+                for (tagName in tagNames) {
+                    val tag = dao.getTagByName(tagName)
+                    if (tag != null) {
+                        dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
+                    }
+                }
+
+                importedEntryCount++
+            }
+
+            ImportResult(
+                entryCount = importedEntryCount,
+                tagCount = importedTagCount
+            )
+        }
     }
 }

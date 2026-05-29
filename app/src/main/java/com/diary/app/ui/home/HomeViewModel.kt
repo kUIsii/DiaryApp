@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -59,7 +60,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     private val allEntries: StateFlow<List<DiaryEntry>> = dao.getAllEntries()
+        .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val stats: StateFlow<HomeStats> = combine(allEntries, entryDates) { entries, dates ->
@@ -75,7 +80,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
 
     private val filteredEntries: StateFlow<List<DiaryEntry>> = combine(
-        dao.getAllEntries(),
+        allEntries,
         _selectedDate,
         _searchQuery,
         _selectedTagFilter,
@@ -155,7 +160,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             SortOrder.NEWEST -> entries.sortedByDescending { it.createdAt }
             SortOrder.OLDEST -> entries.sortedBy { it.createdAt }
             SortOrder.BEST_MOOD -> entries.sortedByDescending { it.moodLevel ?: 0 }
-            SortOrder.FAVORITES -> entries.sortedByDescending { it.isFavorite }
+            SortOrder.FAVORITES -> entries.sortedWith(
+                compareByDescending<DiaryEntry> { it.isFavorite }.thenByDescending { it.createdAt }
+            )
         }
     }
 }

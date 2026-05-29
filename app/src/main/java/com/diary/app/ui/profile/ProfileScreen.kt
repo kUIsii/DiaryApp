@@ -256,8 +256,7 @@ fun ProfileScreen(
                         isImporting = true
                         scope.launch {
                             try {
-                                val dao = app.database.diaryDao()
-                                val result = DiaryImporter.import(dao, b)
+                                val result = DiaryImporter.import(app.database, b)
                                 isImporting = false
                                 Toast.makeText(
                                     context,

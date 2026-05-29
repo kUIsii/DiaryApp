@@ -41,7 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -76,11 +75,6 @@ fun MapScreen(
 ) {
     val monthGroups by viewModel.monthGroups.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
-
-    LaunchedEffect(monthGroups) {
-        val allEntries = monthGroups.flatMap { it.entries }
-        viewModel.loadTagsForEntries(allEntries)
-    }
 
     GradientBackground {
         if (monthGroups.isEmpty()) {

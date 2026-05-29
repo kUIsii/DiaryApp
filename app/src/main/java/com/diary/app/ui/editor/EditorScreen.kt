@@ -70,12 +70,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +94,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.isDark
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -115,9 +118,11 @@ fun EditorScreen(
     var webView by remember { mutableStateOf<WebView?>(null) }
     val jsBridge = remember { DiaryJsBridge() }
     val viewModel: EditorViewModel = viewModel()
+    val scope = rememberCoroutineScope()
 
     val allTags by viewModel.allTags.collectAsState()
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
+    val currentEntry by viewModel.currentEntry.collectAsState()
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -153,10 +158,20 @@ fun EditorScreen(
         if (diaryId != null) viewModel.loadEntry(diaryId)
     }
 
-    LaunchedEffect(viewModel.currentEntry.value) {
-        viewModel.currentEntry.value?.let { entry ->
+    LaunchedEffect(currentEntry) {
+        currentEntry?.let { entry ->
             selectedMood = entry.moodLevel
             selectedWeather = entry.weather
+        }
+    }
+
+    // Cleanup WebView on dispose to prevent memory leak
+    DisposableEffect(Unit) {
+        onDispose {
+            webView?.apply {
+                stopLoading()
+                destroy()
+            }
         }
     }
 
@@ -180,13 +195,13 @@ fun EditorScreen(
 
     // Media pickers
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('image', '$it')", null) }
+        uri?.let { webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(it.toString())}')", null) }
     }
     val videoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('video', '$it')", null) }
+        uri?.let { webView?.evaluateJavascript("insertMedia('video', '${escapeForJs(it.toString())}')", null) }
     }
     val audioLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('audio', '$it')", null) }
+        uri?.let { webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs(it.toString())}')", null) }
     }
 
     LaunchedEffect(Unit) {
@@ -295,11 +310,13 @@ fun EditorScreen(
                         webView?.evaluateJavascript("getPlainText()") { plain ->
                             val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
                             val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                            viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather)
+                            scope.launch {
+                                viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather)
+                                showUnsavedDialog = false
+                                onNavigateBack()
+                            }
                         }
                     }
-                    showUnsavedDialog = false
-                    onNavigateBack()
                 }) { Text("保存并退出") }
             },
             dismissButton = {
@@ -323,7 +340,7 @@ fun EditorScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val draft = pendingDraft!!
-                    webView?.evaluateJavascript("setContent('${draft.content.replace("\\", "\\\\").replace("'", "\\'")}')", null)
+                    webView?.evaluateJavascript("setContent('${escapeForJs(draft.content)}')", null)
                     selectedMood = draft.moodLevel
                     selectedWeather = draft.weather
                     showDraftDialog = false
@@ -374,17 +391,19 @@ fun EditorScreen(
                         webView?.evaluateJavascript("getPlainText()") { plain ->
                             val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
                             val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                            viewModel.saveEntry(
-                                title = dateTitle,
-                                content = cleanJson,
-                                plainText = cleanPlain,
-                                diaryId = diaryId,
-                                moodLevel = selectedMood,
-                                weather = selectedWeather
-                            )
+                            scope.launch {
+                                viewModel.saveEntry(
+                                    title = dateTitle,
+                                    content = cleanJson,
+                                    plainText = cleanPlain,
+                                    diaryId = diaryId,
+                                    moodLevel = selectedMood,
+                                    weather = selectedWeather
+                                )
+                                onNavigateBack()
+                            }
                         }
                     }
-                    onNavigateBack()
                 }) {
                     Text("保存", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accentColor)
                 }
@@ -404,7 +423,7 @@ fun EditorScreen(
             ) {
                 TemplateSelector(
                     onTemplateSelected = { template ->
-                        webView?.evaluateJavascript("setTemplate('${template.content.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")}')", null)
+                        webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
                         showTemplateSelector = false
                     },
                     onDismiss = { showTemplateSelector = false }
@@ -903,6 +922,18 @@ private fun getEditorFontSize(prefs: android.content.SharedPreferences): Int {
         "extra_large" -> 20
         else -> 16
     }
+}
+
+private fun escapeForJs(input: String): String {
+    return input
+        .replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\b", "\\b")
+        .replace("\u0000", "")
 }
 
 private fun countWords(text: String): Int {

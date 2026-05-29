@@ -99,7 +99,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
-            if (dao.getTagCount() == 0) {
+            val appPrefs = application.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
+            if (!appPrefs.getBoolean("has_seeded_presets", false)) {
                 val presets = listOf(
                     Tag(name = "生活", color = 0xFF667EEA, isPreset = true),
                     Tag(name = "工作", color = 0xFFE74C3C, isPreset = true),
@@ -111,6 +112,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     Tag(name = "社交", color = 0xFFE91E63, isPreset = true)
                 )
                 presets.forEach { dao.insertTag(it) }
+                appPrefs.edit().putBoolean("has_seeded_presets", true).apply()
             }
             dao.getAllTags().collect { _allTags.value = it }
         }
@@ -137,7 +139,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun saveEntry(
+    suspend fun saveEntry(
         title: String,
         content: String,
         plainText: String,
@@ -145,28 +147,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         moodLevel: Int?,
         weather: String?
     ): Long {
-        return kotlinx.coroutines.runBlocking {
-            val entryId = if (diaryId != null) {
-                val existing = dao.getEntryById(diaryId)
-                if (existing != null) {
-                    val updated = existing.copy(
-                        title = title,
-                        content = content,
-                        plainText = plainText,
-                        moodLevel = moodLevel,
-                        weather = weather,
-                        updatedAt = System.currentTimeMillis()
-                    )
-                    dao.updateEntry(updated)
-                    diaryId
-                } else {
-                    dao.insertEntry(
-                        DiaryEntry(
-                            title = title, content = content, plainText = plainText,
-                            moodLevel = moodLevel, weather = weather
-                        )
-                    )
-                }
+        val entryId = if (diaryId != null) {
+            val existing = dao.getEntryById(diaryId)
+            if (existing != null) {
+                val updated = existing.copy(
+                    title = title,
+                    content = content,
+                    plainText = plainText,
+                    moodLevel = moodLevel,
+                    weather = weather,
+                    updatedAt = System.currentTimeMillis()
+                )
+                dao.updateEntry(updated)
+                diaryId
             } else {
                 dao.insertEntry(
                     DiaryEntry(
@@ -175,17 +168,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 )
             }
-
-            // Save tag associations
-            dao.deleteTagsForDiary(entryId)
-            _selectedTagIds.value.forEach { tagId ->
-                dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
-            }
-
-            clearDraft(diaryId)
-            _hasUnsavedChanges.value = false
-
-            entryId
+        } else {
+            dao.insertEntry(
+                DiaryEntry(
+                    title = title, content = content, plainText = plainText,
+                    moodLevel = moodLevel, weather = weather
+                )
+            )
         }
+
+        // Save tag associations
+        dao.deleteTagsForDiary(entryId)
+        _selectedTagIds.value.forEach { tagId ->
+            dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
+        }
+
+        clearDraft(diaryId)
+        _hasUnsavedChanges.value = false
+
+        return entryId
     }
 }

@@ -45,6 +45,20 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    flavorDimensions += "version"
+    productFlavors {
+        create("stable") {
+            dimension = "version"
+            applicationId = "com.diary.app"
+            versionName = "1.8.0"
+        }
+        create("experimental") {
+            dimension = "version"
+            applicationId = "com.diary.app.experimental"
+            versionName = "2.0.0-experimental"
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

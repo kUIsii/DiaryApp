@@ -43,16 +43,26 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun loadTagsForEntries(entries: List<DiaryEntry>) {
+    init {
+        // Load tags automatically when entries change, avoiding O(N) queries from composable
         viewModelScope.launch {
-            val map = mutableMapOf<Long, List<TagInfo>>()
-            for (entry in entries) {
-                val tags = dao.getTagInfoForDiary(entry.id)
-                if (tags.isNotEmpty()) {
-                    map[entry.id] = tags.map { TagInfo(it.id, it.name, Color(it.color)) }
+            monthGroups.collect { groups ->
+                val allEntries = groups.flatMap { it.entries }
+                if (allEntries.isNotEmpty()) {
+                    loadTagsForEntries(allEntries)
                 }
             }
-            _tagsMap.value = map
         }
+    }
+
+    private suspend fun loadTagsForEntries(entries: List<DiaryEntry>) {
+        val map = mutableMapOf<Long, List<TagInfo>>()
+        for (entry in entries) {
+            val tags = dao.getTagInfoForDiary(entry.id)
+            if (tags.isNotEmpty()) {
+                map[entry.id] = tags.map { TagInfo(it.id, it.name, Color(it.color)) }
+            }
+        }
+        _tagsMap.value = map
     }
 }

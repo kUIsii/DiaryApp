@@ -25,10 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ArrowBack
@@ -50,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -116,6 +115,16 @@ fun DiaryDetailScreen(
         webView?.evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
     }
 
+    // Cleanup WebView on dispose to prevent memory leak
+    DisposableEffect(Unit) {
+        onDispose {
+            webView?.apply {
+                stopLoading()
+                destroy()
+            }
+        }
+    }
+
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -178,12 +187,7 @@ fun DiaryDetailScreen(
             }
 
             entry?.let { currentEntry ->
-                // Scrollable content
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     // Header: date, time, mood, weather
                     DetailHeader(
                         entry = currentEntry,
@@ -196,7 +200,7 @@ fun DiaryDetailScreen(
                         DetailTags(tags = tags)
                     }
 
-                    // Content WebView
+                    // Content WebView - takes remaining space, scrolls internally
                     AndroidView(
                         factory = { ctx ->
                             WebView(ctx).apply {
@@ -223,7 +227,7 @@ fun DiaryDetailScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(400.dp)
+                            .weight(1f)
                     )
 
                     // Bottom timestamps
@@ -232,8 +236,6 @@ fun DiaryDetailScreen(
                         updatedAt = currentEntry.updatedAt,
                         textSecondary = textSecondary
                     )
-
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
