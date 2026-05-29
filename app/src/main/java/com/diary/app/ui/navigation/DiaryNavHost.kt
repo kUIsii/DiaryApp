@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Timeline
@@ -67,6 +68,7 @@ import com.diary.app.ui.map.MapScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
 import com.diary.app.ui.stats.StatsScreen
+import com.diary.app.ui.todo.TodoScreen
 import com.diary.app.update.ChangelogScreen
 
 // region Screen definitions
@@ -74,6 +76,7 @@ import com.diary.app.update.ChangelogScreen
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "\u9996\u9875", Icons.Default.Home)
     object Map : Screen("map", "\u65f6\u95f4\u7ebf", Icons.Default.Timeline)
+    object Todo : Screen("todo", "\u5f85\u529e", Icons.Default.CheckBox)
     object Stats : Screen("stats", "\u7edf\u8ba1", Icons.Default.BarChart)
     object Profile : Screen("profile", "\u6211\u7684", Icons.Default.Person)
     object Editor : Screen("editor?diaryId={diaryId}", "\u7f16\u8f91\u65e5\u8bb0", Icons.Default.Home) {
@@ -101,6 +104,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home),
     BottomNavItem(Screen.Map),
+    BottomNavItem(Screen.Todo),
     BottomNavItem(Screen.Stats),
     BottomNavItem(Screen.Profile)
 )
@@ -182,6 +186,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }
                 )
             }
+            composable(Screen.Todo.route) { TodoScreen() }
             composable(Screen.Stats.route) { StatsScreen() }
             composable(Screen.Profile.route) {
                 ProfileScreen(

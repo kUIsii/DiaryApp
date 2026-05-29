@@ -39,28 +39,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SentimentDissatisfied
-import androidx.compose.material.icons.filled.SentimentNeutral
-import androidx.compose.material.icons.filled.SentimentSatisfied
-import androidx.compose.material.icons.filled.SentimentVerySatisfied
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.Umbrella
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
@@ -93,7 +80,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,6 +88,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryEntry
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodIconForLevel
+import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.weatherIconFor
+import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import java.time.Instant
@@ -119,6 +109,7 @@ fun HomeScreen(
 ) {
     val entries by viewModel.entries.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
+    val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -203,6 +194,7 @@ fun HomeScreen(
                     item {
                         CalendarView(
                             entryDates = entryDates,
+                            dayInfoMap = dayInfoMap,
                             selectedDate = selectedDate,
                             onDateSelected = { date ->
                                 viewModel.selectDate(if (date == selectedDate) null else date)
@@ -226,7 +218,7 @@ fun HomeScreen(
                             )
                             Text(
                                 text = "查看全部",
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.clickable { viewModel.selectDate(null) }
                             )
@@ -323,7 +315,7 @@ private fun SearchBar(
                     Text(
                         "搜索日记...",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 },
                 leadingIcon = {
@@ -507,13 +499,13 @@ private fun EmptyState() {
             Text(
                 text = "每一天都值得被记录",
                 fontSize = 14.sp,
-                color = onSurfaceVariant.copy(alpha = 0.6f)
+                color = onSurfaceVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "点击右下角按钮写下第一篇",
-                fontSize = 13.sp,
-                color = onSurfaceVariant.copy(alpha = 0.4f)
+                fontSize = 12.sp,
+                color = onSurfaceVariant.copy(alpha = 0.38f)
             )
         }
     }
@@ -541,9 +533,12 @@ private fun ShimmerDiaryCard() {
         end = Offset(translateAnim, 0f)
     )
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 20.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(16.dp)
     ) {
         Column {
             // Title placeholder
@@ -581,7 +576,7 @@ private fun ShimmerDiaryCard() {
                         .clip(CircleShape)
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(16.dp)
@@ -756,30 +751,47 @@ private fun SwipeableDiaryCard(
 ) {
     val dismissState = rememberDismissState(
         confirmValueChange = { value ->
-            if (value == DismissValue.DismissedToStart) {
-                onDelete()
-                false // Don't dismiss, let the dialog handle it
-            } else {
-                false
+            when (value) {
+                DismissValue.DismissedToEnd -> {
+                    onToggleFavorite()
+                    false
+                }
+                DismissValue.DismissedToStart -> {
+                    onDelete()
+                    false
+                }
+                else -> false
             }
         }
     )
 
+    val errorColor = MaterialTheme.colorScheme.error
+
     SwipeToDismiss(
         state = dismissState,
         background = {
+            val direction = dismissState.dismissDirection
+            val isSwipeRight = direction == DismissDirection.StartToEnd
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFE74C3C))
-                    .padding(end = 24.dp),
-                contentAlignment = Alignment.CenterEnd
+                    .background(if (isSwipeRight) Color(0xFFFFCA28) else errorColor)
+                    .padding(
+                        start = if (isSwipeRight) 24.dp else 0.dp,
+                        end = if (isSwipeRight) 0.dp else 24.dp
+                    ),
+                contentAlignment = if (isSwipeRight) Alignment.CenterStart else Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = Color.White,
+                    imageVector = if (isSwipeRight) {
+                        if (entry.isFavorite) Icons.Default.StarBorder else Icons.Default.Star
+                    } else {
+                        Icons.Default.Delete
+                    },
+                    contentDescription = if (isSwipeRight) "收藏" else "删除",
+                    tint = if (isSwipeRight) Color(0xFF5D4037) else Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -793,7 +805,7 @@ private fun SwipeableDiaryCard(
                 onToggleFavorite = onToggleFavorite
             )
         },
-        directions = setOf(DismissDirection.EndToStart)
+        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart)
     )
 }
 
@@ -856,7 +868,7 @@ private fun DiaryCard(
                 Icon(
                     imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                     contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
-                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.4f),
+                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.38f),
                     modifier = Modifier
                         .size(20.dp)
                         .clickable(
@@ -880,7 +892,7 @@ private fun DiaryCard(
             }
 
             // Bottom info row
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -894,7 +906,7 @@ private fun DiaryCard(
                         tint = moodTint,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Weather icon
@@ -906,14 +918,14 @@ private fun DiaryCard(
                         tint = weatherTint,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Spacer to push tags right
                 Spacer(modifier = Modifier.weight(1f))
 
                 // Tag chips
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     tags.take(3).forEach { tag ->
                         TagChip(name = tag.name, color = tag.color)
                     }
@@ -921,7 +933,7 @@ private fun DiaryCard(
                         Text(
                             text = "+${tags.size - 3}",
                             fontSize = 11.sp,
-                            color = onSurfaceVariant.copy(alpha = 0.6f)
+                            color = onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -937,7 +949,7 @@ private fun TagChip(name: String, color: Color) {
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
             .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Box(
             modifier = Modifier
@@ -953,32 +965,6 @@ private fun TagChip(name: String, color: Color) {
             fontWeight = FontWeight.Medium,
             maxLines = 1
         )
-    }
-}
-
-private data class IconWithTint(val icon: ImageVector, val tint: Color)
-
-private fun moodIconForLevel(level: Int): IconWithTint {
-    return when (level.coerceIn(1, 6)) {
-        1 -> IconWithTint(Icons.Default.MoodBad, Color(0xFFE57373))
-        2 -> IconWithTint(Icons.Default.SentimentDissatisfied, Color(0xFFFFB74D))
-        3 -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
-        4 -> IconWithTint(Icons.Default.Mood, Color(0xFFAED581))
-        5 -> IconWithTint(Icons.Default.SentimentSatisfied, Color(0xFF81C784))
-        6 -> IconWithTint(Icons.Default.SentimentVerySatisfied, Color(0xFF4FC3F7))
-        else -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
-    }
-}
-
-private fun weatherIconFor(weather: String?): IconWithTint {
-    return when (weather) {
-        "晴" -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
-        "多云" -> IconWithTint(Icons.Default.Cloud, Color(0xFF90A4AE))
-        "阴" -> IconWithTint(Icons.Default.CloudQueue, Color(0xFF78909C))
-        "雨" -> IconWithTint(Icons.Default.Umbrella, Color(0xFF64B5F6))
-        "雷" -> IconWithTint(Icons.Default.Thunderstorm, Color(0xFFBA68C8))
-        "风" -> IconWithTint(Icons.Default.Air, Color(0xFF80CBC4))
-        else -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
     }
 }
 
@@ -1003,29 +989,9 @@ private fun formatShareText(entry: DiaryEntry): String {
     val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
     val timeText = entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 
-    val moodLabel = entry.moodLevel?.let { level ->
-        when (level.coerceIn(1, 6)) {
-            1 -> "沮丧"
-            2 -> "低落"
-            3 -> "平静"
-            4 -> "开心"
-            5 -> "愉快"
-            6 -> "兴奋"
-            else -> "平静"
-        }
-    }
+    val moodLabel = entry.moodLevel?.let { moodLabelForLevel(it) }
 
-    val weatherLabel = entry.weather?.let { weather ->
-        when (weather) {
-            "晴", "晴天" -> "晴天"
-            "多云" -> "多云"
-            "阴", "阴天" -> "阴天"
-            "雨", "雨天" -> "雨天"
-            "雷", "雷暴" -> "雷暴"
-            "风", "大风" -> "大风"
-            else -> weather
-        }
-    }
+    val weatherLabel = entry.weather?.let { weatherLabelFor(it) }
 
     val sb = StringBuilder()
     sb.appendLine("$dateText $timeText")

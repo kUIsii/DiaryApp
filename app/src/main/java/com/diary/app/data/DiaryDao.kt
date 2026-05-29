@@ -71,6 +71,13 @@ interface DiaryDao {
     @Query("SELECT * FROM tags WHERE isPreset = 1")
     suspend fun getPresetTags(): List<Tag>
 
+    @Query("""
+        SELECT dt.diaryId, t.id as tagId, t.name, t.color
+        FROM diary_tag_cross_ref dt
+        INNER JOIN tags t ON dt.tagId = t.id
+    """)
+    fun getAllDiaryTagPairs(): Flow<List<DiaryTagPair>>
+
     // One-shot queries for export
     @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC")
     suspend fun getAllEntriesOnce(): List<DiaryEntry>
@@ -96,6 +103,28 @@ interface DiaryDao {
         ORDER BY count DESC
     """)
     fun getTagUsage(): Flow<List<TagUsage>>
+
+    // Todo queries
+    @Query("SELECT * FROM todo_items ORDER BY isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
+    fun getAllTodos(): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE dueDate >= :dayStart AND dueDate < :dayEnd ORDER BY isCompleted ASC, priority DESC, sortOrder ASC")
+    fun getTodosForDay(dayStart: Long, dayEnd: Long): Flow<List<TodoItem>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTodo(todo: TodoItem): Long
+
+    @Update
+    suspend fun updateTodo(todo: TodoItem)
+
+    @Delete
+    suspend fun deleteTodo(todo: TodoItem)
+
+    @Query("UPDATE todo_items SET isCompleted = :completed, completedAt = :completedAt WHERE id = :id")
+    suspend fun toggleTodo(id: Long, completed: Boolean, completedAt: Long?)
+
+    @Query("DELETE FROM todo_items WHERE isCompleted = 1 AND completedAt < :before")
+    suspend fun deleteCompletedTodosBefore(before: Long)
 }
 
 data class TagUsage(
@@ -103,4 +132,11 @@ data class TagUsage(
     val name: String,
     val color: Long,
     val count: Int
+)
+
+data class DiaryTagPair(
+    val diaryId: Long,
+    val tagId: Long,
+    val name: String,
+    val color: Long
 )

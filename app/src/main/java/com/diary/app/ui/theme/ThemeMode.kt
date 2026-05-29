@@ -8,7 +8,8 @@ enum class ThemeMode(val label: String) {
     SYSTEM("跟随系统"),
     PURE_LIGHT("纯白模式"),
     PURE_DARK("纯黑模式"),
-    GRADIENT("渐变模式")
+    GRADIENT("渐变模式"),
+    WARM_ROSE("温馨")
 }
 
 val LocalThemeMode = staticCompositionLocalOf { ThemeMode.SYSTEM }
@@ -22,6 +23,7 @@ fun ThemeMode.isDark(): Boolean = when (this) {
     ThemeMode.PURE_LIGHT -> false
     ThemeMode.PURE_DARK -> true
     ThemeMode.GRADIENT -> isSystemInDarkTheme()
+    ThemeMode.WARM_ROSE -> isSystemInDarkTheme()
 }
 
 @Composable

@@ -23,6 +23,8 @@ data class TagInfo(val id: Long, val name: String, val color: Color)
 
 data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
 
+data class DayInfo(val moodLevel: Int?, val weather: String?)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -46,8 +48,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _sortOrder = MutableStateFlow(SortOrder.NEWEST)
     val sortOrder: StateFlow<SortOrder> = _sortOrder
 
-    private val _tagsMap = MutableStateFlow<Map<Long, List<TagInfo>>>(emptyMap())
-    val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = _tagsMap
+    val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = dao.getAllDiaryTagPairs()
+        .map { pairs ->
+            pairs.groupBy { it.diaryId }.mapValues { (_, tagPairs) ->
+                tagPairs.map { TagInfo(it.tagId, it.name, Color(it.color)) }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val allTags: StateFlow<List<com.diary.app.data.Tag>> = dao.getAllTags()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -67,6 +74,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val dayInfoMap: StateFlow<Map<LocalDate, DayInfo>> = allEntries
+        .map { entries ->
+            entries
+                .sortedByDescending { it.createdAt }
+                .groupBy {
+                    Instant.ofEpochMilli(it.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                }
+                .mapValues { (_, dayEntries) ->
+                    val entry = dayEntries.first()
+                    DayInfo(entry.moodLevel, entry.weather)
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val stats: StateFlow<HomeStats> = combine(allEntries, entryDates) { entries, dates ->
         val now = LocalDate.now()
         val streak = computeStreak(dates)
@@ -84,7 +107,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _selectedDate,
         _searchQuery,
         _selectedTagFilter,
-        _tagsMap
+        tagsMap
     ) { entries, date, query, tagFilter, tags ->
         entries.filter { entry ->
             val matchesDate = date == null || run {
@@ -131,17 +154,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadTagsForEntries(entries: List<DiaryEntry>) {
-        viewModelScope.launch {
-            val map = mutableMapOf<Long, List<TagInfo>>()
-            for (entry in entries) {
-                val tags = dao.getTagInfoForDiary(entry.id)
-                if (tags.isNotEmpty()) {
-                    map[entry.id] = tags.map { TagInfo(it.id, it.name, Color(it.color)) }
-                }
-            }
-            _tagsMap.value = map
-        }
+    fun loadTagsForEntries(@Suppress("UNUSED_PARAMETER") entries: List<DiaryEntry>) {
+        // Tags are now loaded reactively via getAllDiaryTagPairs() Flow.
+        // This method is kept for call-site compatibility but is a no-op.
     }
 
     private fun computeStreak(dates: Set<LocalDate>): Int {

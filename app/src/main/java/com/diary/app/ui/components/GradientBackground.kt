@@ -45,6 +45,9 @@ fun GradientBackground(
         ThemeMode.PURE_DARK -> modifier
             .fillMaxSize()
             .background(PureDarkBackground)
+        ThemeMode.WARM_ROSE -> modifier
+            .fillMaxSize()
+            .background(if (dark) com.diary.app.ui.theme.WarmRoseDarkBackground else com.diary.app.ui.theme.WarmRoseBackground)
         ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
             val colors = if (dark) {
                 listOf(DarkBackgroundStart, DarkBackgroundMid, DarkBackgroundEnd)
@@ -73,7 +76,7 @@ fun AnimatedGradientBackground(
     val mode = themeMode()
     val dark = mode.isDark()
 
-    // Pure modes use solid background without animation
+    // Solid-background modes
     if (mode == ThemeMode.PURE_LIGHT) {
         Box(modifier = modifier.fillMaxSize().background(PureLightBackground)) {
             content()
@@ -82,6 +85,13 @@ fun AnimatedGradientBackground(
     }
     if (mode == ThemeMode.PURE_DARK) {
         Box(modifier = modifier.fillMaxSize().background(PureDarkBackground)) {
+            content()
+        }
+        return
+    }
+    if (mode == ThemeMode.WARM_ROSE) {
+        val bgColor = if (dark) com.diary.app.ui.theme.WarmRoseDarkBackground else com.diary.app.ui.theme.WarmRoseBackground
+        Box(modifier = modifier.fillMaxSize().background(bgColor)) {
             content()
         }
         return

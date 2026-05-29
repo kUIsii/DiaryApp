@@ -6,18 +6,29 @@ import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,6 +39,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -73,59 +87,128 @@ class MainActivity : FragmentActivity() {
 
                 if (!isAuthenticated) {
                     GradientBackground {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(72.dp)
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            // Entrance animation state
+                            var visible by remember { mutableStateOf(false) }
+                            LaunchedEffect(Unit) { visible = true }
+
+                            // Breathing animation for the lock icon
+                            val infiniteTransition = rememberInfiniteTransition(label = "breathing")
+                            val breathScale by infiniteTransition.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 1.05f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "breathScale"
+                            )
+                            // Entrance fade + scale
+                            val entranceAlpha by animateFloatAsState(
+                                targetValue = if (visible) 1f else 0f,
+                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                                label = "entranceAlpha"
+                            )
+                            val entranceScale by animateFloatAsState(
+                                targetValue = if (visible) 1f else 0.92f,
+                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                                label = "entranceScale"
                             )
 
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Text(
-                                text = "日记本",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "请验证身份以继续",
-                                fontSize = 15.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-
-                            Spacer(modifier = Modifier.height(40.dp))
-
-                            Button(
-                                onClick = {
-                                    BiometricHelper.showBiometricPrompt(
-                                        activity = activity,
-                                        onSuccess = { isAuthenticated = true },
-                                        onError = { msg ->
-                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                        }
-                                    )
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White.copy(alpha = 0.2f)
-                                )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .alpha(entranceAlpha)
+                                    .scale(entranceScale),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
+                                // Breathing lock icon
                                 Icon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(72.dp)
+                                        .scale(breathScale)
                                 )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(text = "解锁", fontSize = 16.sp)
+
+                                Spacer(modifier = Modifier.height(28.dp))
+
+                                // App name
+                                Text(
+                                    text = "日记本",
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    letterSpacing = 4.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Subtitle
+                                Text(
+                                    text = "记录生活的每一刻",
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.55f),
+                                    letterSpacing = 2.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(52.dp))
+
+                                // Gradient-bordered unlock button
+                                val buttonShape = RoundedCornerShape(20.dp)
+                                val gradientBrush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.6f),
+                                        Color.White.copy(alpha = 0.25f)
+                                    )
+                                )
+                                OutlinedButton(
+                                    onClick = {
+                                        BiometricHelper.showBiometricPrompt(
+                                            activity = activity,
+                                            onSuccess = { isAuthenticated = true },
+                                            onError = { msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    },
+                                    shape = buttonShape,
+                                    border = BorderStroke(1.dp, gradientBrush),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White.copy(alpha = 0.12f),
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier
+                                        .padding(horizontal = 48.dp)
+                                        .height(52.dp)
+                                        .fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.size(10.dp))
+                                    Text(
+                                        text = "解锁",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
                             }
+
+                            // Version info at the bottom
+                            Text(
+                                text = "v${BuildConfig.VERSION_NAME}",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 32.dp)
+                            )
                         }
                     }
                 } else {

@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
+import com.diary.app.ui.components.moodColorForLevel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -55,6 +56,7 @@ enum class CalendarMode(val label: String) {
 @Composable
 fun CalendarView(
     entryDates: Set<LocalDate>,
+    dayInfoMap: Map<LocalDate, DayInfo>,
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
@@ -273,6 +275,7 @@ fun CalendarView(
                                         CalendarDay(
                                             date = date,
                                             hasEntry = date in entryDates,
+                                            dayInfo = dayInfoMap[date],
                                             isSelected = date == selectedDate,
                                             isToday = date == today,
                                             isCurrentMonth = true,
@@ -297,6 +300,7 @@ fun CalendarView(
                         CalendarDay(
                             date = date,
                             hasEntry = date in entryDates,
+                            dayInfo = dayInfoMap[date],
                             isSelected = date == selectedDate,
                             isToday = date == today,
                             isCurrentMonth = true,
@@ -317,6 +321,7 @@ fun CalendarView(
 private fun CalendarDay(
     date: LocalDate,
     hasEntry: Boolean,
+    dayInfo: DayInfo?,
     isSelected: Boolean,
     isToday: Boolean,
     isCurrentMonth: Boolean,
@@ -377,18 +382,32 @@ private fun CalendarDay(
                 textAlign = TextAlign.Center
             )
             if (hasEntry) {
-                // Entry indicator: small horizontal line instead of dot
-                Box(
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .width(12.dp)
-                        .height(2.dp)
-                        .clip(RoundedCornerShape(1.dp))
-                        .background(
-                            if (isSelected) Color.White.copy(alpha = 0.8f)
-                            else primary.copy(alpha = 0.6f)
-                        )
-                )
+                // Entry indicator: mood-colored circle or neutral line
+                val moodLevel = dayInfo?.moodLevel
+                if (moodLevel != null) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) Color.White.copy(alpha = 0.8f)
+                                else moodColorForLevel(moodLevel).copy(alpha = 0.8f)
+                            )
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .width(12.dp)
+                            .height(2.dp)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(
+                                if (isSelected) Color.White.copy(alpha = 0.8f)
+                                else primary.copy(alpha = 0.6f)
+                            )
+                    )
+                }
             }
         }
     }

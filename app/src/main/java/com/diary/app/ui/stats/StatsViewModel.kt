@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.TagUsage
+import com.diary.app.ui.components.moodColorForLevel
+import com.diary.app.ui.components.moodLabelForLevel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -96,8 +98,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             MoodStat(
                 level = level,
                 count = count,
-                label = moodLabels[level]!!,
-                color = moodColors[level]!!,
+                label = moodLabelForLevel(level),
+                color = moodColorForLevel(level),
             )
         }
 
@@ -266,23 +268,4 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             .sortedBy { it.date }
     }
 
-    companion object {
-        val moodLabels = mapOf(
-            1 to "沮丧",
-            2 to "低落",
-            3 to "平静",
-            4 to "开心",
-            5 to "愉快",
-            6 to "兴奋",
-        )
-
-        val moodColors = mapOf(
-            1 to Color(0xFFE74C3C),
-            2 to Color(0xFFE67E22),
-            3 to Color(0xFFF39C12),
-            4 to Color(0xFF9CCC65),
-            5 to Color(0xFF66BB6A),
-            6 to Color(0xFF2E7D32),
-        )
-    }
 }

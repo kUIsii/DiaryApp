@@ -8,12 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -81,7 +77,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -232,7 +227,7 @@ fun ProfileScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
     val accentColor = MaterialTheme.colorScheme.primary
 
     if (showUpdateDialog) {
@@ -332,13 +327,13 @@ fun ProfileScreen(
                 textTertiary = textTertiary
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Group: Appearance
             StaggeredItem(index = 0, showContent = showContent) {
                 SectionHeader(title = "外观设置", icon = Icons.Default.Palette, color = AppearanceIconTint)
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 1, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -383,7 +378,7 @@ fun ProfileScreen(
             StaggeredItem(index = 2, showContent = showContent) {
                 SectionHeader(title = "数据管理", icon = Icons.Default.Backup, color = DataIconTint)
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 3, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -523,7 +518,7 @@ fun ProfileScreen(
             StaggeredItem(index = 4, showContent = showContent) {
                 SectionHeader(title = "提醒设置", icon = Icons.Default.Notifications, color = ReminderIconTint)
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 5, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -580,7 +575,7 @@ fun ProfileScreen(
             StaggeredItem(index = 6, showContent = showContent) {
                 SectionHeader(title = "隐私与安全", icon = Icons.Default.Security, color = PrivacyIconTint)
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 7, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -609,7 +604,7 @@ fun ProfileScreen(
             StaggeredItem(index = 8, showContent = showContent) {
                 SectionHeader(title = "关于", icon = Icons.Default.Info, color = AboutIconTint)
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             StaggeredItem(index = 9, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -768,15 +763,12 @@ private fun StaggeredItem(
 
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 400),
+        animationSpec = tween(durationMillis = 300),
         label = "staggerAlpha"
     )
     val offsetY by animateFloatAsState(
-        targetValue = if (visible) 0f else 30f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (visible) 0f else 20f,
+        animationSpec = tween(durationMillis = 300),
         label = "staggerOffset"
     )
 
@@ -799,49 +791,18 @@ private fun HeaderSection(
     textColor: Color,
     textTertiary: Color
 ) {
-    // Breathing animation
-    val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-    val breathScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "breathScale"
-    )
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar with outer ring glow
+        // Avatar
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(120.dp)
+            modifier = Modifier.size(100.dp)
         ) {
-            // Outer glow ring (gradient)
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .scale(breathScale)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.sweepGradient(
-                            colors = listOf(
-                                DarkAccentStart.copy(alpha = 0.4f),
-                                DarkAccentEnd.copy(alpha = 0.4f),
-                                DarkAccentStart.copy(alpha = 0.2f),
-                                DarkAccentEnd.copy(alpha = 0.4f),
-                                DarkAccentStart.copy(alpha = 0.4f)
-                            )
-                        )
-                    )
-            )
-            // Inner gradient avatar
+            // Gradient avatar
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .scale(breathScale)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -859,7 +820,7 @@ private fun HeaderSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "日记本",
@@ -868,7 +829,7 @@ private fun HeaderSection(
             color = textColor
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Subtitle / signature
         Text(
@@ -907,7 +868,7 @@ private fun SectionHeader(
             tint = color,
             modifier = Modifier.size(16.dp)
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
             fontSize = 12.sp,
@@ -943,7 +904,7 @@ private fun ThemeCardSelector(
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -994,6 +955,7 @@ private fun ThemeCard(
         ThemeMode.PURE_LIGHT -> Icons.Default.LightMode
         ThemeMode.PURE_DARK -> Icons.Default.DarkMode
         ThemeMode.GRADIENT -> Icons.Default.Palette
+        ThemeMode.WARM_ROSE -> Icons.Default.Favorite
     }
 
     // Color preview pairs
@@ -1002,6 +964,7 @@ private fun ThemeCard(
         ThemeMode.PURE_LIGHT -> Color(0xFFF0F2FA) to Color(0xFFFFFFFF)
         ThemeMode.PURE_DARK -> Color(0xFF0D0D0D) to Color(0xFF1A1A3E)
         ThemeMode.GRADIENT -> Color(0xFF667EEA) to Color(0xFF764BA2)
+        ThemeMode.WARM_ROSE -> Color(0xFFBF7B6B) to Color(0xFFC49B8A)
     }
 
     Column(
@@ -1033,12 +996,12 @@ private fun ThemeCard(
                 )
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isSelected) DarkAccentStart else textSecondary.copy(alpha = 0.6f),
+            tint = if (isSelected) DarkAccentStart else textSecondary.copy(alpha = 0.7f),
             modifier = Modifier.size(18.dp)
         )
 

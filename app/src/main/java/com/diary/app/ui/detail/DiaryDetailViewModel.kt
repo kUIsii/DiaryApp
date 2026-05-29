@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.Tag
+import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.weatherLabelFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -37,29 +39,9 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
         val timeText = entryTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
 
-        val moodLabel = currentEntry.moodLevel?.let { level ->
-            when (level.coerceIn(1, 6)) {
-                1 -> "沮丧"
-                2 -> "低落"
-                3 -> "平静"
-                4 -> "开心"
-                5 -> "愉快"
-                6 -> "兴奋"
-                else -> "平静"
-            }
-        }
+        val moodLabel = currentEntry.moodLevel?.let { moodLabelForLevel(it) }
 
-        val weatherLabel = currentEntry.weather?.let { weather ->
-            when (weather) {
-                "晴", "晴天" -> "晴天"
-                "多云" -> "多云"
-                "阴", "阴天" -> "阴天"
-                "雨", "雨天" -> "雨天"
-                "雷", "雷暴" -> "雷暴"
-                "风", "大风" -> "大风"
-                else -> weather
-            }
-        }
+        val weatherLabel = currentEntry.weather?.let { weatherLabelFor(it) }
 
         val sb = StringBuilder()
         sb.appendLine("$dateText $timeText")

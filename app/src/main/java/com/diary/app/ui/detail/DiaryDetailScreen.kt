@@ -28,21 +28,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.MoodBad
-import androidx.compose.material.icons.filled.SentimentDissatisfied
-import androidx.compose.material.icons.filled.SentimentNeutral
-import androidx.compose.material.icons.filled.SentimentSatisfied
-import androidx.compose.material.icons.filled.SentimentVerySatisfied
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.Umbrella
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,8 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.diary.app.ui.components.IconWithTint
+import com.diary.app.ui.components.moodIconForLevel
+import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -174,7 +165,7 @@ fun DiaryDetailScreen(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "编辑",
                             fontSize = 14.sp,
@@ -290,7 +281,7 @@ private fun DetailHeader(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = moodLabel,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = moodTint,
                     fontWeight = FontWeight.Medium
                 )
@@ -309,7 +300,7 @@ private fun DetailHeader(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = entry.weather,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = weatherTint,
                     fontWeight = FontWeight.Medium
                 )
@@ -324,7 +315,7 @@ private fun DetailTags(tags: List<Tag>) {
     FlowRow(
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         tags.forEach { tag ->
             val tagColor = Color(tag.color)
@@ -333,15 +324,15 @@ private fun DetailTags(tags: List<Tag>) {
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
                     .background(tagColor.copy(alpha = 0.12f))
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
                         .background(tagColor)
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = tag.name,
                     fontSize = 13.sp,
@@ -371,54 +362,16 @@ private fun DetailTimestamps(
         Text(
             text = "创建于 $createdText",
             fontSize = 12.sp,
-            color = textSecondary.copy(alpha = 0.6f)
+            color = textSecondary.copy(alpha = 0.5f)
         )
         if (isEdited) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "修改于 $updatedText",
                 fontSize = 12.sp,
-                color = textSecondary.copy(alpha = 0.6f)
+                color = textSecondary.copy(alpha = 0.5f)
             )
         }
-    }
-}
-
-private data class IconWithTint(val icon: ImageVector, val tint: Color)
-
-private fun moodIconForLevel(level: Int): IconWithTint {
-    return when (level.coerceIn(1, 6)) {
-        1 -> IconWithTint(Icons.Default.MoodBad, Color(0xFFE57373))
-        2 -> IconWithTint(Icons.Default.SentimentDissatisfied, Color(0xFFFFB74D))
-        3 -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
-        4 -> IconWithTint(Icons.Default.Mood, Color(0xFFAED581))
-        5 -> IconWithTint(Icons.Default.SentimentSatisfied, Color(0xFF81C784))
-        6 -> IconWithTint(Icons.Default.SentimentVerySatisfied, Color(0xFF4FC3F7))
-        else -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
-    }
-}
-
-private fun moodLabelForLevel(level: Int): String {
-    return when (level.coerceIn(1, 6)) {
-        1 -> "沮丧"
-        2 -> "低落"
-        3 -> "平静"
-        4 -> "开心"
-        5 -> "愉快"
-        6 -> "兴奋"
-        else -> "平静"
-    }
-}
-
-private fun weatherIconFor(weather: String?): IconWithTint {
-    return when (weather) {
-        "晴", "晴天" -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
-        "多云" -> IconWithTint(Icons.Default.Cloud, Color(0xFF90A4AE))
-        "阴", "阴天" -> IconWithTint(Icons.Default.CloudQueue, Color(0xFF78909C))
-        "雨", "雨天" -> IconWithTint(Icons.Default.Umbrella, Color(0xFF64B5F6))
-        "雷", "雷暴" -> IconWithTint(Icons.Default.Thunderstorm, Color(0xFFBA68C8))
-        "风", "大风" -> IconWithTint(Icons.Default.Air, Color(0xFF80CBC4))
-        else -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
     }
 }
 

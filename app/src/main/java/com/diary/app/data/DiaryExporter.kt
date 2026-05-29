@@ -6,6 +6,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import com.diary.app.BuildConfig
+import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.weatherLabelFor
 import com.google.gson.GsonBuilder
 import java.io.File
 import java.time.Instant
@@ -121,28 +123,10 @@ object DiaryExporter {
 
             val metaParts = mutableListOf<String>()
             entry.moodLevel?.let { level ->
-                val moodLabel = when (level.coerceIn(1, 6)) {
-                    1 -> "沮丧"
-                    2 -> "低落"
-                    3 -> "平静"
-                    4 -> "开心"
-                    5 -> "愉快"
-                    6 -> "兴奋"
-                    else -> "平静"
-                }
-                metaParts.add("**心情:** $moodLabel")
+                metaParts.add("**心情:** ${moodLabelForLevel(level)}")
             }
             entry.weather?.let { weather ->
-                val weatherLabel = when (weather) {
-                    "晴", "晴天" -> "晴天"
-                    "多云" -> "多云"
-                    "阴", "阴天" -> "阴天"
-                    "雨", "雨天" -> "雨天"
-                    "雷", "雷暴" -> "雷暴"
-                    "风", "大风" -> "大风"
-                    else -> weather
-                }
-                metaParts.add("**天气:** $weatherLabel")
+                metaParts.add("**天气:** ${weatherLabelFor(weather)}")
             }
             val entryTags = diaryTagMap[entry.id] ?: emptyList()
             if (entryTags.isNotEmpty()) {

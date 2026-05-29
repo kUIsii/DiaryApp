@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class],
-    version = 3,
+    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class],
+    version = 4,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -25,13 +25,30 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS todo_items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL DEFAULT '',
+                        isCompleted INTEGER NOT NULL DEFAULT 0,
+                        priority INTEGER NOT NULL DEFAULT 0,
+                        dueDate INTEGER,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        completedAt INTEGER,
+                        sortOrder INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_2_3)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

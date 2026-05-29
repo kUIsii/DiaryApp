@@ -44,23 +44,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.SentimentDissatisfied
-import androidx.compose.material.icons.filled.SentimentNeutral
-import androidx.compose.material.icons.filled.SentimentSatisfied
-import androidx.compose.material.icons.filled.SentimentVerySatisfied
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Undo
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -93,6 +85,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodIconForLevel
+import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.theme.isDark
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -222,6 +217,10 @@ fun EditorScreen(
             wordCount = countWords(text)
             viewModel.markContentChanged()
             contentVersion++
+            // Auto-collapse template selector once user starts typing
+            if (showTemplateSelector && text.isNotBlank()) {
+                showTemplateSelector = false
+            }
         }
     }
 
@@ -273,20 +272,6 @@ fun EditorScreen(
     val surfaceColor = MaterialTheme.colorScheme.surface
     val accentColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-
-    val moodLabels = arrayOf("", "沮丧", "低落", "平静", "开心", "愉快", "兴奋")
-
-    fun getMoodIcon(level: Int?): ImageVector {
-        return when (level) {
-            1 -> Icons.Default.MoodBad
-            2 -> Icons.Default.SentimentDissatisfied
-            3 -> Icons.Default.SentimentNeutral
-            4 -> Icons.Default.Mood
-            5 -> Icons.Default.SentimentSatisfied
-            6 -> Icons.Default.SentimentVerySatisfied
-            else -> Icons.Default.Mood
-        }
-    }
 
     if (showTagDialog) {
         AddTagDialog(
@@ -380,11 +365,25 @@ fun EditorScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary)
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { webView?.evaluateJavascript("quill.undo()", null) }) {
-                    Icon(Icons.Default.Undo, contentDescription = "撤销", tint = textSecondary)
+                // Auto-save indicator dot
+                AnimatedVisibility(
+                    visible = autoSaveVisible,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(300))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2ECC71))
+                    )
                 }
-                IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }) {
-                    Icon(Icons.Default.Redo, contentDescription = "重做", tint = textSecondary)
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = { webView?.evaluateJavascript("quill.undo()", null) }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Undo, contentDescription = "撤销", tint = textSecondary, modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Redo, contentDescription = "重做", tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
@@ -405,14 +404,18 @@ fun EditorScreen(
                         }
                     }
                 }) {
-                    Text("保存", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accentColor)
+                    Text("保存", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = accentColor)
                 }
             }
 
-            // Date + time
-            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
-                Text(text = dateTitle, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
-                Text(text = timeText, fontSize = 12.sp, color = textSecondary)
+            // Date + time (compact single line)
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(text = dateTitle, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text(text = timeText, fontSize = 11.sp, color = textSecondary)
             }
 
             // Template selector (new entries only)
@@ -434,13 +437,13 @@ fun EditorScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Mood button
                 MetadataButton(
-                    label = if (selectedMood != null) moodLabels[selectedMood!!] else "心情",
-                    icon = getMoodIcon(selectedMood),
+                    label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
+                    icon = moodIconForLevel(selectedMood ?: 3).icon,
                     isSelected = selectedMood != null,
                     isActive = activePanel == "mood",
                     accentColor = accentColor,
@@ -452,7 +455,7 @@ fun EditorScreen(
                 // Weather button
                 MetadataButton(
                     label = selectedWeather ?: "天气",
-                    icon = getWeatherIcon(selectedWeather) ?: Icons.Default.Cloud,
+                    icon = weatherIconFor(selectedWeather).icon,
                     isSelected = selectedWeather != null,
                     isActive = activePanel == "weather",
                     accentColor = accentColor,
@@ -530,30 +533,20 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
 
-            // Word count + auto-save indicator bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Word count bar (only when content exists)
+            AnimatedVisibility(
+                visible = charCount > 0,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(200))
             ) {
                 Text(
                     text = "$charCount 字 | $wordCount 词",
-                    fontSize = 11.sp,
-                    color = textSecondary.copy(alpha = 0.6f)
+                    fontSize = 10.sp,
+                    color = textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
                 )
-                AnimatedVisibility(
-                    visible = autoSaveVisible,
-                    enter = fadeIn(tween(200)),
-                    exit = fadeOut(tween(300))
-                ) {
-                    Text(
-                        text = "已自动保存",
-                        fontSize = 11.sp,
-                        color = textSecondary.copy(alpha = 0.6f)
-                    )
-                }
             }
 
             // Bottom toolbar
@@ -617,29 +610,29 @@ private fun MetadataButton(
     Box(
         modifier = Modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
             .then(
-                if (isActive) Modifier.border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                if (isActive) Modifier.border(1.dp, borderColor, RoundedCornerShape(16.dp))
                 else Modifier
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
             Text(
                 text = label,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
                 color = contentColor
             )
@@ -677,7 +670,7 @@ private fun EditorToolbar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -693,7 +686,7 @@ private fun EditorToolbar(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
                         .clickable {
                             if (showToolbar) {
@@ -703,23 +696,23 @@ private fun EditorToolbar(
                                 onCategoryChange(index)
                             }
                         }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(cat.icon, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
-                    Text(cat.label, fontSize = 11.sp, color = if (isActive) activeColor else textColor)
+                    Text(cat.icon, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (isActive) activeColor else textColor)
+                    Text(cat.label, fontSize = 10.sp, color = if (isActive) activeColor else textColor)
                 }
             }
 
-            // Collapse/expand button
+            // Collapse/expand button (integrated)
             IconButton(
                 onClick = onToggleToolbar,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     imageVector = if (showToolbar) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                     contentDescription = if (showToolbar) "收起" else "展开",
                     tint = textColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

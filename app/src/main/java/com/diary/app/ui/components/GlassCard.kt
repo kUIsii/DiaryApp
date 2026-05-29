@@ -44,6 +44,10 @@ fun GlassCard(
     val (backgroundColor, borderColor) = when (mode) {
         ThemeMode.PURE_LIGHT -> PureLightCardBackground to PureLightCardBorder
         ThemeMode.PURE_DARK -> PureDarkCardBackground to PureDarkCardBorder
+        ThemeMode.WARM_ROSE -> {
+            if (dark) com.diary.app.ui.theme.WarmRoseDarkSurfaceVariant to Color(0x33E0CCC8)
+            else com.diary.app.ui.theme.WarmRoseSurfaceVariant to Color(0x80E8D5CF)
+        }
         ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
             if (dark) DarkCardBackground to DarkCardBorder
             else LightCardBackground to LightCardBorder
@@ -111,6 +115,9 @@ fun GlassCardAccent(
     val backgroundColor = when (mode) {
         ThemeMode.PURE_LIGHT -> PureLightCardBackground
         ThemeMode.PURE_DARK -> PureDarkCardBackground
+        ThemeMode.WARM_ROSE -> {
+            if (dark) com.diary.app.ui.theme.WarmRoseDarkSurfaceVariant else com.diary.app.ui.theme.WarmRoseSurfaceVariant
+        }
         ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
             if (dark) DarkCardBackground else LightCardBackground
         }

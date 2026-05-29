@@ -100,6 +100,40 @@ private val PureDarkColorScheme = darkColorScheme(
     onSurfaceVariant = Color(0xB3FFFFFF), // improved contrast 0.7
 )
 
+// ---- Warm Rose color schemes ----
+
+private val WarmRoseLightColorScheme = lightColorScheme(
+    primary = WarmRosePrimary,
+    onPrimary = Color.White,
+    primaryContainer = WarmRosePrimaryVariant,
+    onPrimaryContainer = Color.White,
+    secondary = WarmRoseSecondary,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = WarmRoseBackground,
+    onBackground = WarmRoseOnBackground,
+    surface = WarmRoseSurface,
+    onSurface = WarmRoseOnSurface,
+    surfaceVariant = WarmRoseSurfaceVariant,
+    onSurfaceVariant = WarmRoseOnSurfaceVariant,
+)
+
+private val WarmRoseDarkColorScheme = darkColorScheme(
+    primary = WarmRoseDarkPrimary,
+    onPrimary = Color.White,
+    primaryContainer = WarmRoseDarkPrimary,
+    onPrimaryContainer = Color.White,
+    secondary = WarmRoseSecondary,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = WarmRoseDarkBackground,
+    onBackground = WarmRoseDarkOnBackground,
+    surface = WarmRoseDarkSurface,
+    onSurface = WarmRoseDarkOnBackground,
+    surfaceVariant = WarmRoseDarkSurfaceVariant,
+    onSurfaceVariant = Color(0xCCE0CCC8), // muted warm rose text ~0.8 alpha
+)
+
 // ---- Extended color presets per theme variant ----
 
 private val LightExtendedColors = ExtendedColors(
@@ -129,6 +163,7 @@ fun DiaryAppTheme(
         ThemeMode.PURE_DARK -> PureDarkColorScheme
         ThemeMode.GRADIENT -> if (isDark) GradientDarkColorScheme else GradientLightColorScheme
         ThemeMode.SYSTEM -> if (isDark) GradientDarkColorScheme else GradientLightColorScheme
+        ThemeMode.WARM_ROSE -> if (isDark) WarmRoseDarkColorScheme else WarmRoseLightColorScheme
     }
 
     val extendedColors = if (isDark) DarkExtendedColors else LightExtendedColors

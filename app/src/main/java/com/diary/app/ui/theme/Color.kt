@@ -74,3 +74,21 @@ val PureDarkBackground = Color(0xFF000000)
 val PureDarkSurface = Color(0xFF111111)
 val PureDarkCardBackground = Color(0xFF1A1A1A)
 val PureDarkCardBorder = Color(0xFF2A2A2A)
+
+// Warm Rose theme - light variant
+val WarmRoseBackground = Color(0xFFFDF5F3)
+val WarmRoseSurface = Color(0xFFFFF0EB)
+val WarmRoseSurfaceVariant = Color(0xFFF5E6E0)
+val WarmRosePrimary = Color(0xFFBF7B6B)
+val WarmRosePrimaryVariant = Color(0xFFA66353)
+val WarmRoseSecondary = Color(0xFFC49B8A)
+val WarmRoseOnBackground = Color(0xFF3D2B26)
+val WarmRoseOnSurface = Color(0xFF4A3530)
+val WarmRoseOnSurfaceVariant = Color(0xFF8A7068)
+
+// Warm Rose theme - dark variant
+val WarmRoseDarkBackground = Color(0xFF1A1312)
+val WarmRoseDarkSurface = Color(0xFF2A1F1D)
+val WarmRoseDarkSurfaceVariant = Color(0xFF3A2D2A)
+val WarmRoseDarkPrimary = Color(0xFFD4978A)
+val WarmRoseDarkOnBackground = Color(0xFFF0E0DC)
