@@ -30,8 +30,9 @@ object UpdateChecker {
     suspend fun checkForUpdate(currentVersionName: String): UpdateInfo? {
         return withContext(Dispatchers.IO) {
             try {
+                val isExperimental = BuildConfig.FLAVOR == "experimental"
                 val url = URL(
-                    "https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases/latest"
+                    "https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases"
                 )
                 val connection = url.openConnection() as HttpURLConnection
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
@@ -43,20 +44,31 @@ object UpdateChecker {
                 }
 
                 val json = connection.inputStream.bufferedReader().readText()
-                val release = Gson().fromJson(json, GitHubRelease::class.java)
+                val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java)
 
-                val latestVersion = release.tagName.removePrefix("v")
+                // 根据 flavor 过滤：experimental 只匹配 experimental，stable 只匹配非 experimental
+                val matchingRelease = releases.firstOrNull { release ->
+                    val tag = release.tagName.lowercase()
+                    val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
+                    hasApk && if (isExperimental) {
+                        tag.contains("experimental")
+                    } else {
+                        !tag.contains("experimental")
+                    }
+                } ?: return@withContext null
+
+                val latestVersion = matchingRelease.tagName.removePrefix("v")
                 if (!isNewerVersion(currentVersionName, latestVersion)) {
                     return@withContext null
                 }
 
-                val apkAsset = release.assets?.firstOrNull {
+                val apkAsset = matchingRelease.assets?.firstOrNull {
                     it.name.endsWith(".apk")
                 } ?: return@withContext null
 
                 UpdateInfo(
                     versionName = latestVersion,
-                    releaseNotes = release.body ?: "",
+                    releaseNotes = matchingRelease.body ?: "",
                     downloadUrl = apkAsset.downloadUrl
                 )
             } catch (e: Exception) {
@@ -66,8 +78,13 @@ object UpdateChecker {
     }
 
     private fun isNewerVersion(current: String, latest: String): Boolean {
-        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-        val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
+        val currentBase = current.substringBefore("-")
+        val latestBase = latest.substringBefore("-")
+        val currentSuffix = current.substringAfter("-", "")
+        val latestSuffix = latest.substringAfter("-", "")
+
+        val currentParts = currentBase.split(".").map { it.toIntOrNull() ?: 0 }
+        val latestParts = latestBase.split(".").map { it.toIntOrNull() ?: 0 }
 
         val maxSize = maxOf(currentParts.size, latestParts.size)
         for (i in 0 until maxSize) {
@@ -76,6 +93,15 @@ object UpdateChecker {
             if (latestPart > currentPart) return true
             if (latestPart < currentPart) return false
         }
+
+        // 基础版本相同，比较后缀（如 2.0.0-experimental vs 2.0.0-beta）
+        if (currentSuffix != latestSuffix) {
+            // 有后缀的版本比没有后缀的版本低
+            if (latestSuffix.isEmpty()) return true
+            if (currentSuffix.isEmpty()) return false
+            return latestSuffix > currentSuffix
+        }
+
         return false
     }
 }
