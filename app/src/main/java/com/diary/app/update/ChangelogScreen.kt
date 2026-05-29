@@ -41,7 +41,7 @@ import java.net.URL
 private fun stripMarkdown(text: String): String {
     return text
         .replace(Regex("^#{1,6}\\s+", RegexOption.MULTILINE), "")
-        .replace(Regex("^[-*+]\\s+", RegexOption.MULTILINE), "")
+        .replace(Regex("^[-*+]\\s+", RegexOption.MULTILINE), "· ")
         .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
         .replace(Regex("\\*(.+?)\\*"), "$1")
         .replace(Regex("~~(.+?)~~"), "$1")

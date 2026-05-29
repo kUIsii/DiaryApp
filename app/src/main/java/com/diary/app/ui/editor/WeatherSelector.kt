@@ -3,12 +3,15 @@ package com.diary.app.ui.editor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -25,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -39,6 +43,10 @@ val weatherOptions = listOf(
     WeatherOption("大风", Icons.Default.Air)
 )
 
+fun getWeatherIcon(name: String?): ImageVector? {
+    return weatherOptions.find { it.name == name }?.icon
+}
+
 @Composable
 fun WeatherSelector(
     selectedWeather: String?,
@@ -46,7 +54,9 @@ fun WeatherSelector(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         weatherOptions.forEach { option ->
@@ -57,6 +67,8 @@ fun WeatherSelector(
             else MaterialTheme.colorScheme.outlineVariant
             val iconColor = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurfaceVariant
+            val textColor = if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onBackground
 
             Box(
                 modifier = Modifier
@@ -66,21 +78,24 @@ fun WeatherSelector(
                     .clickable {
                         onWeatherSelected(if (isSelected) null else option.name)
                     }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Icon(
                         imageVector = option.icon,
                         contentDescription = option.name,
                         tint = iconColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                     Text(
                         text = option.name,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(start = 4.dp)
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = textColor
                     )
                 }
             }

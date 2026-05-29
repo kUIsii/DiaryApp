@@ -9,6 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,9 +21,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,8 +46,13 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.SentimentDissatisfied
+import androidx.compose.material.icons.filled.SentimentNeutral
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.SentimentVerySatisfied
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
@@ -62,6 +74,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -166,6 +180,18 @@ fun EditorScreen(
 
     val moodLabels = arrayOf("", "沮丧", "低落", "平静", "开心", "愉快", "兴奋")
 
+    fun getMoodIcon(level: Int?): ImageVector {
+        return when (level) {
+            1 -> Icons.Default.MoodBad
+            2 -> Icons.Default.SentimentDissatisfied
+            3 -> Icons.Default.SentimentNeutral
+            4 -> Icons.Default.Mood
+            5 -> Icons.Default.SentimentSatisfied
+            6 -> Icons.Default.SentimentVerySatisfied
+            else -> Icons.Default.Mood
+        }
+    }
+
     if (showTagDialog) {
         AddTagDialog(
             onDismiss = { showTagDialog = false },
@@ -232,7 +258,8 @@ fun EditorScreen(
                 // Mood button
                 MetadataButton(
                     label = if (selectedMood != null) moodLabels[selectedMood!!] else "心情",
-                    icon = Icons.Default.Mood,
+                    icon = getMoodIcon(selectedMood),
+                    isSelected = selectedMood != null,
                     isActive = activePanel == "mood",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
@@ -243,7 +270,8 @@ fun EditorScreen(
                 // Weather button
                 MetadataButton(
                     label = selectedWeather ?: "天气",
-                    icon = Icons.Default.Cloud,
+                    icon = getWeatherIcon(selectedWeather) ?: Icons.Default.Cloud,
+                    isSelected = selectedWeather != null,
                     isActive = activePanel == "weather",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
@@ -255,6 +283,7 @@ fun EditorScreen(
                 MetadataButton(
                     label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size} 个标签" else "标签",
                     icon = Icons.Default.Sell,
+                    isSelected = selectedTagIds.isNotEmpty(),
                     isActive = activePanel == "tags",
                     accentColor = accentColor,
                     surfaceVariant = surfaceVariant,
@@ -352,7 +381,8 @@ fun EditorScreen(
 @Composable
 private fun MetadataButton(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
+    isSelected: Boolean,
     isActive: Boolean,
     accentColor: Color,
     surfaceVariant: Color,
@@ -360,19 +390,31 @@ private fun MetadataButton(
     textSecondary: Color,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
     val bgColor = if (isActive) accentColor.copy(alpha = 0.12f) else surfaceVariant.copy(alpha = 0.5f)
-    val contentColor = if (isActive) accentColor else textSecondary
+    val contentColor = if (isSelected || isActive) accentColor else textSecondary
     val borderColor = if (isActive) accentColor.copy(alpha = 0.3f) else Color.Transparent
 
     Box(
         modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .then(
                 if (isActive) Modifier.border(1.dp, borderColor, RoundedCornerShape(12.dp))
                 else Modifier
             )
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -389,7 +431,7 @@ private fun MetadataButton(
             Text(
                 text = label,
                 fontSize = 14.sp,
-                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
                 color = contentColor
             )
         }
@@ -493,13 +535,10 @@ private fun EditorToolbar(
                         .background(borderColor)
                 )
 
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     when (activeCategory) {
                         0 -> FormatTools(onFormat, textColor, btnBg)
@@ -516,42 +555,71 @@ private fun EditorToolbar(
 
 private data class ToolbarCategory(val icon: String, val label: String)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    listOf(
-        "B" to "toggleBold()",
-        "I" to "toggleItalic()",
-        "U" to "toggleUnderline()",
-        "S" to "toggleStrike()",
-        "❝" to "toggleBlockquote()",
-        "—" to "insertDivider()"
-    ).forEach { (label, cmd) ->
-        ToolChip(label = label, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(
+            Triple("B", "加粗", "toggleBold()"),
+            Triple("I", "斜体", "toggleItalic()"),
+            Triple("U", "下划线", "toggleUnderline()"),
+            Triple("S", "删除线", "toggleStrike()"),
+            Triple("❝", "引用", "toggleBlockquote()"),
+            Triple("—", "分割线", "insertDivider()")
+        ).forEach { (label, desc, cmd) ->
+            ToolChip(label = label, description = desc, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
+        }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
-    listOf("H1" to 1, "H2" to 2, "H3" to 3, "正文" to 0).forEach { (label, level) ->
-        ToolChip(label = label, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(
+            Triple("H1", "大标题", 1),
+            Triple("H2", "中标题", 2),
+            Triple("H3", "小标题", 3),
+            Triple("正文", "默认", 0)
+        ).forEach { (label, desc, level) ->
+            ToolChip(label = label, description = desc, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
+        }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ListTools(onList: (String) -> Unit, textColor: Color, btnBg: Color) {
-    ToolChip(label = "1.", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
-    ToolChip(label = "•", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolChip(label = "1.", description = "有序列表", onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "•", description = "无序列表", onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
+    }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Color) {
-    listOf(
-        "图片" to "image",
-        "视频" to "video",
-        "音频" to "audio",
-        "链接" to "link"
-    ).forEach { (label, action) ->
-        ToolChip(label = label, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(
+            Triple("图片", "插入图片", "image"),
+            Triple("视频", "插入视频", "video"),
+            Triple("音频", "插入音频", "audio"),
+            Triple("链接", "插入链接", "link")
+        ).forEach { (label, desc, action) ->
+            ToolChip(label = label, description = desc, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
+        }
     }
 }
 
@@ -608,16 +676,33 @@ private fun ColorTools(
 }
 
 @Composable
-private fun ToolChip(label: String, onClick: () -> Unit, textColor: Color, bg: Color) {
+private fun ToolChip(label: String, description: String = "", onClick: () -> Unit, textColor: Color, bg: Color) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.90f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
     Box(
         modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(10.dp))
             .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = label, fontSize = 15.sp, color = textColor)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+            if (description.isNotEmpty()) {
+                Text(text = description, fontSize = 10.sp, color = textColor.copy(alpha = 0.6f))
+            }
+        }
     }
 }
 
