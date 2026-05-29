@@ -2,6 +2,7 @@ package com.diary.app.ui.stats
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,12 +52,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
@@ -156,6 +165,17 @@ fun StatsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             MoodTrendRow(moodTrend)
+                        }
+                    }
+                }
+
+                // Mood line chart
+                if (state.moodTrendPoints.size >= 2) {
+                    item {
+                        SectionTitle(text = "心情曲线")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        GlassCard {
+                            MoodLineChart(points = state.moodTrendPoints)
                         }
                     }
                 }
@@ -393,6 +413,176 @@ private fun MoodTrendRow(trend: MoodTrend) {
             }
         }
     }
+}
+
+// ── Mood line chart ──
+
+@Composable
+private fun MoodLineChart(points: List<MoodPoint>) {
+    if (points.size < 2) return
+
+    val labelWidth = 36.dp
+    val chartHeight = 160.dp
+    val levelLabels = listOf("沮丧", "低落", "平静", "开心", "愉快", "兴奋")
+    val dateFmt = DateTimeFormatter.ofPattern("M/d")
+
+    // Colors for mood levels (matches moodColors in ViewModel)
+    val levelColorMap = mapOf(
+        1 to Color(0xFFE74C3C),
+        2 to Color(0xFFE67E22),
+        3 to Color(0xFFF39C12),
+        4 to Color(0xFF9CCC65),
+        5 to Color(0xFF66BB6A),
+        6 to Color(0xFF2E7D32),
+    )
+
+    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val textAlpha = textColor.alpha
+
+    Row {
+        // Y-axis labels
+        Column(
+            modifier = Modifier
+                .width(labelWidth)
+                .height(chartHeight),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            levelLabels.reversed().forEach { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = textColor,
+                    fontSize = 9.sp
+                )
+            }
+        }
+
+        // Chart canvas (includes x-axis labels drawn natively)
+        Canvas(
+            modifier = Modifier
+                .weight(1f)
+                .height(chartHeight)
+        ) {
+            val w = size.width
+            val h = size.height
+            val padTop = 4.dp.toPx()
+            val padBottom = 18.dp.toPx()
+            val chartH = h - padTop - padBottom
+
+            // Horizontal grid lines for each level
+            for (level in 1..6) {
+                val y = padTop + chartH * (1f - (level - 1) / 5f)
+                drawLine(
+                    color = gridColor,
+                    start = Offset(0f, y),
+                    end = Offset(w, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+
+            // Map data points to pixel positions
+            val startDate = points.first().date
+            val endDate = points.last().date
+            val totalDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate)
+                .coerceAtLeast(1)
+
+            data class PxPoint(val x: Float, val y: Float, val level: Int)
+
+            val pxPoints = points.map { p ->
+                val dayOffset = java.time.temporal.ChronoUnit.DAYS.between(startDate, p.date)
+                val x = if (totalDays > 0) dayOffset.toFloat() / totalDays * w else w / 2f
+                val y = padTop + chartH * (1f - (p.level - 1) / 5f)
+                PxPoint(x, y, p.level)
+            }
+
+            // Draw smooth curve segments with per-segment color
+            for (i in 0 until pxPoints.size - 1) {
+                val p0 = pxPoints[(i - 1).coerceAtLeast(0)]
+                val p1 = pxPoints[i]
+                val p2 = pxPoints[i + 1]
+                val p3 = pxPoints[(i + 2).coerceAtMost(pxPoints.lastIndex)]
+
+                // Catmull-Rom to Bezier control points
+                val cp1x = p1.x + (p2.x - p0.x) / 6f
+                val cp1y = p1.y + (p2.y - p0.y) / 6f
+                val cp2x = p2.x - (p3.x - p1.x) / 6f
+                val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+                val segPath = Path().apply {
+                    moveTo(p1.x, p1.y)
+                    cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+                }
+
+                // Interpolate color between the two endpoint levels
+                val c1 = levelColorMap[p1.level] ?: Color.Gray
+                val c2 = levelColorMap[p2.level] ?: Color.Gray
+                val segColor = lerpColor(c1, c2, 0.5f)
+
+                drawPath(
+                    path = segPath,
+                    color = segColor,
+                    style = Stroke(
+                        width = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+            }
+
+            // Draw dots at data points
+            pxPoints.forEach { p ->
+                val dotColor = levelColorMap[p.level] ?: Color.Gray
+                drawCircle(
+                    color = Color.White,
+                    radius = 4.5.dp.toPx(),
+                    center = Offset(p.x, p.y)
+                )
+                drawCircle(
+                    color = dotColor,
+                    radius = 3.5.dp.toPx(),
+                    center = Offset(p.x, p.y)
+                )
+            }
+
+            // X-axis date labels (draw every 5th point + last)
+            val textPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.argb(
+                    (textAlpha * 255).toInt(),
+                    (textColor.red * 255).toInt(),
+                    (textColor.green * 255).toInt(),
+                    (textColor.blue * 255).toInt()
+                )
+                textSize = 9.sp.toPx()
+                isAntiAlias = true
+            }
+
+            points.forEachIndexed { index, point ->
+                if (index % 5 == 0 || index == points.lastIndex) {
+                    val dayOffset = java.time.temporal.ChronoUnit.DAYS.between(startDate, point.date)
+                    val x = if (totalDays > 0) dayOffset.toFloat() / totalDays * w else w / 2f
+                    val label = point.date.format(dateFmt)
+                    val textW = textPaint.measureText(label)
+                    // Clamp so text doesn't overflow
+                    val drawX = (x - textW / 2f).coerceIn(0f, w - textW)
+                    drawContext.canvas.nativeCanvas.drawText(
+                        label,
+                        drawX,
+                        h - 2.dp.toPx(),
+                        textPaint
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun lerpColor(c1: Color, c2: Color, fraction: Float): Color {
+    val r = c1.red + (c2.red - c1.red) * fraction
+    val g = c1.green + (c2.green - c1.green) * fraction
+    val b = c1.blue + (c2.blue - c1.blue) * fraction
+    val a = c1.alpha + (c2.alpha - c1.alpha) * fraction
+    return Color(r, g, b, a)
 }
 
 // ── Monthly trend chart ──

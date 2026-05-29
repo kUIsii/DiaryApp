@@ -43,9 +43,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Redo
@@ -54,8 +58,10 @@ import androidx.compose.material.icons.filled.SentimentDissatisfied
 import androidx.compose.material.icons.filled.SentimentNeutral
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVerySatisfied
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -119,6 +125,9 @@ fun EditorScreen(
 
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
+
+    // Template selector (only for new entries)
+    var showTemplateSelector by remember { mutableStateOf(diaryId == null) }
 
     // Toolbar state
     var showToolbar by remember { mutableStateOf(true) }
@@ -371,6 +380,21 @@ fun EditorScreen(
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
                 Text(text = dateTitle, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
                 Text(text = timeText, fontSize = 12.sp, color = textSecondary)
+            }
+
+            // Template selector (new entries only)
+            AnimatedVisibility(
+                visible = showTemplateSelector,
+                enter = expandVertically(tween(250)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
+            ) {
+                TemplateSelector(
+                    onTemplateSelected = { template ->
+                        webView?.evaluateJavascript("setTemplate('${template.content.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")}')", null)
+                        showTemplateSelector = false
+                    },
+                    onDismiss = { showTemplateSelector = false }
+                )
             }
 
             // Metadata buttons row
@@ -932,4 +956,112 @@ private fun AddTagDialog(
             TextButton(onClick = onDismiss) { Text("取消") }
         }
     )
+}
+
+private data class DiaryTemplate(val name: String, val icon: ImageVector, val content: String)
+
+private val diaryTemplates = listOf(
+    DiaryTemplate("日常记录", Icons.Default.Today, "今天发生了什么？\n\n印象深刻的事：\n心情：\n想对自己说："),
+    DiaryTemplate("感恩日记", Icons.Default.Favorite, "今天感恩的三件事：\n1. \n2. \n3. \n\n今天的小确幸：\n明天的期待："),
+    DiaryTemplate("读书笔记", Icons.Default.MenuBook, "书名：\n作者：\n\n精彩摘录：\n我的感想：\n推荐指数：/5"),
+    DiaryTemplate("旅行日记", Icons.Default.Flight, "目的地：\n同行者：\n\n今天的经历：\n最喜欢的瞬间：\n美食记录："),
+    DiaryTemplate("工作复盘", Icons.Default.Work, "今日完成：\n遇到的问题：\n解决方案：\n明日计划：\n学到了什么：")
+)
+
+@Composable
+private fun TemplateSelector(
+    onTemplateSelected: (DiaryTemplate) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val accentColor = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "选择模板",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textSecondary
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "关闭",
+                    tint = textSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            diaryTemplates.forEach { template ->
+                TemplateChip(
+                    template = template,
+                    accentColor = accentColor,
+                    surfaceVariant = surfaceVariant,
+                    textSecondary = textSecondary,
+                    onClick = { onTemplateSelected(template) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TemplateChip(
+    template: DiaryTemplate,
+    accentColor: Color,
+    surfaceVariant: Color,
+    textSecondary: Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
+    Row(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(12.dp))
+            .background(surfaceVariant.copy(alpha = 0.5f))
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = template.icon,
+            contentDescription = template.name,
+            tint = accentColor,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = template.name,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = textSecondary
+        )
+    }
 }

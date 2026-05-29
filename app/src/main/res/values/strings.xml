@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">日记</string>
+    <string name="shortcut_new_diary_short">新建日记</string>
+    <string name="shortcut_new_diary_long">快速创建一篇新日记</string>
 </resources>

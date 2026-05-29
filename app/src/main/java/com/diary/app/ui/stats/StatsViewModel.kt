@@ -16,6 +16,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 
 data class MoodStat(
     val level: Int,
@@ -53,6 +54,8 @@ data class WordStats(
     val avgWordsPerEntry: Int,
 )
 
+data class MoodPoint(val date: LocalDate, val level: Int)
+
 data class StatsState(
     val totalEntries: Int = 0,
     val currentStreak: Int = 0,
@@ -64,6 +67,7 @@ data class StatsState(
     val writingHabit: WritingHabit? = null,
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
+    val moodTrendPoints: List<MoodPoint> = emptyList(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -113,6 +117,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
+            moodTrendPoints = computeMoodTrendPoints(entries, zone, now),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -237,6 +242,28 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
+    }
+
+    private fun computeMoodTrendPoints(
+        entries: List<DiaryEntry>,
+        zone: ZoneId,
+        now: LocalDate
+    ): List<MoodPoint> {
+        val start = now.minusDays(29)
+        val entriesWithMood = entries.filter {
+            val d = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
+            !d.isBefore(start) && !d.isAfter(now) && it.moodLevel != null && it.moodLevel in 1..6
+        }
+        // Group by date, take average mood per day, round to nearest int
+        return entriesWithMood
+            .groupBy {
+                Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
+            }
+            .map { (date, list) ->
+                val avg = list.map { it.moodLevel!! }.average().roundToInt().coerceIn(1, 6)
+                MoodPoint(date, avg)
+            }
+            .sortedBy { it.date }
     }
 
     companion object {

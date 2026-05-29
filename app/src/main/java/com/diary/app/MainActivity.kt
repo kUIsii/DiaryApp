@@ -51,7 +51,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        navigateTo.value = intent?.getStringExtra("navigate_to")
+        navigateTo.value = resolveNavigateTo(intent)
         val app = application as DiaryApplication
         setContent {
             val themeMode by app.themeMode.collectAsState()
@@ -192,6 +192,11 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        navigateTo.value = intent.getStringExtra("navigate_to")
+        navigateTo.value = resolveNavigateTo(intent)
+    }
+
+    private fun resolveNavigateTo(intent: Intent?): String? {
+        if (intent?.action == "com.diary.app.NEW_DIARY") return "editor"
+        return intent?.getStringExtra("navigate_to")
     }
 }

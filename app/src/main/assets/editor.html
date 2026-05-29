@@ -112,6 +112,7 @@
             try { quill.setContents(JSON.parse(deltaJSON)); }
             catch(e) { quill.setText(deltaJSON); }
         }
+        function setTemplate(text) { quill.setText(text); }
         function focusEditor() { quill.focus(); }
 
         // Content change callback for word count and auto-save
