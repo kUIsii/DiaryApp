@@ -31,6 +31,7 @@ fun UpdateDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isDownloading) onDismiss() },
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "发现新版本 v$versionName",
