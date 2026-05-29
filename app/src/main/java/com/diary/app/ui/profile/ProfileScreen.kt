@@ -1,5 +1,8 @@
 package com.diary.app.ui.profile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +41,7 @@ import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -45,11 +49,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,13 +74,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryBackup
 import com.diary.app.data.DiaryExporter
 import com.diary.app.data.DiaryImporter
+import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ThemeMode
@@ -81,6 +93,7 @@ import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateDialog
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateToChangelog: () -> Unit = {},
@@ -100,6 +113,56 @@ fun ProfileScreen(
     var isExporting by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
     var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
+
+    // Reminder state
+    var reminderEnabled by remember { mutableStateOf(ReminderManager.isReminderEnabled(context)) }
+    var reminderHour by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).first) }
+    var reminderMinute by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).second) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            ReminderManager.scheduleReminder(context, reminderHour, reminderMinute)
+            reminderEnabled = true
+        } else {
+            Toast.makeText(context, "需要通知权限才能开启提醒", Toast.LENGTH_SHORT).show()
+            reminderEnabled = false
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = reminderHour,
+            initialMinute = reminderMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择提醒时间") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        reminderHour = timePickerState.hour
+                        reminderMinute = timePickerState.minute
+                        ReminderManager.scheduleReminder(context, reminderHour, reminderMinute)
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -344,6 +407,49 @@ fun ProfileScreen(
                                 filePickerLauncher.launch(arrayOf("application/json"))
                             }
                         }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Group: 提醒设置
+            SectionHeader(title = "提醒设置", color = textSecondary)
+            Spacer(modifier = Modifier.height(8.dp))
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    ReminderSettingItem(
+                        enabled = reminderEnabled,
+                        hour = reminderHour,
+                        minute = reminderMinute,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        onToggle = { newValue ->
+                            if (newValue) {
+                                // Check notification permission on API 33+
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    if (ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        ReminderManager.scheduleReminder(context, reminderHour, reminderMinute)
+                                        reminderEnabled = true
+                                    } else {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                } else {
+                                    ReminderManager.scheduleReminder(context, reminderHour, reminderMinute)
+                                    reminderEnabled = true
+                                }
+                            } else {
+                                ReminderManager.cancelReminder(context)
+                                reminderEnabled = false
+                            }
+                        },
+                        onTimeClick = { showTimePicker = true }
                     )
                 }
             }
@@ -715,4 +821,68 @@ private fun SettingDivider() {
             .height(0.5.dp)
             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
     )
+}
+
+@Composable
+private fun ReminderSettingItem(
+    enabled: Boolean,
+    hour: Int,
+    minute: Int,
+    textColor: androidx.compose.ui.graphics.Color,
+    textSecondary: androidx.compose.ui.graphics.Color,
+    textTertiary: androidx.compose.ui.graphics.Color,
+    accentColor: androidx.compose.ui.graphics.Color,
+    onToggle: (Boolean) -> Unit,
+    onTimeClick: () -> Unit
+) {
+    val timeText = String.format("每天 %02d:%02d", hour, minute)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null,
+                tint = textColor.copy(alpha = 0.7f),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "每日提醒",
+                    fontSize = 15.sp,
+                    color = textColor
+                )
+                Text(
+                    text = if (enabled) timeText else "已关闭",
+                    fontSize = 12.sp,
+                    color = textTertiary,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .then(
+                            if (enabled) Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onTimeClick() } else Modifier
+                        )
+                )
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = accentColor,
+                checkedTrackColor = accentColor.copy(alpha = 0.5f)
+            )
+        )
+    }
 }

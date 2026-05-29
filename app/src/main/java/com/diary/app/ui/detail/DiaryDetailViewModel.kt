@@ -25,4 +25,78 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
             _tags.value = dao.getTagInfoForDiary(id)
         }
     }
+
+    fun getShareText(): String? {
+        val currentEntry = _entry.value ?: return null
+        val currentTags = _tags.value
+
+        val entryDate = java.time.Instant.ofEpochMilli(currentEntry.createdAt)
+            .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val entryTime = java.time.Instant.ofEpochMilli(currentEntry.createdAt)
+            .atZone(java.time.ZoneId.systemDefault()).toLocalTime()
+        val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
+        val timeText = entryTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+
+        val moodLabel = currentEntry.moodLevel?.let { level ->
+            when (level.coerceIn(1, 6)) {
+                1 -> "沮丧"
+                2 -> "低落"
+                3 -> "平静"
+                4 -> "开心"
+                5 -> "愉快"
+                6 -> "兴奋"
+                else -> "平静"
+            }
+        }
+
+        val weatherLabel = currentEntry.weather?.let { weather ->
+            when (weather) {
+                "晴", "晴天" -> "晴天"
+                "多云" -> "多云"
+                "阴", "阴天" -> "阴天"
+                "雨", "雨天" -> "雨天"
+                "雷", "雷暴" -> "雷暴"
+                "风", "大风" -> "大风"
+                else -> weather
+            }
+        }
+
+        val sb = StringBuilder()
+        sb.appendLine("$dateText $timeText")
+
+        val metaLine = listOfNotNull(
+            moodLabel?.let { "心情: $it" },
+            weatherLabel?.let { "天气: $it" }
+        ).joinToString(" | ")
+        if (metaLine.isNotEmpty()) {
+            sb.appendLine(metaLine)
+        }
+
+        sb.appendLine()
+
+        // Strip HTML tags for plain text
+        val plainContent = currentEntry.content
+            .replace(Regex("<[^>]*>"), "")
+            .replace(Regex("&[a-zA-Z]+;"), "")
+            .trim()
+        if (plainContent.isNotBlank()) {
+            sb.appendLine(plainContent)
+        }
+
+        sb.appendLine()
+        sb.appendLine("---")
+        if (currentTags.isNotEmpty()) {
+            sb.appendLine("标签: ${currentTags.joinToString(", ") { it.name }}")
+        }
+        sb.append("来自 日记本 App")
+
+        return sb.toString()
+    }
+
+    fun getDateTitle(): String {
+        val currentEntry = _entry.value ?: return ""
+        val entryDate = java.time.Instant.ofEpochMilli(currentEntry.createdAt)
+            .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        return "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
+    }
 }

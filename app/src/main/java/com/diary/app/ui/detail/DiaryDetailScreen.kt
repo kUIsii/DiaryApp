@@ -1,6 +1,7 @@
 package com.diary.app.ui.detail
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.SentimentDissatisfied
@@ -120,6 +122,25 @@ fun DiaryDetailScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary)
                 }
                 Spacer(modifier = Modifier.weight(1f))
+                IconButton(onClick = {
+                    val shareText = viewModel.getShareText()
+                    if (shareText != null) {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            putExtra(Intent.EXTRA_SUBJECT, "日记 - ${viewModel.getDateTitle()}")
+                        }
+                        context.startActivity(Intent.createChooser(intent, "分享日记"))
+                    }
+                }) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = "分享",
+                        tint = textSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
                 IconButton(onClick = { onNavigateToEditor(diaryId) }) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
