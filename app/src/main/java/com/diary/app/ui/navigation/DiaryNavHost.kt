@@ -1,33 +1,58 @@
 package com.diary.app.ui.navigation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.Badge
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -44,70 +69,66 @@ import com.diary.app.ui.profile.TagManagementScreen
 import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.update.ChangelogScreen
 
+// region Screen definitions
+
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Home : Screen("home", "首页", Icons.Default.DateRange)
-    object Map : Screen("map", "时间线", Icons.Default.Timeline)
-    object Stats : Screen("stats", "统计", Icons.Default.BarChart)
-    object Profile : Screen("profile", "我的", Icons.Default.Person)
-    object Editor : Screen("editor?diaryId={diaryId}", "编辑日记", Icons.Default.DateRange) {
+    object Home : Screen("home", "\u9996\u9875", Icons.Default.Home)
+    object Map : Screen("map", "\u65f6\u95f4\u7ebf", Icons.Default.Timeline)
+    object Stats : Screen("stats", "\u7edf\u8ba1", Icons.Default.BarChart)
+    object Profile : Screen("profile", "\u6211\u7684", Icons.Default.Person)
+    object Editor : Screen("editor?diaryId={diaryId}", "\u7f16\u8f91\u65e5\u8bb0", Icons.Default.Home) {
         fun createRoute(diaryId: Long? = null): String {
             return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
         }
     }
-    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.DateRange) {
+    object Detail : Screen("detail/{diaryId}", "\u65e5\u8bb0\u8be6\u60c5", Icons.Default.Home) {
         fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
-    object Changelog : Screen("changelog", "更新日志", Icons.Default.DateRange)
-    object TagManagement : Screen("tag_management", "分类管理", Icons.Default.DateRange)
+    object Changelog : Screen("changelog", "\u66f4\u65b0\u65e5\u5fd7", Icons.Default.Home)
+    object TagManagement : Screen("tag_management", "\u5206\u7c7b\u7ba1\u7406", Icons.Default.Home)
 }
 
-val bottomNavItems = listOf(Screen.Home, Screen.Map, Screen.Stats, Screen.Profile)
+// endregion
+
+// region Bottom navigation item with badge support
+
+data class BottomNavItem(
+    val screen: Screen,
+    val badgeCount: Int = 0,
+    val showBadge: Boolean = false
+)
+
+val bottomNavItems = listOf(
+    BottomNavItem(Screen.Home),
+    BottomNavItem(Screen.Map),
+    BottomNavItem(Screen.Stats),
+    BottomNavItem(Screen.Profile)
+)
+
+// endregion
 
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val navController = rememberNavController()
-    val surfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
-            val showBottomBar = currentDestination?.route in bottomNavItems.map { it.route }
+            val showBottomBar = currentDestination?.route in bottomNavItems.map { it.screen.route }
 
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = Color.Transparent,
-                    modifier = Modifier.drawBehind {
-                        drawLine(
-                            color = surfaceVariant.copy(alpha = 0.12f),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 1.dp.toPx()
-                        )
+                DiaryBottomNavigationBar(
+                    items = bottomNavItems,
+                    currentRoute = currentDestination?.route,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                ) {
-                    bottomNavItems.forEach { screen ->
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            )
-                        )
-                    }
-                }
+                )
             }
         }
     ) { innerPadding ->
@@ -123,30 +144,32 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { fullWidth -> fullWidth / 4 },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
+                slideInVertically(
+                    initialOffsetY = { it / 3 },
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                ) + fadeIn(animationSpec = tween(200))
             },
             exitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { fullWidth -> -fullWidth / 4 },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                slideOutVertically(
+                    targetOffsetY = { -it / 3 },
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                ) + fadeOut(animationSpec = tween(200))
             },
             popEnterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { fullWidth -> -fullWidth / 4 },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300))
+                slideInVertically(
+                    initialOffsetY = { -it / 3 },
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                ) + fadeIn(animationSpec = tween(200))
             },
             popExitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { fullWidth -> fullWidth / 4 },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                slideOutVertically(
+                    targetOffsetY = { it / 3 },
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                ) + fadeOut(animationSpec = tween(200))
             }
         ) {
+            // region Bottom nav destinations
+
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
@@ -166,17 +189,49 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) }
                 )
             }
+
+            // endregion
+
+            // region Secondary destinations
+
             composable(Screen.Changelog.route) {
                 ChangelogScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(Screen.TagManagement.route) {
                 TagManagementScreen(onNavigateBack = { navController.popBackStack() })
             }
+
+            // endregion
+
+            // region Full-screen slide destinations (Editor & Detail)
+
             composable(
                 route = Screen.Editor.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }),
-                enterTransition = { fadeIn(animationSpec = tween(200)) },
-                exitTransition = { fadeOut(animationSpec = tween(200)) }
+                enterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeIn(animationSpec = tween(200))
+                },
+                exitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeOut(animationSpec = tween(200))
+                },
+                popEnterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeIn(animationSpec = tween(200))
+                },
+                popExitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeOut(animationSpec = tween(200))
+                }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
                 EditorScreen(
@@ -187,8 +242,30 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(
                 route = Screen.Detail.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType }),
-                enterTransition = { fadeIn(animationSpec = tween(200)) },
-                exitTransition = { fadeOut(animationSpec = tween(200)) }
+                enterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeIn(animationSpec = tween(200))
+                },
+                exitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeOut(animationSpec = tween(200))
+                },
+                popEnterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeIn(animationSpec = tween(200))
+                },
+                popExitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                    ) + fadeOut(animationSpec = tween(200))
+                }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
                 DiaryDetailScreen(
@@ -199,6 +276,161 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     }
                 )
             }
+
+            // endregion
         }
     }
 }
+
+// region Custom bottom navigation bar
+
+@Composable
+private fun DiaryBottomNavigationBar(
+    items: List<BottomNavItem>,
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
+    Surface(
+        color = surfaceColor.copy(alpha = 0.85f),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .drawBehind {
+                    drawLine(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.05f),
+                                primaryColor.copy(alpha = 0.35f),
+                                primaryColor.copy(alpha = 0.05f)
+                            )
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, 0f),
+                        strokeWidth = 1.5.dp.toPx()
+                    )
+                }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(76.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEach { item ->
+                    DiaryBottomNavItem(
+                        item = item,
+                        isSelected = currentRoute == item.screen.route,
+                        onClick = { onNavigate(item.screen.route) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DiaryBottomNavItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.15f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        label = "iconScale"
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (isSelected) primaryColor else onSurfaceVariant,
+        animationSpec = tween(200),
+        label = "iconColor"
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (isSelected) primaryColor else onSurfaceVariant,
+        animationSpec = tween(200),
+        label = "textColor"
+    )
+    val indicatorWidth by animateDpAsState(
+        targetValue = if (isSelected) 20.dp else 0.dp,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        label = "indicatorWidth"
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(contentAlignment = Alignment.TopEnd) {
+                Icon(
+                    imageVector = item.screen.icon,
+                    contentDescription = item.screen.title,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                        }
+                )
+
+                // Badge support
+                if (item.showBadge) {
+                    Badge {
+                        if (item.badgeCount > 0) {
+                            Text(
+                                text = if (item.badgeCount > 99) "99+" else item.badgeCount.toString()
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = item.screen.title,
+                color = textColor,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Animated indicator bar
+            Box(
+                modifier = Modifier
+                    .width(indicatorWidth)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(1.5.dp))
+                    .background(primaryColor)
+            )
+        }
+    }
+}
+
+// endregion

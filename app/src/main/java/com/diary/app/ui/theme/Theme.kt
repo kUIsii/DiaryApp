@@ -7,10 +7,32 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+// Extended colors for semantic & gradient access via CompositionLocal
+data class ExtendedColors(
+    val success: Color,
+    val warning: Color,
+    val info: Color,
+    val gradientStart: Color,
+    val gradientEnd: Color
+)
+
+val LocalExtendedColors = staticCompositionLocalOf {
+    ExtendedColors(
+        success = SuccessColor,
+        warning = WarningColor,
+        info = InfoColor,
+        gradientStart = LightAccentStart,
+        gradientEnd = LightAccentEnd
+    )
+}
+
+// ---- Light mode color schemes ----
 
 private val GradientLightColorScheme = lightColorScheme(
     primary = LightAccentStart,
@@ -19,27 +41,13 @@ private val GradientLightColorScheme = lightColorScheme(
     onPrimaryContainer = Color.White,
     secondary = LightAccentEnd,
     onSecondary = Color.White,
+    error = ErrorColor,
     background = LightBackgroundStart,
     onBackground = LightTextPrimary,
     surface = LightSurface,
     onSurface = LightTextPrimary,
     surfaceVariant = LightCardBackground,
     onSurfaceVariant = LightTextSecondary,
-)
-
-private val GradientDarkColorScheme = darkColorScheme(
-    primary = DarkAccentStart,
-    onPrimary = Color.White,
-    primaryContainer = DarkAccentStart,
-    onPrimaryContainer = Color.White,
-    secondary = DarkAccentEnd,
-    onSecondary = Color.White,
-    background = DarkBackgroundStart,
-    onBackground = DarkTextPrimary,
-    surface = DarkSurface,
-    onSurface = DarkTextPrimary,
-    surfaceVariant = DarkCardBackground,
-    onSurfaceVariant = DarkTextSecondary,
 )
 
 private val PureLightColorScheme = lightColorScheme(
@@ -49,12 +57,31 @@ private val PureLightColorScheme = lightColorScheme(
     onPrimaryContainer = Color.White,
     secondary = LightAccentEnd,
     onSecondary = Color.White,
+    error = ErrorColor,
     background = PureLightBackground,
     onBackground = Color(0xFF1A1A2E),
     surface = PureLightSurface,
     onSurface = Color(0xFF1A1A2E),
     surfaceVariant = PureLightCardBackground,
     onSurfaceVariant = Color(0xFF666680),
+)
+
+// ---- Dark mode color schemes (3-color gradient background, improved contrast) ----
+
+private val GradientDarkColorScheme = darkColorScheme(
+    primary = DarkAccentStart,
+    onPrimary = Color.White,
+    primaryContainer = DarkAccentStart,
+    onPrimaryContainer = Color.White,
+    secondary = DarkAccentEnd,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = DarkBackgroundStart,
+    onBackground = Color(0xF0FFFFFF),
+    surface = Color(0x14FFFFFF), // 0.08f alpha
+    onSurface = Color(0xF0FFFFFF),
+    surfaceVariant = DarkCardBackground,
+    onSurfaceVariant = Color(0xB3FFFFFF), // improved contrast 0.7
 )
 
 private val PureDarkColorScheme = darkColorScheme(
@@ -64,12 +91,31 @@ private val PureDarkColorScheme = darkColorScheme(
     onPrimaryContainer = Color.White,
     secondary = DarkAccentEnd,
     onSecondary = Color.White,
+    error = ErrorColor,
     background = PureDarkBackground,
-    onBackground = Color(0xFFE6E6E6),
-    surface = PureDarkSurface,
-    onSurface = Color(0xFFE6E6E6),
+    onBackground = Color(0xF0FFFFFF),
+    surface = Color(0x14FFFFFF), // 0.08f alpha
+    onSurface = Color(0xF0FFFFFF),
     surfaceVariant = PureDarkCardBackground,
-    onSurfaceVariant = Color(0xFF888888),
+    onSurfaceVariant = Color(0xB3FFFFFF), // improved contrast 0.7
+)
+
+// ---- Extended color presets per theme variant ----
+
+private val LightExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = LightAccentStart,
+    gradientEnd = LightAccentEnd
+)
+
+private val DarkExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = DarkAccentStart,
+    gradientEnd = DarkAccentEnd
 )
 
 @Composable
@@ -85,6 +131,8 @@ fun DiaryAppTheme(
         ThemeMode.SYSTEM -> if (isDark) GradientDarkColorScheme else GradientLightColorScheme
     }
 
+    val extendedColors = if (isDark) DarkExtendedColors else LightExtendedColors
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -94,7 +142,10 @@ fun DiaryAppTheme(
         }
     }
 
-    CompositionLocalProvider(LocalThemeMode provides themeMode) {
+    CompositionLocalProvider(
+        LocalThemeMode provides themeMode,
+        LocalExtendedColors provides extendedColors
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

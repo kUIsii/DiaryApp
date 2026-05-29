@@ -7,8 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,33 +20,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.MoodBad
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.SentimentDissatisfied
-import androidx.compose.material.icons.filled.SentimentNeutral
-import androidx.compose.material.icons.filled.SentimentSatisfied
-import androidx.compose.material.icons.filled.SentimentVerySatisfied
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.Umbrella
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Weekend
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,17 +52,22 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodIconForLevel
+import com.diary.app.ui.components.weatherIconForType
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel = viewModel()
@@ -109,20 +104,31 @@ fun StatsScreen(
                     ) {
                         OverviewCard(
                             label = "总日记",
-                            value = "${state.totalEntries}",
+                            value = state.totalEntries,
+                            icon = Icons.Default.Edit,
+                            gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2)),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
                             label = "连续天数",
-                            value = "${state.currentStreak}",
+                            value = state.currentStreak,
+                            icon = Icons.Default.LocalFireDepartment,
+                            gradientColors = listOf(Color(0xFFf093fb), Color(0xFFf5576c)),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
                             label = "本月",
-                            value = "${state.thisMonthEntries}",
+                            value = state.thisMonthEntries,
+                            icon = Icons.Default.CalendarMonth,
+                            gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe)),
                             modifier = Modifier.weight(1f)
                         )
                     }
+                }
+
+                // Writing calendar heatmap
+                item {
+                    WritingCalendarHeatmap(moodPoints = state.moodTrendPoints)
                 }
 
                 // Word count stats
@@ -131,28 +137,60 @@ fun StatsScreen(
                         SectionTitle(text = "文字统计")
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                WordStatItem(
-                                    icon = Icons.Default.TextSnippet,
-                                    label = "总字数",
-                                    value = formatWordCount(wordStats.totalWords)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(40.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    WordStatItem(
+                                        icon = Icons.Default.TextSnippet,
+                                        label = "总字数",
+                                        value = formatWordCount(wordStats.totalWords)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(1.dp)
+                                            .height(40.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
+                                            )
+                                    )
+                                    WordStatItem(
+                                        icon = Icons.Default.Edit,
+                                        label = "篇均字数",
+                                        value = "${wordStats.avgWordsPerEntry}"
+                                    )
+                                }
+                                if (state.moodTrendPoints.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.TextSnippet,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
-                                )
-                                WordStatItem(
-                                    icon = Icons.Default.Edit,
-                                    label = "篇均字数",
-                                    value = "${wordStats.avgWordsPerEntry}"
-                                )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "最近30天写了 ${state.moodTrendPoints.size} 篇日记",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -194,9 +232,7 @@ fun StatsScreen(
                     item {
                         SectionTitle(text = "写作习惯")
                         Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            WritingHabitSection(habit)
-                        }
+                        WritingHabitSection(habit)
                     }
                 }
 
@@ -212,7 +248,7 @@ fun StatsScreen(
                                     count = mood.count,
                                     color = mood.color,
                                     maxCount = state.moodDistribution.maxOfOrNull { it.count } ?: 1,
-                                    icon = moodIconForLevel(mood.level)
+                                    level = mood.level
                                 )
                             }
                         }
@@ -244,15 +280,14 @@ fun StatsScreen(
                         SectionTitle(text = "标签统计")
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                state.tagUsage.take(12).forEach { tag ->
-                                    TagChip(
+                            val maxTagCount = state.tagUsage.maxOfOrNull { it.count } ?: 1
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                state.tagUsage.take(12).sortedByDescending { it.count }.forEach { tag ->
+                                    TagRow(
                                         name = tag.name,
                                         color = Color(tag.color),
-                                        count = tag.count
+                                        count = tag.count,
+                                        maxCount = maxTagCount
                                     )
                                 }
                             }
@@ -296,28 +331,77 @@ private fun EmptyState() {
     }
 }
 
+// ── Animated number counter ──
+
+@Composable
+private fun AnimatedCounter(
+    targetValue: Int,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
+    fontWeight: FontWeight = FontWeight.Bold,
+    color: Color = Color.White
+) {
+    var currentValue by remember { mutableIntStateOf(0) }
+    LaunchedEffect(targetValue) {
+        if (targetValue == 0) {
+            currentValue = 0
+            return@LaunchedEffect
+        }
+        val steps = 20
+        val stepDelay = 30L
+        for (i in 0..steps) {
+            currentValue = (targetValue * i / steps)
+            delay(stepDelay)
+        }
+        currentValue = targetValue
+    }
+    Text(
+        text = "$currentValue",
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
+        modifier = modifier
+    )
+}
+
+// ── Overview card with gradient ──
+
 @Composable
 private fun OverviewCard(
     label: String,
-    value: String,
+    value: Int,
+    icon: ImageVector,
+    gradientColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
-    GlassCard(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(gradientColors))
+            .padding(14.dp)
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = Color.White.copy(alpha = 0.85f)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            AnimatedCounter(
+                targetValue = value,
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp),
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.8f)
             )
         }
     }
@@ -331,6 +415,90 @@ private fun SectionTitle(text: String) {
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface
     )
+}
+
+// ── Writing calendar heatmap ──
+
+@Composable
+private fun WritingCalendarHeatmap(moodPoints: List<MoodPoint>) {
+    val today = LocalDate.now()
+    val weeksToShow = 12
+    val daysToShow = weeksToShow * 7
+    val startDate = today.minusDays((daysToShow - 1).toLong())
+    val alignedStart = startDate.with(DayOfWeek.MONDAY)
+
+    val entryDates = moodPoints.map { it.date }.toSet()
+
+    val cellSize = 16.dp
+    val cellGap = 3.dp
+    val weekdays = listOf("一", "二", "三", "四", "五", "六", "日")
+    val accentColor = MaterialTheme.colorScheme.primary
+    val emptyColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
+
+    GlassCard {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "写作日历",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "最近12周",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row {
+                Column(
+                    modifier = Modifier.padding(end = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(cellGap)
+                ) {
+                    weekdays.forEach { day ->
+                        Box(
+                            modifier = Modifier.size(cellSize),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = day,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 8.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                for (week in 0 until weeksToShow) {
+                    Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
+                        for (dayOfWeek in 0 until 7) {
+                            val date = alignedStart.plusDays((week * 7 + dayOfWeek).toLong())
+                            val hasEntry = entryDates.contains(date)
+                            val isFuture = date.isAfter(today)
+                            Box(
+                                modifier = Modifier
+                                    .size(cellSize)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(
+                                        when {
+                                            isFuture -> emptyColor.copy(alpha = 0.04f)
+                                            hasEntry -> accentColor
+                                            else -> emptyColor
+                                        }
+                                    )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(cellGap))
+                }
+            }
+        }
+    }
 }
 
 // ── Word count ──
@@ -415,7 +583,7 @@ private fun MoodTrendRow(trend: MoodTrend) {
     }
 }
 
-// ── Mood line chart ──
+// ── Mood line chart with gradient fill ──
 
 @Composable
 private fun MoodLineChart(points: List<MoodPoint>) {
@@ -426,7 +594,6 @@ private fun MoodLineChart(points: List<MoodPoint>) {
     val levelLabels = listOf("沮丧", "低落", "平静", "开心", "愉快", "兴奋")
     val dateFmt = DateTimeFormatter.ofPattern("M/d")
 
-    // Colors for mood levels (matches moodColors in ViewModel)
     val levelColorMap = mapOf(
         1 to Color(0xFFE74C3C),
         2 to Color(0xFFE67E22),
@@ -439,9 +606,9 @@ private fun MoodLineChart(points: List<MoodPoint>) {
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val textAlpha = textColor.alpha
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Row {
-        // Y-axis labels
         Column(
             modifier = Modifier
                 .width(labelWidth)
@@ -458,7 +625,6 @@ private fun MoodLineChart(points: List<MoodPoint>) {
             }
         }
 
-        // Chart canvas (includes x-axis labels drawn natively)
         Canvas(
             modifier = Modifier
                 .weight(1f)
@@ -470,7 +636,6 @@ private fun MoodLineChart(points: List<MoodPoint>) {
             val padBottom = 18.dp.toPx()
             val chartH = h - padTop - padBottom
 
-            // Horizontal grid lines for each level
             for (level in 1..6) {
                 val y = padTop + chartH * (1f - (level - 1) / 5f)
                 drawLine(
@@ -481,29 +646,62 @@ private fun MoodLineChart(points: List<MoodPoint>) {
                 )
             }
 
-            // Map data points to pixel positions
             val startDate = points.first().date
             val endDate = points.last().date
-            val totalDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate)
+            val totalDays = ChronoUnit.DAYS.between(startDate, endDate)
                 .coerceAtLeast(1)
 
             data class PxPoint(val x: Float, val y: Float, val level: Int)
 
             val pxPoints = points.map { p ->
-                val dayOffset = java.time.temporal.ChronoUnit.DAYS.between(startDate, p.date)
+                val dayOffset = ChronoUnit.DAYS.between(startDate, p.date)
                 val x = if (totalDays > 0) dayOffset.toFloat() / totalDays * w else w / 2f
                 val y = padTop + chartH * (1f - (p.level - 1) / 5f)
                 PxPoint(x, y, p.level)
             }
 
-            // Draw smooth curve segments with per-segment color
+            // Gradient fill under curve
+            val fillPath = Path().apply {
+                moveTo(pxPoints.first().x, h - padBottom)
+                for (i in 0 until pxPoints.size - 1) {
+                    val p0 = pxPoints[(i - 1).coerceAtLeast(0)]
+                    val p1 = pxPoints[i]
+                    val p2 = pxPoints[i + 1]
+                    val p3 = pxPoints[(i + 2).coerceAtMost(pxPoints.lastIndex)]
+
+                    val cp1x = p1.x + (p2.x - p0.x) / 6f
+                    val cp1y = p1.y + (p2.y - p0.y) / 6f
+                    val cp2x = p2.x - (p3.x - p1.x) / 6f
+                    val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+                    if (i == 0) lineTo(p1.x, p1.y)
+                    cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+                }
+                lineTo(pxPoints.last().x, h - padBottom)
+                close()
+            }
+
+            val avgLevel = points.map { it.level }.average().roundToInt().coerceIn(1, 6)
+            val fillColor = levelColorMap[avgLevel] ?: primaryColor
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        fillColor.copy(alpha = 0.3f),
+                        fillColor.copy(alpha = 0.05f)
+                    ),
+                    startY = padTop,
+                    endY = h - padBottom
+                )
+            )
+
+            // Curve segments
             for (i in 0 until pxPoints.size - 1) {
                 val p0 = pxPoints[(i - 1).coerceAtLeast(0)]
                 val p1 = pxPoints[i]
                 val p2 = pxPoints[i + 1]
                 val p3 = pxPoints[(i + 2).coerceAtMost(pxPoints.lastIndex)]
 
-                // Catmull-Rom to Bezier control points
                 val cp1x = p1.x + (p2.x - p0.x) / 6f
                 val cp1y = p1.y + (p2.y - p0.y) / 6f
                 val cp2x = p2.x - (p3.x - p1.x) / 6f
@@ -514,7 +712,6 @@ private fun MoodLineChart(points: List<MoodPoint>) {
                     cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
                 }
 
-                // Interpolate color between the two endpoint levels
                 val c1 = levelColorMap[p1.level] ?: Color.Gray
                 val c2 = levelColorMap[p2.level] ?: Color.Gray
                 val segColor = lerpColor(c1, c2, 0.5f)
@@ -523,29 +720,29 @@ private fun MoodLineChart(points: List<MoodPoint>) {
                     path = segPath,
                     color = segColor,
                     style = Stroke(
-                        width = 2.5.dp.toPx(),
+                        width = 3.dp.toPx(),
                         cap = StrokeCap.Round,
                         join = StrokeJoin.Round
                     )
                 )
             }
 
-            // Draw dots at data points
+            // Data point dots
             pxPoints.forEach { p ->
                 val dotColor = levelColorMap[p.level] ?: Color.Gray
                 drawCircle(
                     color = Color.White,
-                    radius = 4.5.dp.toPx(),
+                    radius = 5.5.dp.toPx(),
                     center = Offset(p.x, p.y)
                 )
                 drawCircle(
                     color = dotColor,
-                    radius = 3.5.dp.toPx(),
+                    radius = 5.dp.toPx(),
                     center = Offset(p.x, p.y)
                 )
             }
 
-            // X-axis date labels (draw every 5th point + last)
+            // X-axis labels
             val textPaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.argb(
                     (textAlpha * 255).toInt(),
@@ -559,11 +756,10 @@ private fun MoodLineChart(points: List<MoodPoint>) {
 
             points.forEachIndexed { index, point ->
                 if (index % 5 == 0 || index == points.lastIndex) {
-                    val dayOffset = java.time.temporal.ChronoUnit.DAYS.between(startDate, point.date)
+                    val dayOffset = ChronoUnit.DAYS.between(startDate, point.date)
                     val x = if (totalDays > 0) dayOffset.toFloat() / totalDays * w else w / 2f
                     val label = point.date.format(dateFmt)
                     val textW = textPaint.measureText(label)
-                    // Clamp so text doesn't overflow
                     val drawX = (x - textW / 2f).coerceIn(0f, w - textW)
                     drawContext.canvas.nativeCanvas.drawText(
                         label,
@@ -585,7 +781,7 @@ private fun lerpColor(c1: Color, c2: Color, fraction: Float): Color {
     return Color(r, g, b, a)
 }
 
-// ── Monthly trend chart ──
+// ── Monthly trend chart with rounded bars ──
 
 @Composable
 private fun MonthlyTrendChart(data: List<MonthTrend>) {
@@ -611,7 +807,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                 val barColor = if (isCurrentMonth)
                     MaterialTheme.colorScheme.primary
                 else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -621,6 +817,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                         Text(
                             text = "${month.count}",
                             style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
@@ -629,10 +826,10 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                         modifier = Modifier
                             .width(24.dp)
                             .fillMaxHeight(animatedFraction.coerceAtLeast(0.02f))
-                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(barColor.copy(alpha = 0.6f), barColor)
+                                    colors = listOf(barColor.copy(alpha = 0.5f), barColor)
                                 )
                             )
                     )
@@ -650,69 +847,88 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
 }
 
-// ── Writing habit ──
+// ── Writing habit with individual cards ──
 
 @Composable
 private fun WritingHabitSection(habit: WritingHabit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        HabitRow(
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        HabitCard(
             icon = Icons.Default.Edit,
-            label = "平均每周写作",
-            value = "${String.format("%.1f", habit.avgPerWeek)} 篇"
+            label = "每周写作",
+            value = "${String.format("%.1f", habit.avgPerWeek)} 篇",
+            modifier = Modifier.weight(1f)
         )
-        HabitRow(
+        HabitCard(
             icon = Icons.Default.Weekend,
-            label = "最活跃的一天",
-            value = habit.mostActiveDay
+            label = "最活跃日",
+            value = habit.mostActiveDay,
+            modifier = Modifier.weight(1f)
         )
-        HabitRow(
+        HabitCard(
             icon = Icons.Default.Schedule,
-            label = "最活跃的时段",
-            value = habit.mostActiveTime
+            label = "活跃时段",
+            value = habit.mostActiveTime,
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-private fun HabitRow(
+private fun HabitCard(
     icon: ImageVector,
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+    val primaryColor = MaterialTheme.colorScheme.primary
+    GlassCard(modifier = modifier) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(primaryColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = primaryColor
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
-// ── Existing composables ──
+// ── Mood bar with icon and gradient ──
 
 @Composable
 private fun MoodBar(
@@ -720,7 +936,7 @@ private fun MoodBar(
     count: Int,
     color: Color,
     maxCount: Int,
-    icon: ImageVector
+    level: Int
 ) {
     val fraction = if (maxCount > 0) count.toFloat() / maxCount else 0f
     val animatedFraction by animateFloatAsState(
@@ -729,15 +945,17 @@ private fun MoodBar(
         label = "moodBar"
     )
 
+    val iconData = moodIconForLevel(level)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
         Icon(
-            imageVector = icon,
+            imageVector = iconData.icon,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
-            tint = color
+            tint = iconData.tint
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -750,18 +968,18 @@ private fun MoodBar(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(color.copy(alpha = 0.12f))
+                .height(20.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(color.copy(alpha = 0.1f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(animatedFraction)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(color.copy(alpha = 0.7f), color)
+                            colors = listOf(color.copy(alpha = 0.6f), color)
                         )
                     )
             )
@@ -808,18 +1026,25 @@ private fun WeatherRow(
     }
 }
 
+// ── Tag row with progress bar ──
+
 @Composable
-private fun TagChip(
+private fun TagRow(
     name: String,
     color: Color,
-    count: Int
+    count: Int,
+    maxCount: Int
 ) {
+    val fraction = if (maxCount > 0) count.toFloat() / maxCount else 0f
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = tween(durationMillis = 500),
+        label = "tagBar"
+    )
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Box(
             modifier = Modifier
@@ -827,39 +1052,36 @@ private fun TagChip(
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = name,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.width(60.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.1f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(animatedFraction)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(color.copy(alpha = 0.6f))
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = "$count",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(24.dp),
+            textAlign = TextAlign.End
         )
     }
-}
-
-private fun moodIconForLevel(level: Int): ImageVector = when (level) {
-    1 -> Icons.Default.MoodBad
-    2 -> Icons.Default.SentimentDissatisfied
-    3 -> Icons.Default.SentimentNeutral
-    4 -> Icons.Default.Mood
-    5 -> Icons.Default.SentimentSatisfied
-    6 -> Icons.Default.SentimentVerySatisfied
-    else -> Icons.Default.SentimentNeutral
-}
-
-private fun weatherIconForType(type: String): ImageVector = when (type) {
-    "晴" -> Icons.Default.WbSunny
-    "多云" -> Icons.Default.Cloud
-    "阴" -> Icons.Default.CloudQueue
-    "雨" -> Icons.Default.Umbrella
-    "雪" -> Icons.Default.AcUnit
-    "风" -> Icons.Default.Air
-    "雷雨" -> Icons.Default.Thunderstorm
-    "炎热" -> Icons.Default.LocalFireDepartment
-    else -> Icons.Default.WbSunny
 }
