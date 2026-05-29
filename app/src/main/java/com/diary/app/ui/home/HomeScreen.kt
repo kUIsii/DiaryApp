@@ -1,9 +1,12 @@
 package com.diary.app.ui.home
 
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Search
@@ -40,6 +44,9 @@ import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -185,10 +193,11 @@ fun HomeScreen(
                     item { EmptyState() }
                 } else {
                     items(entries, key = { it.id }) { entry ->
-                        SwipeableDiaryCard(
+                        DiaryCardWithContextMenu(
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
                             onClick = { onNavigateToDetail(entry.id) },
+                            onEdit = { onNavigateToEditor(entry.id) },
                             onDelete = { entryToDelete = entry }
                         )
                     }
@@ -344,12 +353,95 @@ private fun EmptyState() {
     }
 }
 
+@Composable
+private fun DiaryCardWithContextMenu(
+    entry: DiaryEntry,
+    tags: List<TagInfo>,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    var showContextMenu by remember { mutableStateOf(false) }
+
+    Box {
+        SwipeableDiaryCard(
+            entry = entry,
+            tags = tags,
+            onClick = onClick,
+            onLongClick = { showContextMenu = true },
+            onDelete = onDelete
+        )
+
+        DropdownMenu(
+            expanded = showContextMenu,
+            onDismissRequest = { showContextMenu = false },
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            DropdownMenuItem(
+                text = { Text("编辑") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                onClick = {
+                    showContextMenu = false
+                    onEdit()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("分享") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                onClick = {
+                    showContextMenu = false
+                    val shareText = formatShareText(entry)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        putExtra(Intent.EXTRA_SUBJECT, "日记")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "分享日记"))
+                }
+            )
+            Divider()
+            DropdownMenuItem(
+                text = {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    showContextMenu = false
+                    onDelete()
+                }
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableDiaryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onDelete: () -> Unit
 ) {
     val dismissState = rememberDismissState(
@@ -386,18 +478,21 @@ private fun SwipeableDiaryCard(
             DiaryCard(
                 entry = entry,
                 tags = tags,
-                onClick = onClick
+                onClick = onClick,
+                onLongClick = onLongClick
             )
         },
         directions = setOf(DismissDirection.EndToStart)
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DiaryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -417,10 +512,11 @@ private fun DiaryCard(
                 scaleX = scale
                 scaleY = scale
             }
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = onClick,
+                onLongClick = onLongClick
             )
     ) {
         Column {
@@ -561,4 +657,58 @@ private fun formatCardDate(timestamp: Long): String {
             entryDate.format(formatter)
         }
     }
+}
+
+private fun formatShareText(entry: DiaryEntry): String {
+    val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
+    val entryTime = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).toLocalTime()
+    val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
+    val timeText = entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+    val moodLabel = entry.moodLevel?.let { level ->
+        when (level.coerceIn(1, 6)) {
+            1 -> "沮丧"
+            2 -> "低落"
+            3 -> "平静"
+            4 -> "开心"
+            5 -> "愉快"
+            6 -> "兴奋"
+            else -> "平静"
+        }
+    }
+
+    val weatherLabel = entry.weather?.let { weather ->
+        when (weather) {
+            "晴", "晴天" -> "晴天"
+            "多云" -> "多云"
+            "阴", "阴天" -> "阴天"
+            "雨", "雨天" -> "雨天"
+            "雷", "雷暴" -> "雷暴"
+            "风", "大风" -> "大风"
+            else -> weather
+        }
+    }
+
+    val sb = StringBuilder()
+    sb.appendLine("$dateText $timeText")
+
+    val metaLine = listOfNotNull(
+        moodLabel?.let { "心情: $it" },
+        weatherLabel?.let { "天气: $it" }
+    ).joinToString(" | ")
+    if (metaLine.isNotEmpty()) {
+        sb.appendLine(metaLine)
+    }
+
+    sb.appendLine()
+
+    if (entry.plainText.isNotBlank()) {
+        sb.appendLine(entry.plainText)
+    }
+
+    sb.appendLine()
+    sb.appendLine("---")
+    sb.append("来自 日记本 App")
+
+    return sb.toString()
 }

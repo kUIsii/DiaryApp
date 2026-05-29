@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -77,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
+import com.diary.app.biometric.BiometricHelper
 import com.diary.app.data.DiaryBackup
 import com.diary.app.data.DiaryExporter
 import com.diary.app.data.DiaryImporter
@@ -119,6 +121,10 @@ fun ProfileScreen(
     var reminderHour by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).first) }
     var reminderMinute by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).second) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    // Biometric lock state
+    var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isLockEnabled(context)) }
+    val canUseBiometric = BiometricHelper.canAuthenticate(context)
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -450,6 +456,28 @@ fun ProfileScreen(
                             }
                         },
                         onTimeClick = { showTimePicker = true }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Group: 隐私
+            SectionHeader(title = "隐私", color = textSecondary)
+            Spacer(modifier = Modifier.height(8.dp))
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    BiometricLockSettingItem(
+                        enabled = biometricLockEnabled,
+                        canUseBiometric = canUseBiometric,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        onToggle = { newValue ->
+                            biometricLockEnabled = newValue
+                            BiometricHelper.setLockEnabled(context, newValue)
+                        }
                     )
                 }
             }
@@ -821,6 +849,60 @@ private fun SettingDivider() {
             .height(0.5.dp)
             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
     )
+}
+
+@Composable
+private fun BiometricLockSettingItem(
+    enabled: Boolean,
+    canUseBiometric: Boolean,
+    textColor: androidx.compose.ui.graphics.Color,
+    textSecondary: androidx.compose.ui.graphics.Color,
+    textTertiary: androidx.compose.ui.graphics.Color,
+    accentColor: androidx.compose.ui.graphics.Color,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = textColor.copy(alpha = 0.7f),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "应用锁",
+                    fontSize = 15.sp,
+                    color = textColor
+                )
+                Text(
+                    text = if (canUseBiometric) "使用指纹或面部识别解锁" else "设备不支持生物识别",
+                    fontSize = 12.sp,
+                    color = textTertiary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            enabled = canUseBiometric,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = accentColor,
+                checkedTrackColor = accentColor.copy(alpha = 0.5f)
+            )
+        )
+    }
 }
 
 @Composable

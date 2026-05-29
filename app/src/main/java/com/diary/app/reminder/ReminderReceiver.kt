@@ -21,13 +21,24 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private fun showNotification(context: Context) {
-        val openIntent = android.content.Intent(context, MainActivity::class.java).apply {
-            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = android.app.PendingIntent.getActivity(
             context,
             0,
             openIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val editorIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigate_to", "editor")
+        }
+        val editorPendingIntent = android.app.PendingIntent.getActivity(
+            context,
+            1,
+            editorIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -37,6 +48,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentText("记录今天的点滴，留住美好回忆")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
+            .addAction(0, "写日记", editorPendingIntent)
             .setAutoCancel(true)
             .build()
 

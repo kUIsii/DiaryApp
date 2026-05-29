@@ -19,6 +19,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -63,7 +64,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 val bottomNavItems = listOf(Screen.Home, Screen.Map, Screen.Stats, Screen.Profile)
 
 @Composable
-fun DiaryNavHost() {
+fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val navController = rememberNavController()
     val surfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -110,6 +111,13 @@ fun DiaryNavHost() {
             }
         }
     ) { innerPadding ->
+        LaunchedEffect(navigateTo) {
+            if (navigateTo == "editor") {
+                navController.navigate(Screen.Editor.createRoute())
+                onNavigateHandled()
+            }
+        }
+
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
