@@ -49,7 +49,7 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
             for (entry in entries) {
                 val tags = dao.getTagInfoForDiary(entry.id)
                 if (tags.isNotEmpty()) {
-                    map[entry.id] = tags.map { TagInfo(it.name, Color(it.color)) }
+                    map[entry.id] = tags.map { TagInfo(it.id, it.name, Color(it.color)) }
                 }
             }
             _tagsMap.value = map

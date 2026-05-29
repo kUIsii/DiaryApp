@@ -29,6 +29,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
 
+    @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun toggleFavorite(id: Long, isFavorite: Boolean)
+
     @Query("SELECT createdAt FROM diary_entries")
     fun getAllTimestamps(): Flow<List<Long>>
 

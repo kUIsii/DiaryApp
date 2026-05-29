@@ -75,6 +75,10 @@
             try { quill.setContents(JSON.parse(deltaJSON)); }
             catch(e) { quill.setText(deltaJSON); }
         }
+
+        function setFontSize(size) {
+            document.querySelector('.ql-editor').style.fontSize = size + 'px';
+        }
     </script>
 </body>
 </html>

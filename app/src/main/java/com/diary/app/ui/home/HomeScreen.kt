@@ -10,9 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,7 +38,10 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoodBad
 import androidx.compose.material.icons.filled.Search
@@ -49,6 +54,8 @@ import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DismissDirection
@@ -106,8 +113,11 @@ fun HomeScreen(
     val tagsMap by viewModel.tagsMap.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val stats by viewModel.stats.collectAsState()
+    val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
+    val allTags by viewModel.allTags.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
+    val isTagFilterActive = selectedTagFilter != null
 
     LaunchedEffect(entries) {
         viewModel.loadTagsForEntries(entries)
@@ -158,13 +168,24 @@ fun HomeScreen(
                     )
                 }
 
+                // Tag filter chips
+                if (allTags.isNotEmpty()) {
+                    item {
+                        TagFilterRow(
+                            tags = allTags,
+                            selectedTagId = selectedTagFilter,
+                            onTagSelected = { viewModel.setTagFilter(it) }
+                        )
+                    }
+                }
+
                 // Stats card
                 item {
                     StatsCard(stats = stats)
                 }
 
-                // Calendar view (hidden when search is active)
-                if (!isSearchActive) {
+                // Calendar view (hidden when search or tag filter is active)
+                if (!isSearchActive && !isTagFilterActive) {
                     item {
                         CalendarView(
                             entryDates = entryDates,
@@ -216,7 +237,8 @@ fun HomeScreen(
                                 tags = tagsMap[entry.id] ?: emptyList(),
                                 onClick = { onNavigateToDetail(entry.id) },
                                 onEdit = { onNavigateToEditor(entry.id) },
-                                onDelete = { entryToDelete = entry }
+                                onDelete = { entryToDelete = entry },
+                                onToggleFavorite = { viewModel.toggleFavorite(entry) }
                             )
                         }
                     }
@@ -407,13 +429,59 @@ private fun EmptyState() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TagFilterRow(
+    tags: List<com.diary.app.data.Tag>,
+    selectedTagId: Long?,
+    onTagSelected: (Long?) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        tags.forEach { tag ->
+            val isSelected = tag.id == selectedTagId
+            val tagColor = Color(tag.color)
+            FilterChip(
+                selected = isSelected,
+                onClick = { onTagSelected(tag.id) },
+                label = {
+                    Text(
+                        text = tag.name,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                },
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else tagColor)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = tagColor.copy(alpha = 0.1f),
+                    labelColor = tagColor
+                )
+            )
+        }
+    }
+}
+
 @Composable
 private fun DiaryCardWithContextMenu(
     entry: DiaryEntry,
     tags: List<TagInfo>,
     onClick: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleFavorite: () -> Unit
 ) {
     val context = LocalContext.current
     var showContextMenu by remember { mutableStateOf(false) }
@@ -424,7 +492,8 @@ private fun DiaryCardWithContextMenu(
             tags = tags,
             onClick = onClick,
             onLongClick = { showContextMenu = true },
-            onDelete = onDelete
+            onDelete = onDelete,
+            onToggleFavorite = onToggleFavorite
         )
 
         DropdownMenu(
@@ -446,6 +515,20 @@ private fun DiaryCardWithContextMenu(
                 onClick = {
                     showContextMenu = false
                     onEdit()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(if (entry.isFavorite) "取消收藏" else "收藏") },
+                leadingIcon = {
+                    Icon(
+                        if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = null,
+                        tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                onClick = {
+                    showContextMenu = false
+                    onToggleFavorite()
                 }
             )
             DropdownMenuItem(
@@ -496,7 +579,8 @@ private fun SwipeableDiaryCard(
     tags: List<TagInfo>,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleFavorite: () -> Unit
 ) {
     val dismissState = rememberDismissState(
         confirmValueChange = { value ->
@@ -533,7 +617,8 @@ private fun SwipeableDiaryCard(
                 entry = entry,
                 tags = tags,
                 onClick = onClick,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
+                onToggleFavorite = onToggleFavorite
             )
         },
         directions = setOf(DismissDirection.EndToStart)
@@ -546,7 +631,8 @@ private fun DiaryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onToggleFavorite: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -574,13 +660,30 @@ private fun DiaryCard(
             )
     ) {
         Column {
-            // Date
-            Text(
-                text = formatCardDate(entry.createdAt),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = onBackground
-            )
+            // Date row with favorite star
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatCardDate(entry.createdAt),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onBackground
+                )
+                Icon(
+                    imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
+                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onToggleFavorite() }
+                )
+            }
 
             // Text preview
             if (entry.plainText.isNotBlank()) {

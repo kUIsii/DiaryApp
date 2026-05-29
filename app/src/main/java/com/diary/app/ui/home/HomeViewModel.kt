@@ -18,7 +18,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-data class TagInfo(val name: String, val color: Color)
+data class TagInfo(val id: Long, val name: String, val color: Color)
 
 data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
 
@@ -32,8 +32,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
+    private val _selectedTagFilter = MutableStateFlow<Long?>(null)
+    val selectedTagFilter: StateFlow<Long?> = _selectedTagFilter
+
     private val _tagsMap = MutableStateFlow<Map<Long, List<TagInfo>>>(emptyMap())
     val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = _tagsMap
+
+    val allTags: StateFlow<List<com.diary.app.data.Tag>> = dao.getAllTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val entryDates: StateFlow<Set<LocalDate>> = dao.getAllTimestamps()
         .map { timestamps ->
@@ -61,8 +67,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val entries: StateFlow<List<DiaryEntry>> = combine(
         dao.getAllEntries(),
         _selectedDate,
-        _searchQuery
-    ) { entries, date, query ->
+        _searchQuery,
+        _selectedTagFilter,
+        _tagsMap
+    ) { entries, date, query, tagFilter, tags ->
         entries.filter { entry ->
             val matchesDate = date == null || run {
                 val entryDate = Instant.ofEpochMilli(entry.createdAt)
@@ -71,7 +79,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 entryDate == date
             }
             val matchesQuery = query.isBlank() || entry.plainText.contains(query, ignoreCase = true)
-            matchesDate && matchesQuery
+            val matchesTag = tagFilter == null || (tags[entry.id]?.any { it.id == tagFilter } == true)
+            matchesDate && matchesQuery && matchesTag
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -81,6 +90,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setTagFilter(tagId: Long?) {
+        _selectedTagFilter.value = if (_selectedTagFilter.value == tagId) null else tagId
+    }
+
+    fun toggleFavorite(entry: DiaryEntry) {
+        viewModelScope.launch {
+            dao.toggleFavorite(entry.id, !entry.isFavorite)
+        }
     }
 
     fun deleteEntry(entry: DiaryEntry) {
@@ -95,7 +114,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             for (entry in entries) {
                 val tags = dao.getTagInfoForDiary(entry.id)
                 if (tags.isNotEmpty()) {
-                    map[entry.id] = tags.map { TagInfo(it.name, Color(it.color)) }
+                    map[entry.id] = tags.map { TagInfo(it.id, it.name, Color(it.color)) }
                 }
             }
             _tagsMap.value = map

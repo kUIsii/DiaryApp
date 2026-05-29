@@ -15,6 +15,7 @@ data class DiaryEntry(
     val location: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val isFavorite: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
