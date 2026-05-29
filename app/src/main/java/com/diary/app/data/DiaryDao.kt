@@ -45,6 +45,14 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_tag_cross_ref WHERE diaryId = :diaryId")
     suspend fun getTagsForDiary(diaryId: Long): List<DiaryTag>
 
+    @Query("""
+        SELECT t.id, t.name, t.color, t.isPreset
+        FROM tags t
+        INNER JOIN diary_tag_cross_ref dt ON t.id = dt.tagId
+        WHERE dt.diaryId = :diaryId
+    """)
+    suspend fun getTagInfoForDiary(diaryId: Long): List<Tag>
+
     @Query("DELETE FROM diary_tag_cross_ref WHERE diaryId = :diaryId")
     suspend fun deleteTagsForDiary(diaryId: Long)
 
@@ -60,6 +68,33 @@ interface DiaryDao {
     @Query("SELECT * FROM tags WHERE isPreset = 1")
     suspend fun getPresetTags(): List<Tag>
 
+    // One-shot queries for export
+    @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC")
+    suspend fun getAllEntriesOnce(): List<DiaryEntry>
+
+    @Query("SELECT * FROM tags ORDER BY name ASC")
+    suspend fun getAllTagsOnce(): List<Tag>
+
+    @Query("SELECT * FROM diary_tag_cross_ref")
+    suspend fun getAllDiaryTags(): List<DiaryTag>
+
     @Query("UPDATE tags SET name = :name, color = :color WHERE id = :id")
     suspend fun updateTagById(id: Long, name: String, color: Long)
+
+    // Stats queries
+    @Query("""
+        SELECT t.id as tagId, t.name, t.color, COUNT(*) as count
+        FROM diary_tag_cross_ref dt
+        INNER JOIN tags t ON dt.tagId = t.id
+        GROUP BY t.id
+        ORDER BY count DESC
+    """)
+    fun getTagUsage(): Flow<List<TagUsage>>
 }
+
+data class TagUsage(
+    val tagId: Long,
+    val name: String,
+    val color: Long,
+    val count: Int
+)
