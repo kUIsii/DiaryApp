@@ -35,6 +35,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedTagFilter = MutableStateFlow<Long?>(null)
     val selectedTagFilter: StateFlow<Long?> = _selectedTagFilter
 
+    enum class SortOrder(val label: String) {
+        NEWEST("最新优先"),
+        OLDEST("最早优先"),
+        BEST_MOOD("心情最好"),
+        FAVORITES("收藏优先")
+    }
+
+    private val _sortOrder = MutableStateFlow(SortOrder.NEWEST)
+    val sortOrder: StateFlow<SortOrder> = _sortOrder
+
     private val _tagsMap = MutableStateFlow<Map<Long, List<TagInfo>>>(emptyMap())
     val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = _tagsMap
 
@@ -64,7 +74,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         HomeStats(entries.size, streak, thisMonth)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
 
-    val entries: StateFlow<List<DiaryEntry>> = combine(
+    private val filteredEntries: StateFlow<List<DiaryEntry>> = combine(
         dao.getAllEntries(),
         _selectedDate,
         _searchQuery,
@@ -84,6 +94,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val entries: StateFlow<List<DiaryEntry>> = combine(filteredEntries, _sortOrder) { filtered, sort ->
+        sortEntries(filtered, sort)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun selectDate(date: LocalDate?) {
         _selectedDate.value = date
     }
@@ -94,6 +108,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTagFilter(tagId: Long?) {
         _selectedTagFilter.value = if (_selectedTagFilter.value == tagId) null else tagId
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        _sortOrder.value = order
     }
 
     fun toggleFavorite(entry: DiaryEntry) {
@@ -130,5 +148,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             current = current.minusDays(1)
         }
         return streak
+    }
+
+    private fun sortEntries(entries: List<DiaryEntry>, sort: SortOrder): List<DiaryEntry> {
+        return when (sort) {
+            SortOrder.NEWEST -> entries.sortedByDescending { it.createdAt }
+            SortOrder.OLDEST -> entries.sortedBy { it.createdAt }
+            SortOrder.BEST_MOOD -> entries.sortedByDescending { it.moodLevel ?: 0 }
+            SortOrder.FAVORITES -> entries.sortedByDescending { it.isFavorite }
+        }
     }
 }

@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Mood
@@ -115,6 +116,7 @@ fun HomeScreen(
     val stats by viewModel.stats.collectAsState()
     val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
     val allTags by viewModel.allTags.collectAsState()
+    val sortOrder by viewModel.sortOrder.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
     val isTagFilterActive = selectedTagFilter != null
@@ -164,7 +166,9 @@ fun HomeScreen(
                 item {
                     SearchBar(
                         query = searchQuery,
-                        onQueryChange = { viewModel.setSearchQuery(it) }
+                        onQueryChange = { viewModel.setSearchQuery(it) },
+                        sortOrder = sortOrder,
+                        onSortOrderChange = { viewModel.setSortOrder(it) }
                     )
                 }
 
@@ -285,53 +289,112 @@ private fun GreetingHeader() {
 @Composable
 private fun SearchBar(
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    sortOrder: HomeViewModel.SortOrder,
+    onSortOrderChange: (HomeViewModel.SortOrder) -> Unit
 ) {
+    var showSortMenu by remember { mutableStateOf(false) }
+
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 16.dp
     ) {
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    "搜索日记...",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "搜索",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "清除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { onQueryChange("") }
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "搜索日记...",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "清除",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { onQueryChange("") }
+                        )
+                    }
+                },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
+            )
+
+            Box {
+                Icon(
+                    imageVector = Icons.Default.Sort,
+                    contentDescription = "排序",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 4.dp)
+                        .clickable { showSortMenu = true }
+                )
+
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    HomeViewModel.SortOrder.entries.forEach { order ->
+                        val isSelected = order == sortOrder
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = order.label,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            trailingIcon = {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            },
+                            onClick = {
+                                onSortOrderChange(order)
+                                showSortMenu = false
+                            }
+                        )
+                    }
                 }
-            },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.primary
-            ),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
-        )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+        }
     }
 }
 

@@ -37,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
@@ -127,6 +128,7 @@ fun ProfileScreen(
         )
     }
     var isExporting by remember { mutableStateOf(false) }
+    var isMarkdownExporting by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
     var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
 
@@ -445,6 +447,48 @@ fun ProfileScreen(
                                         ).show()
                                     } catch (e: Exception) {
                                         isExporting = false
+                                        Toast.makeText(
+                                            context,
+                                            "导出失败: ${e.message}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    SettingDivider()
+                    SettingItem(
+                        icon = Icons.Default.Description,
+                        title = "导出为 Markdown",
+                        subtitle = if (isMarkdownExporting) "正在导出..." else "导出全部日记为 Markdown 文件",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        enabled = !isMarkdownExporting,
+                        trailing = {
+                            if (isMarkdownExporting) {
+                                CircularProgressIndicator(
+                                    color = accentColor,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        onClick = {
+                            if (!isMarkdownExporting) {
+                                isMarkdownExporting = true
+                                scope.launch {
+                                    try {
+                                        val dao = app.database.diaryDao()
+                                        val path = DiaryExporter.exportAsMarkdown(context, dao)
+                                        isMarkdownExporting = false
+                                        Toast.makeText(
+                                            context,
+                                            "导出成功: $path",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    } catch (e: Exception) {
+                                        isMarkdownExporting = false
                                         Toast.makeText(
                                             context,
                                             "导出失败: ${e.message}",

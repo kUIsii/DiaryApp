@@ -8,7 +8,9 @@ import android.provider.MediaStore
 import com.diary.app.BuildConfig
 import com.google.gson.GsonBuilder
 import java.io.File
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 object DiaryExporter {
@@ -90,11 +92,85 @@ object DiaryExporter {
         return saveToFile(context, fileName, json)
     }
 
-    private fun saveToFile(context: Context, fileName: String, json: String): String {
+    suspend fun exportAsMarkdown(context: Context, dao: DiaryDao): String {
+        val entries = dao.getAllEntriesOnce()
+        val tags = dao.getAllTagsOnce()
+        val allDiaryTags = dao.getAllDiaryTags()
+
+        val tagMap = tags.associateBy { it.id }
+        val diaryTagMap = allDiaryTags.groupBy({ it.diaryId }, { tagMap[it.tagId]?.name ?: "" })
+
+        val sb = StringBuilder()
+        sb.appendLine("# 日记本导出")
+        sb.appendLine()
+        val now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        sb.appendLine("导出时间: $now")
+        sb.appendLine()
+
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm")
+
+        entries.forEach { entry ->
+            val entryDateTime = Instant.ofEpochMilli(entry.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+            val dateText = entryDateTime.format(dateFormatter)
+
+            sb.appendLine("---")
+            sb.appendLine()
+            sb.appendLine("## $dateText")
+
+            val metaParts = mutableListOf<String>()
+            entry.moodLevel?.let { level ->
+                val moodLabel = when (level.coerceIn(1, 6)) {
+                    1 -> "沮丧"
+                    2 -> "低落"
+                    3 -> "平静"
+                    4 -> "开心"
+                    5 -> "愉快"
+                    6 -> "兴奋"
+                    else -> "平静"
+                }
+                metaParts.add("**心情:** $moodLabel")
+            }
+            entry.weather?.let { weather ->
+                val weatherLabel = when (weather) {
+                    "晴", "晴天" -> "晴天"
+                    "多云" -> "多云"
+                    "阴", "阴天" -> "阴天"
+                    "雨", "雨天" -> "雨天"
+                    "雷", "雷暴" -> "雷暴"
+                    "风", "大风" -> "大风"
+                    else -> weather
+                }
+                metaParts.add("**天气:** $weatherLabel")
+            }
+            val entryTags = diaryTagMap[entry.id] ?: emptyList()
+            if (entryTags.isNotEmpty()) {
+                metaParts.add("**标签:** ${entryTags.joinToString(", ")}")
+            }
+            if (metaParts.isNotEmpty()) {
+                sb.appendLine(metaParts.joinToString(" | "))
+            }
+
+            sb.appendLine()
+            if (entry.plainText.isNotBlank()) {
+                sb.appendLine(entry.plainText)
+            }
+            sb.appendLine()
+        }
+
+        val markdown = sb.toString()
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        val fileName = "diary_export_$timestamp.md"
+
+        return saveToFile(context, fileName, markdown, "text/markdown")
+    }
+
+    private fun saveToFile(context: Context, fileName: String, content: String, mimeType: String = "application/json"): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
                 put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             }
             val uri = context.contentResolver.insert(
@@ -103,7 +179,7 @@ object DiaryExporter {
             ) ?: throw Exception("无法创建文件")
 
             context.contentResolver.openOutputStream(uri)?.use { stream ->
-                stream.write(json.toByteArray(Charsets.UTF_8))
+                stream.write(content.toByteArray(Charsets.UTF_8))
             } ?: throw Exception("无法写入文件")
 
             return "Download/$fileName"
@@ -112,7 +188,7 @@ object DiaryExporter {
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, fileName)
-            file.writeText(json, Charsets.UTF_8)
+            file.writeText(content, Charsets.UTF_8)
             return "Download/$fileName"
         }
     }
