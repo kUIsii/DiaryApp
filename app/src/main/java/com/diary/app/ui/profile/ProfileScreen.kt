@@ -37,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Label
@@ -112,6 +113,19 @@ fun ProfileScreen(
     var updateUrl by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
     var showThemeMenu by remember { mutableStateOf(false) }
+    var showFontSizeMenu by remember { mutableStateOf(false) }
+    val fontSizeOptions = listOf(
+        FontSizeOption("small", "小", 14),
+        FontSizeOption("medium", "中", 16),
+        FontSizeOption("large", "大", 18),
+        FontSizeOption("extra_large", "特大", 20)
+    )
+    var currentFontSizeKey by remember {
+        mutableStateOf(
+            context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
+                .getString("editor_font_size", "medium") ?: "medium"
+        )
+    }
     var isExporting by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
     var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
@@ -326,6 +340,56 @@ fun ProfileScreen(
                                     onClick = {
                                         app.setThemeMode(mode)
                                         showThemeMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    FontSizeSettingItem(
+                        currentKey = currentFontSizeKey,
+                        options = fontSizeOptions,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
+                        showMenu = showFontSizeMenu,
+                        onToggleMenu = { showFontSizeMenu = !showFontSizeMenu }
+                    )
+
+                    AnimatedVisibility(
+                        visible = showFontSizeMenu,
+                        enter = expandVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    ) {
+                        Column {
+                            fontSizeOptions.forEach { option ->
+                                FontSizeOptionItem(
+                                    option = option,
+                                    isSelected = currentFontSizeKey == option.key,
+                                    textSecondary = textSecondary,
+                                    onClick = {
+                                        currentFontSizeKey = option.key
+                                        context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
+                                            .edit()
+                                            .putString("editor_font_size", option.key)
+                                            .apply()
+                                        showFontSizeMenu = false
                                     }
                                 )
                             }
@@ -965,6 +1029,141 @@ private fun ReminderSettingItem(
                 checkedThumbColor = accentColor,
                 checkedTrackColor = accentColor.copy(alpha = 0.5f)
             )
+        )
+    }
+}
+
+private data class FontSizeOption(val key: String, val label: String, val sizePx: Int)
+
+@Composable
+private fun FontSizeSettingItem(
+    currentKey: String,
+    options: List<FontSizeOption>,
+    textColor: androidx.compose.ui.graphics.Color,
+    textSecondary: androidx.compose.ui.graphics.Color,
+    textTertiary: androidx.compose.ui.graphics.Color,
+    showMenu: Boolean,
+    onToggleMenu: () -> Unit
+) {
+    val currentLabel = options.find { it.key == currentKey }?.label ?: "中"
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(interactionSource = interactionSource, indication = null) {
+                onToggleMenu()
+            }
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.FormatSize,
+                contentDescription = null,
+                tint = textSecondary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "编辑器字体大小",
+                    fontSize = 15.sp,
+                    color = textColor
+                )
+                Text(
+                    text = currentLabel,
+                    fontSize = 12.sp,
+                    color = textTertiary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.Default.PhoneAndroid,
+            contentDescription = null,
+            tint = textTertiary,
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer {
+                    rotationZ = if (showMenu) 180f else 0f
+                }
+        )
+    }
+}
+
+@Composable
+private fun FontSizeOptionItem(
+    option: FontSizeOption,
+    isSelected: Boolean,
+    textSecondary: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
+    val dotColor by animateColorAsState(
+        targetValue = if (isSelected) DarkAccentStart else textSecondary.copy(alpha = 0.3f),
+        animationSpec = tween(200),
+        label = "dotColor"
+    )
+    val dotScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "dotScale"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(interactionSource = interactionSource, indication = null) {
+                onClick()
+            }
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(modifier = Modifier.width(34.dp))
+        Text(
+            text = "${option.label} (${option.sizePx}sp)",
+            fontSize = 14.sp,
+            color = textSecondary,
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .scale(dotScale)
+                .clip(CircleShape)
+                .background(dotColor)
         )
     }
 }

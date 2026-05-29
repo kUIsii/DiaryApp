@@ -113,6 +113,7 @@
             catch(e) { quill.setText(deltaJSON); }
         }
         function setTemplate(text) { quill.setText(text); }
+        function setFontSize(size) { document.querySelector('.ql-editor').style.fontSize = size + 'px'; }
         function focusEditor() { quill.focus(); }
 
         // Content change callback for word count and auto-save

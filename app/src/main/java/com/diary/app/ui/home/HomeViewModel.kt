@@ -20,6 +20,8 @@ import java.time.ZoneId
 
 data class TagInfo(val name: String, val color: Color)
 
+data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -40,6 +42,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }.toSet()
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    private val allEntries: StateFlow<List<DiaryEntry>> = dao.getAllEntries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val stats: StateFlow<HomeStats> = combine(allEntries, entryDates) { entries, dates ->
+        val now = LocalDate.now()
+        val streak = computeStreak(dates)
+        val thisMonth = entries.count { entry ->
+            val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            entryDate.monthValue == now.monthValue && entryDate.year == now.year
+        }
+        HomeStats(entries.size, streak, thisMonth)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
 
     val entries: StateFlow<List<DiaryEntry>> = combine(
         dao.getAllEntries(),
@@ -83,5 +100,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             _tagsMap.value = map
         }
+    }
+
+    private fun computeStreak(dates: Set<LocalDate>): Int {
+        if (dates.isEmpty()) return 0
+        var streak = 0
+        var current = LocalDate.now()
+        while (current in dates) {
+            streak++
+            current = current.minusDays(1)
+        }
+        return streak
     }
 }

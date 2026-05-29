@@ -1,8 +1,11 @@
 package com.diary.app.ui.home
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -22,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -101,6 +105,7 @@ fun HomeScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val stats by viewModel.stats.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
 
@@ -153,6 +158,11 @@ fun HomeScreen(
                     )
                 }
 
+                // Stats card
+                item {
+                    StatsCard(stats = stats)
+                }
+
                 // Calendar view (hidden when search is active)
                 if (!isSearchActive) {
                     item {
@@ -192,14 +202,23 @@ fun HomeScreen(
                 if (entries.isEmpty()) {
                     item { EmptyState() }
                 } else {
-                    items(entries, key = { it.id }) { entry ->
-                        DiaryCardWithContextMenu(
-                            entry = entry,
-                            tags = tagsMap[entry.id] ?: emptyList(),
-                            onClick = { onNavigateToDetail(entry.id) },
-                            onEdit = { onNavigateToEditor(entry.id) },
-                            onDelete = { entryToDelete = entry }
-                        )
+                    itemsIndexed(entries, key = { _, entry -> entry.id }) { index, entry ->
+                        var visible by remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) { visible = true }
+
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = fadeIn(tween(300, delayMillis = index * 50)) +
+                                    slideInVertically(tween(300, delayMillis = index * 50)) { it / 4 }
+                        ) {
+                            DiaryCardWithContextMenu(
+                                entry = entry,
+                                tags = tagsMap[entry.id] ?: emptyList(),
+                                onClick = { onNavigateToDetail(entry.id) },
+                                onEdit = { onNavigateToEditor(entry.id) },
+                                onDelete = { entryToDelete = entry }
+                            )
+                        }
                     }
                 }
 
@@ -290,6 +309,41 @@ private fun SearchBar(
                 cursorColor = MaterialTheme.colorScheme.primary
             ),
             textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
+        )
+    }
+}
+
+@Composable
+private fun StatsCard(stats: HomeStats) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(value = stats.total, label = "总日记")
+            StatItem(value = stats.streak, label = "连续天数")
+            StatItem(value = stats.thisMonth, label = "本月日记")
+        }
+    }
+}
+
+@Composable
+private fun StatItem(value: Int, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value.toString(),
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

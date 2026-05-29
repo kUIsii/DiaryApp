@@ -160,8 +160,22 @@ fun EditorScreen(
         }
     }
 
+    // Read editor font size from SharedPreferences
+    val prefs = remember { context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE) }
+    var editorFontSize by remember { mutableIntStateOf(getEditorFontSize(prefs)) }
+
+    // Re-read font size on each recomposition (catches changes from ProfileScreen)
+    androidx.compose.runtime.SideEffect {
+        val current = getEditorFontSize(prefs)
+        if (current != editorFontSize) editorFontSize = current
+    }
+
     LaunchedEffect(themeMode) {
         webView?.evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+    }
+
+    LaunchedEffect(editorFontSize) {
+        webView?.evaluateJavascript("setFontSize($editorFontSize)", null)
     }
 
     // Media pickers
@@ -490,6 +504,7 @@ fun EditorScreen(
                         webView = this
                         post {
                             evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+                            evaluateJavascript("setFontSize($editorFontSize)", null)
                         }
                     }
                 },
@@ -878,6 +893,15 @@ private fun ToolChip(label: String, description: String = "", onClick: () -> Uni
                 Text(text = description, fontSize = 10.sp, color = textColor.copy(alpha = 0.6f))
             }
         }
+    }
+}
+
+private fun getEditorFontSize(prefs: android.content.SharedPreferences): Int {
+    return when (prefs.getString("editor_font_size", "medium")) {
+        "small" -> 14
+        "large" -> 18
+        "extra_large" -> 20
+        else -> 16
     }
 }
 
