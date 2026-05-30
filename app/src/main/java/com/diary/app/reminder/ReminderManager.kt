@@ -14,12 +14,37 @@ object ReminderManager {
     private const val KEY_ENABLED = "reminder_enabled"
     private const val KEY_HOUR = "reminder_hour"
     private const val KEY_MINUTE = "reminder_minute"
+    private const val KEY_MESSAGE = "reminder_message"
     private const val DEFAULT_HOUR = 21
     private const val DEFAULT_MINUTE = 0
     private const val REQUEST_CODE = 1001
 
+    // Gentle reminder messages that rotate daily
+    private val gentleMessages = listOf(
+        "记录今天的点滴，留住美好回忆",
+        "今天有什么值得记住的事呢？",
+        "花几分钟，和自己聊聊天吧",
+        "写下今天的心情，明天会感谢自己",
+        "每一天都值得被记录",
+        "用文字定格今天的瞬间",
+        "今天的你，过得怎么样？",
+        "写下感悟，释放一天的心情"
+    )
+
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    fun getReminderMessage(context: Context): String {
+        val customMessage = getPrefs(context).getString(KEY_MESSAGE, null)
+        if (!customMessage.isNullOrBlank()) return customMessage
+        // Rotate through gentle messages based on day of year
+        val dayOfYear = java.time.LocalDate.now().dayOfYear
+        return gentleMessages[dayOfYear % gentleMessages.size]
+    }
+
+    fun setCustomMessage(context: Context, message: String?) {
+        getPrefs(context).edit().putString(KEY_MESSAGE, message).apply()
     }
 
     fun isReminderEnabled(context: Context): Boolean {

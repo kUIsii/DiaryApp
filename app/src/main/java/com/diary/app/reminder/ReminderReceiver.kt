@@ -42,10 +42,12 @@ class ReminderReceiver : BroadcastReceiver() {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
+        val message = ReminderManager.getReminderMessage(context)
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("该写日记了")
-            .setContentText("记录今天的点滴，留住美好回忆")
+            .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .addAction(0, "写日记", editorPendingIntent)
