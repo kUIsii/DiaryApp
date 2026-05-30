@@ -249,6 +249,17 @@ fun HomeScreen(
                     }
                 }
 
+                // Quick mood check-in (only show if no entry today)
+                if (!isSearchActive && !entryDates.contains(LocalDate.now())) {
+                    item {
+                        QuickMoodCheckIn(
+                            onMoodSelected = { level ->
+                                onNavigateToEditor(null)
+                            }
+                        )
+                    }
+                }
+
                 // Calendar toggle button + collapsible calendar
                 if (!isSearchActive) {
                     item {
@@ -336,6 +347,91 @@ fun HomeScreen(
 
             // FAB
             FAB(onClick = { onNavigateToEditor(null) }, isEmpty = entries.isEmpty() && !isLoading)
+        }
+    }
+}
+
+@Composable
+private fun QuickMoodCheckIn(
+    onMoodSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val moodColors = listOf(
+        Color(0xFF6C7A89),  // 沮丧 - muted blue-grey
+        Color(0xFF9B8EA8),  // 低落 - soft purple
+        Color(0xFF7FB5A0),  // 平静 - sage green
+        Color(0xFFF5C76E),  // 开心 - warm yellow
+        Color(0xFFF2994A),  // 愉快 - orange
+        Color(0xFFEB5757)   // 兴奋 - vibrant red
+    )
+    val moodLabels = listOf("沮", "低", "平", "喜", "悦", "奋")
+
+    var selectedMood by remember { mutableStateOf<Int?>(null) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
+    ) {
+        Text(
+            text = "现在的心情",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            moodColors.forEachIndexed { index, color ->
+                val level = index + 1
+                val isSelected = selectedMood == level
+                val scale by animateFloatAsState(
+                    targetValue = if (isSelected) 1.1f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "moodScale"
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            selectedMood = level
+                            onMoodSelected(level)
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) color.copy(alpha = 0.2f)
+                                else color.copy(alpha = 0.08f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = moodLabels[index],
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) color else color.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -503,44 +599,70 @@ private fun SearchBar(
 
 @Composable
 private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit) {
-    Row(
+    val streakMessage = when (stats.streak) {
+        3 -> "开始坚持了!"
+        7 -> "一周不间断!"
+        14 -> "两周持续记录!"
+        30 -> "一个月的坚持!"
+        60 -> "两个月不间断!"
+        100 -> "百日如一日!"
+        else -> null
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             .clickable { onNavigateToReview() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "${stats.total}篇",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-            Text(
-                "连续${stats.streak}天",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-            Text(
-                "本月${stats.thisMonth}篇",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${stats.total}篇",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                Text(
+                    "连续${stats.streak}天",
+                    fontSize = 13.sp,
+                    color = if (streakMessage != null) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                Text(
+                    "本月${stats.thisMonth}篇",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "查看详情",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
         }
-        Icon(
-            Icons.Default.ChevronRight,
-            contentDescription = "查看详情",
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        )
+
+        // Streak celebration message
+        if (streakMessage != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = streakMessage,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
