@@ -552,8 +552,8 @@ fun EditorScreen(
                 Text(text = timeText, fontSize = 11.sp, color = textSecondary)
             }
 
-            // Writing prompt (only for new entries, hide when content exists)
-            if (diaryId == null && writingPrompt.isNotBlank() && charCount == 0) {
+            // Writing prompt (only for new entries, hide after 50 chars)
+            if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -623,14 +623,34 @@ fun EditorScreen(
                 ) {
                     Box(modifier = Modifier.padding(12.dp)) {
                         when (activePanel) {
-                            "mood" -> MoodSlider(
-                                selectedLevel = selectedMood,
-                                onLevelChange = { selectedMood = it }
-                            )
-                            "weather" -> WeatherSelector(
-                                selectedWeather = selectedWeather,
-                                onWeatherSelected = { selectedWeather = it }
-                            )
+                            "mood" -> Column {
+                                MoodSlider(
+                                    selectedLevel = selectedMood,
+                                    onLevelChange = { selectedMood = it }
+                                )
+                                if (selectedMood != null) {
+                                    TextButton(
+                                        onClick = { selectedMood = null },
+                                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    ) {
+                                        Text("清除心情", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            "weather" -> Column {
+                                WeatherSelector(
+                                    selectedWeather = selectedWeather,
+                                    onWeatherSelected = { selectedWeather = it }
+                                )
+                                if (selectedWeather != null) {
+                                    TextButton(
+                                        onClick = { selectedWeather = null },
+                                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    ) {
+                                        Text("清除天气", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
                             "tags" -> TagEditor(
                                 allTags = allTags,
                                 selectedTagIds = selectedTagIds,
