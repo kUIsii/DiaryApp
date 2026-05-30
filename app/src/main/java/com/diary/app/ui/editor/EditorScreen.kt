@@ -60,6 +60,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -143,6 +146,7 @@ fun EditorScreen(
     val jsBridge = remember { DiaryJsBridge() }
     val viewModel: EditorViewModel = viewModel()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val allTags by viewModel.allTags.collectAsState()
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
@@ -475,6 +479,7 @@ fun EditorScreen(
     }
 
     GradientBackground {
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().imePadding()) {
             // Top bar - simplified: only undo, redo, save
             Row(
@@ -533,6 +538,10 @@ fun EditorScreen(
                                     weather = selectedWeather
                                 )
                                 haptic.success()
+                                snackbarHostState.showSnackbar(
+                                    message = "日记已保存",
+                                    duration = SnackbarDuration.Short
+                                )
                                 onNavigateBack()
                             }
                         }
@@ -759,6 +768,11 @@ fun EditorScreen(
                 }
             )
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+        }
     }
 }
 
@@ -919,6 +933,20 @@ private data class ToolbarCategory(val icon: String, val label: String)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
+    var showTextColorPicker by remember { mutableStateOf(false) }
+    var showBgColorPicker by remember { mutableStateOf(false) }
+
+    val presetColors = listOf(
+        0xFFE74C3C.toInt(), // 红
+        0xFFE67E22.toInt(), // 橙
+        0xFFF1C40F.toInt(), // 黄
+        0xFF2ECC71.toInt(), // 绿
+        0xFF3498DB.toInt(), // 蓝
+        0xFF9B59B6.toInt(), // 紫
+        0xFF1A1A1A.toInt(), // 黑
+        0xFFFFFFFF.toInt()  // 白
+    )
+
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -927,7 +955,59 @@ private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Col
         ToolChip(label = "I", contentDescription = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
         ToolChip(label = "U", contentDescription = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
         ToolChip(label = "S", contentDescription = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
+        ToolChip(label = "字色", contentDescription = "文字颜色", onClick = { showTextColorPicker = true }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "底色", contentDescription = "背景颜色", onClick = { showBgColorPicker = true }, textColor = textColor, bg = btnBg)
         ToolChip(label = "清除", contentDescription = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg)
+    }
+
+    if (showTextColorPicker) {
+        AlertDialog(
+            onDismissRequest = { showTextColorPicker = false },
+            title = { Text("文字颜色") },
+            text = {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    presetColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(color))
+                                .border(1.dp, Color.Gray, CircleShape)
+                                .clickable {
+                                    onFormat("setTextColor('#${Integer.toHexString(color).substring(2)}')")
+                                    showTextColorPicker = false
+                                }
+                        )
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    if (showBgColorPicker) {
+        AlertDialog(
+            onDismissRequest = { showBgColorPicker = false },
+            title = { Text("背景颜色") },
+            text = {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    presetColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(color))
+                                .border(1.dp, Color.Gray, CircleShape)
+                                .clickable {
+                                    onFormat("setBackgroundColor('#${Integer.toHexString(color).substring(2)}')")
+                                    showBgColorPicker = false
+                                }
+                        )
+                    }
+                }
+            },
+            confirmButton = {}
+        )
     }
 }
 
