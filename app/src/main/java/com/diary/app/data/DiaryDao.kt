@@ -25,6 +25,9 @@ interface DiaryDao {
     @Delete
     suspend fun deleteEntry(entry: DiaryEntry)
 
+    @Query("DELETE FROM diary_entries WHERE id = :id")
+    suspend fun deleteEntryById(id: Long)
+
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
 

@@ -75,7 +75,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.EmptyState
-import com.diary.app.ui.components.MoodChart
 import com.diary.app.ui.components.WordCloud
 import com.diary.app.ui.components.WritingHeatmap
 import com.diary.app.ui.components.moodIconForLevel
@@ -117,104 +116,53 @@ fun StatsScreen(
                     )
                 }
 
-                // Overview cards
+                // Overview cards - 2x2 grid
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OverviewCard(
-                            label = stringResource(R.string.stat_total_diaries),
-                            value = state.totalEntries,
-                            icon = Icons.Default.Edit,
-                            gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OverviewCard(
-                            label = stringResource(R.string.stat_streak),
-                            value = state.currentStreak,
-                            icon = Icons.Default.LocalFireDepartment,
-                            gradientColors = listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OverviewCard(
-                            label = stringResource(R.string.stat_this_month),
-                            value = state.thisMonthEntries,
-                            icon = Icons.Default.CalendarMonth,
-                            gradientColors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)),
-                            modifier = Modifier.weight(1f)
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OverviewCard(
+                                label = stringResource(R.string.stat_total_diaries),
+                                value = state.totalEntries,
+                                icon = Icons.Default.Edit,
+                                gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OverviewCard(
+                                label = stringResource(R.string.stat_streak),
+                                value = state.currentStreak,
+                                icon = Icons.Default.LocalFireDepartment,
+                                gradientColors = listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OverviewCard(
+                                label = stringResource(R.string.stat_this_month),
+                                value = state.thisMonthEntries,
+                                icon = Icons.Default.CalendarMonth,
+                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OverviewCard(
+                                label = "总字数",
+                                value = state.wordStats?.totalWords ?: 0,
+                                icon = Icons.Default.TextSnippet,
+                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f), MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 
                 // Writing calendar heatmap
                 item {
                     WritingCalendarHeatmap(moodPoints = state.moodTrendPoints)
-                }
-
-                // Word count stats
-                state.wordStats?.let { wordStats ->
-                    item {
-                        SectionTitle(text = stringResource(R.string.stats_total_words))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    WordStatItem(
-                                        icon = Icons.Default.TextSnippet,
-                                        label = stringResource(R.string.stats_total_words),
-                                        value = formatWordCount(wordStats.totalWords)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .width(1.dp)
-                                            .height(40.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
-                                            )
-                                    )
-                                    WordStatItem(
-                                        icon = Icons.Default.Edit,
-                                        label = stringResource(R.string.stats_avg_words),
-                                        value = "${wordStats.avgWordsPerEntry}"
-                                    )
-                                }
-                                if (state.moodTrendPoints.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(1.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.TextSnippet,
-                                            contentDescription = "文字统计",
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.stats_recent_entries, state.moodTrendPoints.size),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 // Mood trend
@@ -235,15 +183,6 @@ fun StatsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
                             MoodLineChart(points = state.moodTrendPoints)
-                        }
-                    }
-                }
-
-                // Enhanced Mood Chart with interaction
-                if (state.moodTrendPoints.size >= 2) {
-                    item {
-                        GlassCard {
-                            MoodChart(points = state.moodTrendPoints)
                         }
                     }
                 }

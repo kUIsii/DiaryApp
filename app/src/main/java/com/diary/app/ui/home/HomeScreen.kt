@@ -1,6 +1,5 @@
 package com.diary.app.ui.home
 
-import android.content.Intent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -42,24 +41,18 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,8 +69,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -97,11 +90,8 @@ import com.diary.app.R
 import com.diary.app.data.DiaryEntry
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
-import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.components.moodIconForLevel
-import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.staggeredListItem
-import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.theme.DesignTokens
 import java.time.Instant
@@ -150,9 +140,40 @@ fun HomeScreen(
         )
     }
 
-    var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
+    // Multi-select state
+    var selectedEntries by remember { mutableStateOf(setOf<Long>()) }
+    val isMultiSelectMode = selectedEntries.isNotEmpty()
 
-    // Delete confirmation dialog
+    var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
+    var showMultiSelectDeleteDialog by remember { mutableStateOf(false) }
+
+    // Multi-select delete confirmation
+    if (showMultiSelectDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showMultiSelectDeleteDialog = false },
+            title = { Text("删除 ${selectedEntries.size} 条日记") },
+            text = { Text("确定要删除选中的 ${selectedEntries.size} 条日记吗？此操作不可撤销。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    haptic.warning()
+                    selectedEntries.forEach { id ->
+                        viewModel.deleteEntryById(id)
+                    }
+                    selectedEntries = emptySet()
+                    showMultiSelectDeleteDialog = false
+                }) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMultiSelectDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Single delete confirmation
     if (entryToDelete != null) {
         AlertDialog(
             onDismissRequest = { entryToDelete = null },
@@ -177,6 +198,76 @@ fun HomeScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Multi-select top bar
+            if (isMultiSelectMode) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Close button
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "取消多选",
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable {
+                                    haptic.click()
+                                    selectedEntries = emptySet()
+                                },
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        // Selected count
+                        Text(
+                            text = "已选 ${selectedEntries.size} 条",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // Select all
+                            Text(
+                                text = "全选",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable {
+                                    haptic.click()
+                                    selectedEntries = if (selectedEntries.size == entries.size) {
+                                        emptySet()
+                                    } else {
+                                        entries.map { it.id }.toSet()
+                                    }
+                                }
+                            )
+
+                            // Delete
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "删除",
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clickable {
+                                        if (selectedEntries.isNotEmpty()) {
+                                            haptic.warning()
+                                            showMultiSelectDeleteDialog = true
+                                        }
+                                    },
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -201,8 +292,6 @@ fun HomeScreen(
                         query = searchQuery,
                         onQueryChange = { viewModel.setSearchQuery(it) },
                         onCommitSearch = { viewModel.commitSearch(it) },
-                        sortOrder = sortOrder,
-                        onSortOrderChange = { viewModel.setSortOrder(it) },
                         resultCount = if (isSearchActive) searchResultCount else -1
                     )
                 }
@@ -314,16 +403,30 @@ fun HomeScreen(
                             DiaryCardWithContextMenu(
                                 entry = entry,
                                 searchQuery = searchQuery,
+                                isSelected = entry.id in selectedEntries,
+                                isMultiSelectMode = isMultiSelectMode,
                                 onClick = {
-                                    haptic.click()
-                                    onNavigateToDetail(entry.id)
+                                    if (isMultiSelectMode) {
+                                        // Toggle selection
+                                        haptic.click()
+                                        selectedEntries = if (entry.id in selectedEntries) {
+                                            selectedEntries - entry.id
+                                        } else {
+                                            selectedEntries + entry.id
+                                        }
+                                    } else {
+                                        haptic.click()
+                                        onNavigateToDetail(entry.id)
+                                    }
                                 },
-                                onEdit = { onNavigateToEditor(entry.id) },
-                                onDelete = { entryToDelete = entry },
-                                onToggleFavorite = {
-                                    haptic.success()
-                                    viewModel.toggleFavorite(entry)
-                                }
+                                onLongClick = {
+                                    haptic.click()
+                                    if (!isMultiSelectMode) {
+                                        // Enter multi-select mode
+                                        selectedEntries = setOf(entry.id)
+                                    }
+                                },
+                                onDelete = { entryToDelete = entry }
                             )
                         }
                     }
@@ -415,12 +518,8 @@ private fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onCommitSearch: (String) -> Unit,
-    sortOrder: HomeViewModel.SortOrder,
-    onSortOrderChange: (HomeViewModel.SortOrder) -> Unit,
     resultCount: Int = -1
 ) {
-    var showSortMenu by remember { mutableStateOf(false) }
-
     Column {
         Box(
             modifier = Modifier
@@ -475,53 +574,6 @@ private fun SearchBar(
                     ),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
                 )
-
-                Box {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .size(18.dp)
-                            .clickable { showSortMenu = true }
-                    )
-
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        HomeViewModel.SortOrder.entries.forEach { order ->
-                            val isSelected = order == sortOrder
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = order.label,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                trailingIcon = {
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Star,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    onSortOrderChange(order)
-                                    showSortMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
 
                 Spacer(modifier = Modifier.width(12.dp))
             }
@@ -809,105 +861,22 @@ private fun ShimmerDiaryCard() {
 private fun DiaryCardWithContextMenu(
     entry: DiaryEntry,
     searchQuery: String = "",
+    isSelected: Boolean = false,
+    isMultiSelectMode: Boolean = false,
     onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onLongClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    val context = LocalContext.current
-    var showContextMenu by remember { mutableStateOf(false) }
-
     Box {
         SwipeableDiaryCard(
             entry = entry,
             searchQuery = searchQuery,
+            isSelected = isSelected,
+            isMultiSelectMode = isMultiSelectMode,
             onClick = onClick,
-            onLongClick = { showContextMenu = true },
-            onDelete = onDelete,
-            onShare = {
-                val shareText = formatShareText(entry)
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, shareText)
-                    putExtra(Intent.EXTRA_SUBJECT, "日记")
-                }
-                context.startActivity(Intent.createChooser(intent, "分享日记"))
-            }
+            onLongClick = onLongClick,
+            onDelete = onDelete
         )
-
-        DropdownMenu(
-            expanded = showContextMenu,
-            onDismissRequest = { showContextMenu = false },
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.edit)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "编辑",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                onClick = {
-                    showContextMenu = false
-                    onEdit()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(if (entry.isFavorite) stringResource(R.string.unfavorite) else stringResource(R.string.favorite)) },
-                leadingIcon = {
-                    Icon(
-                        if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
-                        tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                onClick = {
-                    showContextMenu = false
-                    onToggleFavorite()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.share)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Share,
-                        contentDescription = "分享",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                onClick = {
-                    showContextMenu = false
-                    val shareText = formatShareText(entry)
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                        putExtra(Intent.EXTRA_SUBJECT, "日记")
-                    }
-                    context.startActivity(Intent.createChooser(intent, "分享日记"))
-                }
-            )
-            Divider()
-            DropdownMenuItem(
-                text = {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                },
-                onClick = {
-                    showContextMenu = false
-                    onDelete()
-                }
-            )
-        }
     }
 }
 
@@ -916,64 +885,67 @@ private fun DiaryCardWithContextMenu(
 private fun SwipeableDiaryCard(
     entry: DiaryEntry,
     searchQuery: String = "",
+    isSelected: Boolean = false,
+    isMultiSelectMode: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onDelete: () -> Unit,
-    onShare: () -> Unit
+    onDelete: () -> Unit
 ) {
-    val dismissState = rememberDismissState(
-        confirmValueChange = { value ->
-            when (value) {
-                DismissValue.DismissedToEnd -> {
-                    onShare()
-                    false
+    if (isMultiSelectMode) {
+        // In multi-select mode, no swipe - just tap to select
+        DiaryCard(
+            entry = entry,
+            searchQuery = searchQuery,
+            isSelected = isSelected,
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
+    } else {
+        val dismissState = rememberDismissState(
+            confirmValueChange = { value ->
+                when (value) {
+                    DismissValue.DismissedToStart -> {
+                        onDelete()
+                        false
+                    }
+                    else -> false
                 }
-                DismissValue.DismissedToStart -> {
-                    onDelete()
-                    false
-                }
-                else -> false
             }
-        }
-    )
+        )
 
-    val errorColor = MaterialTheme.colorScheme.error
+        val errorColor = MaterialTheme.colorScheme.error
 
-    SwipeToDismiss(
-        state = dismissState,
-        background = {
-            val direction = dismissState.dismissDirection
-            val isSwipeRight = direction == DismissDirection.StartToEnd
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (isSwipeRight) SuccessColor else errorColor)
-                    .padding(
-                        start = if (isSwipeRight) 24.dp else 0.dp,
-                        end = if (isSwipeRight) 0.dp else 24.dp
-                    ),
-                contentAlignment = if (isSwipeRight) Alignment.CenterStart else Alignment.CenterEnd
-            ) {
-                Icon(
-                    imageVector = if (isSwipeRight) Icons.Default.Share else Icons.Default.Delete,
-                    contentDescription = if (isSwipeRight) "分享" else "删除",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
+        SwipeToDismiss(
+            state = dismissState,
+            background = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(errorColor)
+                        .padding(end = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            dismissContent = {
+                DiaryCard(
+                    entry = entry,
+                    searchQuery = searchQuery,
+                    isSelected = isSelected,
+                    onClick = onClick,
+                    onLongClick = onLongClick
                 )
-            }
-        },
-        dismissContent = {
-            DiaryCard(
-                entry = entry,
-                searchQuery = searchQuery,
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
-        },
-        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart)
-    )
+            },
+            directions = setOf(DismissDirection.EndToStart)
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -981,6 +953,7 @@ private fun SwipeableDiaryCard(
 private fun DiaryCard(
     entry: DiaryEntry,
     searchQuery: String = "",
+    isSelected: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -1002,6 +975,27 @@ private fun DiaryCard(
     // Mood accent color for left border
     val moodColor = entry.moodLevel?.let { moodColorForLevel(it) }
 
+    // Selection border color
+    val selectionBorder = if (isSelected) {
+        Modifier.border(
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.primary,
+            shape = RoundedCornerShape(16.dp)
+        )
+    } else if (moodColor != null) {
+        Modifier.border(
+            width = 0.dp,
+            color = Color.Transparent,
+            shape = RoundedCornerShape(16.dp)
+        )
+    } else {
+        Modifier.border(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1010,22 +1004,11 @@ private fun DiaryCard(
                 scaleY = scale
             }
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-            .then(
-                if (moodColor != null) {
-                    Modifier.border(
-                        width = 0.dp,
-                        color = Color.Transparent,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                } else {
-                    Modifier.border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
             )
+            .then(selectionBorder)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -1278,38 +1261,4 @@ private fun formatCardDate(timestamp: Long): String {
             entryDate.format(formatter)
         }
     }
-}
-
-private fun formatShareText(entry: DiaryEntry): String {
-    val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
-    val entryTime = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).toLocalTime()
-    val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
-    val timeText = entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-
-    val moodLabel = entry.moodLevel?.let { moodLabelForLevel(it) }
-
-    val weatherLabel = entry.weather?.let { weatherLabelFor(it) }
-
-    val sb = StringBuilder()
-    sb.appendLine("$dateText $timeText")
-
-    val metaLine = listOfNotNull(
-        moodLabel?.let { "心情: $it" },
-        weatherLabel?.let { "天气: $it" }
-    ).joinToString(" | ")
-    if (metaLine.isNotEmpty()) {
-        sb.appendLine(metaLine)
-    }
-
-    sb.appendLine()
-
-    if (entry.plainText.isNotBlank()) {
-        sb.appendLine(entry.plainText)
-    }
-
-    sb.appendLine()
-    sb.appendLine("---")
-    sb.append("来自 日记本 App")
-
-    return sb.toString()
 }

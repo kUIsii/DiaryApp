@@ -16,16 +16,23 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     val allTodos: StateFlow<List<TodoItem>> = dao.getAllTodos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun addTodo(title: String, priority: Int = 0, dueDate: Long? = null) {
+    fun addTodo(title: String, priority: Int = 0, dueDate: Long? = null, category: String = TodoItem.CATEGORY_TASK) {
         if (title.isBlank()) return
         viewModelScope.launch {
             dao.insertTodo(
                 TodoItem(
                     title = title.trim(),
                     priority = priority,
-                    dueDate = dueDate
+                    dueDate = dueDate,
+                    category = category
                 )
             )
+        }
+    }
+
+    fun updateTodo(todo: TodoItem) {
+        viewModelScope.launch {
+            dao.updateTodo(todo)
         }
     }
 

@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
     tableName = "todo_items",
     indices = [
         Index(value = ["dueDate"]),
-        Index(value = ["isCompleted"])
+        Index(value = ["isCompleted"]),
+        Index(value = ["category"])
     ]
 )
 data class TodoItem(
@@ -20,5 +21,19 @@ data class TodoItem(
     val dueDate: Long? = null,  // null = no due date
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
-    val sortOrder: Int = 0
-)
+    val sortOrder: Int = 0,
+    val category: String = "task"  // task, reminder, goal
+) {
+    companion object {
+        const val CATEGORY_TASK = "task"
+        const val CATEGORY_REMINDER = "reminder"
+        const val CATEGORY_GOAL = "goal"
+
+        fun categoryLabel(category: String): String = when (category) {
+            CATEGORY_TASK -> "任务"
+            CATEGORY_REMINDER -> "提醒"
+            CATEGORY_GOAL -> "目标"
+            else -> "任务"
+        }
+    }
+}

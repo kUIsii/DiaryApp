@@ -160,6 +160,7 @@
         function setHeading(level) { quill.format('header', level === 0 ? false : level); }
         function setOrderedList() { var f = quill.getFormat(); quill.format('list', f.list === 'ordered' ? false : 'ordered'); }
         function setBulletList() { var f = quill.getFormat(); quill.format('list', f.list === 'bullet' ? false : 'bullet'); }
+        function toggleCheckbox() { var f = quill.getFormat(); quill.format('list', f.list === 'checked' ? false : 'checked'); }
         function insertDivider() {
             var r = quill.getSelection(true);
             quill.insertText(r.index, '\n');

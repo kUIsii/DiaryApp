@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -57,13 +57,20 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN category TEXT NOT NULL DEFAULT 'task'")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_todo_items_category ON todo_items (category)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

@@ -6,8 +6,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,22 +25,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EventNote
-import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +67,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.data.TodoItem
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -73,12 +77,18 @@ import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.WarningColor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
-import com.diary.app.ui.theme.themeMode
-import com.diary.app.ui.theme.isDark
+import com.diary.app.ui.theme.PrimaryBlue
+import com.diary.app.ui.theme.SuccessColor
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+private val CategoryColors = mapOf(
+    TodoItem.CATEGORY_TASK to PrimaryBlue,
+    TodoItem.CATEGORY_REMINDER to WarningColor,
+    TodoItem.CATEGORY_GOAL to SuccessColor
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,17 +97,33 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val todos by viewModel.allTodos.collectAsState()
     var inputText by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
-
-    val mode = themeMode()
-    val dark = mode.isDark()
+    var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
+    var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
 
     val textPrimary = MaterialTheme.colorScheme.onSurface
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val pendingCount = todos.count { !it.isCompleted }
     val today = remember { LocalDate.now() }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("M月d日 EEEE") }
+
+    val filteredTodos = if (selectedCategoryFilter != null) {
+        todos.filter { it.category == selectedCategoryFilter }
+    } else {
+        todos
+    }
+
+    // Edit dialog
+    editingTodo?.let { todo ->
+        EditTodoDialog(
+            todo = todo,
+            onDismiss = { editingTodo = null },
+            onConfirm = { updatedTodo ->
+                viewModel.updateTodo(updatedTodo)
+                editingTodo = null
+            }
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -123,7 +149,43 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                         fontSize = 14.sp
                     )
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Category filter chips
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CategoryFilterChip(
+                        label = "全部",
+                        isSelected = selectedCategoryFilter == null,
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = { selectedCategoryFilter = null }
+                    )
+                    CategoryFilterChip(
+                        label = "任务",
+                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_TASK,
+                        color = CategoryColors[TodoItem.CATEGORY_TASK]!!,
+                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_TASK) null else TodoItem.CATEGORY_TASK }
+                    )
+                    CategoryFilterChip(
+                        label = "提醒",
+                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_REMINDER,
+                        color = CategoryColors[TodoItem.CATEGORY_REMINDER]!!,
+                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_REMINDER) null else TodoItem.CATEGORY_REMINDER }
+                    )
+                    CategoryFilterChip(
+                        label = "目标",
+                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_GOAL,
+                        color = CategoryColors[TodoItem.CATEGORY_GOAL]!!,
+                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_GOAL) null else TodoItem.CATEGORY_GOAL }
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // Input field
@@ -133,16 +195,16 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     onValueChange = { inputText = it },
                     onAdd = {
                         if (inputText.isNotBlank()) {
-                            viewModel.addTodo(inputText)
+                            viewModel.addTodo(inputText, category = selectedCategoryFilter ?: TodoItem.CATEGORY_TASK)
                             inputText = ""
                         }
                     }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Todo items
-            if (todos.isEmpty()) {
+            if (filteredTodos.isEmpty()) {
                 item {
                     EmptyState(
                         icon = Icons.Default.EventNote,
@@ -152,7 +214,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             } else {
                 itemsIndexed(
-                    items = todos,
+                    items = filteredTodos,
                     key = { _, todo -> todo.id }
                 ) { index, todo ->
                     val enterDelay = (index * 40).coerceAtMost(400)
@@ -211,6 +273,10 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     onDelete = {
                                         haptic.warning()
                                         viewModel.deleteTodo(todo)
+                                    },
+                                    onLongPress = {
+                                        haptic.click()
+                                        editingTodo = todo
                                     }
                                 )
                             }
@@ -227,7 +293,6 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     ClearCompletedButton(
                         onClick = { showClearDialog = true },
-                        textPrimary = textPrimary,
                         textSecondary = textSecondary
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -334,12 +399,138 @@ private fun InputRow(
 }
 
 @Composable
+private fun CategoryFilterChip(
+    label: String,
+    isSelected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) color.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditTodoDialog(
+    todo: TodoItem,
+    onDismiss: () -> Unit,
+    onConfirm: (TodoItem) -> Unit
+) {
+    var title by remember { mutableStateOf(todo.title) }
+    var priority by remember { mutableStateOf(todo.priority) }
+    var category by remember { mutableStateOf(todo.category) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑待办") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("标题") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("优先级", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
+                        val isSelected = priority == level
+                        val chipColor = when (level) {
+                            1 -> WarningColor
+                            2 -> ErrorColor
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) chipColor.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { priority = level }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("分类", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        TodoItem.CATEGORY_TASK to "任务",
+                        TodoItem.CATEGORY_REMINDER to "提醒",
+                        TodoItem.CATEGORY_GOAL to "目标"
+                    ).forEach { (cat, label) ->
+                        val isSelected = category == cat
+                        val chipColor = CategoryColors[cat] ?: MaterialTheme.colorScheme.primary
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) chipColor.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { category = cat }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (title.isNotBlank()) onConfirm(todo.copy(title = title.trim(), priority = priority, category = category)) },
+                enabled = title.isNotBlank()
+            ) { Text("确定") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
 private fun TodoItemCard(
-    todo: com.diary.app.data.TodoItem,
+    todo: TodoItem,
     textPrimary: Color,
     textSecondary: Color,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onLongPress: () -> Unit = {}
 ) {
     val isCompleted = todo.isCompleted
     val itemAlpha by animateFloatAsState(
@@ -356,6 +547,8 @@ private fun TodoItemCard(
         label = "checkbox_scale"
     )
 
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -364,7 +557,14 @@ private fun TodoItemCard(
         innerPadding = 14.dp
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onToggle,
+                    onLongClick = onLongPress
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Custom checkbox with bounce animation
@@ -375,11 +575,6 @@ private fun TodoItemCard(
                     .background(
                         if (isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         else Color.Transparent
-                    )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onToggle
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -398,34 +593,67 @@ private fun TodoItemCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Priority indicator
-            if (todo.priority > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when (todo.priority) {
-                                1 -> WarningColor
-                                2 -> ErrorColor
-                                else -> Color.Transparent
-                            }
-                        )
+            // Content column
+            Column(modifier = Modifier.weight(1f)) {
+                // Title
+                Text(
+                    text = todo.title,
+                    color = textPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
+                    textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
 
-            // Title
-            Text(
-                text = todo.title,
-                color = textPrimary,
-                fontSize = 16.sp,
-                fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
-                textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+                // Category tag + priority + due date row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    // Category tag
+                    val catColor = CategoryColors[todo.category] ?: MaterialTheme.colorScheme.primary
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(catColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = TodoItem.categoryLabel(todo.category),
+                            fontSize = 10.sp,
+                            color = catColor
+                        )
+                    }
+
+                    // Priority indicator
+                    if (todo.priority > 0) {
+                        val prioColor = when (todo.priority) {
+                            1 -> WarningColor
+                            2 -> ErrorColor
+                            else -> Color.Transparent
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(prioColor)
+                        )
+                    }
+
+                    // Due date
+                    todo.dueDate?.let { due ->
+                        val dueDate = Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault()).toLocalDate()
+                        val isOverdue = dueDate.isBefore(LocalDate.now()) && !isCompleted
+                        Text(
+                            text = dueDate.format(DateTimeFormatter.ofPattern("M月d日")),
+                            fontSize = 10.sp,
+                            color = if (isOverdue) ErrorColor else textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
 
             // Delete button
             IconButton(
@@ -446,7 +674,6 @@ private fun TodoItemCard(
 @Composable
 private fun ClearCompletedButton(
     onClick: () -> Unit,
-    textPrimary: Color,
     textSecondary: Color
 ) {
     Box(

@@ -84,7 +84,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -202,6 +205,10 @@ fun EditorScreen(
         currentEntry?.let { entry ->
             selectedMood = entry.moodLevel
             selectedWeather = entry.weather
+            // Inject saved content into WebView when editing existing entry
+            if (diaryId != null && entry.content.isNotBlank()) {
+                webView?.evaluateJavascript("setContent('${escapeForJs(entry.content)}')", null)
+            }
         }
     }
 
@@ -392,6 +399,7 @@ fun EditorScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
+                    viewModel.clearDraft(null)
                     showUnsavedDialog = false
                     onNavigateBack()
                 }) { Text(stringResource(R.string.exit_without_saving)) }
@@ -743,7 +751,7 @@ fun EditorScreen(
                 }
             }
 
-            // Bottom toolbar - simplified to 2 categories: Format and Insert
+            // Bottom toolbar - redesigned with top action bar + grid
             EditorToolbar(
                 showToolbar = showToolbar,
                 onToggleToolbar = { showToolbar = !showToolbar; activeCategory = -1 },
@@ -755,12 +763,13 @@ fun EditorScreen(
                 onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
                 onInsert = { action ->
                     when (action) {
-                        "image" -> imageLauncher.launch("image/*")
-                        "video" -> videoLauncher.launch("video/*")
-                        "audio" -> audioLauncher.launch("audio/*")
-                        "link" -> webView?.evaluateJavascript("insertLink()", null)
                         "divider" -> webView?.evaluateJavascript("insertDivider()", null)
                     }
+                },
+                onImageInsert = { imageLauncher.launch("image/*") },
+                onClose = {
+                    if (hasUnsavedChanges) showUnsavedDialog = true
+                    else onNavigateBack()
                 }
             )
         }
@@ -822,7 +831,9 @@ private fun EditorToolbar(
     onCategoryChange: (Int) -> Unit,
     onFormat: (String) -> Unit,
     onHeading: (Int) -> Unit,
-    onInsert: (String) -> Unit
+    onInsert: (String) -> Unit,
+    onImageInsert: () -> Unit = {},
+    onClose: () -> Unit = {}
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val borderColor = MaterialTheme.colorScheme.outlineVariant
@@ -835,61 +846,71 @@ private fun EditorToolbar(
             .fillMaxWidth()
             .background(surfaceColor)
     ) {
-        // Category row - 5 categories
+        // Top action bar: Aa | palette | menu | image | divider | close
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val categories = listOf(
-                ToolbarCategory("Aa", "格式"),
-                ToolbarCategory("+", "插入"),
-                ToolbarCategory("···", "更多")
+            // Aa - format (expand/collapse grid)
+            TopBarButton(
+                icon = "Aa",
+                isActive = showToolbar,
+                onClick = { onToggleToolbar() },
+                textColor = textColor,
+                activeColor = activeColor
             )
-            categories.forEachIndexed { index, cat ->
-                val isActive = activeCategory == index
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
-                        .clickable {
-                            if (showToolbar) {
-                                onCategoryChange(index)
-                            } else {
-                                onToggleToolbar()
-                                onCategoryChange(index)
-                            }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = cat.icon,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isActive) activeColor else textColor
-                    )
-                    Text(cat.label, fontSize = 9.sp, color = if (isActive) activeColor else textColor.copy(alpha = 0.7f))
-                }
-            }
-
-            // Collapse/expand button
-            IconButton(
-                onClick = onToggleToolbar,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    imageVector = if (showToolbar) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                    contentDescription = if (showToolbar) "收起" else "展开",
-                    tint = textColor,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+            // Palette - color (text/bg color pickers)
+            TopBarButton(
+                icon = "\uD83C\uDFA8",
+                isActive = activeCategory == 1,
+                onClick = {
+                    if (showToolbar && activeCategory == 1) onCategoryChange(-1)
+                    else { onCategoryChange(1); if (!showToolbar) onToggleToolbar() }
+                },
+                textColor = textColor,
+                activeColor = activeColor
+            )
+            // Menu - expand/collapse grid
+            TopBarButton(
+                icon = "\u2261",
+                isActive = showToolbar && activeCategory == 0,
+                onClick = {
+                    if (showToolbar && activeCategory == 0) onCategoryChange(-1)
+                    else { onCategoryChange(0); if (!showToolbar) onToggleToolbar() }
+                },
+                textColor = textColor,
+                activeColor = activeColor
+            )
+            // Image insert
+            TopBarButton(
+                icon = "\uD83D\uDDBC",
+                isActive = false,
+                onClick = { onImageInsert() },
+                textColor = textColor,
+                activeColor = activeColor
+            )
+            // Divider insert
+            TopBarButton(
+                icon = "\u2500",
+                isActive = false,
+                onClick = { onInsert("divider") },
+                textColor = textColor,
+                activeColor = activeColor
+            )
+            // Close
+            TopBarButton(
+                icon = "\u2715",
+                isActive = false,
+                onClick = { onClose() },
+                textColor = textColor,
+                activeColor = activeColor
+            )
         }
 
-        // Tools panel - expandable
+        // Expandable grid panel
         AnimatedVisibility(
             visible = showToolbar && activeCategory >= 0,
             enter = expandVertically(tween(200)) + fadeIn(),
@@ -908,176 +929,198 @@ private fun EditorToolbar(
                         .background(borderColor)
                 )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                ) {
-                    when (activeCategory) {
-                        0 -> FormatTools(onFormat, textColor, btnBg)
-                        1 -> InsertTools(onInsert, textColor, btnBg)
-                        2 -> MoreTools(onFormat, onHeading, textColor, btnBg)
-                    }
+                when (activeCategory) {
+                    0 -> FormatGrid(onFormat, onHeading, onInsert, textColor, btnBg, activeColor)
+                    1 -> ColorGrid(onFormat, textColor, btnBg)
                 }
             }
         }
     }
 }
 
-private data class ToolbarCategory(val icon: String, val label: String)
-
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    var showTextColorPicker by remember { mutableStateOf(false) }
-    var showBgColorPicker by remember { mutableStateOf(false) }
+private fun TopBarButton(
+    icon: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    textColor: Color,
+    activeColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = icon,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (isActive) activeColor else textColor
+        )
+    }
+}
 
-    val presetColors = listOf(
-        0xFFE74C3C.toInt(), // 红
-        0xFFE67E22.toInt(), // 橙
-        0xFFF1C40F.toInt(), // 黄
-        0xFF2ECC71.toInt(), // 绿
-        0xFF3498DB.toInt(), // 蓝
-        0xFF9B59B6.toInt(), // 紫
-        0xFF1A1A1A.toInt(), // 黑
-        0xFFFFFFFF.toInt()  // 白
+@Composable
+private fun FormatGrid(
+    onFormat: (String) -> Unit,
+    onHeading: (Int) -> Unit,
+    onInsert: (String) -> Unit,
+    textColor: Color,
+    btnBg: Color,
+    activeColor: Color
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Row 1: H1 | H2
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "H1", description = "一级标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            GridItem(label = "H2", description = "二级标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+        }
+        // Row 2: H3 | 无序列表
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "H3", description = "三级标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            GridItem(label = "\u2022", description = "无序列表", onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+        }
+        // Row 3: 有序列表 | 复选框
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "1.", description = "有序列表", onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            GridItem(label = "\u2611", description = "复选框", onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+        }
+        // Row 4: 引文 | 加粗
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "\u201C", description = "引文", onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            GridItem(label = "B", description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontWeight = FontWeight.Bold))
+        }
+        // Row 5: 斜体 | 下划线
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "I", description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontStyle = FontStyle.Italic))
+            GridItem(label = "U", description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.Underline))
+        }
+        // Row 6: 删除线 | 字色
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "S", description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.LineThrough))
+            GridItem(label = "字色", description = "文字颜色", onClick = { onFormat("setTextColor('#E74C3C')") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+        }
+        // Row 7: 底色 | 清除格式
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GridItem(label = "底色", description = "背景颜色", onClick = { onFormat("setBackgroundColor('#FFF9C4')") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            GridItem(label = "清除", description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ColorGrid(
+    onFormat: (String) -> Unit,
+    textColor: Color,
+    btnBg: Color
+) {
+    val textColors = listOf(
+        0xFFE74C3C to "红",
+        0xFFE67E22 to "橙",
+        0xFFF1C40F to "黄",
+        0xFF2ECC71 to "绿",
+        0xFF3498DB to "蓝",
+        0xFF9B59B6 to "紫",
+        0xFF1A1A1A to "黑",
+        0xFFFFFFFF to "白"
     )
 
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = "B", contentDescription = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "I", contentDescription = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
-        ToolChip(label = "U", contentDescription = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
-        ToolChip(label = "S", contentDescription = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
-        ToolChip(label = "字色", contentDescription = "文字颜色", onClick = { showTextColorPicker = true }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "底色", contentDescription = "背景颜色", onClick = { showBgColorPicker = true }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "清除", contentDescription = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg)
-    }
-
-    if (showTextColorPicker) {
-        AlertDialog(
-            onDismissRequest = { showTextColorPicker = false },
-            title = { Text("文字颜色") },
-            text = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    presetColors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color(color))
-                                .border(1.dp, Color.Gray, CircleShape)
-                                .clickable {
-                                    onFormat("setTextColor('#${Integer.toHexString(color).substring(2)}')")
-                                    showTextColorPicker = false
-                                }
-                        )
-                    }
-                }
-            },
-            confirmButton = {}
-        )
-    }
-
-    if (showBgColorPicker) {
-        AlertDialog(
-            onDismissRequest = { showBgColorPicker = false },
-            title = { Text("背景颜色") },
-            text = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    presetColors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color(color))
-                                .border(1.dp, Color.Gray, CircleShape)
-                                .clickable {
-                                    onFormat("setBackgroundColor('#${Integer.toHexString(color).substring(2)}')")
-                                    showBgColorPicker = false
-                                }
-                        )
-                    }
-                }
-            },
-            confirmButton = {}
-        )
+        Text("文字颜色", fontSize = 12.sp, color = textColor.copy(alpha = 0.6f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            textColors.forEach { (color, _) ->
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(color))
+                        .border(1.dp, Color.Gray, CircleShape)
+                        .clickable { onFormat("setTextColor('#${Integer.toHexString(color.toInt()).substring(2)}')") }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("背景颜色", fontSize = 12.sp, color = textColor.copy(alpha = 0.6f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            textColors.forEach { (color, _) ->
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(color))
+                        .border(1.dp, Color.Gray, CircleShape)
+                        .clickable { onFormat("setBackgroundColor('#${Integer.toHexString(color.toInt()).substring(2)}')") }
+                )
+            }
+        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MoreTools(onFormat: (String) -> Unit, onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ToolChip(label = "H1", contentDescription = "大标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "H2", contentDescription = "中标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "H3", contentDescription = "小标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "正文", contentDescription = "正文", onClick = { onHeading(0) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "1.", contentDescription = "有序列表", onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "-", contentDescription = "无序列表", onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "\"", contentDescription = "引用", onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ToolChip(label = "图片", contentDescription = "插入图片", onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "视频", contentDescription = "插入视频", onClick = { onInsert("video") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "音频", contentDescription = "插入音频", onClick = { onInsert("audio") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "链接", contentDescription = "插入链接", onClick = { onInsert("link") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "分割线", contentDescription = "插入分割线", onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
-    }
-}
-
-
-@Composable
-private fun ToolChip(
+private fun GridItem(
     label: String,
-    contentDescription: String = "",
+    description: String,
     onClick: () -> Unit,
     textColor: Color,
     bg: Color,
-    textStyle: androidx.compose.ui.text.TextStyle = androidx.compose.ui.text.TextStyle()
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = TextStyle()
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
         ),
-        label = "scale"
+        label = "gridItemScale"
     )
 
     Box(
-        modifier = Modifier
+        modifier = modifier
+            .height(48.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
-        Text(
-            text = label,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = textColor,
-            style = textStyle
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor,
+                style = textStyle
+            )
+            Text(
+                text = description,
+                fontSize = 11.sp,
+                color = textColor.copy(alpha = 0.5f)
+            )
+        }
     }
 }
+
+private data class ToolbarCategory(val icon: String, val label: String)
 
 private fun getEditorFontSize(prefs: android.content.SharedPreferences): Int {
     return when (prefs.getString("editor_font_size", "medium")) {

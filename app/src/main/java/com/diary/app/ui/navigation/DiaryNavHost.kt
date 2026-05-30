@@ -32,7 +32,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -80,7 +80,7 @@ import com.diary.app.update.ChangelogScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "\u9996\u9875", Icons.Default.Home)
-    object Map : Screen("map", "\u65f6\u95f4\u7ebf", Icons.Default.Timeline)
+    object Map : Screen("map", "\u65e5\u5386", Icons.Default.CalendarMonth)
     object Todo : Screen("todo", "\u5f85\u529e", Icons.Default.CheckBox)
     object Stats : Screen("stats", "\u7edf\u8ba1", Icons.Default.BarChart)
     object Profile : Screen("profile", "\u6211\u7684", Icons.Default.Person)

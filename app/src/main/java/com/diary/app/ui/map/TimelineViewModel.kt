@@ -6,22 +6,26 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
+import com.diary.app.ui.home.DayInfo
 import com.diary.app.ui.home.TagInfo
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-
-data class MonthGroup(
-    val yearMonth: YearMonth,
-    val entries: List<DiaryEntry>
-)
+import java.time.ZoneOffset
 
 class TimelineViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+
+    val selectedDate = MutableStateFlow<LocalDate?>(null)
 
     val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = dao.getAllDiaryTagPairs()
         .map { pairs ->
@@ -31,20 +35,46 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val monthGroups: StateFlow<List<MonthGroup>> = dao.getAllEntries()
+    val entryDates: StateFlow<Set<LocalDate>> = dao.getAllEntries()
         .map { entries ->
-            entries
-                .groupBy { entry ->
-                    Instant.ofEpochMilli(entry.createdAt)
-                        .atZone(ZoneId.systemDefault())
-                        .let { YearMonth.of(it.year, it.monthValue) }
-                }
-                .toSortedMap(compareByDescending { it })
-                .map { (yearMonth, monthEntries) ->
-                    MonthGroup(yearMonth, monthEntries)
-                }
+            entries.map { entry ->
+                Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }.toSet()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    val dayInfoMap: StateFlow<Map<LocalDate, DayInfo>> = dao.getAllEntries()
+        .map { entries ->
+            entries.groupBy { entry ->
+                Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }.mapValues { (_, dayEntries) ->
+                val entry = dayEntries.first()
+                DayInfo(entry.moodLevel, entry.weather)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val selectedEntries: StateFlow<List<DiaryEntry>> = selectedDate
+        .flatMapLatest { date ->
+            if (date == null) {
+                kotlinx.coroutines.flow.flowOf(emptyList())
+            } else {
+                val zone = ZoneId.systemDefault()
+                val dayStart = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                kotlinx.coroutines.flow.flowOf(
+                    dao.getEntriesByDateRange(dayStart, dayEnd)
+                )
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Tags are now loaded reactively via getAllDiaryTagPairs() Flow in tagsMap above.
+    fun selectDate(date: LocalDate) {
+        selectedDate.value = date
+    }
 }

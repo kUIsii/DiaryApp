@@ -321,6 +321,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteEntryById(id: Long) {
+        viewModelScope.launch {
+            dao.deleteEntryById(id)
+        }
+    }
+
     private fun computeStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0
         var streak = 0

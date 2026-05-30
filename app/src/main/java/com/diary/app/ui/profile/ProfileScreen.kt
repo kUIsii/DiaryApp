@@ -104,7 +104,6 @@ import com.diary.app.data.DiaryImporter
 import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.diary.app.ui.theme.DarkAccentEnd
@@ -386,15 +385,31 @@ fun ProfileScreen(
 
             // Group: Appearance
             StaggeredItem(index = 0, showContent = showContent) {
-                SectionHeader(title = stringResource(R.string.profile_appearance), icon = Icons.Default.Palette, color = AppearanceIconTint)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            StaggeredItem(index = 1, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
                 ) {
                     Column {
+                        // Section title inside card
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconCircle(icon = Icons.Default.Palette, bg = AppearanceIconBg, tint = AppearanceIconTint)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_appearance),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "主题模式和字体大小",
+                            fontSize = 12.sp,
+                            color = textTertiary,
+                            modifier = Modifier.padding(start = 46.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         ThemeCardSelector(
                             currentMode = currentThemeMode,
                             textColor = textColor,
@@ -427,19 +442,34 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Group: Data management
-            StaggeredItem(index = 2, showContent = showContent) {
-                SectionHeader(title = stringResource(R.string.profile_data_management), icon = Icons.Default.Backup, color = DataIconTint)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            StaggeredItem(index = 3, showContent = showContent) {
+            StaggeredItem(index = 1, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
                 ) {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconCircle(icon = Icons.Default.Backup, bg = DataIconBg, tint = DataIconTint)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_data_management),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "标签管理和数据备份",
+                            fontSize = 12.sp,
+                            color = textTertiary,
+                            modifier = Modifier.padding(start = 46.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         SettingItem(
                             icon = Icons.Default.Label,
                             title = stringResource(R.string.profile_tag_management),
@@ -523,19 +553,34 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Group: Reminders
-            StaggeredItem(index = 4, showContent = showContent) {
-                SectionHeader(title = stringResource(R.string.profile_reminder_settings), icon = Icons.Default.Notifications, color = ReminderIconTint)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            StaggeredItem(index = 5, showContent = showContent) {
+            StaggeredItem(index = 2, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
                 ) {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconCircle(icon = Icons.Default.Notifications, bg = ReminderIconBg, tint = ReminderIconTint)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_reminder_settings),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "每日写作提醒",
+                            fontSize = 12.sp,
+                            color = textTertiary,
+                            modifier = Modifier.padding(start = 46.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         ReminderSettingItem(
                             enabled = reminderEnabled,
                             hour = reminderHour,
@@ -580,19 +625,34 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Group: Privacy
-            StaggeredItem(index = 6, showContent = showContent) {
-                SectionHeader(title = stringResource(R.string.profile_privacy_security), icon = Icons.Default.Security, color = PrivacyIconTint)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            StaggeredItem(index = 7, showContent = showContent) {
+            StaggeredItem(index = 3, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
                 ) {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconCircle(icon = Icons.Default.Security, bg = PrivacyIconBg, tint = PrivacyIconTint)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_privacy_security),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "应用锁和隐私保护",
+                            fontSize = 12.sp,
+                            color = textTertiary,
+                            modifier = Modifier.padding(start = 46.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         BiometricLockSettingItem(
                             enabled = biometricLockEnabled,
                             canUseBiometric = canUseBiometric,
@@ -618,19 +678,38 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Group: About
-            StaggeredItem(index = 8, showContent = showContent) {
-                SectionHeader(title = stringResource(R.string.profile_about), icon = Icons.Default.Info, color = AboutIconTint)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            StaggeredItem(index = 9, showContent = showContent) {
+            StaggeredItem(index = 4, showContent = showContent) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Section title inside card
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconCircle(icon = Icons.Default.Info, bg = AboutIconBg, tint = AboutIconTint)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_about),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "版本信息和更新",
+                            fontSize = 12.sp,
+                            color = textTertiary,
+                            modifier = Modifier.padding(start = 46.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         // App logo large icon
                         Box(
                             modifier = Modifier
