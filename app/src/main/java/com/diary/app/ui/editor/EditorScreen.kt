@@ -226,13 +226,9 @@ fun EditorScreen(
     val prefs = remember { context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE) }
     var editorFontSize by remember { mutableIntStateOf(getEditorFontSize(prefs)) }
 
-    // Re-read font size periodically instead of on every recomposition
+    // Read font size once on enter; editor screen recreates when returning from settings
     LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(2000)
-            val current = getEditorFontSize(prefs)
-            if (current != editorFontSize) editorFontSize = current
-        }
+        editorFontSize = getEditorFontSize(prefs)
     }
 
     LaunchedEffect(themeMode) {
