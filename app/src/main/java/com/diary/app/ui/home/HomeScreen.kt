@@ -1532,7 +1532,11 @@ private fun DiaryCard(
                 }
 
                 // Preview text (limited to 60 chars)
-                val previewSource = entry.plainText.take(60)
+                val previewSource = entry.plainText
+                    .replace("\\n", " ")  // Handle old entries with literal \n
+                    .replace("\n", " ")   // Handle actual newlines
+                    .trim()
+                    .take(60)
                 if (previewSource.isNotBlank()) {
                     val displayText by remember(previewSource, searchQuery, accentColor) {
                         derivedStateOf {

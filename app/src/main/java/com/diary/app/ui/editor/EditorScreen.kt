@@ -104,6 +104,24 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+/**
+ * Properly unescape a JSON-encoded string returned by WebView.evaluateJavascript().
+ * The callback value is a JSON string literal: outer quotes + escaped inner characters.
+ * We need to handle: \" -> ", \\ -> \, \n -> newline, \t -> tab, \r -> carriage return
+ */
+private fun unescapeEvaluateJsResult(raw: String?): String {
+    if (raw.isNullOrEmpty()) return ""
+    // Remove surrounding quotes
+    val s = if (raw.startsWith("\"") && raw.endsWith("\"")) raw.substring(1, raw.length - 1) else raw
+    // Unescape JSON escape sequences
+    return s.replace("\\\"", "\"")
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\r", "\r")
+        .replace("\\\\", "\u0000")  // temp placeholder for literal backslash
+        .replace("\u0000", "\\")     // restore literal backslash
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun EditorScreen(
@@ -264,7 +282,7 @@ fun EditorScreen(
         if (contentVersion > 0) {
             kotlinx.coroutines.delay(5000)
             webView?.evaluateJavascript("getContent()") { json ->
-                val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                val cleanJson = unescapeEvaluateJsResult(json)
                 viewModel.updateLatestContent(cleanJson, latestPlainText, dateTitle)
                 viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
             }
@@ -286,8 +304,8 @@ fun EditorScreen(
             if (event == Lifecycle.Event.ON_PAUSE) {
                 webView?.evaluateJavascript("getContent()") { json ->
                     webView?.evaluateJavascript("getPlainText()") { plain ->
-                        val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                        val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                        val cleanJson = unescapeEvaluateJsResult(json)
+                        val cleanPlain = unescapeEvaluateJsResult(plain)
                         if (cleanPlain.isNotBlank()) {
                             viewModel.updateLatestContent(cleanJson, cleanPlain, dateTitle)
                             viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
@@ -351,8 +369,8 @@ fun EditorScreen(
                 TextButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
                         webView?.evaluateJavascript("getPlainText()") { plain ->
-                            val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                            val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            val cleanJson = unescapeEvaluateJsResult(json)
+                            val cleanPlain = unescapeEvaluateJsResult(plain)
                             scope.launch {
                                 viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather)
                                 showUnsavedDialog = false
@@ -462,8 +480,8 @@ fun EditorScreen(
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
                         webView?.evaluateJavascript("getPlainText()") { plain ->
-                            val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
-                            val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            val cleanJson = unescapeEvaluateJsResult(json)
+                            val cleanPlain = unescapeEvaluateJsResult(plain)
                             // Don't save empty entries
                             if (cleanPlain.isBlank() && dateTitle.isBlank()) {
                                 onNavigateBack()
@@ -692,6 +710,9 @@ fun EditorScreen(
                 onInsert = { action ->
                     when (action) {
                         "image" -> imageLauncher.launch("image/*")
+                        "video" -> videoLauncher.launch("video/*")
+                        "audio" -> audioLauncher.launch("audio/*")
+                        "link" -> webView?.evaluateJavascript("insertLink()", null)
                         "divider" -> webView?.evaluateJavascript("insertDivider()", null)
                     }
                 }
@@ -823,17 +844,20 @@ private fun EditorToolbar(
             .fillMaxWidth()
             .background(surfaceColor)
     ) {
-        // Category row - only 2 categories: Format and Insert
+        // Category row - 5 categories
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.Center,
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             val categories = listOf(
-                ToolbarCategory("Aa", stringResource(R.string.toolbar_format), Icons.Default.FormatSize),
-                ToolbarCategory("+", stringResource(R.string.toolbar_insert), Icons.Default.FormatSize)
+                ToolbarCategory("Aa", "格式", Icons.Default.FormatSize),
+                ToolbarCategory("H", "标题", Icons.Default.FormatSize),
+                ToolbarCategory("=", "列表", Icons.Default.FormatSize),
+                ToolbarCategory("+", "插入", Icons.Default.FormatSize),
+                ToolbarCategory("*", "样式", Icons.Default.FormatSize)
             )
             categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
@@ -850,31 +874,28 @@ private fun EditorToolbar(
                                 onCategoryChange(index)
                             }
                         }
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Icon(
-                        imageVector = cat.materialIcon ?: Icons.Default.FormatSize,
-                        contentDescription = cat.label,
-                        modifier = Modifier.size(18.dp),
-                        tint = if (isActive) activeColor else textColor
+                    Text(
+                        text = cat.icon,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isActive) activeColor else textColor
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(cat.label, fontSize = 10.sp, fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal, color = if (isActive) activeColor else textColor)
+                    Text(cat.label, fontSize = 9.sp, color = if (isActive) activeColor else textColor.copy(alpha = 0.7f))
                 }
             }
-
-            Spacer(modifier = Modifier.width(8.dp))
 
             // Collapse/expand button
             IconButton(
                 onClick = onToggleToolbar,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(28.dp)
             ) {
                 Icon(
                     imageVector = if (showToolbar) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                    contentDescription = if (showToolbar) stringResource(R.string.toolbar_collapse) else stringResource(R.string.toolbar_expand),
+                    contentDescription = if (showToolbar) "收起" else "展开",
                     tint = textColor,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -891,7 +912,6 @@ private fun EditorToolbar(
                     .background(surfaceColor.copy(alpha = 0.95f))
                     .animateContentSize()
             ) {
-                // Divider
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -905,8 +925,11 @@ private fun EditorToolbar(
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     when (activeCategory) {
-                        0 -> FormatTools(onFormat, onHeading, textColor, btnBg)
-                        1 -> InsertTools(onInsert, textColor, btnBg)
+                        0 -> FormatTools(onFormat, textColor, btnBg)
+                        1 -> HeadingTools(onHeading, textColor, btnBg)
+                        2 -> ListTools(onFormat, textColor, btnBg)
+                        3 -> InsertTools(onInsert, textColor, btnBg)
+                        4 -> StyleTools(onFormat, textColor, btnBg)
                     }
                 }
             }
@@ -918,35 +941,42 @@ private data class ToolbarCategory(val icon: String, val label: String, val mate
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FormatTools(onFormat: (String) -> Unit, onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Text format row: bold, italic, underline
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                Triple("B", stringResource(R.string.format_bold), "toggleBold()"),
-                Triple("I", stringResource(R.string.format_italic), "toggleItalic()"),
-                Triple("U", stringResource(R.string.format_underline), "toggleUnderline()")
-            ).forEach { (label, desc, cmd) ->
-                ToolChip(label = label, description = desc, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
-            }
-        }
-        // Heading row: H1, H2, H3, normal
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                Triple("H1", stringResource(R.string.heading_h1), 1),
-                Triple("H2", stringResource(R.string.heading_h2), 2),
-                Triple("H3", stringResource(R.string.heading_h3), 3),
-                Triple(stringResource(R.string.heading_normal), stringResource(R.string.heading_normal), 0)
-            ).forEach { (label, desc, level) ->
-                ToolChip(label = label, description = desc, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
-            }
-        }
+private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolChip(label = "B", description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "I", description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
+        ToolChip(label = "U", description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+        ToolChip(label = "S", description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolChip(label = "H1", description = "大标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "H2", description = "中标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "H3", description = "小标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "正文", description = "正文", onClick = { onHeading(0) }, textColor = textColor, bg = btnBg)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ListTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolChip(label = "1.", description = "有序列表", onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "-", description = "无序列表", onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "\"", description = "引用", onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -957,13 +987,34 @@ private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Col
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = stringResource(R.string.insert_image), description = stringResource(R.string.insert_image), onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = stringResource(R.string.format_divider), description = stringResource(R.string.format_divider), onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "图片", description = "", onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "视频", description = "", onClick = { onInsert("video") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "音频", description = "", onClick = { onInsert("audio") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "链接", description = "", onClick = { onInsert("link") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "分割线", description = "", onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StyleTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolChip(label = "清除", description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg)
     }
 }
 
 @Composable
-private fun ToolChip(label: String, description: String = "", onClick: () -> Unit, textColor: Color, bg: Color) {
+private fun ToolChip(
+    label: String,
+    description: String = "",
+    onClick: () -> Unit,
+    textColor: Color,
+    bg: Color,
+    textStyle: androidx.compose.ui.text.TextStyle = androidx.compose.ui.text.TextStyle()
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -985,7 +1036,13 @@ private fun ToolChip(label: String, description: String = "", onClick: () -> Uni
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor,
+                style = textStyle
+            )
             if (description.isNotEmpty()) {
                 Text(text = description, fontSize = 10.sp, color = textColor.copy(alpha = 0.6f))
             }

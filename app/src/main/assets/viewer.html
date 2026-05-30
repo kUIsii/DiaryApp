@@ -169,6 +169,15 @@
             catch(e) { quill.setText(deltaJSON); }
         }
 
+        function setContentFromBase64(base64) {
+            try {
+                var decoded = atob(base64);
+                // Try to parse as Delta JSON first
+                try { quill.setContents(JSON.parse(decoded)); }
+                catch(e) { quill.setText(decoded); }
+            } catch(e) { console.error('Failed to decode content:', e); }
+        }
+
         function setFontSize(size) {
             document.querySelector('.ql-editor').style.fontSize = size + 'px';
         }

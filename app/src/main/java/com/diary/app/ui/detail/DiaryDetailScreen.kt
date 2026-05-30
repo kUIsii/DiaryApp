@@ -307,7 +307,21 @@ fun DiaryDetailScreen(
                         AndroidView(
                             factory = { ctx ->
                                 WebView(ctx).apply {
-                                    webViewClient = WebViewClient()
+                                    webViewClient = object : WebViewClient() {
+                                        override fun onPageFinished(view: WebView?, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+                                            if (currentEntry.content.isNotBlank()) {
+                                                // Pass content via base64 to avoid escaping issues
+                                                val encoded = android.util.Base64.encodeToString(
+                                                    currentEntry.content.toByteArray(Charsets.UTF_8),
+                                                    android.util.Base64.NO_WRAP
+                                                )
+                                                evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                            }
+                                            evaluateJavascript("setFontSize($fontSizePx)", null)
+                                        }
+                                    }
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -319,18 +333,6 @@ fun DiaryDetailScreen(
                                     setBackgroundColor(0)
                                     loadUrl("file:///android_asset/viewer.html")
                                     webView = this
-                                    post {
-                                        evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
-                                        if (currentEntry.content.isNotBlank()) {
-                                            val escaped = currentEntry.content
-                                                .replace("\\", "\\\\")
-                                                .replace("'", "\\'")
-                                                .replace("\n", "\\n")
-                                                .replace("\r", "")
-                                            evaluateJavascript("setContent('$escaped')", null)
-                                        }
-                                        evaluateJavascript("setFontSize($fontSizePx)", null)
-                                    }
                                 }
                             },
                             modifier = Modifier
