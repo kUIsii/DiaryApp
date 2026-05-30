@@ -1,23 +1,15 @@
 package com.diary.app.ui.components
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import com.diary.app.ui.theme.DarkBackgroundEnd
 import com.diary.app.ui.theme.DarkBackgroundMid
 import com.diary.app.ui.theme.DarkBackgroundStart
@@ -67,91 +59,6 @@ fun GradientBackground(
         if (mode == ThemeMode.GRADIENT || mode == ThemeMode.SYSTEM) {
             NoiseTexture(dark = dark)
         }
-        content()
-    }
-}
-
-@Composable
-fun AnimatedGradientBackground(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val mode = themeMode()
-    val dark = mode.isDark()
-
-    // Solid-background modes
-    if (mode == ThemeMode.PURE_LIGHT) {
-        Box(modifier = modifier.fillMaxSize().background(PureLightBackground)) {
-            content()
-        }
-        return
-    }
-    if (mode == ThemeMode.PURE_DARK) {
-        Box(modifier = modifier.fillMaxSize().background(PureDarkBackground)) {
-            content()
-        }
-        return
-    }
-    if (mode == ThemeMode.WARM_ROSE) {
-        val bgColor = if (dark) com.diary.app.ui.theme.WarmRoseDarkBackground else com.diary.app.ui.theme.WarmRoseBackground
-        Box(modifier = modifier.fillMaxSize().background(bgColor)) {
-            content()
-        }
-        return
-    }
-    if (mode == ThemeMode.OCEAN_BLUE) {
-        val bgColor = if (dark) com.diary.app.ui.theme.OceanBlueDarkBackground else com.diary.app.ui.theme.OceanBlueBackground
-        Box(modifier = modifier.fillMaxSize().background(bgColor)) {
-            content()
-        }
-        return
-    }
-
-    // 4 gradient color schemes for cycling
-    val gradientSets = if (dark) {
-        listOf(
-            listOf(Color(0xFF0B0A1A), Color(0xFF100F24)),
-            listOf(Color(0xFF0D0C20), Color(0xFF141330)),
-            listOf(Color(0xFF0A0E18), Color(0xFF0E1428)),
-            listOf(Color(0xFF100C1A), Color(0xFF161030))
-        )
-    } else {
-        listOf(
-            listOf(Color(0xFFF5F3FF), Color(0xFFF0EEFA), Color(0xFFF8F6FF)),
-            listOf(Color(0xFFF2F0FF), Color(0xFFECE8FA), Color(0xFFF4F2FF)),
-            listOf(Color(0xFFF0F3FF), Color(0xFFEAF0FA), Color(0xFFF2F5FF)),
-            listOf(Color(0xFFFFF0F5), Color(0xFFFCEAF0), Color(0xFFFFF4F8))
-        )
-    }
-
-    val infiniteTransition = rememberInfiniteTransition()
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = gradientSets.size.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 20000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        )
-    )
-
-    val index = progress.toInt().coerceIn(0, gradientSets.size - 1)
-    val nextIndex = (index + 1) % gradientSets.size
-    val fraction = progress - progress.toInt()
-
-    // Interpolate between current and next gradient set
-    val currentGradient = gradientSets[index].zip(gradientSets[nextIndex]) { a, b ->
-        lerp(a, b, fraction)
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(colors = currentGradient))
-    ) {
-        NoiseTexture(dark = dark)
         content()
     }
 }
