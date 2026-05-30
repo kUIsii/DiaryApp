@@ -112,6 +112,9 @@ import com.diary.app.ui.components.staggeredListItem
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.components.rememberHapticFeedback
+import com.diary.app.ui.theme.DarkAccentEnd
+import com.diary.app.ui.theme.DarkAccentStart
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.theme.LightAccentEnd
 import com.diary.app.ui.theme.LightAccentStart
 import com.diary.app.ui.theme.isDark
@@ -530,10 +533,10 @@ private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             .clickable { onNavigateToReview() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = DesignTokens.SpacingLg, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -576,9 +579,9 @@ private fun CalendarToggleButton(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
             .clickable { onToggle() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

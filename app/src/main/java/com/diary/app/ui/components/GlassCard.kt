@@ -32,7 +32,7 @@ import com.diary.app.ui.theme.themeMode
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 20.dp,
+    cornerRadius: Dp = 16.dp,
     enableShadow: Boolean = false,
     gradientColors: List<Color>? = null,
     innerPadding: Dp = 16.dp,
