@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class DiaryApplication : Application() {
     val database by lazy { DiaryDatabase.getDatabase(this) }
 
-    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    private val _themeMode = MutableStateFlow(ThemeMode.PURE_LIGHT)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     override fun onCreate() {

@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ViewWeek
+import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,13 +37,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
+import com.diary.app.ui.theme.PrimaryBlue
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.TemporalAdjusters
+
+enum class CalendarMode { WEEK, MONTH }
 
 @Composable
 fun CalendarView(
@@ -48,9 +57,12 @@ fun CalendarView(
     dayInfoMap: Map<LocalDate, DayInfo>,
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate) -> Unit,
+    calendarMode: CalendarMode = CalendarMode.MONTH,
+    onModeChange: (CalendarMode) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    var currentWeekStart by remember { mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))) }
     val today = remember { LocalDate.now() }
 
     val onBackground = MaterialTheme.colorScheme.onBackground
@@ -64,13 +76,13 @@ fun CalendarView(
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Month navigation
+            // Navigation row with mode toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Previous month
+                // Previous button
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -78,27 +90,41 @@ fun CalendarView(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { currentMonth = currentMonth.minusMonths(1) },
+                        ) {
+                            if (calendarMode == CalendarMode.MONTH) {
+                                currentMonth = currentMonth.minusMonths(1)
+                            } else {
+                                currentWeekStart = currentWeekStart.minusWeeks(1)
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.ChevronLeft,
-                        contentDescription = "上一月",
+                        contentDescription = "上一个",
                         tint = onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Month title
+                // Title
                 Text(
-                    text = "${currentMonth.year}年${currentMonth.monthValue}月",
+                    text = if (calendarMode == CalendarMode.MONTH) {
+                        "${currentMonth.year}年${currentMonth.monthValue}月"
+                    } else {
+                        "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
+                    },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = onBackground
                 )
 
-                // Next month - disabled if already at current month
-                val isAtCurrentMonth = currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
+                // Next button
+                val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
+                    currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
+                } else {
+                    currentWeekStart.plusDays(6) >= today
+                }
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -106,24 +132,55 @@ fun CalendarView(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            enabled = !isAtCurrentMonth
-                        ) { if (!isAtCurrentMonth) currentMonth = currentMonth.plusMonths(1) },
+                            enabled = !isAtCurrent
+                        ) {
+                            if (!isAtCurrent) {
+                                if (calendarMode == CalendarMode.MONTH) {
+                                    currentMonth = currentMonth.plusMonths(1)
+                                } else {
+                                    currentWeekStart = currentWeekStart.plusWeeks(1)
+                                }
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.ChevronRight,
-                        contentDescription = "下一月",
+                        contentDescription = "下一个",
                         tint = onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Mode toggle buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ModeToggleButton(
+                    icon = Icons.Default.ViewWeek,
+                    label = "周",
+                    isSelected = calendarMode == CalendarMode.WEEK,
+                    onClick = { onModeChange(CalendarMode.WEEK) }
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                ModeToggleButton(
+                    icon = Icons.Default.CalendarViewMonth,
+                    label = "月",
+                    isSelected = calendarMode == CalendarMode.MONTH,
+                    onClick = { onModeChange(CalendarMode.MONTH) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Day of week headers
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { index, day ->
+                listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { _, day ->
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
@@ -137,39 +194,146 @@ fun CalendarView(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Date grid
-            val firstDayOfMonth = currentMonth.atDay(1)
-            val daysInMonth = currentMonth.lengthOfMonth()
-            val startOffset = firstDayOfMonth.dayOfWeek.value % 7
-            val totalCells = startOffset + daysInMonth
-            val rows = (totalCells + 6) / 7
+            if (calendarMode == CalendarMode.MONTH) {
+                MonthView(
+                    currentMonth = currentMonth,
+                    entryDates = entryDates,
+                    dayInfoMap = dayInfoMap,
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = onDateSelected,
+                    primary = primary
+                )
+            } else {
+                WeekView(
+                    weekStart = currentWeekStart,
+                    entryDates = entryDates,
+                    dayInfoMap = dayInfoMap,
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = onDateSelected,
+                    primary = primary
+                )
+            }
+        }
+    }
+}
 
-            Column {
-                for (row in 0 until rows) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        for (col in 0..6) {
-                            val cellIndex = row * 7 + col
-                            val dayNum = cellIndex - startOffset + 1
+@Composable
+private fun MonthView(
+    currentMonth: YearMonth,
+    entryDates: Set<LocalDate>,
+    dayInfoMap: Map<LocalDate, DayInfo>,
+    selectedDate: LocalDate?,
+    today: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    primary: Color
+) {
+    val firstDayOfMonth = currentMonth.atDay(1)
+    val daysInMonth = currentMonth.lengthOfMonth()
+    val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+    val totalCells = startOffset + daysInMonth
+    val rows = (totalCells + 6) / 7
 
-                            if (dayNum in 1..daysInMonth) {
-                                val date = currentMonth.atDay(dayNum)
-                                CalendarDay(
-                                    date = date,
-                                    hasEntry = date in entryDates,
-                                    dayInfo = dayInfoMap[date],
-                                    isSelected = date == selectedDate,
-                                    isToday = date == today,
-                                    onDateSelected = onDateSelected,
-                                    primary = primary,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            } else {
-                                Box(modifier = Modifier.weight(1f).aspectRatio(1f))
-                            }
-                        }
+    Column {
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0..6) {
+                    val cellIndex = row * 7 + col
+                    val dayNum = cellIndex - startOffset + 1
+
+                    if (dayNum in 1..daysInMonth) {
+                        val date = currentMonth.atDay(dayNum)
+                        CalendarDay(
+                            date = date,
+                            hasEntry = date in entryDates,
+                            dayInfo = dayInfoMap[date],
+                            isSelected = date == selectedDate,
+                            isToday = date == today,
+                            onDateSelected = onDateSelected,
+                            primary = primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WeekView(
+    weekStart: LocalDate,
+    entryDates: Set<LocalDate>,
+    dayInfoMap: Map<LocalDate, DayInfo>,
+    selectedDate: LocalDate?,
+    today: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    primary: Color
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        for (i in 0..6) {
+            val date = weekStart.plusDays(i.toLong())
+            CalendarDay(
+                date = date,
+                hasEntry = date in entryDates,
+                dayInfo = dayInfoMap[date],
+                isSelected = date == selectedDate,
+                isToday = date == today,
+                onDateSelected = onDateSelected,
+                primary = primary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeToggleButton(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val bgColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    } else {
+        Color.Transparent
+    }
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = contentColor
+        )
     }
 }
 
@@ -238,7 +402,8 @@ private fun CalendarDay(
                 } else if (moodLevel != null) {
                     moodColorForLevel(moodLevel).copy(alpha = 0.8f)
                 } else {
-                    primary.copy(alpha = 0.5f)
+                    // White-blue gradient dot for entries without mood
+                    PrimaryBlue.copy(alpha = 0.6f)
                 }
                 Box(
                     modifier = Modifier

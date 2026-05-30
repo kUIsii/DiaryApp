@@ -133,8 +133,6 @@ fun DiaryDetailScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     var showMenu by remember { mutableStateOf(false) }
-    var isExportingImage by remember { mutableStateOf(false) }
-    var isExportingMarkdown by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Simple fade-in for content
@@ -175,69 +173,6 @@ fun DiaryDetailScreen(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.share_text)) },
-                            onClick = {
-                                showMenu = false
-                                val shareText = viewModel.getShareText()
-                                if (shareText != null) {
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, shareText)
-                                        putExtra(Intent.EXTRA_SUBJECT, "日记 - ${viewModel.getDateTitle()}")
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "分享日记"))
-                                }
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(20.dp))
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(if (isExportingImage) stringResource(R.string.generating_image) else stringResource(R.string.share_as_image))
-                            },
-                            enabled = !isExportingImage,
-                            onClick = {
-                                showMenu = false
-                                isExportingImage = true
-                                scope.launch {
-                                    try {
-                                        val path = viewModel.exportAsImage(context)
-                                        isExportingImage = false
-                                        if (path != null) {
-                                            Toast.makeText(context, "图片已保存到 $path", Toast.LENGTH_LONG).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        isExportingImage = false
-                                        Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(if (isExportingMarkdown) stringResource(R.string.exporting) else stringResource(R.string.export_markdown))
-                            },
-                            enabled = !isExportingMarkdown,
-                            onClick = {
-                                showMenu = false
-                                isExportingMarkdown = true
-                                scope.launch {
-                                    try {
-                                        val path = viewModel.exportToMarkdown(context)
-                                        isExportingMarkdown = false
-                                        if (path != null) {
-                                            Toast.makeText(context, "已导出到 $path", Toast.LENGTH_LONG).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        isExportingMarkdown = false
-                                        Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        )
-                        Divider()
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.delete_diary), color = MaterialTheme.colorScheme.error) },
                             onClick = {
@@ -361,18 +296,7 @@ fun DiaryDetailScreen(
                         DetailBottomBar(
                             isFavorite = currentEntry.isFavorite,
                             onEdit = { onNavigateToEditor(diaryId) },
-                            onToggleFavorite = { viewModel.toggleFavorite() },
-                            onShare = {
-                                val shareText = viewModel.getShareText()
-                                if (shareText != null) {
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, shareText)
-                                        putExtra(Intent.EXTRA_SUBJECT, "日记 - ${viewModel.getDateTitle()}")
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "分享日记"))
-                                }
-                            }
+                            onToggleFavorite = { viewModel.toggleFavorite() }
                         )
                     }
                 }
@@ -560,8 +484,7 @@ private fun DetailTimestamps(
 private fun DetailBottomBar(
     isFavorite: Boolean,
     onEdit: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onShare: () -> Unit
+    onToggleFavorite: () -> Unit
 ) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -587,14 +510,6 @@ private fun DetailBottomBar(
             label = if (isFavorite) "已收藏" else "收藏",
             tint = if (isFavorite) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else textSecondary.copy(alpha = 0.7f),
             onClick = onToggleFavorite
-        )
-
-        // Share
-        BottomActionButton(
-            icon = Icons.Default.Share,
-            label = "分享",
-            tint = textSecondary.copy(alpha = 0.7f),
-            onClick = onShare
         )
     }
 }

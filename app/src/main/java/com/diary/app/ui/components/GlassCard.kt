@@ -13,10 +13,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.diary.app.ui.theme.DarkCardBackground
-import com.diary.app.ui.theme.DarkCardBorder
-import com.diary.app.ui.theme.LightCardBackground
-import com.diary.app.ui.theme.LightCardBorder
 import com.diary.app.ui.theme.PureDarkCardBackground
 import com.diary.app.ui.theme.PureDarkCardBorder
 import com.diary.app.ui.theme.PureLightCardBackground
@@ -40,27 +36,13 @@ fun GlassCard(
     val (backgroundColor, borderColor) = when (mode) {
         ThemeMode.PURE_LIGHT -> PureLightCardBackground to PureLightCardBorder
         ThemeMode.PURE_DARK -> PureDarkCardBackground to PureDarkCardBorder
-        ThemeMode.WARM_ROSE -> {
-            if (dark) com.diary.app.ui.theme.WarmRoseDarkSurfaceVariant to Color(0x33E0CCC8)
-            else com.diary.app.ui.theme.WarmRoseSurfaceVariant to Color(0x80E8D5CF)
-        }
-        ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
-            if (dark) DarkCardBackground to DarkCardBorder
-            else LightCardBackground to LightCardBorder
-        }
-        ThemeMode.OCEAN_BLUE -> {
-            if (dark) com.diary.app.ui.theme.OceanBlueDarkSurfaceVariant to Color(0x33C0D8E8)
-            else com.diary.app.ui.theme.OceanBlueSurfaceVariant to Color(0x80C8E0F0)
-        }
     }
 
     // Dark mode: 1.5dp border for more visibility; light mode: 1dp
     val borderWidth = if (dark) 1.5.dp else 1.dp
 
-    // Shadow logic: explicit shadow, or subtle shadow in light gradient/system mode
     val shadowElevation = when {
         enableShadow -> if (dark) 8.dp else 4.dp
-        !dark && mode != ThemeMode.PURE_LIGHT -> 2.dp
         else -> 0.dp
     }
 

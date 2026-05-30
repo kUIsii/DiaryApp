@@ -156,25 +156,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = {
-                fadeIn(animationSpec = tween(300)) + slideInVertically(
-                    initialOffsetY = { it / 4 },
-                    animationSpec = spring(dampingRatio = 0.9f, stiffness = 300f)
-                )
-            },
-            exitTransition = {
-                fadeOut(animationSpec = tween(200))
-            },
-            popEnterTransition = {
-                fadeIn(animationSpec = tween(300)) + slideInVertically(
-                    initialOffsetY = { -it / 4 },
-                    animationSpec = spring(dampingRatio = 0.9f, stiffness = 300f)
-                )
-            },
-            popExitTransition = {
-                fadeOut(animationSpec = tween(200))
-            }
+            modifier = Modifier.padding(innerPadding)
         ) {
             // region Bottom nav destinations
 
@@ -196,8 +178,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
-                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) }
                 )
             }
 
@@ -327,7 +308,7 @@ private fun DiaryBottomNavigationBar(
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     Surface(
-        color = surfaceColor.copy(alpha = 0.85f),
+        color = surfaceColor,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         tonalElevation = 0.dp,
         shadowElevation = 8.dp,

@@ -136,8 +136,7 @@ private val AboutIconTint = Color(0xFF4CAF50)
 @Composable
 fun ProfileScreen(
     onNavigateToChangelog: () -> Unit = {},
-    onNavigateToTagManagement: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToTagManagement: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
@@ -163,7 +162,6 @@ fun ProfileScreen(
         )
     }
     var isExporting by remember { mutableStateOf(false) }
-    var isMarkdownExporting by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
     var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
 
@@ -498,50 +496,6 @@ fun ProfileScreen(
                         )
                         SettingDivider()
                         SettingItem(
-                            icon = Icons.Default.Description,
-                            title = stringResource(R.string.profile_export_markdown),
-                            subtitle = if (isMarkdownExporting) stringResource(R.string.profile_exporting) else stringResource(R.string.profile_export_markdown_desc),
-                            iconBg = DataIconBg,
-                            iconTint = DataIconTint,
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            enabled = !isMarkdownExporting,
-                            trailing = {
-                                if (isMarkdownExporting) {
-                                    CircularProgressIndicator(
-                                        color = accentColor,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            },
-                            onClick = {
-                                if (!isMarkdownExporting) {
-                                    isMarkdownExporting = true
-                                    scope.launch {
-                                        try {
-                                            val dao = app.database.diaryDao()
-                                            val path = DiaryExporter.exportAsMarkdown(context, dao)
-                                            isMarkdownExporting = false
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.profile_export_success, path),
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        } catch (e: Exception) {
-                                            isMarkdownExporting = false
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.profile_export_failed, e.message ?: ""),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                        SettingDivider()
-                        SettingItem(
                             icon = Icons.Default.GetApp,
                             title = stringResource(R.string.profile_import_backup),
                             subtitle = if (isImporting) stringResource(R.string.profile_importing) else stringResource(R.string.profile_import_backup_desc),
@@ -777,17 +731,6 @@ fun ProfileScreen(
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = onNavigateToChangelog
-                        )
-                        SettingDivider()
-                        SettingItem(
-                            icon = Icons.Default.Security,
-                            title = stringResource(R.string.profile_more_settings),
-                            subtitle = stringResource(R.string.profile_more_settings_desc),
-                            iconBg = AboutIconBg,
-                            iconTint = AboutIconTint,
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToSettings
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -1064,22 +1007,14 @@ private fun ThemeCard(
     )
 
     val icon = when (mode) {
-        ThemeMode.SYSTEM -> Icons.Default.PhoneAndroid
         ThemeMode.PURE_LIGHT -> Icons.Default.LightMode
         ThemeMode.PURE_DARK -> Icons.Default.DarkMode
-        ThemeMode.GRADIENT -> Icons.Default.Palette
-        ThemeMode.WARM_ROSE -> Icons.Default.Favorite
-        ThemeMode.OCEAN_BLUE -> Icons.Default.LightMode
     }
 
     // Color preview pairs
     val (previewStart, previewEnd) = when (mode) {
-        ThemeMode.SYSTEM -> Color(0xFF667EEA) to Color(0xFF764BA2)
-        ThemeMode.PURE_LIGHT -> Color(0xFFF0F2FA) to Color(0xFFFFFFFF)
-        ThemeMode.PURE_DARK -> Color(0xFF0D0D0D) to Color(0xFF1A1A3E)
-        ThemeMode.GRADIENT -> Color(0xFF667EEA) to Color(0xFF764BA2)
-        ThemeMode.WARM_ROSE -> Color(0xFFBF7B6B) to Color(0xFFC49B8A)
-        ThemeMode.OCEAN_BLUE -> Color(0xFF4A90B8) to Color(0xFF6AB0D0)
+        ThemeMode.PURE_LIGHT -> Color(0xFFF8FBFF) to Color(0xFF4A90D9)
+        ThemeMode.PURE_DARK -> Color(0xFF0A1520) to Color(0xFF70B8D8)
     }
 
     Column(

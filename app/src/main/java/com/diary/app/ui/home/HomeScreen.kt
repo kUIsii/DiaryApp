@@ -143,7 +143,12 @@ fun HomeScreen(
             prefs.edit().putBoolean("has_seen_welcome", true).apply()
         }
     }
-    var showCalendar by remember { mutableStateOf(false) }  // Calendar collapsed by default
+    var showCalendar by remember { mutableStateOf(true) }  // Calendar expanded by default
+    var calendarMode by remember {
+        mutableStateOf(
+            if (prefs.getString("calendar_mode", "MONTH") == "WEEK") CalendarMode.WEEK else CalendarMode.MONTH
+        )
+    }
 
     var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
 
@@ -254,6 +259,11 @@ fun HomeScreen(
                                 selectedDate = selectedDate,
                                 onDateSelected = { date ->
                                     viewModel.selectDate(if (date == selectedDate) null else date)
+                                },
+                                calendarMode = calendarMode,
+                                onModeChange = { mode ->
+                                    calendarMode = mode
+                                    prefs.edit().putString("calendar_mode", mode.name).apply()
                                 }
                             )
                         }
