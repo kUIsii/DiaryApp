@@ -966,6 +966,7 @@ private fun FABPulseRing() {
 @Composable
 private fun EmptyState() {
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val prompt = remember { com.diary.app.data.WritingPrompts.getRandomPrompt() }
 
     Box(
         modifier = Modifier
@@ -980,19 +981,15 @@ private fun EmptyState() {
                 color = onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "记录生活中的点滴",
-                fontSize = 14.sp,
-                color = onSurfaceVariant.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "每一天都值得被记住",
-                fontSize = 14.sp,
-                color = onSurfaceVariant.copy(alpha = 0.6f)
-            )
             Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = prompt,
+                fontSize = 14.sp,
+                color = onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 32.dp),
+                lineHeight = 20.sp
+            )
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = "点击右下角按钮开始写作",
                 fontSize = 12.sp,

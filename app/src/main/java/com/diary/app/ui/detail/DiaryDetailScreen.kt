@@ -341,7 +341,8 @@ fun DiaryDetailScreen(
                         DetailTimestamps(
                             createdAt = currentEntry.createdAt,
                             updatedAt = currentEntry.updatedAt,
-                            textSecondary = textSecondary
+                            textSecondary = textSecondary,
+                            plainText = currentEntry.plainText
                         )
 
                         // Bottom action bar
@@ -499,22 +500,39 @@ private fun DetailTags(tags: List<Tag>) {
 private fun DetailTimestamps(
     createdAt: Long,
     updatedAt: Long,
-    textSecondary: Color
+    textSecondary: Color,
+    plainText: String = ""
 ) {
     val createdText = formatFullTimestamp(createdAt)
     val updatedText = formatFullTimestamp(updatedAt)
     val isEdited = updatedAt - createdAt > 60_000
+
+    // Estimate reading time (average 300 Chinese characters per minute)
+    val readingTimeMinutes = if (plainText.isNotBlank()) {
+        maxOf(1, plainText.length / 300)
+    } else 0
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = "创建于 $createdText",
-            fontSize = 11.sp,
-            color = textSecondary.copy(alpha = 0.4f)
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "创建于 $createdText",
+                fontSize = 11.sp,
+                color = textSecondary.copy(alpha = 0.4f)
+            )
+            if (readingTimeMinutes > 0) {
+                Text(
+                    text = "约${readingTimeMinutes}分钟阅读",
+                    fontSize = 11.sp,
+                    color = textSecondary.copy(alpha = 0.3f)
+                )
+            }
+        }
         if (isEdited) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
