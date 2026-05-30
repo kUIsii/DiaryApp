@@ -152,6 +152,16 @@ fun HomeScreen(
     val weeklySummary by viewModel.weeklySummary.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
+
+    // First launch welcome
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE) }
+    var showWelcome by remember { mutableStateOf(!prefs.getBoolean("has_seen_welcome", false)) }
+    LaunchedEffect(showWelcome) {
+        if (!showWelcome) {
+            prefs.edit().putBoolean("has_seen_welcome", true).apply()
+        }
+    }
     var showCalendar by remember { mutableStateOf(false) }  // Calendar collapsed by default
 
     var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
@@ -190,6 +200,13 @@ fun HomeScreen(
                 // Greeting header
                 item {
                     GreetingHeader()
+                }
+
+                // Welcome message for first-time users
+                if (showWelcome && entries.isEmpty() && !isLoading) {
+                    item {
+                        WelcomeCard(onDismiss = { showWelcome = false })
+                    }
                 }
 
                 // Search bar
@@ -471,6 +488,47 @@ private fun GreetingHeader() {
             text = dateText,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
+private fun WelcomeCard(onDismiss: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+            .padding(DesignTokens.SpacingLg)
+    ) {
+        Text(
+            text = "欢迎使用日记本",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "这里是属于你的私人空间，记录生活的点滴，留住每一个值得记住的瞬间。",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 20.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "点击右下角的按钮，开始你的第一篇日记吧。",
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "我知道了",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.End)
+                .clickable { onDismiss() }
         )
     }
 }
