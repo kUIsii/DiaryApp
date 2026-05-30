@@ -386,14 +386,14 @@ private fun DetailHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Date - centered
         Text(
             text = dateText,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Medium,
             color = textColor,
             textAlign = TextAlign.Center
         )
@@ -402,12 +402,12 @@ private fun DetailHeader(
         // Day of week + time
         Text(
             text = "$dayOfWeek  $timeText",
-            fontSize = 14.sp,
-            color = textSecondary,
+            fontSize = 13.sp,
+            color = textSecondary.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
 
-        // Mood and weather row
+        // Mood and weather row - compact
         if (entry.moodLevel != null || entry.weather != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -420,27 +420,25 @@ private fun DetailHeader(
                     Icon(
                         imageVector = moodIcon,
                         contentDescription = moodLabel,
-                        tint = moodTint,
-                        modifier = Modifier.size(18.dp)
+                        tint = moodTint.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = moodLabel,
-                        fontSize = 13.sp,
-                        color = moodTint,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 12.sp,
+                        color = moodTint.copy(alpha = 0.7f)
                     )
                 }
 
                 if (entry.moodLevel != null && entry.weather != null) {
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(14.dp)
-                            .background(textSecondary.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "·",
+                        fontSize = 12.sp,
+                        color = textSecondary.copy(alpha = 0.4f)
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                 }
 
                 if (entry.weather != null) {
@@ -448,15 +446,14 @@ private fun DetailHeader(
                     Icon(
                         imageVector = weatherIcon,
                         contentDescription = entry.weather,
-                        tint = weatherTint,
-                        modifier = Modifier.size(18.dp)
+                        tint = weatherTint.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = entry.weather,
-                        fontSize = 13.sp,
-                        color = weatherTint,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 12.sp,
+                        color = weatherTint.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -478,21 +475,20 @@ private fun DetailTags(tags: List<Tag>) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(tagColor.copy(alpha = 0.1f))
+                    .background(tagColor.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(5.dp)
                         .clip(CircleShape)
-                        .background(tagColor)
+                        .background(tagColor.copy(alpha = 0.6f))
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = tag.name,
                     fontSize = 12.sp,
-                    color = tagColor,
-                    fontWeight = FontWeight.Medium
+                    color = tagColor.copy(alpha = 0.7f)
                 )
             }
         }
@@ -512,19 +508,19 @@ private fun DetailTimestamps(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Text(
-            text = stringResource(R.string.created_at, createdText),
+            text = "创建于 $createdText",
             fontSize = 11.sp,
-            color = textSecondary.copy(alpha = 0.5f)
+            color = textSecondary.copy(alpha = 0.4f)
         )
         if (isEdited) {
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = stringResource(R.string.modified_at, updatedText),
+                text = "修改于 $updatedText",
                 fontSize = 11.sp,
-                color = textSecondary.copy(alpha = 0.5f)
+                color = textSecondary.copy(alpha = 0.4f)
             )
         }
     }
@@ -543,31 +539,31 @@ private fun DetailBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Edit
         BottomActionButton(
             icon = Icons.Default.Edit,
-            label = stringResource(R.string.edit),
-            tint = textSecondary,
+            label = "编辑",
+            tint = textSecondary.copy(alpha = 0.7f),
             onClick = onEdit
         )
 
         // Favorite
         BottomActionButton(
             icon = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-            label = if (isFavorite) stringResource(R.string.unfavorite) else stringResource(R.string.favorite),
-            tint = if (isFavorite) MaterialTheme.colorScheme.primary else textSecondary,
+            label = if (isFavorite) "已收藏" else "收藏",
+            tint = if (isFavorite) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else textSecondary.copy(alpha = 0.7f),
             onClick = onToggleFavorite
         )
 
         // Share
         BottomActionButton(
             icon = Icons.Default.Share,
-            label = stringResource(R.string.share),
-            tint = textSecondary,
+            label = "分享",
+            tint = textSecondary.copy(alpha = 0.7f),
             onClick = onShare
         )
     }
@@ -585,15 +581,15 @@ private fun BottomActionButton(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = label,
             fontSize = 11.sp,

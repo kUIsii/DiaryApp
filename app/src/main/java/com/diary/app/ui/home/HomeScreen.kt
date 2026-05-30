@@ -11,6 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -335,67 +336,29 @@ fun HomeScreen(
 private fun GreetingHeader() {
     val now = LocalTime.now()
     val greeting = when {
-        now.hour < 12 -> stringResource(R.string.greeting_morning)
-        now.hour < 18 -> stringResource(R.string.greeting_afternoon)
-        else -> stringResource(R.string.greeting_evening)
-    }
-    val greetingIcon: ImageVector = when {
-        now.hour < 12 -> Icons.Default.WbSunny
-        now.hour < 18 -> Icons.Default.LightMode
-        else -> Icons.Default.NightsStay
+        now.hour < 6 -> "夜深了，记录今天的思绪吧"
+        now.hour < 12 -> "早安，新的一天"
+        now.hour < 14 -> "午安，午后时光"
+        now.hour < 18 -> "下午好，阳光正好"
+        now.hour < 22 -> "晚上好，记录美好"
+        else -> "夜深了，写下感悟"
     }
     val today = LocalDate.now()
     val dateFormatter = DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINESE)
     val dateText = today.format(dateFormatter)
 
-    // Shimmer effect for greeting text
-    val shimmerTransition = rememberInfiniteTransition(label = "greetingShimmer")
-    val shimmerTranslate by shimmerTransition.animateFloat(
-        initialValue = -300f,
-        targetValue = 800f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmerTranslate"
-    )
-    val primary = MaterialTheme.colorScheme.primary
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.onBackground,
-            MaterialTheme.colorScheme.onBackground,
-            primary.copy(alpha = 0.22f),
-            MaterialTheme.colorScheme.onBackground,
-            MaterialTheme.colorScheme.onBackground
-        ),
-        start = Offset(shimmerTranslate - 150f, 0f),
-        end = Offset(shimmerTranslate + 150f, 0f)
-    )
-
     Column(modifier = Modifier.padding(bottom = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = greetingIcon,
-                contentDescription = greeting,
-                tint = primary.copy(alpha = 0.6f),
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = greeting,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    brush = shimmerBrush
-                )
-            )
-        }
-        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = greeting,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = dateText,
             fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Normal
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
 }
@@ -412,9 +375,11 @@ private fun SearchBar(
     var showSortMenu by remember { mutableStateOf(false) }
 
     Column {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 16.dp
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -428,7 +393,7 @@ private fun SearchBar(
                     keyboardActions = KeyboardActions(onSearch = { onCommitSearch(query) }),
                     placeholder = {
                         Text(
-                            stringResource(R.string.search_placeholder),
+                            "搜索日记...",
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
@@ -437,8 +402,8 @@ private fun SearchBar(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
                         )
                     },
                     trailingIcon = {
@@ -446,9 +411,9 @@ private fun SearchBar(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(18.dp)
                                     .clickable { onQueryChange("") }
                             )
                         }
@@ -468,9 +433,9 @@ private fun SearchBar(
                     Icon(
                         imageVector = Icons.Default.Sort,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(18.dp)
                             .clickable { showSortMenu = true }
                     )
 
@@ -519,7 +484,7 @@ private fun SearchBar(
         if (resultCount >= 0) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.search_result_count, resultCount),
+                text = "找到 $resultCount 条日记",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp)
@@ -533,39 +498,41 @@ private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             .clickable { onNavigateToReview() }
-            .padding(horizontal = DesignTokens.SpacingLg, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${stats.total}篇", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${stats.total}篇",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            Text(
+                "连续${stats.streak}天",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            Text(
+                "本月${stats.thisMonth}篇",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.LocalFireDepartment, contentDescription = null, modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("连续${stats.streak}天", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("本月${stats.thisMonth}篇", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = "查看详情", modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = "查看详情",
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        )
     }
 }
 
@@ -725,11 +692,7 @@ private fun StatItem(
 @Composable
 private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
     val dark = themeMode().isDark()
-    val fabGradient = if (dark) {
-        Brush.linearGradient(listOf(DarkAccentStart, DarkAccentEnd))
-    } else {
-        Brush.linearGradient(listOf(LightAccentStart, LightAccentEnd))
-    }
+    val fabColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = Modifier
@@ -744,8 +707,8 @@ private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(fabGradient)
+                .clip(RoundedCornerShape(16.dp))
+                .background(fabColor.copy(alpha = 0.9f))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
@@ -753,7 +716,7 @@ private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
                 imageVector = Icons.Default.Add,
                 contentDescription = "新建日记",
                 tint = Color.White,
-                modifier = Modifier.size(26.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -795,70 +758,38 @@ private fun FABPulseRing() {
 
 @Composable
 private fun EmptyState() {
-    val primary = MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    // Floating animation
-    val infiniteTransition = rememberInfiniteTransition(label = "emptyFloat")
-    val floatOffset by infiniteTransition.animateFloat(
-        initialValue = -6f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "floatOffset"
-    )
-    val floatAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "floatAlpha"
-    )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 60.dp, bottom = 20.dp),
+            .padding(top = 80.dp, bottom = 40.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .offset(y = floatOffset.dp)
-                    .clip(CircleShape)
-                    .background(primary.copy(alpha = 0.08f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "开始写作",
-                    tint = primary.copy(alpha = floatAlpha),
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = stringResource(R.string.start_your_story),
-                fontSize = 18.sp,
+                text = "开始你的故事",
+                fontSize = 20.sp,
                 color = onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.every_day_worth_recording),
+                text = "记录生活中的点滴",
                 fontSize = 14.sp,
-                color = onSurfaceVariant.copy(alpha = 0.5f)
+                color = onSurfaceVariant.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.click_to_write_first),
+                text = "每一天都值得被记住",
+                fontSize = 14.sp,
+                color = onSurfaceVariant.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "点击右下角按钮开始写作",
                 fontSize = 12.sp,
-                color = onSurfaceVariant.copy(alpha = 0.5f)
+                color = onSurfaceVariant.copy(alpha = 0.4f)
             )
         }
     }
@@ -1143,13 +1074,33 @@ private fun DiaryCard(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
 
-    GlassCard(
+    // Mood accent color for left border
+    val moodColor = entry.moodLevel?.let { moodColorForLevel(it) }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+            .then(
+                if (moodColor != null) {
+                    Modifier.border(
+                        width = 0.dp,
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                } else {
+                    Modifier.border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+            )
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -1157,73 +1108,89 @@ private fun DiaryCard(
                 onLongClick = onLongClick
             )
     ) {
-        Column {
-            // Title (if present)
-            if (entry.title.isNotBlank()) {
-                Text(
-                    text = entry.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        Row {
+            // Mood accent bar on left
+            if (moodColor != null) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .fillMaxHeight()
+                        .background(moodColor.copy(alpha = 0.6f))
                 )
-                Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // Preview text (limited to 50 chars)
-            val previewSource = entry.plainText.take(50)
-            if (previewSource.isNotBlank()) {
-                val displayText by remember(previewSource, searchQuery, accentColor) {
-                    derivedStateOf {
-                        if (searchQuery.isNotBlank()) {
-                            highlightText(previewSource, searchQuery, accentColor)
-                        } else {
-                            AnnotatedString(previewSource)
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Title (if present)
+                if (entry.title.isNotBlank()) {
+                    Text(
+                        text = entry.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
+                // Preview text (limited to 60 chars)
+                val previewSource = entry.plainText.take(60)
+                if (previewSource.isNotBlank()) {
+                    val displayText by remember(previewSource, searchQuery, accentColor) {
+                        derivedStateOf {
+                            if (searchQuery.isNotBlank()) {
+                                highlightText(previewSource, searchQuery, accentColor)
+                            } else {
+                                AnnotatedString(previewSource)
+                            }
                         }
                     }
-                }
-                Text(
-                    text = displayText,
-                    fontSize = 14.sp,
-                    color = onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
-                )
-            }
-
-            // Bottom row: date + mood + favorite
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = formatCardDate(entry.createdAt),
-                    fontSize = 12.sp,
-                    color = onSurfaceVariant.copy(alpha = 0.7f)
-                )
-
-                if (entry.moodLevel != null) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                    Icon(
-                        imageVector = moodIcon,
-                        contentDescription = null,
-                        tint = moodTint.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
+                    Text(
+                        text = displayText,
+                        fontSize = 14.sp,
+                        color = onSurfaceVariant.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 20.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                // Bottom row: date + mood + favorite
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatCardDate(entry.createdAt),
+                        fontSize = 12.sp,
+                        color = onSurfaceVariant.copy(alpha = 0.6f)
+                    )
 
-                Icon(
-                    imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = null,
-                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else onSurfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.size(18.dp)
-                )
+                    if (entry.moodLevel != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = null,
+                            tint = moodTint.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (entry.isFavorite) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1265,39 +1232,34 @@ private fun OnThisDayCard(
     entries: List<DiaryEntry>,
     onEntryClick: (Long) -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        gradientColors = listOf(
-            primary.copy(alpha = 0.08f),
-            primary.copy(alpha = 0.03f)
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 10.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "那年今日",
-                    tint = primary,
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = "那年今日",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = onBackground
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.on_this_day),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.memories_count, entries.size),
+                    text = "${entries.size}条回忆",
                     fontSize = 12.sp,
                     color = onSurfaceVariant.copy(alpha = 0.6f)
                 )
@@ -1319,8 +1281,7 @@ private fun OnThisDayCard(
                     Text(
                         text = "${entryDate.year}年",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = primary.copy(alpha = 0.8f),
+                        color = onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.width(56.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1329,7 +1290,6 @@ private fun OnThisDayCard(
                             Text(
                                 text = entry.title,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
                                 color = onBackground,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1339,14 +1299,14 @@ private fun OnThisDayCard(
                             Text(
                                 text = entry.plainText,
                                 fontSize = 12.sp,
-                                color = onSurfaceVariant,
+                                color = onSurfaceVariant.copy(alpha = 0.7f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                     Text(
-                        text = stringResource(R.string.years_ago, yearDiff),
+                        text = "${yearDiff}年前",
                         fontSize = 11.sp,
                         color = onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -1356,7 +1316,7 @@ private fun OnThisDayCard(
             if (entries.size > 3) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.more_entries, entries.size - 3),
+                    text = "还有${entries.size - 3}条",
                     fontSize = 12.sp,
                     color = onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1372,48 +1332,41 @@ private fun ReviewCardHome(
     onEntryClick: (Long) -> Unit,
     onViewAll: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        gradientColors = listOf(
-            primary.copy(alpha = 0.06f),
-            primary.copy(alpha = 0.02f)
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "日记回顾",
-                        tint = primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.diary_review),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = primary
-                    )
-                }
                 Text(
-                    text = stringResource(R.string.view_all),
+                    text = "日记回顾",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = onBackground
+                )
+                Text(
+                    text = "查看全部",
                     fontSize = 12.sp,
-                    color = primary.copy(alpha = 0.7f),
+                    color = onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.clickable(onClick = onViewAll)
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             reviewEntries.take(3).forEach { reviewItem ->
                 val entry = reviewItem.entry
@@ -1428,8 +1381,7 @@ private fun ReviewCardHome(
                     Text(
                         text = reviewItem.label,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = primary.copy(alpha = 0.8f),
+                        color = onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.width(64.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1438,7 +1390,6 @@ private fun ReviewCardHome(
                             Text(
                                 text = entry.title,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
                                 color = onBackground,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1448,7 +1399,7 @@ private fun ReviewCardHome(
                             Text(
                                 text = entry.plainText,
                                 fontSize = 12.sp,
-                                color = onSurfaceVariant,
+                                color = onSurfaceVariant.copy(alpha = 0.7f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1459,8 +1410,8 @@ private fun ReviewCardHome(
                         Icon(
                             imageVector = moodIcon,
                             contentDescription = "心情",
-                            tint = moodTint,
-                            modifier = Modifier.size(18.dp)
+                            tint = moodTint.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }

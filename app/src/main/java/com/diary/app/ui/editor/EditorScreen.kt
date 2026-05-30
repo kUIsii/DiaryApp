@@ -238,10 +238,10 @@ fun EditorScreen(
         }
     }
 
-    // Auto-save with 3s debounce
+    // Auto-save with 5s debounce (softer, less aggressive)
     LaunchedEffect(contentVersion) {
         if (contentVersion > 0) {
-            kotlinx.coroutines.delay(3000)
+            kotlinx.coroutines.delay(5000)
             webView?.evaluateJavascript("getContent()") { json ->
                 val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
                 viewModel.updateLatestContent(cleanJson, latestPlainText, dateTitle)
@@ -492,86 +492,70 @@ fun EditorScreen(
                 )
             }
 
-            // Metadata buttons row - wrapped in GlassCard
-            com.diary.app.ui.components.GlassCard(
+            // Metadata buttons row - simple chips
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                cornerRadius = 16.dp,
-                innerPadding = 6.dp
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Mood button
-                    MetadataButton(
-                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else stringResource(R.string.mood_label),
-                        icon = moodIconForLevel(selectedMood ?: 3).icon,
-                        isSelected = selectedMood != null,
-                        isActive = activePanel == "mood",
-                        accentColor = accentColor,
-                        surfaceVariant = surfaceVariant,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        onClick = { activePanel = if (activePanel == "mood") null else "mood" }
-                    )
-                    // Weather button
-                    MetadataButton(
-                        label = selectedWeather ?: stringResource(R.string.weather_label),
-                        icon = weatherIconFor(selectedWeather).icon,
-                        isSelected = selectedWeather != null,
-                        isActive = activePanel == "weather",
-                        accentColor = accentColor,
-                        surfaceVariant = surfaceVariant,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        onClick = { activePanel = if (activePanel == "weather") null else "weather" }
-                    )
-                    // Tags button
-                    MetadataButton(
-                        label = if (selectedTagIds.isNotEmpty()) stringResource(R.string.tag_count_format, selectedTagIds.size) else stringResource(R.string.tag_label),
-                        icon = Icons.Default.Sell,
-                        isSelected = selectedTagIds.isNotEmpty(),
-                        isActive = activePanel == "tags",
-                        accentColor = accentColor,
-                        surfaceVariant = surfaceVariant,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        onClick = { activePanel = if (activePanel == "tags") null else "tags" }
-                    )
-                }
+                // Mood chip
+                MetadataChip(
+                    label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
+                    icon = moodIconForLevel(selectedMood ?: 3).icon,
+                    isSelected = selectedMood != null,
+                    isActive = activePanel == "mood",
+                    onClick = { activePanel = if (activePanel == "mood") null else "mood" }
+                )
+                // Weather chip
+                MetadataChip(
+                    label = selectedWeather ?: "天气",
+                    icon = weatherIconFor(selectedWeather).icon,
+                    isSelected = selectedWeather != null,
+                    isActive = activePanel == "weather",
+                    onClick = { activePanel = if (activePanel == "weather") null else "weather" }
+                )
+                // Tags chip
+                MetadataChip(
+                    label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size}个标签" else "标签",
+                    icon = Icons.Default.Sell,
+                    isSelected = selectedTagIds.isNotEmpty(),
+                    isActive = activePanel == "tags",
+                    onClick = { activePanel = if (activePanel == "tags") null else "tags" }
+                )
             }
 
-            // Expandable panels with GlassCard
+            // Expandable panels - simple background
             AnimatedVisibility(
                 visible = activePanel != null,
                 enter = expandVertically(tween(250)) + fadeIn(tween(200)),
                 exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
             ) {
-                com.diary.app.ui.components.GlassCard(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 2.dp)
-                        .animateContentSize(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 12.dp
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(surfaceVariant.copy(alpha = 0.5f))
+                        .animateContentSize()
                 ) {
-                    when (activePanel) {
-                        "mood" -> MoodSlider(
-                            selectedLevel = selectedMood,
-                            onLevelChange = { selectedMood = it }
-                        )
-                        "weather" -> WeatherSelector(
-                            selectedWeather = selectedWeather,
-                            onWeatherSelected = { selectedWeather = it }
-                        )
-                        "tags" -> TagEditor(
-                            allTags = allTags,
-                            selectedTagIds = selectedTagIds,
-                            onTagToggle = { viewModel.toggleTag(it) },
-                            onAddTag = { showTagDialog = true }
-                        )
+                    Box(modifier = Modifier.padding(12.dp)) {
+                        when (activePanel) {
+                            "mood" -> MoodSlider(
+                                selectedLevel = selectedMood,
+                                onLevelChange = { selectedMood = it }
+                            )
+                            "weather" -> WeatherSelector(
+                                selectedWeather = selectedWeather,
+                                onWeatherSelected = { selectedWeather = it }
+                            )
+                            "tags" -> TagEditor(
+                                allTags = allTags,
+                                selectedTagIds = selectedTagIds,
+                                onTagToggle = { viewModel.toggleTag(it) },
+                                onAddTag = { showTagDialog = true }
+                            )
+                        }
                     }
                 }
             }
@@ -610,6 +594,16 @@ fun EditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 2.dp)
+                )
+            }
+
+            // Word count - subtle, at bottom
+            if (charCount > 0) {
+                Text(
+                    text = "${charCount}字",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)
                 )
             }
 
@@ -688,6 +682,48 @@ private fun MetadataButton(
                 text = label,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetadataChip(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val primary = MaterialTheme.colorScheme.primary
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val bgColor = if (isActive) primary.copy(alpha = 0.08f) else surfaceVariant.copy(alpha = 0.5f)
+    val contentColor = if (isSelected || isActive) primary else onSurfaceVariant.copy(alpha = 0.7f)
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                fontSize = 13.sp,
                 color = contentColor
             )
         }

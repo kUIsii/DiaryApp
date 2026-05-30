@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -57,10 +58,13 @@ fun CalendarView(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
 
-    GlassCard(
-        modifier = modifier.fillMaxWidth()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Month navigation
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -121,12 +125,11 @@ fun CalendarView(
             // Day of week headers
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { index, day ->
-                    val isWeekend = index == 0 || index == 6
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
-                        color = if (isWeekend) Color(0xFFE57373) else onSurfaceVariant.copy(alpha = 0.6f),
+                        color = onSurfaceVariant.copy(alpha = 0.5f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -197,12 +200,12 @@ private fun CalendarDay(
     val textColor = when {
         isSelected -> Color.White
         isToday -> primary
-        else -> onBackground
+        else -> onBackground.copy(alpha = 0.8f)
     }
 
     val bgColor = when {
-        isSelected -> primary
-        isToday -> primary.copy(alpha = 0.1f)
+        isSelected -> primary.copy(alpha = 0.8f)
+        isToday -> primary.copy(alpha = 0.08f)
         else -> Color.Transparent
     }
 
