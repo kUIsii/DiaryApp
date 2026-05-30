@@ -275,7 +275,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun computeStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0
         var streak = 0
-        var current = LocalDate.now()
+        // Start from the most recent date that has a diary entry
+        var current = dates.maxOrNull() ?: return 0
+        // Only count streak up to today
+        val today = LocalDate.now()
+        if (current.isAfter(today)) return 0
         while (current in dates) {
             streak++
             current = current.minusDays(1)

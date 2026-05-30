@@ -70,11 +70,11 @@ private val moodLabels = listOf("沮丧", "低落", "平静", "开心", "愉快"
 @Composable
 fun MoodSlider(
     selectedLevel: Int?,
-    onLevelChange: (Int) -> Unit,
+    onLevelChange: (Int?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val currentLevel = selectedLevel ?: 3
-    val currentColor = moodColors[currentLevel - 1]
+    val currentLevel = selectedLevel ?: 0
+    val currentColor = if (currentLevel > 0) moodColors[currentLevel - 1] else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -82,18 +82,26 @@ fun MoodSlider(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                moodIcons[currentLevel - 1],
-                null,
-                tint = currentColor,
-                modifier = Modifier.size(32.dp)
-            )
-            Text(
-                text = " ${moodLabels[currentLevel - 1]}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = currentColor
-            )
+            if (currentLevel > 0) {
+                Icon(
+                    moodIcons[currentLevel - 1],
+                    null,
+                    tint = currentColor,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(
+                    text = " ${moodLabels[currentLevel - 1]}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = currentColor
+                )
+            } else {
+                Text(
+                    text = "点击选择心情",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         Row(
@@ -107,7 +115,14 @@ fun MoodSlider(
                     index = i,
                     isSelected = currentLevel == (i + 1),
                     color = moodColors[i],
-                    onClick = { onLevelChange(i + 1) }
+                    onClick = {
+                        // Toggle: click same mood to deselect
+                        if (selectedLevel == i + 1) {
+                            onLevelChange(null)
+                        } else {
+                            onLevelChange(i + 1)
+                        }
+                    }
                 )
             }
         }

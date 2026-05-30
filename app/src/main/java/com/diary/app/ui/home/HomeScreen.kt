@@ -41,9 +41,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -143,6 +146,7 @@ fun HomeScreen(
     val recentSearches by viewModel.recentSearches.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
+    var showCalendar by remember { mutableStateOf(false) }  // Calendar collapsed by default
 
     var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
 
@@ -194,8 +198,8 @@ fun HomeScreen(
                     )
                 }
 
-                // Recent searches
-                if (isSearchActive && searchQuery.isBlank() && recentSearches.isNotEmpty()) {
+                // Recent searches - show when search bar is focused but query is empty
+                if (searchQuery.isBlank() && recentSearches.isNotEmpty()) {
                     item {
                         RecentSearchesRow(
                             searches = recentSearches,
@@ -226,22 +230,34 @@ fun HomeScreen(
                     }
                 }
 
-                // Stats card
-                item {
-                    StatsCard(stats = stats)
-                }
-
-                // Calendar view (hidden when search is active)
+                // Stats card - compact version
                 if (!isSearchActive) {
                     item {
-                        CalendarView(
-                            entryDates = entryDates,
-                            dayInfoMap = dayInfoMap,
+                        CompactStatsRow(stats = stats, onNavigateToReview = onNavigateToReview)
+                    }
+                }
+
+                // Calendar toggle button + collapsible calendar
+                if (!isSearchActive) {
+                    item {
+                        CalendarToggleButton(
+                            isExpanded = showCalendar,
+                            onToggle = { showCalendar = !showCalendar },
                             selectedDate = selectedDate,
-                            onDateSelected = { date ->
-                                viewModel.selectDate(if (date == selectedDate) null else date)
-                            }
+                            onClearDate = { viewModel.selectDate(null) }
                         )
+                    }
+                    if (showCalendar) {
+                        item {
+                            CalendarView(
+                                entryDates = entryDates,
+                                dayInfoMap = dayInfoMap,
+                                selectedDate = selectedDate,
+                                onDateSelected = { date ->
+                                    viewModel.selectDate(if (date == selectedDate) null else date)
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -510,6 +526,94 @@ private fun SearchBar(
 }
 
 @Composable
+private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .clickable { onNavigateToReview() }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${stats.total}篇", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.LocalFireDepartment, contentDescription = null, modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("连续${stats.streak}天", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("本月${stats.thisMonth}篇", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = "查看详情", modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+    }
+}
+
+@Composable
+private fun CalendarToggleButton(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    selectedDate: LocalDate?,
+    onClearDate: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onToggle() }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = if (selectedDate != null) {
+                    "${selectedDate.monthValue}月${selectedDate.dayOfMonth}日的日记"
+                } else {
+                    "日历"
+                },
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (selectedDate != null) {
+                Icon(Icons.Default.Close, contentDescription = "清除选择", modifier = Modifier
+                    .size(14.dp)
+                    .clickable { onClearDate() },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+            }
+        }
+        Icon(
+            if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = if (isExpanded) "收起" else "展开",
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
 private fun StatsCard(stats: HomeStats) {
     val dark = themeMode().isDark()
     Row(
@@ -619,7 +723,7 @@ private fun StatItem(
 private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
     val dark = themeMode().isDark()
     val fabGradient = if (dark) {
-        Brush.linearGradient(listOf(LightAccentStart, LightAccentEnd))
+        Brush.linearGradient(listOf(DarkAccentStart, DarkAccentEnd))
     } else {
         Brush.linearGradient(listOf(LightAccentStart, LightAccentEnd))
     }

@@ -94,15 +94,17 @@ fun CalendarView(
                     color = onBackground
                 )
 
-                // Next month
+                // Next month - disabled if already at current month
+                val isAtCurrentMonth = currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { currentMonth = currentMonth.plusMonths(1) },
+                            indication = null,
+                            enabled = !isAtCurrentMonth
+                        ) { if (!isAtCurrentMonth) currentMonth = currentMonth.plusMonths(1) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

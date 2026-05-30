@@ -58,13 +58,9 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
 
         sb.appendLine()
 
-        // Strip HTML tags for plain text
-        val plainContent = currentEntry.content
-            .replace(Regex("<[^>]*>"), "")
-            .replace(Regex("&[a-zA-Z]+;"), "")
-            .trim()
-        if (plainContent.isNotBlank()) {
-            sb.appendLine(plainContent)
+        // Use the stored plainText field instead of parsing delta JSON
+        if (currentEntry.plainText.isNotBlank()) {
+            sb.appendLine(currentEntry.plainText)
         }
 
         sb.appendLine()

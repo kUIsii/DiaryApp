@@ -57,7 +57,7 @@ fun TagEditor(
     ) {
         allTags.forEach { tag ->
             val isSelected = tag.id in selectedTagIds
-            val tagColor = Color(tag.color.toInt())
+            val tagColor = Color(tag.color)
 
             TagChip(
                 tagName = tag.name,

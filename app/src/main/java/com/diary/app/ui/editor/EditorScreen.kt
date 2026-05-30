@@ -443,6 +443,11 @@ fun EditorScreen(
                         webView?.evaluateJavascript("getPlainText()") { plain ->
                             val cleanJson = json?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
                             val cleanPlain = plain?.removeSurrounding("\"")?.replace("\\\"", "\"") ?: ""
+                            // Don't save empty entries
+                            if (cleanPlain.isBlank() && dateTitle.isBlank()) {
+                                onNavigateBack()
+                                return@evaluateJavascript
+                            }
                             scope.launch {
                                 viewModel.saveEntry(
                                     title = dateTitle,
