@@ -145,12 +145,8 @@ fun HomeScreen(
     val stats by viewModel.stats.collectAsState()
     val sortOrder by viewModel.sortOrder.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val onThisDayEntries by viewModel.onThisDayEntries.collectAsState()
-    val reviewEntries by viewModel.reviewEntries.collectAsState()
     val searchResultCount by viewModel.searchResultCount.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
-    val moodTrend by viewModel.moodTrend.collectAsState()
-    val weeklySummary by viewModel.weeklySummary.collectAsState()
     val allTags by viewModel.allTags.collectAsState()
     val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
 
@@ -198,7 +194,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Greeting header
                 item {
@@ -224,7 +220,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Recent searches - show when search bar is focused but query is empty
+                // Recent searches
                 if (searchQuery.isBlank() && recentSearches.isNotEmpty()) {
                     item {
                         RecentSearchesRow(
@@ -235,7 +231,7 @@ fun HomeScreen(
                     }
                 }
 
-                // Tag filter chips - show when not searching
+                // Tag filter chips
                 if (!isSearchActive && allTags.isNotEmpty()) {
                     item {
                         TagFilterRow(
@@ -246,75 +242,27 @@ fun HomeScreen(
                     }
                 }
 
-                // On This Day card
-                if (!isSearchActive && onThisDayEntries.isNotEmpty()) {
-                    item {
-                        OnThisDayCard(
-                            entries = onThisDayEntries,
-                            onEntryClick = onNavigateToDetail
-                        )
-                    }
-                }
-
-                // Review card
-                if (!isSearchActive && reviewEntries.isNotEmpty()) {
-                    item {
-                        ReviewCardHome(
-                            reviewEntries = reviewEntries,
-                            onEntryClick = onNavigateToDetail,
-                            onViewAll = onNavigateToReview
-                        )
-                    }
-                }
-
-                // Stats card - compact version
+                // Compact stats + calendar toggle in one row
                 if (!isSearchActive) {
                     item {
-                        CompactStatsRow(stats = stats, onNavigateToReview = onNavigateToReview)
-                    }
-                }
-
-                // Mood trend for the last 7 days
-                if (!isSearchActive && moodTrend.any { it.moodLevel != null }) {
-                    item {
-                        MoodTrendRow(moodTrend = moodTrend)
-                    }
-                }
-
-                // Quick mood check-in (only show if no entry today)
-                if (!isSearchActive && !entryDates.contains(LocalDate.now())) {
-                    item {
-                        QuickMoodCheckIn(
-                            onMoodSelected = { level ->
-                                onNavigateToEditor(null)
-                            }
-                        )
-                    }
-                }
-
-                // Gentle reminder to write (show in evening if no entry today)
-                if (!isSearchActive && !entryDates.contains(LocalDate.now()) && LocalTime.now().hour >= 20) {
-                    item {
-                        WritingReminderCard(onWriteClick = { onNavigateToEditor(null) })
-                    }
-                }
-
-                // Weekly summary (show if there are entries this week)
-                if (!isSearchActive && weeklySummary.entryCount > 0) {
-                    item {
-                        WeeklySummaryRow(summary = weeklySummary)
-                    }
-                }
-
-                // Calendar toggle button + collapsible calendar
-                if (!isSearchActive) {
-                    item {
-                        CalendarToggleButton(
-                            isExpanded = showCalendar,
-                            onToggle = { showCalendar = !showCalendar },
-                            selectedDate = selectedDate,
-                            onClearDate = { viewModel.selectDate(null) }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CompactStatsRow(
+                                stats = stats,
+                                onNavigateToReview = onNavigateToReview,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            CalendarToggleButton(
+                                isExpanded = showCalendar,
+                                onToggle = { showCalendar = !showCalendar },
+                                selectedDate = selectedDate,
+                                onClearDate = { viewModel.selectDate(null) }
+                            )
+                        }
                     }
                     if (showCalendar) {
                         item {
@@ -330,6 +278,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Selected date indicator
                 if (selectedDate != null && !isSearchActive) {
                     item {
                         Row(
@@ -338,13 +287,13 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(R.string.diary_for_date, selectedDate!!.monthValue, selectedDate!!.dayOfMonth),
-                                fontSize = 14.sp,
+                                text = "${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日的日记",
+                                fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = stringResource(R.string.view_all),
+                                text = "查看全部",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.clickable { viewModel.selectDate(null) }
@@ -721,71 +670,33 @@ private fun SearchBar(
 }
 
 @Composable
-private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit) {
-    val streakMessage = when (stats.streak) {
-        3 -> "开始坚持了!"
-        7 -> "一周不间断!"
-        14 -> "两周持续记录!"
-        30 -> "一个月的坚持!"
-        60 -> "两个月不间断!"
-        100 -> "百日如一日!"
-        else -> null
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+private fun CompactStatsRow(stats: HomeStats, onNavigateToReview: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             .clickable { onNavigateToReview() }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "${stats.total}篇",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                Text(
-                    "连续${stats.streak}天",
-                    fontSize = 13.sp,
-                    color = if (streakMessage != null) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text("·", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                Text(
-                    "本月${stats.thisMonth}篇",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "查看详情",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
-        }
-
-        // Streak celebration message
-        if (streakMessage != null) {
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = streakMessage,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Text(
+            "${stats.total}篇",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text("·", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+        Text(
+            "连续${stats.streak}天",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text("·", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+        Text(
+            "本月${stats.thisMonth}篇",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -1090,7 +1001,6 @@ private fun StatItem(
 
 @Composable
 private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
-    val dark = themeMode().isDark()
     val fabColor = MaterialTheme.colorScheme.primary
 
     Box(
