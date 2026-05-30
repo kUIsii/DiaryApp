@@ -151,6 +151,8 @@ fun HomeScreen(
     val recentSearches by viewModel.recentSearches.collectAsState()
     val moodTrend by viewModel.moodTrend.collectAsState()
     val weeklySummary by viewModel.weeklySummary.collectAsState()
+    val allTags by viewModel.allTags.collectAsState()
+    val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
 
@@ -229,6 +231,17 @@ fun HomeScreen(
                             searches = recentSearches,
                             onSelect = { viewModel.setSearchQuery(it) },
                             onClear = { viewModel.clearSearchHistory() }
+                        )
+                    }
+                }
+
+                // Tag filter chips - show when not searching
+                if (!isSearchActive && allTags.isNotEmpty()) {
+                    item {
+                        TagFilterRow(
+                            tags = allTags,
+                            selectedTagId = selectedTagFilter,
+                            onTagSelected = { viewModel.setTagFilter(it) }
                         )
                     }
                 }
@@ -1855,6 +1868,57 @@ private fun RecentSearchesRow(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun TagFilterRow(
+    tags: List<com.diary.app.data.Tag>,
+    selectedTagId: Long?,
+    onTagSelected: (Long?) -> Unit
+) {
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val primary = MaterialTheme.colorScheme.primary
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // "All" chip
+        Text(
+            text = "全部",
+            fontSize = 12.sp,
+            color = if (selectedTagId == null) primary else onSurfaceVariant.copy(alpha = 0.6f),
+            fontWeight = if (selectedTagId == null) FontWeight.Medium else FontWeight.Normal,
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (selectedTagId == null) primary.copy(alpha = 0.1f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+                .clickable { onTagSelected(null) }
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+
+        tags.forEach { tag ->
+            val isSelected = selectedTagId == tag.id
+            Text(
+                text = tag.name,
+                fontSize = 12.sp,
+                color = if (isSelected) primary else onSurfaceVariant.copy(alpha = 0.6f),
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isSelected) primary.copy(alpha = 0.1f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                    .clickable { onTagSelected(tag.id) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
         }
     }
 }
