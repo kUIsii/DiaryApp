@@ -34,10 +34,11 @@
     <string name="today">今天</string>
     <string name="yesterday">昨天</string>
     <string name="view_all">查看全部</string>
-    <string name="diary_for_date">%d月%d日的日记</string>
+    <string name="diary_for_date">%1$d月%2$d日的日记</string>
     <string name="on_this_day">那年今日</string>
     <string name="memories_count">%d 篇回忆</string>
     <string name="years_ago">%d年前</string>
+    <string name="days_ago">%d天前</string>
     <string name="more_entries">还有 %d 篇...</string>
     <string name="diary_review">日记回顾</string>
     <string name="recent_searches">最近搜索</string>

@@ -90,6 +90,14 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         return DiaryExporter.exportAsImage(context, currentEntry, tagNames)
     }
 
+    fun toggleFavorite() {
+        val currentEntry = _entry.value ?: return
+        viewModelScope.launch {
+            dao.toggleFavorite(currentEntry.id, !currentEntry.isFavorite)
+            _entry.value = currentEntry.copy(isFavorite = !currentEntry.isFavorite)
+        }
+    }
+
     suspend fun deleteEntry() {
         val currentEntry = _entry.value ?: return
         dao.deleteEntry(currentEntry)

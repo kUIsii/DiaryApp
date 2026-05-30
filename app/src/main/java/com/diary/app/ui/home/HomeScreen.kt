@@ -1,19 +1,15 @@
 package com.diary.app.ui.home
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -48,7 +44,6 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -59,11 +54,8 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DismissDirection
@@ -141,21 +133,16 @@ fun HomeScreen(
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
-    val tagsMap by viewModel.tagsMap.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val stats by viewModel.stats.collectAsState()
-    val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
-    val allTags by viewModel.allTags.collectAsState()
     val sortOrder by viewModel.sortOrder.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val onThisDayEntries by viewModel.onThisDayEntries.collectAsState()
     val reviewEntries by viewModel.reviewEntries.collectAsState()
     val searchResultCount by viewModel.searchResultCount.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
-    val searchFilters by viewModel.searchFilters.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
-    val isTagFilterActive = selectedTagFilter != null
 
     var entryToDelete by remember { mutableStateOf<DiaryEntry?>(null) }
 
@@ -203,9 +190,6 @@ fun HomeScreen(
                         onCommitSearch = { viewModel.commitSearch(it) },
                         sortOrder = sortOrder,
                         onSortOrderChange = { viewModel.setSortOrder(it) },
-                        filters = searchFilters,
-                        onFiltersChange = { viewModel.setSearchFilters(it) },
-                        onClearFilters = { viewModel.clearSearchFilters() },
                         resultCount = if (isSearchActive) searchResultCount else -1
                     )
                 }
@@ -242,24 +226,13 @@ fun HomeScreen(
                     }
                 }
 
-                // Tag filter chips
-                if (allTags.isNotEmpty()) {
-                    item {
-                        TagFilterRow(
-                            tags = allTags,
-                            selectedTagId = selectedTagFilter,
-                            onTagSelected = { viewModel.setTagFilter(it) }
-                        )
-                    }
-                }
-
                 // Stats card
                 item {
                     StatsCard(stats = stats)
                 }
 
-                // Calendar view (hidden when search or tag filter is active)
-                if (!isSearchActive && !isTagFilterActive) {
+                // Calendar view (hidden when search is active)
+                if (!isSearchActive) {
                     item {
                         CalendarView(
                             entryDates = entryDates,
@@ -314,7 +287,6 @@ fun HomeScreen(
                         ) {
                             DiaryCardWithContextMenu(
                                 entry = entry,
-                                tags = tagsMap[entry.id] ?: emptyList(),
                                 searchQuery = searchQuery,
                                 onClick = {
                                     haptic.click()
@@ -416,13 +388,9 @@ private fun SearchBar(
     onCommitSearch: (String) -> Unit,
     sortOrder: HomeViewModel.SortOrder,
     onSortOrderChange: (HomeViewModel.SortOrder) -> Unit,
-    filters: SearchFilters = SearchFilters(),
-    onFiltersChange: (SearchFilters) -> Unit = {},
-    onClearFilters: () -> Unit = {},
     resultCount: Int = -1
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
-    var showFilterPanel by remember { mutableStateOf(false) }
 
     Column {
         GlassCard(
@@ -433,112 +401,98 @@ private fun SearchBar(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onCommitSearch(query) }),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.search_placeholder),
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "搜索",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "清除",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clickable { onQueryChange("") }
+                TextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onCommitSearch(query) }),
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.search_placeholder),
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
-                    }
-                },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
-            )
-
-            // Filter button
-            Icon(
-                imageVector = Icons.Default.Tune,
-                contentDescription = "筛选",
-                tint = if (filters.isActive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable { showFilterPanel = !showFilterPanel }
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Box {
-                Icon(
-                    imageVector = Icons.Default.Sort,
-                    contentDescription = "排序",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .padding(end = 4.dp)
-                        .clickable { showSortMenu = true }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable { onQueryChange("") }
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
                 )
 
-                DropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { showSortMenu = false },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    HomeViewModel.SortOrder.entries.forEach { order ->
-                        val isSelected = order == sortOrder
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = order.label,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            trailingIcon = {
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = order.label,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
+                Box {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { showSortMenu = true }
+                    )
+
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        HomeViewModel.SortOrder.entries.forEach { order ->
+                            val isSelected = order == sortOrder
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = order.label,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
+                                },
+                                trailingIcon = {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onSortOrderChange(order)
+                                    showSortMenu = false
                                 }
-                            },
-                            onClick = {
-                                onSortOrderChange(order)
-                                showSortMenu = false
-                            }
-                        )
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
             }
         }
 
@@ -551,155 +505,6 @@ private fun SearchBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp)
             )
-        }
-
-        // Filter panel
-        if (showFilterPanel) {
-            Spacer(modifier = Modifier.height(8.dp))
-            SearchFilterPanel(
-                filters = filters,
-                onFiltersChange = onFiltersChange,
-                onClear = {
-                    onClearFilters()
-                    showFilterPanel = false
-                }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SearchFilterPanel(
-    filters: SearchFilters,
-    onFiltersChange: (SearchFilters) -> Unit,
-    onClear: () -> Unit
-) {
-    val primary = MaterialTheme.colorScheme.primary
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_conditions),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = stringResource(R.string.clear_all_filters),
-                    fontSize = 12.sp,
-                    color = primary.copy(alpha = 0.7f),
-                    modifier = Modifier.clickable(onClick = onClear)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Mood filter
-            Text(
-                text = stringResource(R.string.mood_filter),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                (1..6).forEach { level ->
-                    val label = moodLabelForLevel(level)
-                    val color = moodColorForLevel(level)
-                    val isSelected = filters.moodLevel == level
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            onFiltersChange(
-                                filters.copy(moodLevel = if (isSelected) null else level)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else color)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = color.copy(alpha = 0.1f),
-                            labelColor = color
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Weather filter
-            Text(
-                text = stringResource(R.string.weather_filter),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val weatherOptions = listOf(
-                    stringResource(R.string.weather_opt_sunny),
-                    stringResource(R.string.weather_opt_cloudy),
-                    stringResource(R.string.weather_opt_overcast),
-                    stringResource(R.string.weather_opt_rainy),
-                    stringResource(R.string.weather_opt_windy),
-                    stringResource(R.string.weather_opt_thunderstorm)
-                )
-                weatherOptions.forEach { weather ->
-                    val isSelected = filters.weather == weather
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            onFiltersChange(
-                                filters.copy(weather = if (isSelected) null else weather)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = weather,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
-            }
         }
     }
 }
@@ -1037,55 +842,9 @@ private fun ShimmerDiaryCard() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TagFilterRow(
-    tags: List<com.diary.app.data.Tag>,
-    selectedTagId: Long?,
-    onTagSelected: (Long?) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        tags.forEach { tag ->
-            val isSelected = tag.id == selectedTagId
-            val tagColor = Color(tag.color)
-            FilterChip(
-                selected = isSelected,
-                onClick = { onTagSelected(tag.id) },
-                label = {
-                    Text(
-                        text = tag.name,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                },
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else tagColor)
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = tagColor.copy(alpha = 0.1f),
-                    labelColor = tagColor
-                )
-            )
-        }
-    }
-}
-
 @Composable
 private fun DiaryCardWithContextMenu(
     entry: DiaryEntry,
-    tags: List<TagInfo>,
     searchQuery: String = "",
     onClick: () -> Unit,
     onEdit: () -> Unit,
@@ -1098,7 +857,6 @@ private fun DiaryCardWithContextMenu(
     Box {
         SwipeableDiaryCard(
             entry = entry,
-            tags = tags,
             searchQuery = searchQuery,
             onClick = onClick,
             onLongClick = { showContextMenu = true },
@@ -1194,7 +952,6 @@ private fun DiaryCardWithContextMenu(
 @Composable
 private fun SwipeableDiaryCard(
     entry: DiaryEntry,
-    tags: List<TagInfo>,
     searchQuery: String = "",
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -1247,7 +1004,6 @@ private fun SwipeableDiaryCard(
         dismissContent = {
             DiaryCard(
                 entry = entry,
-                tags = tags,
                 searchQuery = searchQuery,
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -1261,7 +1017,6 @@ private fun SwipeableDiaryCard(
 @Composable
 private fun DiaryCard(
     entry: DiaryEntry,
-    tags: List<TagInfo>,
     searchQuery: String = "",
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -1269,162 +1024,101 @@ private fun DiaryCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "cardScale"
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 2.dp else 6.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "cardElevation"
-    )
 
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
 
-    // Mood-based accent bar color
-    val accentBarColor = entry.moodLevel?.let { moodColorForLevel(it) } ?: accentColor
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    shadowElevation = elevation.toPx()
-                    ambientShadowColor = accentColor.copy(alpha = 0.08f)
-                    spotShadowColor = accentColor.copy(alpha = 0.12f)
-                }
-                .combinedClickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                    onLongClick = onLongClick
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+    ) {
+        Column {
+            // Title (if present)
+            if (entry.title.isNotBlank()) {
+                Text(
+                    text = entry.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-        ) {
-            Column {
-                // Date row with favorite star
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = formatCardDate(entry.createdAt),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = onBackground
-                    )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            // Preview text (limited to 50 chars)
+            val previewSource = entry.plainText.take(50)
+            if (previewSource.isNotBlank()) {
+                val displayText by remember(previewSource, searchQuery, accentColor) {
+                    derivedStateOf {
+                        if (searchQuery.isNotBlank()) {
+                            highlightText(previewSource, searchQuery, accentColor)
+                        } else {
+                            AnnotatedString(previewSource)
+                        }
+                    }
+                }
+                Text(
+                    text = displayText,
+                    fontSize = 14.sp,
+                    color = onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp
+                )
+            }
+
+            // Bottom row: date + mood + favorite
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatCardDate(entry.createdAt),
+                    fontSize = 12.sp,
+                    color = onSurfaceVariant.copy(alpha = 0.7f)
+                )
+
+                if (entry.moodLevel != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
                     Icon(
-                        imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = if (entry.isFavorite) "取消收藏" else "收藏",
-                        tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary else onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { /* handled by context menu */ }
+                        imageVector = moodIcon,
+                        contentDescription = null,
+                        tint = moodTint.copy(alpha = 0.8f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
-                // Text preview with keyword highlighting (memoized)
-                if (entry.plainText.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val displayText by remember(entry.plainText, searchQuery, accentColor) {
-                        derivedStateOf {
-                            if (searchQuery.isNotBlank()) {
-                                highlightText(entry.plainText, searchQuery, accentColor)
-                            } else {
-                                AnnotatedString(entry.plainText)
-                            }
-                        }
-                    }
-                    Text(
-                        text = displayText,
-                        fontSize = 14.sp,
-                        color = onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 20.sp
-                    )
-                }
+                Spacer(modifier = Modifier.weight(1f))
 
-                // Bottom info row
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Mood icon
-                    if (entry.moodLevel != null) {
-                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = "心情",
-                            tint = moodTint,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    // Weather icon
-                    if (entry.weather != null) {
-                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                        Icon(
-                            imageVector = weatherIcon,
-                            contentDescription = "天气",
-                            tint = weatherTint,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    // Spacer to push tags right
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Tag chips
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        tags.take(3).forEach { tag ->
-                            TagChip(name = tag.name, color = tag.color)
-                        }
-                        if (tags.size > 3) {
-                            Text(
-                                text = "+${tags.size - 3}",
-                                fontSize = 11.sp,
-                                color = onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
-                        }
-                    }
-                }
+                Icon(
+                    imageVector = if (entry.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = null,
+                    tint = if (entry.isFavorite) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else onSurfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
-
-        // Left accent bar
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .width(3.dp)
-                .height(40.dp)
-                .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            accentBarColor.copy(alpha = 0.7f),
-                            accentBarColor.copy(alpha = 0.25f)
-                        )
-                    )
-                )
-        )
     }
 }
 
@@ -1456,32 +1150,6 @@ private fun highlightText(text: String, query: String, highlightColor: Color): A
             }
             start = index + query.length
         }
-    }
-}
-
-@Composable
-private fun TagChip(name: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(5.dp)
-                .clip(CircleShape)
-                .background(color.copy(alpha = 0.8f))
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = name,
-            fontSize = 10.sp,
-            color = color.copy(alpha = 0.85f),
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
-        )
     }
 }
 
@@ -1754,10 +1422,12 @@ private fun formatCardDate(timestamp: Long): String {
     val entryDate = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
+    val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(entryDate, today).toInt()
 
-    return when (entryDate) {
-        today -> "今天"
-        yesterday -> "昨天"
+    return when {
+        entryDate == today -> "今天"
+        entryDate == yesterday -> "昨天"
+        daysBetween in 2..6 -> "${daysBetween}天前"
         else -> {
             val formatter = DateTimeFormatter.ofPattern("M月d日", Locale.getDefault())
             entryDate.format(formatter)

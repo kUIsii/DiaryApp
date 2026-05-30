@@ -50,7 +50,6 @@ import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Today
@@ -145,7 +144,6 @@ fun EditorScreen(
     // Toolbar state
     var showToolbar by remember { mutableStateOf(true) }
     var activeCategory by remember { mutableIntStateOf(-1) }
-    var colorTab by remember { mutableIntStateOf(0) }
 
     // Word count state
     var charCount by remember { mutableIntStateOf(0) }
@@ -403,7 +401,7 @@ fun EditorScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize().imePadding()) {
-            // Top bar
+            // Top bar - simplified: only undo, redo, save
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -414,7 +412,7 @@ fun EditorScreen(
                     if (hasUnsavedChanges) showUnsavedDialog = true
                     else onNavigateBack()
                 }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary)
+                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.navigate_back), tint = textSecondary)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 // Auto-save indicator dot
@@ -432,13 +430,13 @@ fun EditorScreen(
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 IconButton(onClick = { webView?.evaluateJavascript("quill.undo()", null) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Undo, contentDescription = "撤销", tint = textSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Undo, contentDescription = stringResource(R.string.undo), tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Redo, contentDescription = "重做", tint = textSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Redo, contentDescription = stringResource(R.string.redo), tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = { showTemplateDialog = true }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.MenuBook, contentDescription = "模板", tint = textSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.MenuBook, contentDescription = stringResource(R.string.select_template), tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
@@ -610,7 +608,7 @@ fun EditorScreen(
                 )
             }
 
-            // Bottom toolbar
+            // Bottom toolbar - simplified to 2 categories: Format and Insert
             EditorToolbar(
                 showToolbar = showToolbar,
                 onToggleToolbar = { showToolbar = !showToolbar; activeCategory = -1 },
@@ -620,22 +618,12 @@ fun EditorScreen(
                 },
                 onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
                 onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
-                onList = { cmd -> webView?.evaluateJavascript(cmd, null) },
                 onInsert = { action ->
                     when (action) {
                         "image" -> imageLauncher.launch("image/*")
-                        "video" -> videoLauncher.launch("video/*")
-                        "audio" -> audioLauncher.launch("audio/*")
-                        "link" -> webView?.evaluateJavascript("insertLink()", null)
+                        "divider" -> webView?.evaluateJavascript("insertDivider()", null)
                     }
-                },
-                onColor = { color, type ->
-                    if (type == "text") webView?.evaluateJavascript("setTextColor('$color')", null)
-                    else webView?.evaluateJavascript("setBackgroundColor('$color')", null)
-                },
-                onClearFormat = { webView?.evaluateJavascript("clearFormatting()", null) },
-                colorTab = colorTab,
-                onColorTabChange = { colorTab = it }
+                }
             )
         }
     }
@@ -709,12 +697,7 @@ private fun EditorToolbar(
     onCategoryChange: (Int) -> Unit,
     onFormat: (String) -> Unit,
     onHeading: (Int) -> Unit,
-    onList: (String) -> Unit,
-    onInsert: (String) -> Unit,
-    onColor: (String, String) -> Unit,
-    onClearFormat: () -> Unit,
-    colorTab: Int,
-    onColorTabChange: (Int) -> Unit
+    onInsert: (String) -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val borderColor = MaterialTheme.colorScheme.outlineVariant
@@ -727,20 +710,17 @@ private fun EditorToolbar(
             .fillMaxWidth()
             .background(surfaceColor)
     ) {
-        // Category row - always visible
+        // Category row - only 2 categories: Format and Insert
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             val categories = listOf(
                 ToolbarCategory("Aa", stringResource(R.string.toolbar_format), Icons.Default.FormatSize),
-                ToolbarCategory("H", stringResource(R.string.toolbar_heading), Icons.Default.FormatSize),
-                ToolbarCategory("≡", stringResource(R.string.toolbar_list), Icons.Default.FormatSize),
-                ToolbarCategory("▢", stringResource(R.string.toolbar_insert), Icons.Default.Flight),
-                ToolbarCategory("◉", stringResource(R.string.toolbar_color), Icons.Default.Palette)
+                ToolbarCategory("+", stringResource(R.string.toolbar_insert), Icons.Default.FormatSize)
             )
             categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
@@ -757,7 +737,7 @@ private fun EditorToolbar(
                                 onCategoryChange(index)
                             }
                         }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = cat.materialIcon ?: Icons.Default.FormatSize,
@@ -770,14 +750,16 @@ private fun EditorToolbar(
                 }
             }
 
-            // Collapse/expand button (integrated)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Collapse/expand button
             IconButton(
                 onClick = onToggleToolbar,
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     imageVector = if (showToolbar) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                    contentDescription = if (showToolbar) "收起" else "展开",
+                    contentDescription = if (showToolbar) stringResource(R.string.toolbar_collapse) else stringResource(R.string.toolbar_expand),
                     tint = textColor,
                     modifier = Modifier.size(18.dp)
                 )
@@ -810,11 +792,8 @@ private fun EditorToolbar(
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     when (activeCategory) {
-                        0 -> FormatTools(onFormat, textColor, btnBg)
-                        1 -> HeadingTools(onHeading, textColor, btnBg)
-                        2 -> ListTools(onList, textColor, btnBg)
-                        3 -> InsertTools(onInsert, textColor, btnBg)
-                        4 -> ColorTools(onColor, onClearFormat, colorTab, onColorTabChange, textColor, btnBg, activeColor)
+                        0 -> FormatTools(onFormat, onHeading, textColor, btnBg)
+                        1 -> InsertTools(onInsert, textColor, btnBg)
                     }
                 }
             }
@@ -826,51 +805,35 @@ private data class ToolbarCategory(val icon: String, val label: String, val mate
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(
-            Triple("B", stringResource(R.string.format_bold), "toggleBold()"),
-            Triple("I", stringResource(R.string.format_italic), "toggleItalic()"),
-            Triple("U", stringResource(R.string.format_underline), "toggleUnderline()"),
-            Triple("S", stringResource(R.string.format_strikethrough), "toggleStrike()"),
-            Triple("❝", stringResource(R.string.format_quote), "toggleBlockquote()"),
-            Triple("—", stringResource(R.string.format_divider), "insertDivider()")
-        ).forEach { (label, desc, cmd) ->
-            ToolChip(label = label, description = desc, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
+private fun FormatTools(onFormat: (String) -> Unit, onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Text format row: bold, italic, underline
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(
+                Triple("B", stringResource(R.string.format_bold), "toggleBold()"),
+                Triple("I", stringResource(R.string.format_italic), "toggleItalic()"),
+                Triple("U", stringResource(R.string.format_underline), "toggleUnderline()")
+            ).forEach { (label, desc, cmd) ->
+                ToolChip(label = label, description = desc, onClick = { onFormat(cmd) }, textColor = textColor, bg = btnBg)
+            }
         }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(
-            Triple("H1", stringResource(R.string.heading_h1), 1),
-            Triple("H2", stringResource(R.string.heading_h2), 2),
-            Triple("H3", stringResource(R.string.heading_h3), 3),
-            Triple("正文", stringResource(R.string.heading_normal), 0)
-        ).forEach { (label, desc, level) ->
-            ToolChip(label = label, description = desc, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
+        // Heading row: H1, H2, H3, normal
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(
+                Triple("H1", stringResource(R.string.heading_h1), 1),
+                Triple("H2", stringResource(R.string.heading_h2), 2),
+                Triple("H3", stringResource(R.string.heading_h3), 3),
+                Triple(stringResource(R.string.heading_normal), stringResource(R.string.heading_normal), 0)
+            ).forEach { (label, desc, level) ->
+                ToolChip(label = label, description = desc, onClick = { onHeading(level) }, textColor = textColor, bg = btnBg)
+            }
         }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ListTools(onList: (String) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ToolChip(label = "1.", description = stringResource(R.string.list_ordered), onClick = { onList("setOrderedList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "•", description = stringResource(R.string.list_bullet), onClick = { onList("setBulletList()") }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -881,66 +844,8 @@ private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Col
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        listOf(
-            Triple(stringResource(R.string.insert_image), stringResource(R.string.insert_image), "image"),
-            Triple(stringResource(R.string.insert_video), stringResource(R.string.insert_video), "video"),
-            Triple(stringResource(R.string.insert_audio), stringResource(R.string.insert_audio), "audio"),
-            Triple(stringResource(R.string.insert_link), stringResource(R.string.insert_link), "link")
-        ).forEach { (label, desc, action) ->
-            ToolChip(label = label, description = desc, onClick = { onInsert(action) }, textColor = textColor, bg = btnBg)
-        }
-    }
-}
-
-@Composable
-private fun ColorTools(
-    onColor: (String, String) -> Unit,
-    onClear: () -> Unit,
-    tab: Int,
-    onTabChange: (Int) -> Unit,
-    textColor: Color,
-    btnBg: Color,
-    accentColor: Color
-) {
-    Column {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf(stringResource(R.string.color_text) to 0, stringResource(R.string.color_background) to 1).forEach { (label, t) ->
-                Text(
-                    text = label,
-                    fontSize = 13.sp,
-                    color = if (tab == t) accentColor else textColor,
-                    fontWeight = if (tab == t) FontWeight.Bold else FontWeight.Normal,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable { onTabChange(t) }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        val colors = listOf(
-            "#000000", "#FFFFFF", "#6366F1", "#818CF8", "#E74C3C",
-            "#F59E0B", "#10B981", "#A78BFA", "#F472B6"
-        )
-        val type = if (tab == 0) "text" else "background"
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            colors.forEach { hex ->
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(hex)))
-                        .then(
-                            if (hex == "#FFFFFF" || hex == "#F1C40F")
-                                Modifier.border(1.dp, Color.Gray, CircleShape)
-                            else Modifier
-                        )
-                        .clickable { onColor(hex, type) }
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        ToolChip(label = stringResource(R.string.clear_formatting), onClick = onClear, textColor = textColor, bg = btnBg)
+        ToolChip(label = stringResource(R.string.insert_image), description = stringResource(R.string.insert_image), onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = stringResource(R.string.format_divider), description = stringResource(R.string.format_divider), onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -1102,7 +1007,7 @@ private fun TemplateSelector(
             IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "关闭",
+                    contentDescription = stringResource(R.string.close),
                     tint = textSecondary,
                     modifier = Modifier.size(16.dp)
                 )
