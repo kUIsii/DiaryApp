@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -187,6 +188,7 @@ fun UpdateDialog(
                                                     MaterialTheme.colorScheme.outlineVariant,
                                                     RoundedCornerShape(12.dp)
                                                 )
+                                                .clickable { onDismiss() }
                                                 .padding(vertical = 14.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -208,6 +210,7 @@ fun UpdateDialog(
                                                     listOf(DarkAccentStart, DarkAccentEnd)
                                                 )
                                             )
+                                            .clickable { onConfirm() }
                                             .padding(vertical = 14.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
