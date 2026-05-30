@@ -18,8 +18,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -111,7 +109,6 @@ import com.diary.app.ui.components.SettingDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import com.diary.app.ui.theme.ThemeMode

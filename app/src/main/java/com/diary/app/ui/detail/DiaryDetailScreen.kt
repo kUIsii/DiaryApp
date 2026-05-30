@@ -73,7 +73,6 @@ import com.diary.app.R
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.Tag
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.components.IconWithTint
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.weatherIconFor

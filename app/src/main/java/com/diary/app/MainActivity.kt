@@ -53,7 +53,6 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.lock.PinEntryScreen
 import com.diary.app.ui.navigation.DiaryNavHost
 import com.diary.app.ui.theme.DiaryAppTheme
-import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
