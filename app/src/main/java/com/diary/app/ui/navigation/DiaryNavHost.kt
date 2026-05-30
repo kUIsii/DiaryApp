@@ -304,6 +304,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToEditor = { id ->
                         navController.navigate(Screen.Editor.createRoute(id))
+                    },
+                    onNavigateToDetail = { id ->
+                        navController.navigate(Screen.Detail.createRoute(id))
                     }
                 )
             }

@@ -88,7 +88,8 @@ import java.util.Locale
 fun DiaryDetailScreen(
     diaryId: Long,
     onNavigateBack: () -> Unit,
-    onNavigateToEditor: (Long) -> Unit
+    onNavigateToEditor: (Long) -> Unit,
+    onNavigateToDetail: (Long) -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
