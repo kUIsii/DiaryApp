@@ -52,6 +52,10 @@ fun GlassCard(
             if (dark) DarkCardBackground to DarkCardBorder
             else LightCardBackground to LightCardBorder
         }
+        ThemeMode.OCEAN_BLUE -> {
+            if (dark) com.diary.app.ui.theme.OceanBlueDarkSurfaceVariant to Color(0x33C0D8E8)
+            else com.diary.app.ui.theme.OceanBlueSurfaceVariant to Color(0x80C8E0F0)
+        }
     }
 
     // Dark mode: 1.5dp border for more visibility; light mode: 1dp
@@ -120,6 +124,9 @@ fun GlassCardAccent(
         }
         ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
             if (dark) DarkCardBackground else LightCardBackground
+        }
+        ThemeMode.OCEAN_BLUE -> {
+            if (dark) com.diary.app.ui.theme.OceanBlueDarkSurfaceVariant else com.diary.app.ui.theme.OceanBlueSurfaceVariant
         }
     }
 

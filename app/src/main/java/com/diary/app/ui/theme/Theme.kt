@@ -51,19 +51,19 @@ private val GradientLightColorScheme = lightColorScheme(
 )
 
 private val PureLightColorScheme = lightColorScheme(
-    primary = LightAccentStart,
+    primary = PureLightPrimary,
     onPrimary = Color.White,
-    primaryContainer = LightAccentStart,
+    primaryContainer = PureLightPrimaryVariant,
     onPrimaryContainer = Color.White,
-    secondary = LightAccentEnd,
+    secondary = PureLightSecondary,
     onSecondary = Color.White,
     error = ErrorColor,
     background = PureLightBackground,
-    onBackground = LightTextPrimary,
+    onBackground = PureLightOnBackground,
     surface = PureLightSurface,
-    onSurface = LightTextPrimary,
+    onSurface = PureLightOnSurface,
     surfaceVariant = PureLightCardBackground,
-    onSurfaceVariant = LightTextSecondary,
+    onSurfaceVariant = PureLightOnSurfaceVariant,
 )
 
 // ---- Dark mode color schemes (3-color gradient background, improved contrast) ----
@@ -85,17 +85,17 @@ private val GradientDarkColorScheme = darkColorScheme(
 )
 
 private val PureDarkColorScheme = darkColorScheme(
-    primary = DarkAccentStart,
+    primary = PureDarkPrimary,
     onPrimary = Color.White,
-    primaryContainer = DarkAccentStart,
+    primaryContainer = PureDarkPrimaryVariant,
     onPrimaryContainer = Color.White,
-    secondary = DarkAccentEnd,
+    secondary = PureDarkSecondary,
     onSecondary = Color.White,
     error = ErrorColor,
     background = PureDarkBackground,
-    onBackground = DarkTextPrimary,
+    onBackground = PureDarkOnBackground,
     surface = DarkSurface,
-    onSurface = DarkTextPrimary,
+    onSurface = PureDarkOnSurface,
     surfaceVariant = PureDarkCardBackground,
     onSurfaceVariant = DarkTextSecondary,
 )
@@ -134,9 +134,43 @@ private val WarmRoseDarkColorScheme = darkColorScheme(
     onSurfaceVariant = Color(0xCCD8B8B0), // muted warm rose text ~0.8 alpha
 )
 
+// ---- Ocean Blue color schemes ----
+
+private val OceanBlueLightColorScheme = lightColorScheme(
+    primary = OceanBluePrimary,
+    onPrimary = Color.White,
+    primaryContainer = OceanBluePrimaryVariant,
+    onPrimaryContainer = Color.White,
+    secondary = OceanBlueSecondary,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = OceanBlueBackground,
+    onBackground = OceanBlueOnBackground,
+    surface = OceanBlueSurface,
+    onSurface = OceanBlueOnSurface,
+    surfaceVariant = OceanBlueSurfaceVariant,
+    onSurfaceVariant = OceanBlueOnSurfaceVariant,
+)
+
+private val OceanBlueDarkColorScheme = darkColorScheme(
+    primary = OceanBlueDarkPrimary,
+    onPrimary = Color.White,
+    primaryContainer = OceanBlueDarkPrimary,
+    onPrimaryContainer = Color.White,
+    secondary = OceanBlueSecondary,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = OceanBlueDarkBackground,
+    onBackground = OceanBlueDarkOnBackground,
+    surface = OceanBlueDarkSurface,
+    onSurface = OceanBlueDarkOnBackground,
+    surfaceVariant = OceanBlueDarkSurfaceVariant,
+    onSurfaceVariant = Color(0xCCC0D0E0), // muted blue text ~0.8 alpha
+)
+
 // ---- Extended color presets per theme variant ----
 
-private val LightExtendedColors = ExtendedColors(
+private val GradientLightExtendedColors = ExtendedColors(
     success = SuccessColor,
     warning = WarningColor,
     info = InfoColor,
@@ -144,12 +178,60 @@ private val LightExtendedColors = ExtendedColors(
     gradientEnd = LightAccentEnd
 )
 
-private val DarkExtendedColors = ExtendedColors(
+private val GradientDarkExtendedColors = ExtendedColors(
     success = SuccessColor,
     warning = WarningColor,
     info = InfoColor,
     gradientStart = DarkAccentStart,
     gradientEnd = DarkAccentEnd
+)
+
+private val PureLightExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = PureLightPrimary,
+    gradientEnd = PureLightSecondary
+)
+
+private val PureDarkExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = PureDarkPrimary,
+    gradientEnd = PureDarkSecondary
+)
+
+private val WarmRoseLightExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = WarmRosePrimary,
+    gradientEnd = WarmRoseSecondary
+)
+
+private val WarmRoseDarkExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = WarmRoseDarkPrimary,
+    gradientEnd = WarmRoseSecondary
+)
+
+private val OceanBlueLightExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = OceanBluePrimary,
+    gradientEnd = OceanBlueSecondary
+)
+
+private val OceanBlueDarkExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = OceanBlueDarkPrimary,
+    gradientEnd = OceanBlueSecondary
 )
 
 @Composable
@@ -164,9 +246,17 @@ fun DiaryAppTheme(
         ThemeMode.GRADIENT -> if (isDark) GradientDarkColorScheme else GradientLightColorScheme
         ThemeMode.SYSTEM -> if (isDark) GradientDarkColorScheme else GradientLightColorScheme
         ThemeMode.WARM_ROSE -> if (isDark) WarmRoseDarkColorScheme else WarmRoseLightColorScheme
+        ThemeMode.OCEAN_BLUE -> if (isDark) OceanBlueDarkColorScheme else OceanBlueLightColorScheme
     }
 
-    val extendedColors = if (isDark) DarkExtendedColors else LightExtendedColors
+    val extendedColors = when (themeMode) {
+        ThemeMode.PURE_LIGHT -> PureLightExtendedColors
+        ThemeMode.PURE_DARK -> PureDarkExtendedColors
+        ThemeMode.GRADIENT -> if (isDark) GradientDarkExtendedColors else GradientLightExtendedColors
+        ThemeMode.SYSTEM -> if (isDark) GradientDarkExtendedColors else GradientLightExtendedColors
+        ThemeMode.WARM_ROSE -> if (isDark) WarmRoseDarkExtendedColors else WarmRoseLightExtendedColors
+        ThemeMode.OCEAN_BLUE -> if (isDark) OceanBlueDarkExtendedColors else OceanBlueLightExtendedColors
+    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {

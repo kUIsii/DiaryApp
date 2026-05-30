@@ -1116,6 +1116,7 @@ private fun ThemeCard(
         ThemeMode.PURE_DARK -> Icons.Default.DarkMode
         ThemeMode.GRADIENT -> Icons.Default.Palette
         ThemeMode.WARM_ROSE -> Icons.Default.Favorite
+        ThemeMode.OCEAN_BLUE -> Icons.Default.LightMode
     }
 
     // Color preview pairs
@@ -1125,6 +1126,7 @@ private fun ThemeCard(
         ThemeMode.PURE_DARK -> Color(0xFF0D0D0D) to Color(0xFF1A1A3E)
         ThemeMode.GRADIENT -> Color(0xFF667EEA) to Color(0xFF764BA2)
         ThemeMode.WARM_ROSE -> Color(0xFFBF7B6B) to Color(0xFFC49B8A)
+        ThemeMode.OCEAN_BLUE -> Color(0xFF4A90B8) to Color(0xFF6AB0D0)
     }
 
     Column(

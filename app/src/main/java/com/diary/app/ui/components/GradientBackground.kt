@@ -48,6 +48,9 @@ fun GradientBackground(
         ThemeMode.WARM_ROSE -> modifier
             .fillMaxSize()
             .background(if (dark) com.diary.app.ui.theme.WarmRoseDarkBackground else com.diary.app.ui.theme.WarmRoseBackground)
+        ThemeMode.OCEAN_BLUE -> modifier
+            .fillMaxSize()
+            .background(if (dark) com.diary.app.ui.theme.OceanBlueDarkBackground else com.diary.app.ui.theme.OceanBlueBackground)
         ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
             val colors = if (dark) {
                 listOf(DarkBackgroundStart, DarkBackgroundMid, DarkBackgroundEnd)

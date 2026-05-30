@@ -136,3 +136,51 @@ val WarmRoseDarkSurface = Color(0xFF241A18)       // warm dark layer
 val WarmRoseDarkSurfaceVariant = Color(0xFF322824) // card depth
 val WarmRoseDarkPrimary = Color(0xFFD49898)       // soft rose for dark
 val WarmRoseDarkOnBackground = Color(0xFFF0DCD8)  // warm light text
+
+// ============================================================
+//  Ocean Blue theme — Light variant (fresh, calming)
+//  Sky blue to seafoam gradient, airy and clean
+// ============================================================
+
+val OceanBlueBackground = Color(0xFFF0F7FB)       // soft sky white
+val OceanBlueSurface = Color(0xFFE8F2F8)          // light blue surface
+val OceanBlueSurfaceVariant = Color(0xFFDCE8F0)   // deeper blue
+val OceanBluePrimary = Color(0xFF4A90B8)          // ocean blue
+val OceanBluePrimaryVariant = Color(0xFF3A7CA0)   // deeper ocean
+val OceanBlueSecondary = Color(0xFF6AB0D0)        // sky blue
+val OceanBlueOnBackground = Color(0xFF1A3040)     // deep navy
+val OceanBlueOnSurface = Color(0xFF2A4050)        // dark blue
+val OceanBlueOnSurfaceVariant = Color(0xFF608090) // muted blue-gray
+
+// ============================================================
+//  Ocean Blue theme — Dark variant
+// ============================================================
+
+val OceanBlueDarkBackground = Color(0xFF0A1520)    // deep navy black
+val OceanBlueDarkSurface = Color(0xFF142030)       // dark blue layer
+val OceanBlueDarkSurfaceVariant = Color(0xFF1E2E40) // card depth
+val OceanBlueDarkPrimary = Color(0xFF70B8D8)       // bright sky for dark
+val OceanBlueDarkOnBackground = Color(0xFFD8E8F0)  // light blue text
+
+// ============================================================
+//  Pure Light theme — Refined neutral palette
+//  Warm gray with subtle sage accents
+// ============================================================
+
+val PureLightPrimary = Color(0xFF6B8F7B)           // sage green
+val PureLightPrimaryVariant = Color(0xFF5A7A6A)    // deeper sage
+val PureLightSecondary = Color(0xFF8FB8A0)         // light sage
+val PureLightOnBackground = Color(0xFF2C3028)      // deep warm gray
+val PureLightOnSurface = Color(0xFF3C4038)         // dark warm gray
+val PureLightOnSurfaceVariant = Color(0xFF707870)  // muted gray
+
+// ============================================================
+//  Pure Dark theme — Refined cool palette
+//  Cool gray with subtle blue accents
+// ============================================================
+
+val PureDarkPrimary = Color(0xFF8090A0)            // cool gray-blue
+val PureDarkPrimaryVariant = Color(0xFF6A7A8A)     // deeper cool
+val PureDarkSecondary = Color(0xFFA0B0C0)          // light cool
+val PureDarkOnBackground = Color(0xFFD8DCE0)       // light cool text
+val PureDarkOnSurface = Color(0xFFC0C8D0)          // medium cool text
