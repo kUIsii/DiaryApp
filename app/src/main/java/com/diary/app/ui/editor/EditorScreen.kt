@@ -152,6 +152,7 @@ fun EditorScreen(
     var selectedWeather by remember { mutableStateOf<String?>(null) }
     var showTagDialog by remember { mutableStateOf(false) }
     var showTemplateDialog by remember { mutableStateOf(false) }
+    var showLinkDialog by remember { mutableStateOf(false) }
 
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
@@ -270,6 +271,11 @@ fun EditorScreen(
         }
     }
 
+    // Collect link insert requests from JS bridge
+    LaunchedEffect(Unit) {
+        jsBridge.linkInsertRequest.collect { showLinkDialog = true }
+    }
+
     // Auto-save with 5s debounce (softer, less aggressive)
     LaunchedEffect(contentVersion) {
         if (contentVersion > 0) {
@@ -357,7 +363,18 @@ fun EditorScreen(
         AlertDialog(
             onDismissRequest = { showUnsavedDialog = false },
             title = { Text(stringResource(R.string.unsaved_changes)) },
-            text = { Text(stringResource(R.string.unsaved_changes_message)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.unsaved_changes_message))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(
+                        onClick = { showUnsavedDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.continue_editing), color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
@@ -416,6 +433,34 @@ fun EditorScreen(
             onTemplateSelected = { template ->
                 webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
                 showTemplateDialog = false
+            }
+        )
+    }
+
+    // Link input dialog
+    if (showLinkDialog) {
+        var linkUrl by remember { mutableStateOf("https://") }
+        AlertDialog(
+            onDismissRequest = { showLinkDialog = false },
+            title = { Text("插入链接") },
+            text = {
+                OutlinedTextField(
+                    value = linkUrl,
+                    onValueChange = { linkUrl = it },
+                    label = { Text("链接地址") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (linkUrl.isNotBlank() && linkUrl != "https://") {
+                        webView?.evaluateJavascript("insertLinkFromKotlin('${escapeForJs(linkUrl)}')", null)
+                    }
+                    showLinkDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLinkDialog = false }) { Text("取消") }
             }
         )
     }

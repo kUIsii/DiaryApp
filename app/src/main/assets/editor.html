@@ -178,11 +178,13 @@
             quill.setSelection(r.index + 1);
         }
         function insertLink() {
-            var url = prompt('输入链接地址:', 'https://');
-            if (url) {
-                var r = quill.getSelection(true);
-                quill.insertText(r.index, url, 'link', url);
+            if (window.DiaryBridge) {
+                DiaryBridge.requestInsertLink();
             }
+        }
+        function insertLinkFromKotlin(url) {
+            var r = quill.getSelection(true);
+            quill.insertText(r.index, url, 'link', url);
         }
 
         // Bridge functions

@@ -31,4 +31,12 @@ class DiaryJsBridge {
     fun pickAudio() {
         _events.tryEmit("audio")
     }
+
+    private val _linkInsertRequest = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val linkInsertRequest: SharedFlow<Unit> = _linkInsertRequest.asSharedFlow()
+
+    @JavascriptInterface
+    fun requestInsertLink() {
+        _linkInsertRequest.tryEmit(Unit)
+    }
 }

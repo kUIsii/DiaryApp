@@ -47,39 +47,3 @@ fun AnimatedCounter(
         style = style
     )
 }
-
-@Composable
-fun AnimatedFloatCounter(
-    targetValue: Float,
-    modifier: Modifier = Modifier,
-    prefix: String = "",
-    suffix: String = "",
-    decimals: Int = 1,
-    duration: Int = 1000,
-    fontSize: TextUnit = 24.sp,
-    fontWeight: FontWeight = FontWeight.Bold,
-    color: Color = Color.Unspecified,
-    style: TextStyle = TextStyle.Default
-) {
-    val animatedValue = remember { Animatable(0f) }
-
-    LaunchedEffect(targetValue) {
-        animatedValue.animateTo(
-            targetValue = targetValue,
-            animationSpec = tween(
-                durationMillis = duration,
-                easing = FastOutSlowInEasing
-            )
-        )
-    }
-
-    val formatStr = "%.${decimals}f"
-    Text(
-        text = "$prefix${formatStr.format(animatedValue.value)}$suffix",
-        modifier = modifier,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
-        color = color,
-        style = style
-    )
-}

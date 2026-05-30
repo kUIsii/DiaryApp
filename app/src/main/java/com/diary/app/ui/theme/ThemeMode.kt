@@ -27,6 +27,3 @@ fun ThemeMode.isDark(): Boolean = when (this) {
     ThemeMode.WARM_ROSE -> isSystemInDarkTheme()
     ThemeMode.OCEAN_BLUE -> isSystemInDarkTheme()
 }
-
-@Composable
-fun isGradientMode(): Boolean = themeMode() == ThemeMode.GRADIENT

@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -79,70 +78,6 @@ fun GlassCard(
             .clip(shape)
             .then(backgroundModifier)
             .border(borderWidth, borderColor, shape)
-    ) {
-        Box(modifier = Modifier.padding(innerPadding)) {
-            content()
-        }
-    }
-}
-
-@Composable
-fun GlassCardElevated(
-    modifier: Modifier = Modifier,
-    cornerRadius: Dp = 20.dp,
-    innerPadding: Dp = 16.dp,
-    content: @Composable () -> Unit
-) {
-    GlassCard(
-        modifier = modifier,
-        cornerRadius = cornerRadius,
-        enableShadow = true,
-        innerPadding = innerPadding,
-        content = content
-    )
-}
-
-@Composable
-fun GlassCardAccent(
-    modifier: Modifier = Modifier,
-    cornerRadius: Dp = 20.dp,
-    borderWidth: Dp = 2.dp,
-    innerPadding: Dp = 16.dp,
-    content: @Composable () -> Unit
-) {
-    val mode = themeMode()
-    val dark = mode.isDark()
-
-    val backgroundColor = when (mode) {
-        ThemeMode.PURE_LIGHT -> PureLightCardBackground
-        ThemeMode.PURE_DARK -> PureDarkCardBackground
-        ThemeMode.WARM_ROSE -> {
-            if (dark) com.diary.app.ui.theme.WarmRoseDarkSurfaceVariant else com.diary.app.ui.theme.WarmRoseSurfaceVariant
-        }
-        ThemeMode.GRADIENT, ThemeMode.SYSTEM -> {
-            if (dark) DarkCardBackground else LightCardBackground
-        }
-        ThemeMode.OCEAN_BLUE -> {
-            if (dark) com.diary.app.ui.theme.OceanBlueDarkSurfaceVariant else com.diary.app.ui.theme.OceanBlueSurfaceVariant
-        }
-    }
-
-    val accentColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.secondary
-    )
-
-    // Subtle shadow in light gradient/system mode
-    val shadowElevation = if (!dark && mode != ThemeMode.PURE_LIGHT) 2.dp else 0.dp
-
-    val shape = RoundedCornerShape(cornerRadius)
-
-    Box(
-        modifier = modifier
-            .shadow(shadowElevation, shape)
-            .clip(shape)
-            .background(backgroundColor, shape)
-            .border(borderWidth, Brush.linearGradient(accentColors), shape)
     ) {
         Box(modifier = Modifier.padding(innerPadding)) {
             content()
