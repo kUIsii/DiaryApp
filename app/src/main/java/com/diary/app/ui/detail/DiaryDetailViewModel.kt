@@ -23,10 +23,30 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _tags = MutableStateFlow<List<Tag>>(emptyList())
     val tags = _tags.asStateFlow()
 
+    private val _relatedEntries = MutableStateFlow<List<DiaryEntry>>(emptyList())
+    val relatedEntries = _relatedEntries.asStateFlow()
+
     fun loadEntry(id: Long) {
         viewModelScope.launch {
             _entry.value = dao.getEntryById(id)
             _tags.value = dao.getTagInfoForDiary(id)
+
+            // Load related entries from the same day in previous years
+            val entry = _entry.value
+            if (entry != null) {
+                val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+
+                val allEntries = dao.getAllEntriesOnce()
+                val related = allEntries.filter { other ->
+                    if (other.id == entry.id) return@filter false
+                    val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
+                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    otherDate.monthValue == entryDate.monthValue && otherDate.dayOfMonth == entryDate.dayOfMonth
+                }.sortedByDescending { it.createdAt }.take(3)
+
+                _relatedEntries.value = related
+            }
         }
     }
 

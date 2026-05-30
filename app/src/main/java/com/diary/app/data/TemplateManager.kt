@@ -147,6 +147,72 @@ object TemplateManager {
                 appendLine("学到了什么：")
             },
             category = TemplateCategory.WORK
+        ),
+
+        // 健康
+        DiaryTemplate(
+            id = "health_check",
+            name = "健康记录",
+            icon = "health",
+            content = buildString {
+                appendLine("睡眠质量：/10")
+                appendLine("睡眠时间：小时")
+                appendLine()
+                appendLine("运动记录：")
+                appendLine()
+                appendLine("饮食记录：")
+                appendLine("早餐：")
+                appendLine("午餐：")
+                appendLine("晚餐：")
+                appendLine()
+                appendLine("身体感受：")
+                appendLine()
+                appendLine("明日健康目标：")
+            },
+            category = TemplateCategory.DAILY
+        ),
+
+        // 学习
+        DiaryTemplate(
+            id = "learning",
+            name = "学习笔记",
+            icon = "school",
+            content = buildString {
+                appendLine("今日学习内容：")
+                appendLine()
+                appendLine("重要概念：")
+                appendLine("1. ")
+                appendLine("2. ")
+                appendLine("3. ")
+                appendLine()
+                appendLine("实际应用：")
+                appendLine()
+                appendLine("待深入研究：")
+                appendLine()
+                appendLine("学习时长：小时")
+            },
+            category = TemplateCategory.CREATIVE
+        ),
+
+        // 灵感
+        DiaryTemplate(
+            id = "inspiration",
+            name = "灵感记录",
+            icon = "lightbulb",
+            content = buildString {
+                appendLine("灵感来源：")
+                appendLine()
+                appendLine("核心想法：")
+                appendLine()
+                appendLine("可能的应用场景：")
+                appendLine("1. ")
+                appendLine("2. ")
+                appendLine()
+                appendLine("下一步行动：")
+                appendLine()
+                appendLine("相关资源：")
+            },
+            category = TemplateCategory.CREATIVE
         )
     )
 }

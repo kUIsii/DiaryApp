@@ -99,6 +99,7 @@ fun DiaryDetailScreen(
     val scope = rememberCoroutineScope()
     val entry by viewModel.entry.collectAsState()
     val tags by viewModel.tags.collectAsState()
+    val relatedEntries by viewModel.relatedEntries.collectAsState()
 
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -344,6 +345,15 @@ fun DiaryDetailScreen(
                             textSecondary = textSecondary,
                             plainText = currentEntry.plainText
                         )
+
+                        // Related entries (same day in previous years)
+                        if (relatedEntries.isNotEmpty()) {
+                            RelatedEntriesSection(
+                                entries = relatedEntries,
+                                onEntryClick = { onNavigateToDetail(it.id) },
+                                textSecondary = textSecondary
+                            )
+                        }
 
                         // Bottom action bar
                         DetailBottomBar(
@@ -613,6 +623,60 @@ private fun BottomActionButton(
             fontSize = 11.sp,
             color = tint
         )
+    }
+}
+
+@Composable
+private fun RelatedEntriesSection(
+    entries: List<DiaryEntry>,
+    onEntryClick: (DiaryEntry) -> Unit,
+    textSecondary: Color
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = "历年今日",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = textSecondary.copy(alpha = 0.6f),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        entries.forEach { entry ->
+            val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                .atZone(ZoneId.systemDefault()).toLocalDate()
+            val year = entryDate.year
+            val preview = entry.plainText.take(50)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onEntryClick(entry) }
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${year}年",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = preview,
+                    fontSize = 12.sp,
+                    color = textSecondary.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
     }
 }
 
