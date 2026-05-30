@@ -634,11 +634,31 @@ fun EditorScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (charCount > 0) {
-                        Text(
-                            text = "${charCount}字",
-                            fontSize = 11.sp,
-                            color = textSecondary.copy(alpha = 0.4f)
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${charCount}字",
+                                fontSize = 11.sp,
+                                color = textSecondary.copy(alpha = 0.4f)
+                            )
+                            // Writing milestone encouragement
+                            val milestone = when {
+                                charCount >= 1000 -> "长篇佳作"
+                                charCount >= 500 -> "文思泉涌"
+                                charCount >= 200 -> "渐入佳境"
+                                charCount >= 100 -> "继续加油"
+                                else -> null
+                            }
+                            if (milestone != null) {
+                                Text(
+                                    text = milestone,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
                     }
                     if (writingDuration > 30) { // Show after 30 seconds
                         Text(
