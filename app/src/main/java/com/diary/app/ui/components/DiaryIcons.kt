@@ -15,30 +15,42 @@ import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.diary.app.ui.theme.MoodCalm
+import com.diary.app.ui.theme.MoodCheerful
+import com.diary.app.ui.theme.MoodDepressed
+import com.diary.app.ui.theme.MoodDown
+import com.diary.app.ui.theme.MoodExcited
+import com.diary.app.ui.theme.MoodHappy
+import com.diary.app.ui.theme.WeatherCloudy
+import com.diary.app.ui.theme.WeatherOvercast
+import com.diary.app.ui.theme.WeatherRainy
+import com.diary.app.ui.theme.WeatherStormy
+import com.diary.app.ui.theme.WeatherSunny
+import com.diary.app.ui.theme.WeatherWindy
 
 data class IconWithTint(val icon: ImageVector, val tint: Color)
 
 fun moodIconForLevel(level: Int): IconWithTint {
     return when (level.coerceIn(1, 6)) {
-        1 -> IconWithTint(Icons.Default.MoodBad, Color(0xFFE57373))
-        2 -> IconWithTint(Icons.Default.SentimentDissatisfied, Color(0xFFFFB74D))
-        3 -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
-        4 -> IconWithTint(Icons.Default.Mood, Color(0xFFAED581))
-        5 -> IconWithTint(Icons.Default.SentimentSatisfied, Color(0xFF81C784))
-        6 -> IconWithTint(Icons.Default.SentimentVerySatisfied, Color(0xFF4FC3F7))
-        else -> IconWithTint(Icons.Default.SentimentNeutral, Color(0xFFFFF176))
+        1 -> IconWithTint(Icons.Default.MoodBad, MoodDepressed.first)
+        2 -> IconWithTint(Icons.Default.SentimentDissatisfied, MoodDown.first)
+        3 -> IconWithTint(Icons.Default.SentimentNeutral, MoodCalm.first)
+        4 -> IconWithTint(Icons.Default.Mood, MoodHappy.first)
+        5 -> IconWithTint(Icons.Default.SentimentSatisfied, MoodCheerful.first)
+        6 -> IconWithTint(Icons.Default.SentimentVerySatisfied, MoodExcited.first)
+        else -> IconWithTint(Icons.Default.SentimentNeutral, MoodCalm.first)
     }
 }
 
 fun moodColorForLevel(level: Int): Color {
     return when (level.coerceIn(1, 6)) {
-        1 -> Color(0xFFE57373)
-        2 -> Color(0xFFFFB74D)
-        3 -> Color(0xFFFFF176)
-        4 -> Color(0xFFAED581)
-        5 -> Color(0xFF81C784)
-        6 -> Color(0xFF4FC3F7)
-        else -> Color(0xFFFFF176)
+        1 -> MoodDepressed.first
+        2 -> MoodDown.first
+        3 -> MoodCalm.first
+        4 -> MoodHappy.first
+        5 -> MoodCheerful.first
+        6 -> MoodExcited.first
+        else -> MoodCalm.first
     }
 }
 
@@ -56,13 +68,13 @@ fun moodLabelForLevel(level: Int): String {
 
 fun weatherIconFor(weather: String?): IconWithTint {
     return when (weather) {
-        "晴", "晴天" -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
-        "多云" -> IconWithTint(Icons.Default.Cloud, Color(0xFF90A4AE))
-        "阴", "阴天" -> IconWithTint(Icons.Default.CloudQueue, Color(0xFF78909C))
-        "雨", "雨天" -> IconWithTint(Icons.Default.Umbrella, Color(0xFF64B5F6))
-        "雷", "雷暴" -> IconWithTint(Icons.Default.Thunderstorm, Color(0xFFBA68C8))
-        "风", "大风" -> IconWithTint(Icons.Default.Air, Color(0xFF80CBC4))
-        else -> IconWithTint(Icons.Default.WbSunny, Color(0xFFFFCA28))
+        "晴", "晴天" -> IconWithTint(Icons.Default.WbSunny, WeatherSunny)
+        "多云" -> IconWithTint(Icons.Default.Cloud, WeatherCloudy)
+        "阴", "阴天" -> IconWithTint(Icons.Default.CloudQueue, WeatherOvercast)
+        "雨", "雨天" -> IconWithTint(Icons.Default.Umbrella, WeatherRainy)
+        "雷", "雷暴" -> IconWithTint(Icons.Default.Thunderstorm, WeatherStormy)
+        "风", "大风" -> IconWithTint(Icons.Default.Air, WeatherWindy)
+        else -> IconWithTint(Icons.Default.WbSunny, WeatherSunny)
     }
 }
 

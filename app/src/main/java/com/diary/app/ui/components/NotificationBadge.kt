@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 fun NotificationBadge(
     count: Int,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color(0xFFE53935),
+    backgroundColor: Color = com.diary.app.ui.theme.ErrorColor,
     contentColor: Color = Color.White
 ) {
     if (count <= 0) return
@@ -54,7 +54,7 @@ fun NotificationBadge(
 @Composable
 fun DotBadge(
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFFE53935)
+    color: Color = com.diary.app.ui.theme.ErrorColor
 ) {
     Box(
         modifier = modifier

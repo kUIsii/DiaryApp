@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.ui.theme.ErrorColor
+import com.diary.app.ui.theme.WarningColor
 import kotlinx.coroutines.delay
 
 @Composable
@@ -165,7 +167,7 @@ fun PinEntryScreen(
                 )
 
                 val dotColor = when {
-                    isError -> Color(0xFFFF6B6B)
+                    isError -> ErrorColor
                     filled -> Color.White
                     else -> Color.White.copy(alpha = 0.25f)
                 }
@@ -189,7 +191,7 @@ fun PinEntryScreen(
             Text(
                 text = "PIN码错误，请重试",
                 fontSize = 13.sp,
-                color = Color(0xFFFF6B6B),
+                color = ErrorColor,
                 modifier = Modifier.padding(top = 12.dp)
             )
         }
@@ -203,7 +205,7 @@ fun PinEntryScreen(
             Text(
                 text = "已锁定，请等待 ${remainingSeconds}秒",
                 fontSize = 13.sp,
-                color = Color(0xFFFFD93D),
+                color = WarningColor,
                 modifier = Modifier.padding(top = 12.dp)
             )
         }

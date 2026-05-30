@@ -63,18 +63,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
 import kotlinx.coroutines.delay
-
-private val AppearanceIconBg = Color(0x1A9C27B0)
-private val AppearanceIconTint = Color(0xFF9C27B0)
-private val DataIconBg = Color(0x1A2196F3)
-private val DataIconTint = Color(0xFF2196F3)
-private val PrivacyIconBg = Color(0x1AF44336)
-private val PrivacyIconTint = Color(0xFFF44336)
-private val AboutIconBg = Color(0x1A4CAF50)
-private val AboutIconTint = Color(0xFF4CAF50)
 
 @Composable
 fun SettingsScreen(
@@ -135,7 +124,7 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SettingsStaggeredItem(index = 0, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_appearance), icon = Icons.Default.Palette, color = AppearanceIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_appearance), icon = Icons.Default.Palette, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 1, showContent = showContent) {
@@ -147,8 +136,8 @@ fun SettingsScreen(
                             icon = Icons.Default.Palette,
                             title = stringResource(R.string.settings_theme),
                             subtitle = stringResource(R.string.settings_current_theme, currentThemeMode.label),
-                            iconBg = AppearanceIconBg,
-                            iconTint = AppearanceIconTint,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             textColor = textColor,
                             textTertiary = textTertiary
                         )
@@ -158,7 +147,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 2, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_data), icon = Icons.Default.Backup, color = DataIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_data), icon = Icons.Default.Backup, color = MaterialTheme.colorScheme.secondary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 3, showContent = showContent) {
@@ -171,8 +160,8 @@ fun SettingsScreen(
                                 icon = Icons.Default.Backup,
                                 title = stringResource(R.string.settings_backup),
                                 subtitle = stringResource(R.string.settings_backup_desc),
-                                iconBg = DataIconBg,
-                                iconTint = DataIconTint,
+                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.secondary,
                                 textColor = textColor,
                                 textTertiary = textTertiary,
                                 onClick = onNavigateToBackup
@@ -182,8 +171,8 @@ fun SettingsScreen(
                                 icon = Icons.Default.Label,
                                 title = stringResource(R.string.settings_tags),
                                 subtitle = stringResource(R.string.settings_tags_desc),
-                                iconBg = DataIconBg,
-                                iconTint = DataIconTint,
+                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.secondary,
                                 textColor = textColor,
                                 textTertiary = textTertiary,
                                 onClick = onNavigateToTagManagement
@@ -195,7 +184,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 4, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_privacy), icon = Icons.Default.Security, color = PrivacyIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_privacy), icon = Icons.Default.Security, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 5, showContent = showContent) {
@@ -207,8 +196,8 @@ fun SettingsScreen(
                             icon = Icons.Default.Lock,
                             title = stringResource(R.string.settings_app_lock),
                             subtitle = stringResource(R.string.settings_app_lock_desc),
-                            iconBg = PrivacyIconBg,
-                            iconTint = PrivacyIconTint,
+                            iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                            iconTint = MaterialTheme.colorScheme.error,
                             textColor = textColor,
                             textTertiary = textTertiary
                         )
@@ -218,7 +207,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 6, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_about), icon = Icons.Default.Info, color = AboutIconTint)
+                    SettingsSectionHeader(title = stringResource(R.string.settings_about), icon = Icons.Default.Info, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 7, showContent = showContent) {
@@ -233,7 +222,7 @@ fun SettingsScreen(
                                     .clip(CircleShape)
                                     .background(
                                         androidx.compose.ui.graphics.Brush.linearGradient(
-                                            listOf(DarkAccentStart, DarkAccentEnd)
+                                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                                         )
                                     ),
                                 contentAlignment = Alignment.Center
@@ -268,8 +257,8 @@ fun SettingsScreen(
                                 icon = Icons.Default.SystemUpdate,
                                 title = stringResource(R.string.settings_check_update),
                                 subtitle = stringResource(R.string.settings_check_update_desc),
-                                iconBg = AboutIconBg,
-                                iconTint = AboutIconTint,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.primary,
                                 textColor = textColor,
                                 textTertiary = textTertiary
                             )
@@ -278,8 +267,8 @@ fun SettingsScreen(
                                 icon = Icons.Default.History,
                                 title = stringResource(R.string.settings_changelog),
                                 subtitle = stringResource(R.string.settings_changelog_desc),
-                                iconBg = AboutIconBg,
-                                iconTint = AboutIconTint,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.primary,
                                 textColor = textColor,
                                 textTertiary = textTertiary,
                                 onClick = onNavigateToChangelog
@@ -295,7 +284,7 @@ fun SettingsScreen(
                                 Icon(
                                     Icons.Default.Favorite,
                                     contentDescription = "心形图标",
-                                    tint = Color(0xFFE91E63),
+                                    tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Text(text = stringResource(R.string.made_by), fontSize = 12.sp, color = textTertiary)

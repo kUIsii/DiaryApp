@@ -34,8 +34,8 @@ fun CircularProgress(
     size: Dp = 120.dp,
     strokeWidth: Dp = 12.dp,
     gradientColors: List<Color> = listOf(
-        Color(0xFF6366F1),
-        Color(0xFFA78BFA)
+        com.diary.app.ui.theme.PrimaryIndigo,
+        com.diary.app.ui.theme.SecondaryViolet
     ),
     backgroundColor: Color = Color.Gray.copy(alpha = 0.1f),
     animationDuration: Int = 1000,
@@ -125,8 +125,8 @@ fun LinearProgress(
     modifier: Modifier = Modifier,
     height: Dp = 8.dp,
     gradientColors: List<Color> = listOf(
-        Color(0xFF6366F1),
-        Color(0xFFA78BFA)
+        com.diary.app.ui.theme.PrimaryIndigo,
+        com.diary.app.ui.theme.SecondaryViolet
     ),
     backgroundColor: Color = Color.Gray.copy(alpha = 0.1f),
     animationDuration: Int = 1000

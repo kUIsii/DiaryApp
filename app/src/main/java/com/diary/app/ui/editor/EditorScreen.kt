@@ -43,7 +43,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.FormatSize
@@ -98,6 +97,7 @@ import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.isDark
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -155,9 +155,6 @@ fun EditorScreen(
 
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
-
-    // Template selector (only for new entries)
-    var showTemplateSelector by remember { mutableStateOf(diaryId == null) }
 
     // Toolbar state
     var showToolbar by remember { mutableStateOf(true) }
@@ -270,10 +267,6 @@ fun EditorScreen(
             wordCount = countWords(text)
             viewModel.markContentChanged()
             contentVersion++
-            // Auto-collapse template selector once user starts typing
-            if (showTemplateSelector && text.isNotBlank()) {
-                showTemplateSelector = false
-            }
         }
     }
 
@@ -423,8 +416,6 @@ fun EditorScreen(
             onTemplateSelected = { template ->
                 webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
                 showTemplateDialog = false
-                // Hide inline template selector if visible
-                showTemplateSelector = false
             }
         )
     }
@@ -464,7 +455,7 @@ fun EditorScreen(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF2ECC71))
+                            .background(SuccessColor)
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -536,21 +527,6 @@ fun EditorScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-            }
-
-            // Template selector (new entries only)
-            AnimatedVisibility(
-                visible = showTemplateSelector,
-                enter = expandVertically(tween(250)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
-            ) {
-                TemplateSelector(
-                    onTemplateSelected = { template ->
-                        webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
-                        showTemplateSelector = false
-                    },
-                    onDismiss = { showTemplateSelector = false }
-                )
             }
 
             // Metadata buttons row - simple chips
@@ -722,66 +698,6 @@ fun EditorScreen(
 }
 
 @Composable
-private fun MetadataButton(
-    label: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    isActive: Boolean,
-    accentColor: Color,
-    surfaceVariant: Color,
-    textColor: Color,
-    textSecondary: Color,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "scale"
-    )
-
-    val bgColor = if (isActive) accentColor.copy(alpha = 0.12f) else surfaceVariant.copy(alpha = 0.5f)
-    val contentColor = if (isSelected || isActive) accentColor else textSecondary
-    val borderColor = if (isActive) accentColor.copy(alpha = 0.3f) else Color.Transparent
-
-    Box(
-        modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(16.dp))
-            .background(bgColor)
-            .then(
-                if (isActive) Modifier.border(1.dp, borderColor, RoundedCornerShape(16.dp))
-                else Modifier
-            )
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
-                color = contentColor
-            )
-        }
-    }
-}
-
-@Composable
 private fun MetadataChip(
     label: String,
     icon: ImageVector,
@@ -853,11 +769,9 @@ private fun EditorToolbar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val categories = listOf(
-                ToolbarCategory("Aa", "格式", Icons.Default.FormatSize),
-                ToolbarCategory("H", "标题", Icons.Default.FormatSize),
-                ToolbarCategory("=", "列表", Icons.Default.FormatSize),
-                ToolbarCategory("+", "插入", Icons.Default.FormatSize),
-                ToolbarCategory("*", "样式", Icons.Default.FormatSize)
+                ToolbarCategory("Aa", "格式"),
+                ToolbarCategory("+", "插入"),
+                ToolbarCategory("···", "更多")
             )
             categories.forEachIndexed { index, cat ->
                 val isActive = activeCategory == index
@@ -926,10 +840,8 @@ private fun EditorToolbar(
                 ) {
                     when (activeCategory) {
                         0 -> FormatTools(onFormat, textColor, btnBg)
-                        1 -> HeadingTools(onHeading, textColor, btnBg)
-                        2 -> ListTools(onFormat, textColor, btnBg)
-                        3 -> InsertTools(onInsert, textColor, btnBg)
-                        4 -> StyleTools(onFormat, textColor, btnBg)
+                        1 -> InsertTools(onInsert, textColor, btnBg)
+                        2 -> MoreTools(onFormat, onHeading, textColor, btnBg)
                     }
                 }
             }
@@ -937,7 +849,7 @@ private fun EditorToolbar(
     }
 }
 
-private data class ToolbarCategory(val icon: String, val label: String, val materialIcon: ImageVector? = null)
+private data class ToolbarCategory(val icon: String, val label: String)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -946,37 +858,28 @@ private fun FormatTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Col
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = "B", description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "I", description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
-        ToolChip(label = "U", description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
-        ToolChip(label = "S", description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
+        ToolChip(label = "B", contentDescription = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "I", contentDescription = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
+        ToolChip(label = "U", contentDescription = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+        ToolChip(label = "S", contentDescription = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, textStyle = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
+        ToolChip(label = "清除", contentDescription = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeadingTools(onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
+private fun MoreTools(onFormat: (String) -> Unit, onHeading: (Int) -> Unit, textColor: Color, btnBg: Color) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = "H1", description = "大标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "H2", description = "中标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "H3", description = "小标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "正文", description = "正文", onClick = { onHeading(0) }, textColor = textColor, bg = btnBg)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ListTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ToolChip(label = "1.", description = "有序列表", onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "-", description = "无序列表", onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "\"", description = "引用", onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "H1", contentDescription = "大标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "H2", contentDescription = "中标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "H3", contentDescription = "小标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "正文", contentDescription = "正文", onClick = { onHeading(0) }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "1.", contentDescription = "有序列表", onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "-", contentDescription = "无序列表", onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "\"", contentDescription = "引用", onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg)
     }
 }
 
@@ -987,29 +890,19 @@ private fun InsertTools(onInsert: (String) -> Unit, textColor: Color, btnBg: Col
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ToolChip(label = "图片", description = "", onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "视频", description = "", onClick = { onInsert("video") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "音频", description = "", onClick = { onInsert("audio") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "链接", description = "", onClick = { onInsert("link") }, textColor = textColor, bg = btnBg)
-        ToolChip(label = "分割线", description = "", onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "图片", contentDescription = "插入图片", onClick = { onInsert("image") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "视频", contentDescription = "插入视频", onClick = { onInsert("video") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "音频", contentDescription = "插入音频", onClick = { onInsert("audio") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "链接", contentDescription = "插入链接", onClick = { onInsert("link") }, textColor = textColor, bg = btnBg)
+        ToolChip(label = "分割线", contentDescription = "插入分割线", onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg)
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StyleTools(onFormat: (String) -> Unit, textColor: Color, btnBg: Color) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ToolChip(label = "清除", description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg)
-    }
-}
 
 @Composable
 private fun ToolChip(
     label: String,
-    description: String = "",
+    contentDescription: String = "",
     onClick: () -> Unit,
     textColor: Color,
     bg: Color,
@@ -1035,18 +928,13 @@ private fun ToolChip(
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = label,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = textColor,
-                style = textStyle
-            )
-            if (description.isNotEmpty()) {
-                Text(text = description, fontSize = 10.sp, color = textColor.copy(alpha = 0.6f))
-            }
-        }
+        Text(
+            text = label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor,
+            style = textStyle
+        )
     }
 }
 
@@ -1146,105 +1034,6 @@ private fun AddTagDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
-}
-
-@Composable
-private fun TemplateSelector(
-    onTemplateSelected: (DiaryTemplate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val accentColor = MaterialTheme.colorScheme.primary
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val templates = remember { TemplateManager.getAllTemplates() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.select_template),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = textSecondary
-            )
-            IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.close),
-                    tint = textSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            templates.forEach { template ->
-                TemplateChip(
-                    template = template,
-                    accentColor = accentColor,
-                    surfaceVariant = surfaceVariant,
-                    textSecondary = textSecondary,
-                    onClick = { onTemplateSelected(template) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TemplateChip(
-    template: DiaryTemplate,
-    accentColor: Color,
-    surfaceVariant: Color,
-    textSecondary: Color,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "scale"
-    )
-
-    Row(
-        modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(12.dp))
-            .background(surfaceVariant.copy(alpha = 0.5f))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(
-            imageVector = iconForTemplate(template.icon),
-            contentDescription = template.name,
-            tint = accentColor,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = template.name,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = textSecondary
-        )
-    }
 }
 
 @Composable

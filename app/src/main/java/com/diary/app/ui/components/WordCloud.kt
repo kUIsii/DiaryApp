@@ -62,18 +62,18 @@ fun WordCloud(
 
     LaunchedEffect(Unit) { visible = true }
 
-    // Color palette for words
+    // Color palette for words - use theme colors
     val wordColors = listOf(
-        Color(0xFF667eea),
-        Color(0xFF764ba2),
-        Color(0xFFf093fb),
-        Color(0xFFf5576c),
-        Color(0xFF4facfe),
-        Color(0xFF00f2fe),
-        Color(0xFF43e97b),
-        Color(0xFF38f9d7),
-        Color(0xFFfa709a),
-        Color(0xFFfee140)
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f),
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
     )
 
     Column(

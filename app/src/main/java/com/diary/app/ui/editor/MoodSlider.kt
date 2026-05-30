@@ -44,17 +44,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.ui.components.moodColorForLevel
 
 private data class MoodInfo(val level: Int, val label: String, val icon: ImageVector)
-
-private val moodColors = listOf(
-    Color(0xFFE74C3C),  // 沮丧 - 红
-    Color(0xFFE67E22),  // 低落 - 橙
-    Color(0xFF3498DB),  // 平静 - 蓝
-    Color(0xFF2ECC71),  // 开心 - 绿
-    Color(0xFF1ABC9C),  // 愉快 - 青
-    Color(0xFF9B59B6)   // 兴奋 - 紫
-)
 
 private val moodIcons = listOf(
     Icons.Default.MoodBad,
@@ -74,7 +66,7 @@ fun MoodSlider(
     modifier: Modifier = Modifier
 ) {
     val currentLevel = selectedLevel ?: 0
-    val currentColor = if (currentLevel > 0) moodColors[currentLevel - 1] else MaterialTheme.colorScheme.onSurfaceVariant
+    val currentColor = if (currentLevel > 0) moodColorForLevel(currentLevel) else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -114,7 +106,7 @@ fun MoodSlider(
                 MoodItem(
                     index = i,
                     isSelected = currentLevel == (i + 1),
-                    color = moodColors[i],
+                    color = moodColorForLevel(i + 1),
                     onClick = {
                         // Toggle: click same mood to deselect
                         if (selectedLevel == i + 1) {

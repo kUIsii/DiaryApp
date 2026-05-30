@@ -222,8 +222,8 @@ fun BackupScreen(
                                     icon = Icons.Default.Schedule,
                                     title = stringResource(R.string.backup_auto),
                                     subtitle = if (autoBackupEnabled) stringResource(R.string.backup_auto_on, frequency.label) else stringResource(R.string.backup_auto_off),
-                                    iconBg = Color(0x1A2196F3),
-                                    iconTint = Color(0xFF2196F3),
+                                    iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     textColor = textColor,
                                     textTertiary = textTertiary,
                                     accentColor = accentColor,
@@ -245,8 +245,8 @@ fun BackupScreen(
                                             icon = Icons.Default.Schedule,
                                             title = stringResource(R.string.backup_frequency),
                                             subtitle = frequency.label,
-                                            iconBg = Color(0x1AFF9800),
-                                            iconTint = Color(0xFFFF9800),
+                                            iconBg = com.diary.app.ui.theme.WarningColor.copy(alpha = 0.1f),
+                                            iconTint = com.diary.app.ui.theme.WarningColor,
                                             textColor = textColor,
                                             textTertiary = textTertiary,
                                             accentColor = accentColor,
@@ -310,8 +310,8 @@ fun BackupScreen(
                                     icon = Icons.Default.Backup,
                                     title = stringResource(R.string.backup_now),
                                     subtitle = stringResource(R.string.backup_now_desc),
-                                    iconBg = Color(0x1A4CAF50),
-                                    iconTint = Color(0xFF4CAF50),
+                                    iconBg = com.diary.app.ui.theme.SuccessColor.copy(alpha = 0.1f),
+                                    iconTint = com.diary.app.ui.theme.SuccessColor,
                                     textColor = textColor,
                                     textTertiary = textTertiary,
                                     enabled = !isBackingUp,
@@ -360,7 +360,7 @@ fun BackupScreen(
                             SectionHeader(
                                 title = stringResource(R.string.backup_history),
                                 icon = Icons.Default.History,
-                                color = Color(0xFF9C27B0)
+                                color = MaterialTheme.colorScheme.tertiary
                             )
                         }
                     }
@@ -407,13 +407,13 @@ private fun BackupHistoryItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0x1A4CAF50)),
+                    .background(com.diary.app.ui.theme.SuccessColor.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Backup,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = com.diary.app.ui.theme.SuccessColor,
                     modifier = Modifier.size(20.dp)
                 )
             }

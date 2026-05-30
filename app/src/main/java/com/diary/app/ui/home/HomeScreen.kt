@@ -30,30 +30,22 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
@@ -79,7 +71,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -91,7 +82,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -105,23 +95,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.R
 import com.diary.app.data.DiaryEntry
-import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
+import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.staggeredListItem
-import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.components.rememberHapticFeedback
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.DesignTokens
-import com.diary.app.ui.theme.LightAccentEnd
-import com.diary.app.ui.theme.LightAccentStart
-import com.diary.app.ui.theme.isDark
-import com.diary.app.ui.theme.themeMode
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -343,127 +325,6 @@ fun HomeScreen(
             // FAB
             FAB(onClick = { onNavigateToEditor(null) }, isEmpty = entries.isEmpty() && !isLoading)
         }
-    }
-}
-
-@Composable
-private fun QuickMoodCheckIn(
-    onMoodSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val moodColors = listOf(
-        Color(0xFF6C7A89),  // 沮丧 - muted blue-grey
-        Color(0xFF9B8EA8),  // 低落 - soft purple
-        Color(0xFF7FB5A0),  // 平静 - sage green
-        Color(0xFFF5C76E),  // 开心 - warm yellow
-        Color(0xFFF2994A),  // 愉快 - orange
-        Color(0xFFEB5757)   // 兴奋 - vibrant red
-    )
-    val moodLabels = listOf("沮", "低", "平", "喜", "悦", "奋")
-
-    var selectedMood by remember { mutableStateOf<Int?>(null) }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
-            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
-    ) {
-        Text(
-            text = "现在的心情",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            moodColors.forEachIndexed { index, color ->
-                val level = index + 1
-                val isSelected = selectedMood == level
-                val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.1f else 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    label = "moodScale"
-                )
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            selectedMood = level
-                            onMoodSelected(level)
-                        }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) color.copy(alpha = 0.2f)
-                                else color.copy(alpha = 0.08f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = moodLabels[index],
-                            fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) color else color.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WritingReminderCard(onWriteClick: () -> Unit) {
-    val prompts = listOf(
-        "今天还没有记录呢，花几分钟写下今天的感受吧",
-        "睡前写几句，留住今天的回忆",
-        "今天的你值得被记住，写下此刻的心情",
-        "一天即将结束，记录下今天的高光时刻"
-    )
-    val prompt = remember { prompts.random() }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-            .clickable { onWriteClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = prompt,
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = "写日记",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        )
     }
 }
 
@@ -748,258 +609,6 @@ private fun CalendarToggleButton(
 }
 
 @Composable
-private fun MoodTrendRow(moodTrend: List<HomeViewModel.MoodDay>) {
-    val dayLabels = listOf("日", "一", "二", "三", "四", "五", "六")
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
-            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
-    ) {
-        Text(
-            text = "近7天心情",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            moodTrend.forEach { day ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val dayOfWeek = day.date.dayOfWeek.value % 7
-                    Text(
-                        text = dayLabels[dayOfWeek],
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (day.moodLevel != null) {
-                                    moodColorForLevel(day.moodLevel).copy(alpha = 0.15f)
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (day.moodLevel != null) {
-                            Text(
-                                text = moodTextForLevel(day.moodLevel),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = moodColorForLevel(day.moodLevel).copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${day.date.dayOfMonth}",
-                        fontSize = 9.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun moodTextForLevel(level: Int): String {
-    return when (level) {
-        1 -> "沮"
-        2 -> "低"
-        3 -> "平"
-        4 -> "喜"
-        5 -> "悦"
-        6 -> "奋"
-        else -> "平"
-    }
-}
-
-@Composable
-private fun WeeklySummaryRow(summary: HomeViewModel.WeeklySummary) {
-    val moodLabel = summary.avgMood?.let { avg ->
-        when {
-            avg < 2 -> "低落"
-            avg < 3 -> "平静"
-            avg < 4 -> "愉快"
-            avg < 5 -> "开心"
-            else -> "兴奋"
-        }
-    } ?: "暂无"
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
-            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
-    ) {
-        Text(
-            text = "本周小结",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            SummaryItem(
-                value = "${summary.entryCount}",
-                label = "篇日记"
-            )
-            SummaryItem(
-                value = "${summary.daysWithEntries}",
-                label = "天记录"
-            )
-            SummaryItem(
-                value = if (summary.totalWords > 1000) "${summary.totalWords / 1000}k" else "${summary.totalWords}",
-                label = "字"
-            )
-            SummaryItem(
-                value = moodLabel,
-                label = "心情"
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryItem(value: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = value,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = label,
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-    }
-}
-
-@Composable
-private fun StatsCard(stats: HomeStats) {
-    val dark = themeMode().isDark()
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        StatItem(
-            value = stats.total,
-            label = stringResource(R.string.stat_total_diaries),
-            icon = Icons.Default.Edit,
-            gradientColors = if (dark) listOf(Color(0xFF667eea).copy(alpha = 0.25f), Color(0xFF764ba2).copy(alpha = 0.15f))
-            else listOf(Color(0xFF667eea).copy(alpha = 0.12f), Color(0xFF764ba2).copy(alpha = 0.08f)),
-            modifier = Modifier.weight(1f)
-        )
-        StatItem(
-            value = stats.streak,
-            label = stringResource(R.string.stat_streak),
-            icon = Icons.Default.LocalFireDepartment,
-            gradientColors = if (dark) listOf(Color(0xFFf093fb).copy(alpha = 0.25f), Color(0xFFf5576c).copy(alpha = 0.15f))
-            else listOf(Color(0xFFf093fb).copy(alpha = 0.12f), Color(0xFFf5576c).copy(alpha = 0.08f)),
-            modifier = Modifier.weight(1f)
-        )
-        StatItem(
-            value = stats.thisMonth,
-            label = stringResource(R.string.stat_this_month),
-            icon = Icons.Default.CalendarMonth,
-            gradientColors = if (dark) listOf(Color(0xFF4facfe).copy(alpha = 0.25f), Color(0xFF00f2fe).copy(alpha = 0.15f))
-            else listOf(Color(0xFF4facfe).copy(alpha = 0.12f), Color(0xFF00f2fe).copy(alpha = 0.08f)),
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun AnimatedCounter(
-    targetValue: Int,
-    modifier: Modifier = Modifier,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
-    fontWeight: FontWeight = FontWeight.Bold,
-    color: Color = Color.White
-) {
-    var currentValue by remember { mutableIntStateOf(0) }
-    LaunchedEffect(targetValue) {
-        if (targetValue == 0) {
-            currentValue = 0
-            return@LaunchedEffect
-        }
-        val steps = 20
-        val stepDelay = 30L
-        for (i in 0..steps) {
-            currentValue = (targetValue * i / steps)
-            delay(stepDelay)
-        }
-        currentValue = targetValue
-    }
-    Text(
-        text = "$currentValue",
-        style = style,
-        fontWeight = fontWeight,
-        color = color,
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun StatItem(
-    value: Int,
-    label: String,
-    icon: ImageVector,
-    gradientColors: List<Color>,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Brush.linearGradient(gradientColors))
-            .padding(12.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            AnimatedCounter(
-                targetValue = value,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(1.dp))
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
     val fabColor = MaterialTheme.colorScheme.primary
 
@@ -1024,7 +633,7 @@ private fun FAB(onClick: () -> Unit, isEmpty: Boolean = false) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "新建日记",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1115,9 +724,9 @@ private fun ShimmerDiaryCard() {
     )
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color.LightGray.copy(alpha = 0.3f),
-            Color.LightGray.copy(alpha = 0.1f),
-            Color.LightGray.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         ),
         start = Offset(translateAnim - 200f, 0f),
         end = Offset(translateAnim, 0f)
@@ -1330,7 +939,7 @@ private fun SwipeableDiaryCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isSwipeRight) Color(0xFF66BB6A) else errorColor)
+                    .background(if (isSwipeRight) SuccessColor else errorColor)
                     .padding(
                         start = if (isSwipeRight) 24.dp else 0.dp,
                         end = if (isSwipeRight) 0.dp else 24.dp
@@ -1340,7 +949,7 @@ private fun SwipeableDiaryCard(
                 Icon(
                     imageVector = if (isSwipeRight) Icons.Default.Share else Icons.Default.Delete,
                     contentDescription = if (isSwipeRight) "分享" else "删除",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1533,199 +1142,6 @@ private fun highlightText(text: String, query: String, highlightColor: Color): A
                 append(text.substring(index, index + query.length))
             }
             start = index + query.length
-        }
-    }
-}
-
-@Composable
-private fun OnThisDayCard(
-    entries: List<DiaryEntry>,
-    onEntryClick: (Long) -> Unit
-) {
-    val onBackground = MaterialTheme.colorScheme.onBackground
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(16.dp)
-            )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                Text(
-                    text = "那年今日",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = onBackground
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${entries.size}条回忆",
-                    fontSize = 12.sp,
-                    color = onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-
-            entries.take(3).forEach { entry ->
-                val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(ZoneId.systemDefault()).toLocalDate()
-                val yearDiff = LocalDate.now().year - entryDate.year
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onEntryClick(entry.id) }
-                        .padding(vertical = 8.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${entryDate.year}年",
-                        fontSize = 13.sp,
-                        color = onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.width(56.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        if (entry.title.isNotBlank()) {
-                            Text(
-                                text = entry.title,
-                                fontSize = 14.sp,
-                                color = onBackground,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        if (entry.plainText.isNotBlank()) {
-                            Text(
-                                text = entry.plainText,
-                                fontSize = 12.sp,
-                                color = onSurfaceVariant.copy(alpha = 0.7f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${yearDiff}年前",
-                        fontSize = 11.sp,
-                        color = onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            }
-
-            if (entries.size > 3) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "还有${entries.size - 3}条",
-                    fontSize = 12.sp,
-                    color = onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReviewCardHome(
-    reviewEntries: List<ReviewEntry>,
-    onEntryClick: (Long) -> Unit,
-    onViewAll: () -> Unit
-) {
-    val onBackground = MaterialTheme.colorScheme.onBackground
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(16.dp)
-            )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "日记回顾",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = onBackground
-                )
-                Text(
-                    text = "查看全部",
-                    fontSize = 12.sp,
-                    color = onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.clickable(onClick = onViewAll)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            reviewEntries.take(3).forEach { reviewItem ->
-                val entry = reviewItem.entry
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onEntryClick(entry.id) }
-                        .padding(vertical = 8.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = reviewItem.label,
-                        fontSize = 13.sp,
-                        color = onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.width(64.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        if (entry.title.isNotBlank()) {
-                            Text(
-                                text = entry.title,
-                                fontSize = 14.sp,
-                                color = onBackground,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        if (entry.plainText.isNotBlank()) {
-                            Text(
-                                text = entry.plainText,
-                                fontSize = 12.sp,
-                                color = onSurfaceVariant.copy(alpha = 0.7f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    if (entry.moodLevel != null) {
-                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = "心情",
-                            tint = moodTint.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 }

@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -42,9 +42,9 @@ fun ShimmerEffect(
 
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color.LightGray.copy(alpha = 0.2f),
-            Color.LightGray.copy(alpha = 0.4f),
-            Color.LightGray.copy(alpha = 0.2f)
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
         ),
         start = Offset(translateX, 0f),
         end = Offset(translateX + 300f, 0f)
@@ -74,9 +74,9 @@ fun ShimmerPlaceholder(
 
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color.LightGray.copy(alpha = 0.2f),
-            Color.LightGray.copy(alpha = 0.4f),
-            Color.LightGray.copy(alpha = 0.2f)
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
         ),
         start = Offset(translateX, 0f),
         end = Offset(translateX + 300f, 0f)

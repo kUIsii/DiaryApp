@@ -41,6 +41,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.ui.theme.WeatherCloudy
+import com.diary.app.ui.theme.WeatherOvercast
+import com.diary.app.ui.theme.WeatherRainy
+import com.diary.app.ui.theme.WeatherStormy
+import com.diary.app.ui.theme.WeatherSunny
+import com.diary.app.ui.theme.WeatherWindy
 
 data class WeatherOption(val name: String, val icon: ImageVector)
 
@@ -53,24 +59,15 @@ val weatherOptions = listOf(
     WeatherOption("大风", Icons.Default.Air)
 )
 
-// 天气背景色
-private val weatherBackgroundColors = mapOf(
-    "晴天" to Color(0xFFFFF8E1),   // 淡黄色
-    "多云" to Color(0xFFECEFF1),   // 淡灰色
-    "阴天" to Color(0xFFCFD8DC),   // 深灰色
-    "雨天" to Color(0xFFE3F2FD),   // 淡蓝色
-    "雷暴" to Color(0xFFF3E5F5),   // 淡紫色
-    "大风" to Color(0xFFE0F7FA)    // 淡青色
-)
-
-private val weatherIconColors = mapOf(
-    "晴天" to Color(0xFFFF8F00),   // 深黄
-    "多云" to Color(0xFF607D8B),   // 灰蓝
-    "阴天" to Color(0xFF455A64),   // 深灰
-    "雨天" to Color(0xFF1976D2),   // 蓝
-    "雷暴" to Color(0xFF7B1FA2),   // 紫
-    "大风" to Color(0xFF00838F)    // 青
-)
+private fun weatherThemeColor(name: String): Color = when (name) {
+    "晴天" -> WeatherSunny
+    "多云" -> WeatherCloudy
+    "阴天" -> WeatherOvercast
+    "雨天" -> WeatherRainy
+    "雷暴" -> WeatherStormy
+    "大风" -> WeatherWindy
+    else -> WeatherSunny
+}
 
 fun getWeatherIcon(name: String?): ImageVector? {
     return weatherOptions.find { it.name == name }?.icon
@@ -119,8 +116,9 @@ private fun WeatherItem(
         label = "weather_selected_scale"
     )
 
-    val baseColor = weatherBackgroundColors[option.name] ?: MaterialTheme.colorScheme.surface
-    val iconColor = weatherIconColors[option.name] ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val themeColor = weatherThemeColor(option.name)
+    val baseColor = themeColor.copy(alpha = 0.12f)
+    val iconColor = themeColor
 
     val shape = RoundedCornerShape(14.dp)
 

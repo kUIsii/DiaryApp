@@ -53,6 +53,7 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ErrorColor
+import com.diary.app.ui.theme.InfoColor
 import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.WarningColor
 import com.google.gson.Gson
@@ -98,14 +99,12 @@ private fun categoryIconForHeader(header: String): Pair<ImageVector, Color> {
         lower.contains("fix") || lower.contains("bug") || lower.contains("修复") || lower.contains("fixed") ->
             Icons.Default.BugReport to ErrorColor
         lower.contains("improve") || lower.contains("enhance") || lower.contains("优化") || lower.contains("update") ->
-            Icons.Default.Update to InfoBlueColor
+            Icons.Default.Update to InfoColor
         lower.contains("breaking") || lower.contains("重大") || lower.contains("important") ->
             Icons.Default.NewReleases to WarningColor
-        else -> Icons.Default.AutoAwesome to InfoBlueColor
+        else -> Icons.Default.AutoAwesome to InfoColor
     }
 }
-
-private val InfoBlueColor = Color(0xFF3498DB)
 
 data class ChangelogRelease(
     @SerializedName("tag_name") val tagName: String,

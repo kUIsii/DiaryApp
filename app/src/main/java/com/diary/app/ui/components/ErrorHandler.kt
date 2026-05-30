@@ -70,8 +70,8 @@ fun ErrorMessage(
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
     ) {
         val backgroundColor = when (type) {
-            ErrorType.ERROR -> Color(0xFFE53935).copy(alpha = 0.9f)
-            ErrorType.WARNING -> Color(0xFFFF9800).copy(alpha = 0.9f)
+            ErrorType.ERROR -> com.diary.app.ui.theme.ErrorColor.copy(alpha = 0.9f)
+            ErrorType.WARNING -> com.diary.app.ui.theme.WarningColor.copy(alpha = 0.9f)
             ErrorType.INFO -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
         }
 
@@ -155,7 +155,7 @@ fun SuccessMessage(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF4CAF50).copy(alpha = 0.9f))
+                .background(com.diary.app.ui.theme.SuccessColor.copy(alpha = 0.9f))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween

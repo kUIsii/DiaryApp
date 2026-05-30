@@ -121,21 +121,21 @@ fun StatsScreen(
                             label = stringResource(R.string.stat_total_diaries),
                             value = state.totalEntries,
                             icon = Icons.Default.Edit,
-                            gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2)),
+                            gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
                             label = stringResource(R.string.stat_streak),
                             value = state.currentStreak,
                             icon = Icons.Default.LocalFireDepartment,
-                            gradientColors = listOf(Color(0xFFf093fb), Color(0xFFf5576c)),
+                            gradientColors = listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
                             modifier = Modifier.weight(1f)
                         )
                         OverviewCard(
                             label = stringResource(R.string.stat_this_month),
                             value = state.thisMonthEntries,
                             icon = Icons.Default.CalendarMonth,
-                            gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe)),
+                            gradientColors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -387,7 +387,7 @@ private fun AnimatedCounter(
     modifier: Modifier = Modifier,
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
     fontWeight: FontWeight = FontWeight.Bold,
-    color: Color = Color.White
+    color: Color = Color.Unspecified
 ) {
     var animatedValue by remember { mutableFloatStateOf(0f) }
     val animatedFloat by animateFloatAsState(
@@ -444,6 +444,8 @@ private fun OverviewCard(
         label = "glowAlpha"
     )
 
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -453,7 +455,7 @@ private fun OverviewCard(
                 drawRect(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = glowAlpha),
+                            onPrimaryColor.copy(alpha = glowAlpha),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.3f, size.height * 0.2f),
@@ -468,7 +470,7 @@ private fun OverviewCard(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = 0.12f),
+                            onPrimaryColor.copy(alpha = 0.12f),
                             Color.Transparent
                         ),
                         startX = shimmerX,
@@ -487,20 +489,20 @@ private fun OverviewCard(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(22.dp),
-                tint = Color.White.copy(alpha = 0.85f)
+                tint = onPrimaryColor.copy(alpha = 0.85f)
             )
             Spacer(modifier = Modifier.height(6.dp))
             AnimatedCounter(
                 targetValue = value,
                 style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp),
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = onPrimaryColor
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f)
+                color = onPrimaryColor.copy(alpha = 0.8f)
             )
         }
     }
@@ -728,8 +730,8 @@ private fun MoodTrendRow(trend: MoodTrend) {
         TrendDirection.FLAT -> Icons.Default.TrendingFlat to stringResource(R.string.stats_mood_flat)
     }
     val iconTint = when (trend.direction) {
-        TrendDirection.UP -> Color(0xFF66BB6A)
-        TrendDirection.DOWN -> Color(0xFFE74C3C)
+        TrendDirection.UP -> com.diary.app.ui.theme.SuccessColor
+        TrendDirection.DOWN -> com.diary.app.ui.theme.ErrorColor
         TrendDirection.FLAT -> MaterialTheme.colorScheme.primary
     }
 
@@ -774,18 +776,20 @@ private fun MoodLineChart(points: List<MoodPoint>) {
     val dateFmt = DateTimeFormatter.ofPattern("M/d")
 
     val levelColorMap = mapOf(
-        1 to Color(0xFFE74C3C),
-        2 to Color(0xFFE67E22),
-        3 to Color(0xFFF39C12),
-        4 to Color(0xFF9CCC65),
-        5 to Color(0xFF66BB6A),
-        6 to Color(0xFF2E7D32),
+        1 to com.diary.app.ui.theme.MoodDepressed.first,
+        2 to com.diary.app.ui.theme.MoodDown.first,
+        3 to com.diary.app.ui.theme.MoodCalm.first,
+        4 to com.diary.app.ui.theme.MoodHappy.first,
+        5 to com.diary.app.ui.theme.MoodCheerful.first,
+        6 to com.diary.app.ui.theme.MoodExcited.first,
     )
 
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val textAlpha = textColor.alpha
     val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val fallbackColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Progressive draw animation
     var drawProgress by remember { mutableFloatStateOf(0f) }
@@ -915,8 +919,8 @@ private fun MoodLineChart(points: List<MoodPoint>) {
                         cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
                     }
 
-                    val c1 = levelColorMap[p1.level] ?: Color.Gray
-                    val c2 = levelColorMap[p2.level] ?: Color.Gray
+                    val c1 = levelColorMap[p1.level] ?: fallbackColor
+                    val c2 = levelColorMap[p2.level] ?: fallbackColor
                     val segColor = lerpColor(c1, c2, 0.5f)
 
                     drawPath(
@@ -934,16 +938,16 @@ private fun MoodLineChart(points: List<MoodPoint>) {
             // Data point dots with glow (faded in after line completes)
             if (dotAlpha > 0f) {
                 pxPoints.forEach { p ->
-                    val dotColor = levelColorMap[p.level] ?: Color.Gray
+                    val dotColor = levelColorMap[p.level] ?: fallbackColor
                     // Outer glow
                     drawCircle(
                         color = dotColor.copy(alpha = 0.25f * dotAlpha),
                         radius = 9.dp.toPx(),
                         center = Offset(p.x, p.y)
                     )
-                    // White background
+                    // Background
                     drawCircle(
-                        color = Color.White.copy(alpha = dotAlpha),
+                        color = surfaceColor.copy(alpha = dotAlpha),
                         radius = 5.5.dp.toPx(),
                         center = Offset(p.x, p.y)
                     )
@@ -1002,6 +1006,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
     if (data.isEmpty()) return
     val maxCount = data.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
     val primaryColor = MaterialTheme.colorScheme.primary
+    val gridLineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
 
     Column {
         Box(
@@ -1011,7 +1016,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
         ) {
             // Background grid lines
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val gridColor = Color.Gray.copy(alpha = 0.08f)
+                val gridColor = gridLineColor
                 for (i in 0..3) {
                     val y = size.height * i / 3f
                     drawLine(

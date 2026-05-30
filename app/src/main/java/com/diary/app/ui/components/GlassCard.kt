@@ -8,17 +8,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.DarkCardBackground
 import com.diary.app.ui.theme.DarkCardBorder
-import com.diary.app.ui.theme.LightAccentEnd
-import com.diary.app.ui.theme.LightAccentStart
 import com.diary.app.ui.theme.LightCardBackground
 import com.diary.app.ui.theme.LightCardBorder
 import com.diary.app.ui.theme.PureDarkCardBackground
@@ -130,11 +127,10 @@ fun GlassCardAccent(
         }
     }
 
-    val accentColors = if (dark) {
-        listOf(DarkAccentStart, DarkAccentEnd)
-    } else {
-        listOf(LightAccentStart, LightAccentEnd)
-    }
+    val accentColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary
+    )
 
     // Subtle shadow in light gradient/system mode
     val shadowElevation = if (!dark && mode != ThemeMode.PURE_LIGHT) 2.dp else 0.dp

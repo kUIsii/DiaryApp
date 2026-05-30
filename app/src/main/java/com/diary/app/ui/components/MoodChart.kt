@@ -59,12 +59,12 @@ fun MoodChart(
     val fullDateFmt = DateTimeFormatter.ofPattern("yyyy年M月d日")
 
     val levelColorMap = mapOf(
-        1 to Color(0xFFE57373),
-        2 to Color(0xFFFFB74D),
-        3 to Color(0xFFFFF176),
-        4 to Color(0xFFAED581),
-        5 to Color(0xFF81C784),
-        6 to Color(0xFF4FC3F7)
+        1 to com.diary.app.ui.theme.MoodDepressed.first,
+        2 to com.diary.app.ui.theme.MoodDown.first,
+        3 to com.diary.app.ui.theme.MoodCalm.first,
+        4 to com.diary.app.ui.theme.MoodHappy.first,
+        5 to com.diary.app.ui.theme.MoodCheerful.first,
+        6 to com.diary.app.ui.theme.MoodExcited.first
     )
 
     val levelLabels = listOf("沮丧", "低落", "平静", "开心", "愉快", "兴奋")
