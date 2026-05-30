@@ -160,14 +160,35 @@ fun EditorScreen(
     var showDraftDialog by remember { mutableStateOf(false) }
     var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
 
+    // Writing duration and prompt
+    val writingDuration by viewModel.writingDuration.collectAsState()
+    val writingPrompt by viewModel.writingPrompt.collectAsState()
+
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
+        viewModel.startWritingTimer()
+        viewModel.loadWritingPrompt()
+    }
+
+    // Update writing duration periodically
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(10000) // Update every 10 seconds
+            viewModel.updateWritingDuration()
+        }
     }
 
     LaunchedEffect(currentEntry) {
         currentEntry?.let { entry ->
             selectedMood = entry.moodLevel
             selectedWeather = entry.weather
+        }
+    }
+
+    // Refresh prompt when mood changes
+    LaunchedEffect(selectedMood) {
+        if (diaryId == null && charCount == 0) {
+            viewModel.loadWritingPrompt(selectedMood)
         }
     }
 
@@ -477,6 +498,28 @@ fun EditorScreen(
                 Text(text = timeText, fontSize = 11.sp, color = textSecondary)
             }
 
+            // Writing prompt (only for new entries, hide when content exists)
+            if (diaryId == null && writingPrompt.isNotBlank() && charCount == 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { viewModel.refreshPrompt() }
+                        .background(surfaceVariant.copy(alpha = 0.3f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = writingPrompt,
+                        fontSize = 13.sp,
+                        color = textSecondary.copy(alpha = 0.7f),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
             // Template selector (new entries only)
             AnimatedVisibility(
                 visible = showTemplateSelector,
@@ -581,30 +624,30 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
 
-            // Word count bar (only when content exists)
-            AnimatedVisibility(
-                visible = charCount > 0,
-                enter = fadeIn(tween(200)),
-                exit = fadeOut(tween(200))
-            ) {
-                Text(
-                    text = stringResource(R.string.word_count_format, charCount, wordCount),
-                    fontSize = 10.sp,
-                    color = textSecondary.copy(alpha = 0.5f),
+            // Word count and writing duration
+            if (charCount > 0 || writingDuration > 0) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                )
-            }
-
-            // Word count - subtle, at bottom
-            if (charCount > 0) {
-                Text(
-                    text = "${charCount}字",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)
-                )
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (charCount > 0) {
+                        Text(
+                            text = "${charCount}字",
+                            fontSize = 11.sp,
+                            color = textSecondary.copy(alpha = 0.4f)
+                        )
+                    }
+                    if (writingDuration > 30) { // Show after 30 seconds
+                        Text(
+                            text = "已写${viewModel.getFormattedDuration()}",
+                            fontSize = 11.sp,
+                            color = textSecondary.copy(alpha = 0.3f)
+                        )
+                    }
+                }
             }
 
             // Bottom toolbar - simplified to 2 categories: Format and Insert

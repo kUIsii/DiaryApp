@@ -148,6 +148,7 @@ fun HomeScreen(
     val reviewEntries by viewModel.reviewEntries.collectAsState()
     val searchResultCount by viewModel.searchResultCount.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
+    val moodTrend by viewModel.moodTrend.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
     var showCalendar by remember { mutableStateOf(false) }  // Calendar collapsed by default
@@ -238,6 +239,13 @@ fun HomeScreen(
                 if (!isSearchActive) {
                     item {
                         CompactStatsRow(stats = stats, onNavigateToReview = onNavigateToReview)
+                    }
+                }
+
+                // Mood trend for the last 7 days
+                if (!isSearchActive && moodTrend.any { it.moodLevel != null }) {
+                    item {
+                        MoodTrendRow(moodTrend = moodTrend)
                     }
                 }
 
@@ -580,6 +588,83 @@ private fun CalendarToggleButton(
             modifier = Modifier.size(18.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
+    }
+}
+
+@Composable
+private fun MoodTrendRow(moodTrend: List<HomeViewModel.MoodDay>) {
+    val dayLabels = listOf("日", "一", "二", "三", "四", "五", "六")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
+    ) {
+        Text(
+            text = "近7天心情",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            moodTrend.forEach { day ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val dayOfWeek = day.date.dayOfWeek.value % 7
+                    Text(
+                        text = dayLabels[dayOfWeek],
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (day.moodLevel != null) {
+                                    moodColorForLevel(day.moodLevel).copy(alpha = 0.15f)
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (day.moodLevel != null) {
+                            Text(
+                                text = moodTextForLevel(day.moodLevel),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = moodColorForLevel(day.moodLevel).copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${day.date.dayOfMonth}",
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun moodTextForLevel(level: Int): String {
+    return when (level) {
+        1 -> "沮"
+        2 -> "低"
+        3 -> "平"
+        4 -> "喜"
+        5 -> "悦"
+        6 -> "奋"
+        else -> "平"
     }
 }
 

@@ -49,6 +49,45 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private var latestPlainText: String = ""
     private var latestTitle: String = ""
 
+    // Writing duration tracking
+    private var writingStartTime: Long = 0L
+    private val _writingDuration = MutableStateFlow(0L) // in seconds
+    val writingDuration = _writingDuration.asStateFlow()
+
+    fun startWritingTimer() {
+        if (writingStartTime == 0L) {
+            writingStartTime = System.currentTimeMillis()
+        }
+    }
+
+    fun updateWritingDuration() {
+        if (writingStartTime > 0) {
+            val elapsed = (System.currentTimeMillis() - writingStartTime) / 1000
+            _writingDuration.value = elapsed
+        }
+    }
+
+    fun getFormattedDuration(): String {
+        val seconds = _writingDuration.value
+        return when {
+            seconds < 60 -> "${seconds}秒"
+            seconds < 3600 -> "${seconds / 60}分钟"
+            else -> "${seconds / 3600}小时${(seconds % 3600) / 60}分钟"
+        }
+    }
+
+    // Writing prompt
+    private val _writingPrompt = MutableStateFlow("")
+    val writingPrompt = _writingPrompt.asStateFlow()
+
+    fun loadWritingPrompt(moodLevel: Int? = null) {
+        _writingPrompt.value = com.diary.app.data.WritingPrompts.getPrompt(moodLevel)
+    }
+
+    fun refreshPrompt() {
+        _writingPrompt.value = com.diary.app.data.WritingPrompts.getRandomPrompt()
+    }
+
     fun markContentChanged() {
         _hasUnsavedChanges.value = true
     }

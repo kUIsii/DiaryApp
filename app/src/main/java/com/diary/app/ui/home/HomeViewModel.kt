@@ -171,6 +171,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         HomeStats(entries.size, streak, thisMonth)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
 
+    // Mood trend for the last 7 days
+    data class MoodDay(val date: LocalDate, val moodLevel: Int?)
+
+    val moodTrend: StateFlow<List<MoodDay>> = dayInfoMap
+        .map { infoMap ->
+            val today = LocalDate.now()
+            (6 downTo 0).map { daysAgo ->
+                val date = today.minusDays(daysAgo.toLong())
+                MoodDay(date, infoMap[date]?.moodLevel)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val filteredEntries: StateFlow<List<DiaryEntry>> = combine(
         allEntries,
         _selectedDate,
