@@ -652,11 +652,20 @@ fun EditorScreen(
                                 else -> null
                             }
                             if (milestone != null) {
-                                Text(
-                                    text = milestone,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
+                                var milestoneVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(milestone) {
+                                    milestoneVisible = true
+                                }
+                                AnimatedVisibility(
+                                    visible = milestoneVisible,
+                                    enter = fadeIn(tween(300)) + expandVertically(tween(300))
+                                ) {
+                                    Text(
+                                        text = milestone,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    )
+                                }
                             }
                         }
                     }
