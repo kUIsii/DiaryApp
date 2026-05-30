@@ -99,6 +99,13 @@ fun AnimatedGradientBackground(
         }
         return
     }
+    if (mode == ThemeMode.OCEAN_BLUE) {
+        val bgColor = if (dark) com.diary.app.ui.theme.OceanBlueDarkBackground else com.diary.app.ui.theme.OceanBlueBackground
+        Box(modifier = modifier.fillMaxSize().background(bgColor)) {
+            content()
+        }
+        return
+    }
 
     // 4 gradient color schemes for cycling
     val gradientSets = if (dark) {
