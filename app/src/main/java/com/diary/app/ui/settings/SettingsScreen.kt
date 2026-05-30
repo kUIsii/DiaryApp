@@ -61,6 +61,8 @@ import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.SectionHeader
+import com.diary.app.ui.components.SettingDivider
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import kotlinx.coroutines.delay
@@ -124,7 +126,7 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SettingsStaggeredItem(index = 0, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_appearance), icon = Icons.Default.Palette, color = MaterialTheme.colorScheme.primary)
+                    SectionHeader(title = stringResource(R.string.settings_appearance), icon = Icons.Default.Palette, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 1, showContent = showContent) {
@@ -147,7 +149,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 2, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_data), icon = Icons.Default.Backup, color = MaterialTheme.colorScheme.secondary)
+                    SectionHeader(title = stringResource(R.string.settings_data), icon = Icons.Default.Backup, color = MaterialTheme.colorScheme.secondary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 3, showContent = showContent) {
@@ -166,7 +168,7 @@ fun SettingsScreen(
                                 textTertiary = textTertiary,
                                 onClick = onNavigateToBackup
                             )
-                            SettingsDivider()
+                            SettingDivider()
                             SettingsNavigateItem(
                                 icon = Icons.Default.Label,
                                 title = stringResource(R.string.settings_tags),
@@ -184,7 +186,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 4, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_privacy), icon = Icons.Default.Security, color = MaterialTheme.colorScheme.error)
+                    SectionHeader(title = stringResource(R.string.settings_privacy), icon = Icons.Default.Security, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 5, showContent = showContent) {
@@ -207,7 +209,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 SettingsStaggeredItem(index = 6, showContent = showContent) {
-                    SettingsSectionHeader(title = stringResource(R.string.settings_about), icon = Icons.Default.Info, color = MaterialTheme.colorScheme.primary)
+                    SectionHeader(title = stringResource(R.string.settings_about), icon = Icons.Default.Info, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingsStaggeredItem(index = 7, showContent = showContent) {
@@ -262,7 +264,7 @@ fun SettingsScreen(
                                 textColor = textColor,
                                 textTertiary = textTertiary
                             )
-                            SettingsDivider()
+                            SettingDivider()
                             SettingsNavigateItem(
                                 icon = Icons.Default.History,
                                 title = stringResource(R.string.settings_changelog),
@@ -355,46 +357,6 @@ private fun SettingsNavigateItem(
     }
 }
 
-@Composable
-private fun SettingsDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 46.dp)
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
-    )
-}
-
-@Composable
-private fun SettingsSectionHeader(title: String, icon: ImageVector, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, bottom = 2.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(color.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(14.dp))
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color, letterSpacing = 0.5.sp)
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .clip(RoundedCornerShape(0.5.dp))
-                .background(color.copy(alpha = 0.15f))
-        )
-    }
-}
 
 @Composable
 private fun SettingsStaggeredItem(

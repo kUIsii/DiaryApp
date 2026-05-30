@@ -68,6 +68,8 @@ import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.SectionHeader
+import com.diary.app.ui.components.SettingDivider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -597,46 +599,6 @@ private fun BackupActionButton(
     }
 }
 
-@Composable
-private fun SettingDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 46.dp)
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
-    )
-}
-
-@Composable
-private fun SectionHeader(title: String, icon: ImageVector, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, bottom = 2.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(color.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color, letterSpacing = 0.5.sp)
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .clip(RoundedCornerShape(0.5.dp))
-                .background(color.copy(alpha = 0.15f))
-        )
-    }
-}
 
 @Composable
 private fun StaggeredBackupItem(

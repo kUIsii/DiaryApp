@@ -1237,7 +1237,8 @@ private fun TemplateDialog(
                 }
             }
         },
-        confirmButton = {
+        confirmButton = {},
+        dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
