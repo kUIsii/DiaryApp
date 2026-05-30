@@ -279,6 +279,13 @@ fun HomeScreen(
                     }
                 }
 
+                // Gentle reminder to write (show in evening if no entry today)
+                if (!isSearchActive && !entryDates.contains(LocalDate.now()) && LocalTime.now().hour >= 20) {
+                    item {
+                        WritingReminderCard(onWriteClick = { onNavigateToEditor(null) })
+                    }
+                }
+
                 // Weekly summary (show if there are entries this week)
                 if (!isSearchActive && weeklySummary.entryCount > 0) {
                     item {
@@ -459,6 +466,42 @@ private fun QuickMoodCheckIn(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WritingReminderCard(onWriteClick: () -> Unit) {
+    val prompts = listOf(
+        "今天还没有记录呢，花几分钟写下今天的感受吧",
+        "睡前写几句，留住今天的回忆",
+        "今天的你值得被记住，写下此刻的心情",
+        "一天即将结束，记录下今天的高光时刻"
+    )
+    val prompt = remember { prompts.random() }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+            .clickable { onWriteClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = prompt,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = "写日记",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        )
     }
 }
 
