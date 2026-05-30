@@ -149,6 +149,7 @@ fun HomeScreen(
     val searchResultCount by viewModel.searchResultCount.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
     val moodTrend by viewModel.moodTrend.collectAsState()
+    val weeklySummary by viewModel.weeklySummary.collectAsState()
 
     val isSearchActive = searchQuery.isNotBlank()
     var showCalendar by remember { mutableStateOf(false) }  // Calendar collapsed by default
@@ -257,6 +258,13 @@ fun HomeScreen(
                                 onNavigateToEditor(null)
                             }
                         )
+                    }
+                }
+
+                // Weekly summary (show if there are entries this week)
+                if (!isSearchActive && weeklySummary.entryCount > 0) {
+                    item {
+                        WeeklySummaryRow(summary = weeklySummary)
                     }
                 }
 
@@ -787,6 +795,75 @@ private fun moodTextForLevel(level: Int): String {
         5 -> "悦"
         6 -> "奋"
         else -> "平"
+    }
+}
+
+@Composable
+private fun WeeklySummaryRow(summary: HomeViewModel.WeeklySummary) {
+    val moodLabel = summary.avgMood?.let { avg ->
+        when {
+            avg < 2 -> "低落"
+            avg < 3 -> "平静"
+            avg < 4 -> "愉快"
+            avg < 5 -> "开心"
+            else -> "兴奋"
+        }
+    } ?: "暂无"
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+            .padding(horizontal = DesignTokens.SpacingMd, vertical = DesignTokens.SpacingSm)
+    ) {
+        Text(
+            text = "本周小结",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            SummaryItem(
+                value = "${summary.entryCount}",
+                label = "篇日记"
+            )
+            SummaryItem(
+                value = "${summary.daysWithEntries}",
+                label = "天记录"
+            )
+            SummaryItem(
+                value = if (summary.totalWords > 1000) "${summary.totalWords / 1000}k" else "${summary.totalWords}",
+                label = "字"
+            )
+            SummaryItem(
+                value = moodLabel,
+                label = "心情"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryItem(value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
     }
 }
 

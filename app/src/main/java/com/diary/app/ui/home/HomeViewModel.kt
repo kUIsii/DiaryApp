@@ -184,6 +184,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Weekly summary
+    data class WeeklySummary(
+        val entryCount: Int = 0,
+        val avgMood: Float? = null,
+        val totalWords: Int = 0,
+        val daysWithEntries: Int = 0
+    )
+
+    val weeklySummary: StateFlow<WeeklySummary> = allEntries
+        .map { entries ->
+            val today = LocalDate.now()
+            val weekStart = today.minusDays(6) // Last 7 days
+
+            val weekEntries = entries.filter { entry ->
+                val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                !entryDate.isBefore(weekStart) && !entryDate.isAfter(today)
+            }
+
+            val moodLevels = weekEntries.mapNotNull { it.moodLevel }
+            val avgMood = if (moodLevels.isNotEmpty()) moodLevels.average().toFloat() else null
+
+            WeeklySummary(
+                entryCount = weekEntries.size,
+                avgMood = avgMood,
+                totalWords = weekEntries.sumOf { it.plainText.length },
+                daysWithEntries = weekEntries.map {
+                    Instant.ofEpochMilli(it.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                }.distinct().size
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WeeklySummary())
+
     private val filteredEntries: StateFlow<List<DiaryEntry>> = combine(
         allEntries,
         _selectedDate,
