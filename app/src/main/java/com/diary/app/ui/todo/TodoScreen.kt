@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.theme.DarkAccentEnd
@@ -144,7 +145,11 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             // Todo items
             if (todos.isEmpty()) {
                 item {
-                    EmptyState(textSecondary = textSecondary)
+                    EmptyState(
+                        icon = Icons.Default.EventNote,
+                        title = stringResource(R.string.todo_empty_title),
+                        subtitle = stringResource(R.string.todo_empty_subtitle)
+                    )
                 }
             } else {
                 itemsIndexed(
@@ -435,49 +440,6 @@ private fun TodoItemCard(
                     modifier = Modifier.size(18.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun EmptyState(textSecondary: Color) {
-    val primary = MaterialTheme.colorScheme.primary
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 60.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(primary.copy(alpha = 0.08f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.EventNote,
-                    contentDescription = "暂无待办",
-                    tint = primary.copy(alpha = 0.4f),
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = stringResource(R.string.todo_empty_title),
-                color = textSecondary.copy(alpha = 0.7f),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.todo_empty_subtitle),
-                color = textSecondary.copy(alpha = 0.4f),
-                fontSize = 14.sp
-            )
         }
     }
 }

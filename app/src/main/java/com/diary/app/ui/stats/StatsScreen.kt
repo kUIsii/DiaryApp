@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.MoodChart
 import com.diary.app.ui.components.WordCloud
 import com.diary.app.ui.components.WritingHeatmap
@@ -91,7 +92,12 @@ fun StatsScreen(
 
     GradientBackground {
         if (state.totalEntries == 0) {
-            EmptyState()
+            EmptyState(
+                icon = Icons.Default.SelfImprovement,
+                title = stringResource(R.string.stats_no_entries),
+                subtitle = stringResource(R.string.stats_start_recording),
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -346,35 +352,6 @@ fun StatsScreen(
                 // Bottom spacer
                 item { Spacer(modifier = Modifier.height(8.dp)) }
             }
-        }
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.SelfImprovement,
-                contentDescription = "还没有日记",
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.stats_no_entries),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.stats_start_recording),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
         }
     }
 }
