@@ -12,7 +12,7 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 18
+        versionCode = 19
         versionName = "1.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -55,7 +55,7 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionName = "2.26.0-experimental"
+            versionName = "2.27.0-experimental"
         }
     }
 
