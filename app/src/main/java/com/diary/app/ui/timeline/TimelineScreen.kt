@@ -1,14 +1,7 @@
 package com.diary.app.ui.timeline
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -33,10 +26,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
@@ -68,7 +59,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryEntry
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -84,7 +74,6 @@ import java.time.DayOfWeek
 @Composable
 fun TimelineScreen(
     onNavigateToDetail: (Long) -> Unit,
-    onNavigateToEditor: (Long?) -> Unit,
     viewModel: TimelineViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -295,8 +284,6 @@ fun TimelineScreen(
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
-            // FAB
-            FAB(onClick = { onNavigateToEditor(null) })
         }
     }
 }
@@ -624,19 +611,6 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Timeline dot
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(
-                    if (isSpecial) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-        )
-
-        Spacer(modifier = Modifier.width(10.dp))
-
         // Date label
         Text(
             text = dateText,
@@ -695,175 +669,146 @@ private fun TimelineEntryCard(
         label = "cardScale"
     )
 
-    // Get mood color for left accent
-    val moodColor = entry.moodLevel?.let { moodColorForLevel(it) }
-
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(bottom = if (isLast) 0.dp else 8.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.05f)
+            )
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        // Left accent bar with mood color
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(20.dp)
+            modifier = Modifier.padding(14.dp)
         ) {
-            // Mood indicator dot
-            if (moodColor != null) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(moodColor)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
-                )
-            }
-
-            // Connecting line
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(60.dp)
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Entry card
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else 8.dp)
-                .shadow(
-                    elevation = 2.dp,
-                    shape = RoundedCornerShape(12.dp),
-                    ambientColor = Color.Black.copy(alpha = 0.05f),
-                    spotColor = Color.Black.copy(alpha = 0.05f)
-                )
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                )
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp)
+            // Top row: time + mood + weather
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Top row: time + mood
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Time
-                    Text(
-                        text = formatEntryTime(entry.createdAt),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
+                // Time - only HH:mm
+                Text(
+                    text = formatEntryTime(entry.createdAt),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
 
-                    // Mood icon if present
-                    if (entry.moodLevel != null) {
-                        val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                // Mood icon + label
+                if (entry.moodLevel != null) {
+                    val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = moodLabelForLevel(entry.moodLevel),
+                            contentDescription = null,
                             tint = tint.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = moodLabelForLevel(entry.moodLevel),
+                            fontSize = 11.sp,
+                            color = tint.copy(alpha = 0.7f)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Title
-                if (entry.title.isNotBlank()) {
-                    Text(
-                        text = entry.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-
-                // Content preview
-                if (entry.plainText.isNotBlank()) {
-                    Text(
-                        text = entry.plainText,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 20.sp
-                    )
-                }
-
-                // Bottom: weather + tags
-                if (entry.weather != null || tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-
+                // Weather icon + label
+                if (entry.weather != null) {
+                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        // Weather
-                        if (entry.weather != null) {
-                            val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                            Icon(
-                                imageVector = weatherIcon,
-                                contentDescription = entry.weather,
-                                tint = weatherTint.copy(alpha = 0.6f),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                        }
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = null,
+                            tint = weatherTint.copy(alpha = 0.6f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = entry.weather,
+                            fontSize = 11.sp,
+                            color = weatherTint.copy(alpha = 0.6f)
+                        )
+                    }
+                }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
-                        // Tags - compact chips
-                        tags.take(2).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 4.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(tag.color.copy(alpha = 0.1f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = tag.name,
-                                    fontSize = 10.sp,
-                                    color = tag.color.copy(alpha = 0.8f),
-                                    maxLines = 1
-                                )
-                            }
-                        }
+            Spacer(modifier = Modifier.height(8.dp))
 
-                        if (tags.size > 2) {
+            // Title
+            if (entry.title.isNotBlank()) {
+                Text(
+                    text = entry.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            // Content preview
+            if (entry.plainText.isNotBlank()) {
+                Text(
+                    text = entry.plainText,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp
+                )
+            }
+
+            // Tags
+            if (tags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    tags.take(3).forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(tag.color.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
                             Text(
-                                text = "+${tags.size - 2}",
+                                text = tag.name,
                                 fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.padding(start = 4.dp)
+                                color = tag.color.copy(alpha = 0.8f),
+                                maxLines = 1
                             )
                         }
+                    }
+
+                    if (tags.size > 3) {
+                        Text(
+                            text = "+${tags.size - 3}",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
                     }
                 }
             }
@@ -876,33 +821,4 @@ private fun formatEntryTime(timestamp: Long): String {
         .atZone(ZoneId.systemDefault())
         .toLocalDateTime()
     return localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-}
-
-@Composable
-private fun FAB(onClick: () -> Unit) {
-    val fabColor = MaterialTheme.colorScheme.primary
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(end = 20.dp, bottom = 16.dp),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .shadow(8.dp, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .background(fabColor)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "新建日记",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
 }

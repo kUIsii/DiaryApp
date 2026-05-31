@@ -119,6 +119,7 @@ import com.diary.app.R
 import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.isDark
 import kotlinx.coroutines.launch
+import android.util.Base64
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -220,7 +221,12 @@ fun EditorScreen(
             selectedWeather = entry.weather
             // Inject saved content into WebView when editing existing entry
             if (diaryId != null && entry.content.isNotBlank()) {
-                webView?.evaluateJavascript("setContent('${escapeForJs(entry.content)}')", null)
+                // Use Base64 encoding to avoid escaping issues
+                val base64Content = Base64.encodeToString(
+                    entry.content.toByteArray(Charsets.UTF_8),
+                    Base64.NO_WRAP
+                )
+                webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
             }
         }
     }
@@ -432,7 +438,11 @@ fun EditorScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val draft = pendingDraft!!
-                    webView?.evaluateJavascript("setContent('${escapeForJs(draft.content)}')", null)
+                    val encoded = android.util.Base64.encodeToString(
+                        draft.content.toByteArray(Charsets.UTF_8),
+                        android.util.Base64.NO_WRAP
+                    )
+                    webView?.evaluateJavascript("setContentBase64('$encoded')", null)
                     selectedMood = draft.moodLevel
                     selectedWeather = draft.weather
                     showDraftDialog = false

@@ -237,8 +237,30 @@
         function getContent() { return JSON.stringify(quill.getContents()); }
         function getPlainText() { return quill.getText(); }
         function setContent(deltaJSON) {
-            try { quill.setContents(JSON.parse(deltaJSON)); }
-            catch(e) { quill.setText(deltaJSON); }
+            try {
+                var parsed = JSON.parse(deltaJSON);
+                if (parsed && parsed.ops) {
+                    quill.setContents(parsed);
+                } else {
+                    quill.setText(deltaJSON);
+                }
+            } catch(e) {
+                // If JSON parse fails, try as plain text
+                quill.setText(deltaJSON);
+            }
+        }
+        function setContentBase64(base64) {
+            try {
+                var decoded = decodeURIComponent(escape(atob(base64)));
+                var parsed = JSON.parse(decoded);
+                if (parsed && parsed.ops) {
+                    quill.setContents(parsed);
+                } else {
+                    quill.setText(decoded);
+                }
+            } catch(e) {
+                console.error('setContentBase64 error:', e);
+            }
         }
         function setTemplate(text) { quill.setText(text); }
         function setFontSize(size) { document.querySelector('.ql-editor').style.fontSize = size + 'px'; }

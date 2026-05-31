@@ -166,19 +166,36 @@
         }
 
         function setContent(deltaJSON) {
-            try { quill.setContents(JSON.parse(deltaJSON)); }
-            catch(e) { quill.setText(deltaJSON); }
+            try {
+                var parsed = JSON.parse(deltaJSON);
+                if (parsed && parsed.ops) {
+                    quill.setContents(parsed);
+                } else {
+                    quill.setText(deltaJSON);
+                }
+            } catch(e) {
+                quill.setText(deltaJSON);
+            }
         }
 
         function setContentFromBase64(base64) {
             try {
                 var decoded = atob(base64);
-                // Fix UTF-8 decoding for Chinese characters
                 decoded = decodeURIComponent(escape(decoded));
-                // Try to parse as Delta JSON first
-                try { quill.setContents(JSON.parse(decoded)); }
-                catch(e) { quill.setText(decoded); }
-            } catch(e) { console.error('Failed to decode content:', e); }
+                try {
+                    var parsed = JSON.parse(decoded);
+                    if (parsed && parsed.ops) {
+                        quill.setContents(parsed);
+                    } else {
+                        quill.setText(decoded);
+                    }
+                } catch(e) {
+                    // Not valid JSON - try as plain text
+                    quill.setText(decoded);
+                }
+            } catch(e) {
+                console.error('Failed to decode content:', e);
+            }
         }
 
         function setFontSize(size) {
