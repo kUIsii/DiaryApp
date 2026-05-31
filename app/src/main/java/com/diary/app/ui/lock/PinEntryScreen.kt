@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.WarningColor
+import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
 import kotlinx.coroutines.delay
 

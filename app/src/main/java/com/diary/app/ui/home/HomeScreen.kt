@@ -603,6 +603,7 @@ private fun NoEntriesForDate() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EntryCard(
     entry: DiaryEntry,

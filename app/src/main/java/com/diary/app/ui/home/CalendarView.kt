@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.theme.PrimaryBlue
+import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
 import java.time.LocalDate
