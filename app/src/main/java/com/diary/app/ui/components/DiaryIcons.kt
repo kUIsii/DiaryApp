@@ -91,12 +91,12 @@ fun weatherIconFor(weather: String?): IconWithTint {
 }
 
 fun weatherIconForType(type: String): ImageVector = when (type) {
-    "晴" -> Icons.Default.WbSunny
+    "晴", "晴天" -> Icons.Default.WbSunny
     "多云" -> Icons.Default.Cloud
-    "阴" -> Icons.Default.CloudQueue
-    "雨" -> Icons.Default.Umbrella
-    "风" -> Icons.Default.Air
-    "雷雨" -> Icons.Default.Thunderstorm
+    "阴", "阴天" -> Icons.Default.CloudQueue
+    "雨", "雨天" -> Icons.Default.Umbrella
+    "风", "大风" -> Icons.Default.Air
+    "雷", "雷暴" -> Icons.Default.Thunderstorm
     else -> Icons.Default.WbSunny
 }
 

@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="quill.snow.css" rel="stylesheet">
     <style>
         :root {
             --text: #1A2030;
-            --placeholder: rgba(0,0,0,0.3);
             --accent: #4A90D9;
             --accent-light: rgba(74, 144, 217, 0.1);
             --blockquote-bg: rgba(74, 144, 217, 0.05);
@@ -15,7 +13,6 @@
         }
         .theme-dark {
             --text: #E8F0F8;
-            --placeholder: rgba(255,255,255,0.3);
             --accent: #6BA8E8;
             --accent-light: rgba(107, 168, 232, 0.15);
             --blockquote-bg: rgba(107, 168, 232, 0.08);
@@ -29,52 +26,59 @@
             -webkit-font-smoothing: antialiased;
             scroll-behavior: smooth;
         }
-        .ql-toolbar.ql-snow { display: none !important; }
-        .ql-container.ql-snow {
-            border: none !important;
-            font-size: 16px;
-            line-height: 2.0;
-        }
-        .ql-editor {
+        #content {
             min-height: 100%;
             padding: 16px;
+            font-size: 16px;
+            line-height: 2.0;
             color: var(--text);
         }
-        .ql-editor.ql-blank::before {
-            color: var(--placeholder);
-            font-style: normal;
+        #content p { margin-bottom: 16px; }
+        #content:empty::before {
+            content: '';
         }
-        .ql-editor p { margin-bottom: 16px; }
 
         /* Headings */
-        .ql-editor h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; line-height: 1.4; }
-        .ql-editor h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
-        .ql-editor h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+        #content h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; line-height: 1.4; }
+        #content h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
+        #content h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
 
         /* Links */
-        a {
+        #content a {
             color: var(--accent);
             text-decoration: none;
         }
-        a:hover {
+        #content a:hover {
             text-decoration: underline;
         }
 
+        /* Inline code */
+        #content code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: var(--code-bg);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 14px;
+        }
+
         /* Code blocks */
-        .ql-editor pre,
-        .ql-editor code {
+        #content pre {
             font-family: 'SF Mono', 'Fira Code', monospace;
             background: var(--code-bg);
             border-radius: 8px;
             padding: 12px;
             font-size: 14px;
-        }
-        .ql-editor pre {
             overflow-x: auto;
+            margin-bottom: 16px;
+        }
+        #content pre code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
         }
 
         /* Blockquote */
-        blockquote {
+        #content blockquote {
             border-left: 4px solid var(--accent);
             background: var(--blockquote-bg);
             padding: 16px;
@@ -84,18 +88,19 @@
         }
 
         /* Lists */
-        .ql-editor ol {
+        #content ol {
             counter-reset: list-counter;
             padding-left: 0;
+            margin-bottom: 16px;
         }
-        .ql-editor ol li {
+        #content ol li {
             counter-increment: list-counter;
             margin-bottom: 6px;
             list-style: none;
             position: relative;
             padding-left: 24px;
         }
-        .ql-editor ol li::before {
+        #content ol li::before {
             content: counter(list-counter) ".";
             position: absolute;
             left: 0;
@@ -103,17 +108,30 @@
             font-weight: 600;
             font-size: 14px;
         }
-        .ql-editor ul { padding-left: 20px; }
-        .ql-editor ul li {
+        #content ul {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+        #content ul li {
             margin-bottom: 6px;
             list-style-type: disc;
         }
-        .ql-editor ul li::marker {
+        #content ul li::marker {
             color: var(--accent);
         }
 
+        /* Checked lists */
+        #content li.task-checked {
+            list-style: none;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        #content li.task-unchecked {
+            list-style: none;
+        }
+
         /* Divider */
-        hr {
+        #content hr {
             border: none;
             height: 1px;
             background: linear-gradient(to right, transparent, rgba(128,128,128,0.4), transparent);
@@ -121,16 +139,23 @@
         }
 
         /* Images and Videos */
-        img, video {
+        #content img, #content video {
             max-width: 100%;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border: 1px solid rgba(0,0,0,0.06);
+            margin: 8px 0;
         }
-        .theme-dark img, .theme-dark video {
+        .theme-dark #content img, .theme-dark #content video {
             border-color: rgba(255,255,255,0.08);
             filter: brightness(0.9);
         }
+
+        /* Alignment */
+        #content .align-left { text-align: left; }
+        #content .align-center { text-align: center; }
+        #content .align-right { text-align: right; }
+        #content .align-justify { text-align: justify; }
 
         /* Selection */
         ::selection {
@@ -139,21 +164,132 @@
     </style>
 </head>
 <body>
-    <div id="editor"></div>
+    <div id="content"></div>
 
-    <script src="quill.min.js"></script>
     <script>
-        var BlockEmbed = Quill.import('blots/block/embed');
-        class DividerBlot extends BlockEmbed {}
-        DividerBlot.blotName = 'divider';
-        DividerBlot.tagName = 'hr';
-        Quill.register(DividerBlot);
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
 
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            readOnly: true,
-            modules: { toolbar: false }
-        });
+        function wrapInline(text, attrs) {
+            if (!attrs || Object.keys(attrs).length === 0) return escapeHtml(text);
+            var html = escapeHtml(text);
+
+            if (attrs.code) {
+                html = '<code>' + html + '</code>';
+            }
+            if (attrs.link) {
+                html = '<a href="' + escapeHtml(attrs.link) + '">' + html + '</a>';
+            }
+            if (attrs.bold) {
+                html = '<strong>' + html + '</strong>';
+            }
+            if (attrs.italic) {
+                html = '<em>' + html + '</em>';
+            }
+            if (attrs.underline) {
+                html = '<u>' + html + '</u>';
+            }
+            if (attrs.strike) {
+                html = '<s>' + html + '</s>';
+            }
+            if (attrs.script === 'super') {
+                html = '<sup>' + html + '</sup>';
+            } else if (attrs.script === 'sub') {
+                html = '<sub>' + html + '</sub>';
+            }
+            if (attrs.color) {
+                html = '<span style="color:' + attrs.color + '">' + html + '</span>';
+            }
+            if (attrs.background) {
+                html = '<span style="background:' + attrs.background + '">' + html + '</span>';
+            }
+            return html;
+        }
+
+        function wrapBlock(innerHtml, attrs) {
+            if (!attrs) return '<p>' + innerHtml + '</p>';
+
+            var tag = 'p';
+            var extra = '';
+
+            if (attrs.header) {
+                tag = 'h' + Math.min(attrs.header, 3);
+            } else if (attrs['code-block']) {
+                tag = 'pre';
+                innerHtml = '<code>' + innerHtml + '</code>';
+            } else if (attrs.blockquote) {
+                tag = 'blockquote';
+            } else if (attrs.list === 'ordered') {
+                tag = 'ol';
+                innerHtml = '<li>' + innerHtml + '</li>';
+            } else if (attrs.list === 'bullet') {
+                tag = 'ul';
+                innerHtml = '<li>' + innerHtml + '</li>';
+            } else if (attrs.list === 'checked') {
+                tag = 'ul';
+                innerHtml = '<li class="task-checked">' + innerHtml + '</li>';
+            } else if (attrs.list === 'unchecked') {
+                tag = 'ul';
+                innerHtml = '<li class="task-unchecked">' + innerHtml + '</li>';
+            }
+
+            if (attrs.align) {
+                extra += ' class="align-' + attrs.align + '"';
+            }
+            if (attrs.indent) {
+                extra += ' style="padding-left:' + (attrs.indent * 24) + 'px"';
+            }
+
+            return '<' + tag + extra + '>' + innerHtml + '</' + tag + '>';
+        }
+
+        function deltaToHtml(delta) {
+            if (!delta || !delta.ops) return '';
+            var html = '';
+            var currentBlock = '';
+            var blockAttrs = null;
+
+            for (var i = 0; i < delta.ops.length; i++) {
+                var op = delta.ops[i];
+                if (typeof op.insert === 'string') {
+                    var text = op.insert;
+                    var lines = text.split('\n');
+                    for (var j = 0; j < lines.length; j++) {
+                        if (j > 0) {
+                            html += wrapBlock(currentBlock, blockAttrs);
+                            currentBlock = '';
+                            blockAttrs = null;
+                        }
+                        if (lines[j].length > 0) {
+                            currentBlock += wrapInline(lines[j], op.attributes || {});
+                        }
+                        if (j < lines.length - 1) {
+                            blockAttrs = op.attributes || {};
+                        }
+                    }
+                } else if (typeof op.insert === 'object') {
+                    if (op.insert.image) {
+                        currentBlock += '<img src="' + escapeHtml(op.insert.image) + '" />';
+                    } else if (op.insert.video) {
+                        currentBlock += '<video src="' + escapeHtml(op.insert.video) + '" controls></video>';
+                    } else if (op.insert.divider) {
+                        if (currentBlock) {
+                            html += wrapBlock(currentBlock, blockAttrs);
+                            currentBlock = '';
+                            blockAttrs = null;
+                        }
+                        html += '<hr/>';
+                    }
+                }
+            }
+            if (currentBlock) {
+                html += wrapBlock(currentBlock, blockAttrs);
+            }
+            return html;
+        }
 
         function setTheme(mode) {
             if (mode === 'dark') {
@@ -169,12 +305,12 @@
             try {
                 var parsed = JSON.parse(deltaJSON);
                 if (parsed && parsed.ops) {
-                    quill.setContents(parsed);
+                    document.getElementById('content').innerHTML = deltaToHtml(parsed);
                 } else {
-                    quill.setText(deltaJSON);
+                    document.getElementById('content').innerHTML = '<p>' + escapeHtml(deltaJSON) + '</p>';
                 }
             } catch(e) {
-                quill.setText(deltaJSON);
+                document.getElementById('content').innerHTML = '<p>' + escapeHtml(deltaJSON) + '</p>';
             }
         }
 
@@ -185,21 +321,24 @@
                 try {
                     var parsed = JSON.parse(decoded);
                     if (parsed && parsed.ops) {
-                        quill.setContents(parsed);
+                        document.getElementById('content').innerHTML = deltaToHtml(parsed);
                     } else {
-                        quill.setText(decoded);
+                        document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
                     }
                 } catch(e) {
-                    // Not valid JSON - try as plain text
-                    quill.setText(decoded);
+                    document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
                 }
             } catch(e) {
                 console.error('Failed to decode content:', e);
             }
         }
 
+        function setHtmlContent(html) {
+            document.getElementById('content').innerHTML = html;
+        }
+
         function setFontSize(size) {
-            document.querySelector('.ql-editor').style.fontSize = size + 'px';
+            document.getElementById('content').style.fontSize = size + 'px';
         }
     </script>
 </body>

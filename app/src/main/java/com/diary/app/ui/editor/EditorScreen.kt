@@ -160,6 +160,7 @@ fun EditorScreen(
     val isDark = themeMode.isDark()
 
     var webView by remember { mutableStateOf<WebView?>(null) }
+    var isWebViewReady by remember { mutableStateOf(false) }
     val jsBridge = remember { DiaryJsBridge() }
     val viewModel: EditorViewModel = viewModel()
     val scope = rememberCoroutineScope()
@@ -215,7 +216,8 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(currentEntry) {
+    LaunchedEffect(currentEntry, isWebViewReady) {
+        if (!isWebViewReady) return@LaunchedEffect
         currentEntry?.let { entry ->
             selectedMood = entry.moodLevel
             selectedWeather = entry.weather
@@ -257,17 +259,35 @@ fun EditorScreen(
         editorFontSize = getEditorFontSize(prefs)
     }
 
-    LaunchedEffect(themeMode) {
-        webView?.evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+    LaunchedEffect(themeMode, isWebViewReady) {
+        if (isWebViewReady) {
+            webView?.evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+        }
     }
 
-    LaunchedEffect(editorFontSize) {
-        webView?.evaluateJavascript("setFontSize($editorFontSize)", null)
+    LaunchedEffect(editorFontSize, isWebViewReady) {
+        if (isWebViewReady) {
+            webView?.evaluateJavascript("setFontSize($editorFontSize)", null)
+        }
     }
 
     // Media pickers
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(it.toString())}')", null) }
+        uri?.let { imageUri ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val bytes = inputStream?.readBytes()
+                inputStream?.close()
+                if (bytes != null) {
+                    val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    val dataUrl = "data:$mimeType;base64,$base64"
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(dataUrl)}')", null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
     val videoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { webView?.evaluateJavascript("insertMedia('video', '${escapeForJs(it.toString())}')", null) }
@@ -702,7 +722,12 @@ fun EditorScreen(
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
-                        webViewClient = WebViewClient()
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                isWebViewReady = true
+                            }
+                        }
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -710,10 +735,6 @@ fun EditorScreen(
                         addJavascriptInterface(jsBridge, "DiaryBridge")
                         loadUrl("file:///android_asset/editor.html")
                         webView = this
-                        post {
-                            evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
-                            evaluateJavascript("setFontSize($editorFontSize)", null)
-                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().weight(1f)

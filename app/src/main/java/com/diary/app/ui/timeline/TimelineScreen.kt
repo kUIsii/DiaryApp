@@ -422,7 +422,7 @@ private fun FilterPanel(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("晴天", "多云", "阴天", "雨天", "大风", "雷雨").forEach { weather ->
+                listOf("晴天", "多云", "阴天", "雨天", "大风", "雷暴").forEach { weather ->
                     val isSelected = weather in filterState.selectedWeathers
                     val (icon, tint) = weatherIconFor(weather)
 
@@ -611,6 +611,21 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Left: timeline axis alignment
+        Box(
+            modifier = Modifier.width(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(20.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
         // Date label
         Text(
             text = dateText,
@@ -623,10 +638,9 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
             }
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
-
         // Entry count badge
         if (entryCount > 1) {
+            Spacer(modifier = Modifier.width(8.dp))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
@@ -641,16 +655,6 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
                 )
             }
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Connecting line
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(0.5.dp)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
-        )
     }
 }
 
@@ -669,146 +673,148 @@ private fun TimelineEntryCard(
         label = "cardScale"
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = if (isLast) 0.dp else 8.dp)
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                ambientColor = Color.Black.copy(alpha = 0.05f),
-                spotColor = Color.Black.copy(alpha = 0.05f)
-            )
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+    Row(
+        modifier = Modifier.fillMaxWidth()
     ) {
+        // Left: vertical timeline axis + dot node
         Column(
-            modifier = Modifier.padding(14.dp)
+            modifier = Modifier.width(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top row: time + mood + weather
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Right: time label + card content
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else 8.dp)
+        ) {
+            // Time label above the card
+            Text(
+                text = formatEntryTime(entry.createdAt),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            // Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.05f),
+                        spotColor = Color.Black.copy(alpha = 0.05f)
+                    )
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    )
             ) {
-                // Time - only HH:mm
-                Text(
-                    text = formatEntryTime(entry.createdAt),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-
-                // Mood icon + label
-                if (entry.moodLevel != null) {
-                    val (icon, tint) = moodIconForLevel(entry.moodLevel)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = tint.copy(alpha = 0.7f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = moodLabelForLevel(entry.moodLevel),
-                            fontSize = 11.sp,
-                            color = tint.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                // Weather icon + label
-                if (entry.weather != null) {
-                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Icon(
-                            imageVector = weatherIcon,
-                            contentDescription = null,
-                            tint = weatherTint.copy(alpha = 0.6f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = entry.weather,
-                            fontSize = 11.sp,
-                            color = weatherTint.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Title
-            if (entry.title.isNotBlank()) {
-                Text(
-                    text = entry.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-
-            // Content preview
-            if (entry.plainText.isNotBlank()) {
-                Text(
-                    text = entry.plainText,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
-                )
-            }
-
-            // Tags
-            if (tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                Column(
+                    modifier = Modifier.padding(14.dp)
                 ) {
-                    tags.take(3).forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(tag.color.copy(alpha = 0.1f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = tag.name,
-                                fontSize = 10.sp,
-                                color = tag.color.copy(alpha = 0.8f),
-                                maxLines = 1
-                            )
-                        }
+                    // Title
+                    if (entry.title.isNotBlank()) {
+                        Text(
+                            text = entry.title,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
 
-                    if (tags.size > 3) {
+                    // Content preview
+                    if (entry.plainText.isNotBlank()) {
                         Text(
-                            text = "+${tags.size - 3}",
-                            fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            modifier = Modifier.align(Alignment.CenterVertically)
+                            text = entry.plainText,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 20.sp,
+                            modifier = Modifier.padding(start = 4.dp)
                         )
+                    }
+
+                    // Bottom-left: mood + weather + tags
+                    val hasMetadata = entry.moodLevel != null || entry.weather != null || tags.isNotEmpty()
+                    if (hasMetadata) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (entry.moodLevel != null) {
+                                val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = tint.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            if (entry.weather != null) {
+                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                                Icon(
+                                    imageVector = weatherIcon,
+                                    contentDescription = null,
+                                    tint = weatherTint.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            tags.take(3).forEach { tag ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(tag.color.copy(alpha = 0.1f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = tag.name,
+                                        fontSize = 10.sp,
+                                        color = tag.color.copy(alpha = 0.8f),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                            if (tags.size > 3) {
+                                Text(
+                                    text = "+${tags.size - 3}",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -43,7 +43,9 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
                     if (other.id == entry.id) return@filter false
                     val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
                         .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                    otherDate.monthValue == entryDate.monthValue && otherDate.dayOfMonth == entryDate.dayOfMonth
+                    otherDate.year != entryDate.year
+                        && otherDate.monthValue == entryDate.monthValue
+                        && otherDate.dayOfMonth == entryDate.dayOfMonth
                 }.sortedByDescending { it.createdAt }.take(3)
 
                 _relatedEntries.value = related
