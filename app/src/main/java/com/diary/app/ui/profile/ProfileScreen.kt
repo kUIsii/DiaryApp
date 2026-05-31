@@ -727,8 +727,8 @@ private fun ClickableSettingRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "scale"
     )
 
@@ -895,8 +895,8 @@ private fun ThemeCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = when { isPressed -> 0.90f; isSelected -> 1.03f; else -> 1f },
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        targetValue = when { isPressed -> 0.93f; isSelected -> 1.02f; else -> 1f },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "cardScale"
     )
     val borderColor by animateColorAsState(targetValue = if (isSelected) DarkAccentStart else Color.Transparent, animationSpec = tween(300), label = "borderColor")

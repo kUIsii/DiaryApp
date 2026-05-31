@@ -18,7 +18,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.math.roundToInt
 
 data class MoodStat(
     val level: Int,
@@ -56,18 +55,6 @@ data class WordStats(
     val avgWordsPerEntry: Int,
 )
 
-data class MoodPoint(val date: LocalDate, val level: Int)
-
-data class WordFrequency(
-    val word: String,
-    val count: Int
-)
-
-data class DailyWordCount(
-    val date: LocalDate,
-    val wordCount: Int
-)
-
 data class StatsState(
     val totalEntries: Int = 0,
     val currentStreak: Int = 0,
@@ -79,9 +66,6 @@ data class StatsState(
     val writingHabit: WritingHabit? = null,
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
-    val moodTrendPoints: List<MoodPoint> = emptyList(),
-    val wordFrequency: List<WordFrequency> = emptyList(),
-    val dailyWordCounts: List<DailyWordCount> = emptyList(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -131,9 +115,6 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            moodTrendPoints = computeMoodTrendPoints(entries, zone, now),
-            wordFrequency = computeWordFrequency(entries),
-            dailyWordCounts = computeDailyWordCounts(entries, zone, now),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -258,92 +239,6 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
-    }
-
-    private fun computeMoodTrendPoints(
-        entries: List<DiaryEntry>,
-        zone: ZoneId,
-        now: LocalDate
-    ): List<MoodPoint> {
-        val start = now.minusDays(29)
-        val entriesWithMood = entries.filter {
-            val d = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
-            !d.isBefore(start) && !d.isAfter(now) && it.moodLevel != null && it.moodLevel in 1..6
-        }
-        // Group by date, take average mood per day, round to nearest int
-        return entriesWithMood
-            .groupBy {
-                Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
-            }
-            .map { (date, list) ->
-                val avg = list.map { it.moodLevel!! }.average().roundToInt().coerceIn(1, 6)
-                MoodPoint(date, avg)
-            }
-            .sortedBy { it.date }
-    }
-
-    private fun computeWordFrequency(entries: List<DiaryEntry>): List<WordFrequency> {
-        // Common stop words to filter out
-        val stopWords = setOf(
-            "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一", "一个",
-            "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没有", "看", "好",
-            "自己", "这", "他", "她", "它", "们", "那", "被", "从", "把", "让", "用", "对",
-            "为", "以", "但", "而", "如果", "虽然", "所以", "因为", "这个", "那个", "什么",
-            "怎么", "哪", "吗", "吧", "呢", "啊", "呀", "哦", "嗯", "哈", "啦",
-            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-            "have", "has", "had", "do", "does", "did", "will", "would", "could",
-            "should", "may", "might", "shall", "can", "need", "dare", "to", "of",
-            "in", "for", "on", "with", "at", "by", "from", "as", "into", "through",
-            "during", "before", "after", "above", "below", "between", "out", "off",
-            "over", "under", "again", "further", "then", "once", "i", "me", "my",
-            "we", "our", "you", "your", "he", "him", "his", "she", "her", "it",
-            "its", "they", "them", "their", "this", "that", "these", "those",
-            "and", "but", "or", "nor", "not", "so", "yet", "both", "either",
-            "neither", "each", "every", "all", "any", "few", "more", "most",
-            "other", "some", "such", "no", "only", "own", "same", "than", "too",
-            "very", "just", "because", "if", "when", "where", "how", "what",
-            "which", "who", "whom", "while", "although", "since", "until"
-        )
-
-        // Extract words from all entries
-        val wordCounts = mutableMapOf<String, Int>()
-        entries.forEach { entry ->
-            val text = entry.plainText
-            // Split by common delimiters
-            val words = text.split(Regex("[\\s,.;:!?，。；：！？、\\-\\(\\)（）\\[\\]【】\"\"''\\n\\r]+"))
-                .filter { it.length >= 2 } // Only keep words with 2+ chars
-                .map { it.lowercase().trim() }
-                .filter { it.isNotBlank() && it !in stopWords }
-
-            words.forEach { word ->
-                wordCounts[word] = (wordCounts[word] ?: 0) + 1
-            }
-        }
-
-        return wordCounts.entries
-            .sortedByDescending { it.value }
-            .take(50) // Top 50 words
-            .map { WordFrequency(it.key, it.value) }
-    }
-
-    private fun computeDailyWordCounts(
-        entries: List<DiaryEntry>,
-        zone: ZoneId,
-        now: LocalDate
-    ): List<DailyWordCount> {
-        val start = now.minusDays(364) // Last 365 days
-        val dailyCounts = mutableMapOf<LocalDate, Int>()
-
-        entries.forEach { entry ->
-            val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
-            if (!date.isBefore(start) && !date.isAfter(now)) {
-                dailyCounts[date] = (dailyCounts[date] ?: 0) + entry.plainText.length
-            }
-        }
-
-        return dailyCounts.entries
-            .map { DailyWordCount(it.key, it.value) }
-            .sortedBy { it.date }
     }
 
 }

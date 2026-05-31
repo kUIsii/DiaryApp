@@ -43,12 +43,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.HorizontalRule
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Today
@@ -863,8 +867,8 @@ private fun EditorToolbar(
                 activeColor = activeColor
             )
             // Palette - color (text/bg color pickers)
-            TopBarButton(
-                icon = "\uD83C\uDFA8",
+            TopBarIconButton(
+                imageVector = Icons.Default.Palette,
                 isActive = activeCategory == 1,
                 onClick = {
                     if (showToolbar && activeCategory == 1) onCategoryChange(-1)
@@ -885,24 +889,24 @@ private fun EditorToolbar(
                 activeColor = activeColor
             )
             // Image insert
-            TopBarButton(
-                icon = "\uD83D\uDDBC",
+            TopBarIconButton(
+                imageVector = Icons.Default.Image,
                 isActive = false,
                 onClick = { onImageInsert() },
                 textColor = textColor,
                 activeColor = activeColor
             )
             // Divider insert
-            TopBarButton(
-                icon = "\u2500",
+            TopBarIconButton(
+                imageVector = Icons.Default.HorizontalRule,
                 isActive = false,
                 onClick = { onInsert("divider") },
                 textColor = textColor,
                 activeColor = activeColor
             )
             // Close
-            TopBarButton(
-                icon = "\u2715",
+            TopBarIconButton(
+                imageVector = Icons.Default.Close,
                 isActive = false,
                 onClick = { onClose() },
                 textColor = textColor,
@@ -959,6 +963,31 @@ private fun TopBarButton(
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = if (isActive) activeColor else textColor
+        )
+    }
+}
+
+@Composable
+private fun TopBarIconButton(
+    imageVector: ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    textColor: Color,
+    activeColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = if (isActive) activeColor else textColor
         )
     }
 }

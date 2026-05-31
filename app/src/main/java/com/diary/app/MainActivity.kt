@@ -119,10 +119,11 @@ class MainActivity : FragmentActivity() {
                                 )
 
                                 // Version info at the bottom
+                                val versionColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = versionColor,
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
                                         .padding(bottom = 32.dp)
@@ -165,10 +166,11 @@ class MainActivity : FragmentActivity() {
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     // Breathing lock icon
+                                    val biometricTextColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White else Color(0xFF1A1A1A)
                                     Icon(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = biometricTextColor,
                                         modifier = Modifier
                                             .size(72.dp)
                                             .scale(breathScale)
@@ -181,7 +183,7 @@ class MainActivity : FragmentActivity() {
                                         text = "日记本",
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = biometricTextColor,
                                         letterSpacing = 4.sp
                                     )
 
@@ -191,7 +193,7 @@ class MainActivity : FragmentActivity() {
                                     Text(
                                         text = "记录生活的每一刻",
                                         fontSize = 14.sp,
-                                        color = Color.White.copy(alpha = 0.55f),
+                                        color = biometricTextColor.copy(alpha = 0.55f),
                                         letterSpacing = 2.sp
                                     )
 
@@ -201,8 +203,8 @@ class MainActivity : FragmentActivity() {
                                     val buttonShape = RoundedCornerShape(20.dp)
                                     val gradientBrush = Brush.linearGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.6f),
-                                            Color.White.copy(alpha = 0.25f)
+                                            biometricTextColor.copy(alpha = 0.6f),
+                                            biometricTextColor.copy(alpha = 0.25f)
                                         )
                                     )
                                     OutlinedButton(
@@ -218,8 +220,8 @@ class MainActivity : FragmentActivity() {
                                         shape = buttonShape,
                                         border = BorderStroke(1.dp, gradientBrush),
                                         colors = ButtonDefaults.outlinedButtonColors(
-                                            containerColor = Color.White.copy(alpha = 0.12f),
-                                            contentColor = Color.White
+                                            containerColor = biometricTextColor.copy(alpha = 0.12f),
+                                            contentColor = biometricTextColor
                                         ),
                                         modifier = Modifier
                                             .padding(horizontal = 48.dp)
@@ -243,10 +245,11 @@ class MainActivity : FragmentActivity() {
 
                                 // Switch to PIN button (only if PIN is also enabled)
                                 if (pinLockEnabled) {
+                                    val switchPinColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                     Text(
                                         text = "使用PIN码",
                                         fontSize = 13.sp,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = switchPinColor,
                                         modifier = Modifier
                                             .align(Alignment.BottomCenter)
                                             .padding(bottom = 64.dp)
@@ -255,10 +258,11 @@ class MainActivity : FragmentActivity() {
                                 }
 
                                 // Version info at the bottom
+                                val biometricVersionColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = biometricVersionColor,
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
                                         .padding(bottom = 32.dp)

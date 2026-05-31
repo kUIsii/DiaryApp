@@ -115,7 +115,7 @@ fun HomeScreen(
 
     val isSearchActive = searchQuery.isNotBlank()
 
-    var calendarMode by remember { mutableStateOf(CalendarMode.MONTH) }
+    var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
     // Multi-select state
