@@ -32,10 +32,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -44,6 +50,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -102,10 +109,16 @@ private val CategoryColors = mapOf(
 fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val haptic = rememberHapticFeedback()
     val todos by viewModel.allTodos.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val selectedTag by viewModel.selectedTag.collectAsState()
+
     var inputText by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
-    var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
     var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
+    var showSearch by remember { mutableStateOf(false) }
+    var searchInputText by remember { mutableStateOf("") }
+    var showAddDialog by remember { mutableStateOf(false) }
 
     val textPrimary = MaterialTheme.colorScheme.onSurface
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -115,12 +128,6 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val today = remember { LocalDate.now() }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("M月d日 EEEE") }
 
-    val filteredTodos = if (selectedCategoryFilter != null) {
-        todos.filter { it.category == selectedCategoryFilter }
-    } else {
-        todos
-    }
-
     // Edit dialog
     editingTodo?.let { todo ->
         EditTodoDialog(
@@ -129,6 +136,27 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             onConfirm = { updatedTodo ->
                 viewModel.updateTodo(updatedTodo)
                 editingTodo = null
+            },
+            viewModel = viewModel
+        )
+    }
+
+    // Add dialog with full options
+    if (showAddDialog) {
+        AddTodoDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { title, description, priority, category, dueDate, reminderTime, tags, recurringType ->
+                viewModel.addTodo(
+                    title = title,
+                    description = description,
+                    priority = priority,
+                    dueDate = dueDate,
+                    category = category,
+                    reminderTime = reminderTime,
+                    tags = tags,
+                    recurringType = recurringType
+                )
+                showAddDialog = false
             }
         )
     }
@@ -144,18 +172,71 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column {
-                    Text(
-                        text = stringResource(R.string.todo_title),
-                        color = textPrimary,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${today.format(dateFormatter)}",
-                        color = textSecondary,
-                        fontSize = 14.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.todo_title),
+                                color = textPrimary,
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = today.format(dateFormatter),
+                                color = textSecondary,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Search button
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable {
+                                        showSearch = !showSearch
+                                        if (!showSearch) {
+                                            searchInputText = ""
+                                            viewModel.setSearchQuery("")
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    if (showSearch) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = if (showSearch) "关闭搜索" else "搜索",
+                                    tint = textSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            // Add with options button
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(DarkAccentStart, DarkAccentEnd)
+                                        )
+                                    )
+                                    .clickable { showAddDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "添加待办",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     // Stats row
                     Row(
@@ -181,6 +262,63 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // Search bar
+            if (showSearch) {
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 16.dp,
+                        innerPadding = 8.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "搜索",
+                                tint = textSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            TextField(
+                                value = searchInputText,
+                                onValueChange = {
+                                    searchInputText = it
+                                    viewModel.setSearchQuery(it)
+                                },
+                                modifier = Modifier.weight(1f),
+                                placeholder = {
+                                    Text(
+                                        "搜索待办...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                },
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                singleLine = true
+                            )
+                            if (searchInputText.isNotBlank()) {
+                                IconButton(onClick = {
+                                    searchInputText = ""
+                                    viewModel.setSearchQuery("")
+                                }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "清除",
+                                        tint = textSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+
             // Category filter chips
             item {
                 Row(
@@ -191,40 +329,40 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 ) {
                     CategoryFilterChip(
                         label = "全部",
-                        isSelected = selectedCategoryFilter == null,
+                        isSelected = selectedCategory == null && selectedTag == null,
                         color = MaterialTheme.colorScheme.primary,
-                        onClick = { selectedCategoryFilter = null }
+                        onClick = { viewModel.clearFilters() }
                     )
                     CategoryFilterChip(
                         label = "任务",
-                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_TASK,
+                        isSelected = selectedCategory == TodoItem.CATEGORY_TASK,
                         color = CategoryColors[TodoItem.CATEGORY_TASK]!!,
-                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_TASK) null else TodoItem.CATEGORY_TASK }
+                        onClick = { viewModel.setCategoryFilter(if (selectedCategory == TodoItem.CATEGORY_TASK) null else TodoItem.CATEGORY_TASK) }
                     )
                     CategoryFilterChip(
                         label = "提醒",
-                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_REMINDER,
+                        isSelected = selectedCategory == TodoItem.CATEGORY_REMINDER,
                         color = CategoryColors[TodoItem.CATEGORY_REMINDER]!!,
-                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_REMINDER) null else TodoItem.CATEGORY_REMINDER }
+                        onClick = { viewModel.setCategoryFilter(if (selectedCategory == TodoItem.CATEGORY_REMINDER) null else TodoItem.CATEGORY_REMINDER) }
                     )
                     CategoryFilterChip(
                         label = "目标",
-                        isSelected = selectedCategoryFilter == TodoItem.CATEGORY_GOAL,
+                        isSelected = selectedCategory == TodoItem.CATEGORY_GOAL,
                         color = CategoryColors[TodoItem.CATEGORY_GOAL]!!,
-                        onClick = { selectedCategoryFilter = if (selectedCategoryFilter == TodoItem.CATEGORY_GOAL) null else TodoItem.CATEGORY_GOAL }
+                        onClick = { viewModel.setCategoryFilter(if (selectedCategory == TodoItem.CATEGORY_GOAL) null else TodoItem.CATEGORY_GOAL) }
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Input field
+            // Quick input field
             item {
                 InputRow(
                     value = inputText,
                     onValueChange = { inputText = it },
                     onAdd = {
                         if (inputText.isNotBlank()) {
-                            viewModel.addTodo(inputText, category = selectedCategoryFilter ?: TodoItem.CATEGORY_TASK)
+                            viewModel.addTodo(inputText, category = selectedCategory ?: TodoItem.CATEGORY_TASK)
                             inputText = ""
                         }
                     }
@@ -233,7 +371,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             }
 
             // Todo items
-            if (filteredTodos.isEmpty()) {
+            if (todos.isEmpty()) {
                 item {
                     EmptyState(
                         icon = Icons.Default.EventNote,
@@ -243,7 +381,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             } else {
                 itemsIndexed(
-                    items = filteredTodos,
+                    items = todos,
                     key = { _, todo -> todo.id }
                 ) { index, todo ->
                     val enterDelay = (index * 40).coerceAtMost(400)
@@ -486,18 +624,28 @@ private fun CategoryFilterChip(
 private fun EditTodoDialog(
     todo: TodoItem,
     onDismiss: () -> Unit,
-    onConfirm: (TodoItem) -> Unit
+    onConfirm: (TodoItem) -> Unit,
+    viewModel: TodoViewModel
 ) {
     var title by remember { mutableStateOf(todo.title) }
+    var description by remember { mutableStateOf(todo.description) }
     var priority by remember { mutableStateOf(todo.priority) }
     var category by remember { mutableStateOf(todo.category) }
     var reminderTime by remember { mutableStateOf(todo.reminderTime) }
+    var dueDate by remember { mutableStateOf(todo.dueDate) }
+    var tagsInput by remember { mutableStateOf(todo.tags) }
+    var recurringType by remember { mutableStateOf(todo.recurringType) }
+    var progress by remember { mutableStateOf(todo.progress) }
+    var showSubTasks by remember { mutableStateOf(false) }
+    var newSubTaskTitle by remember { mutableStateOf("") }
+
+    val subTodos by viewModel.getSubTodos(todo.id).collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = reminderTime ?: System.currentTimeMillis()
+        initialSelectedDateMillis = dueDate ?: reminderTime ?: System.currentTimeMillis()
     )
     val timePickerState = rememberTimePickerState(
         initialHour = if (reminderTime != null) {
@@ -519,6 +667,7 @@ private fun EditTodoDialog(
                         val time = if (reminderTime != null) {
                             Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime()
                         } else LocalTime.of(9, 0)
+                        dueDate = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                         reminderTime = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
                     }
                     showDatePicker = false
@@ -557,7 +706,10 @@ private fun EditTodoDialog(
         onDismissRequest = onDismiss,
         title = { Text("编辑待办") },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -565,10 +717,17 @@ private fun EditTodoDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(12.dp))
 
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("描述") },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Priority
                 Text("优先级", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
                         val isSelected = priority == level
@@ -596,10 +755,8 @@ private fun EditTodoDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
+                // Category
                 Text("分类", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         TodoItem.CATEGORY_TASK to "任务",
@@ -627,15 +784,23 @@ private fun EditTodoDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                // Progress (for goals)
+                if (category == TodoItem.CATEGORY_GOAL) {
+                    Text("进度: $progress%", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Slider(
+                        value = progress.toFloat(),
+                        onValueChange = { progress = it.toInt() },
+                        valueRange = 0f..100f,
+                        steps = 99
+                    )
+                }
 
-                Text("提醒时间", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(6.dp))
+                // Due date & reminder
+                Text("截止日期 & 提醒", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Date picker button
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -644,16 +809,15 @@ private fun EditTodoDialog(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (reminderTime != null) {
-                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
+                            text = if (dueDate != null) {
+                                Instant.ofEpochMilli(dueDate!!).atZone(ZoneId.systemDefault())
                                     .toLocalDate().format(DateTimeFormatter.ofPattern("M月d日"))
                             } else "选择日期",
                             fontSize = 12.sp,
-                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    // Time picker button
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -671,16 +835,148 @@ private fun EditTodoDialog(
                         )
                     }
 
-                    // Clear reminder
-                    if (reminderTime != null) {
+                    if (dueDate != null || reminderTime != null) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ErrorColor.copy(alpha = 0.1f))
-                                .clickable { reminderTime = null }
+                                .clickable {
+                                    dueDate = null
+                                    reminderTime = null
+                                }
                                 .padding(horizontal = 8.dp, vertical = 6.dp)
                         ) {
                             Text("清除", fontSize = 12.sp, color = ErrorColor)
+                        }
+                    }
+                }
+
+                // Recurring
+                Text("重复", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        TodoItem.RECURRING_NONE to "不重复",
+                        TodoItem.RECURRING_DAILY to "每天",
+                        TodoItem.RECURRING_WEEKLY to "每周",
+                        TodoItem.RECURRING_MONTHLY to "每月",
+                        TodoItem.RECURRING_YEARLY to "每年"
+                    ).forEach { (type, label) ->
+                        val isSelected = recurringType == type
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { recurringType = type }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Tags
+                OutlinedTextField(
+                    value = tagsInput,
+                    onValueChange = { tagsInput = it },
+                    label = { Text("标签（用逗号分隔）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Subtasks section
+                if (todo.parentId == null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showSubTasks = !showSubTasks }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "子任务 (${subTodos.size})",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Icon(
+                            if (showSubTasks) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (showSubTasks) "收起" else "展开",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (showSubTasks) {
+                        // Add subtask input
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = newSubTaskTitle,
+                                onValueChange = { newSubTaskTitle = it },
+                                placeholder = { Text("添加子任务", fontSize = 12.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                textStyle = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    if (newSubTaskTitle.isNotBlank()) {
+                                        viewModel.addSubTodo(todo.id, newSubTaskTitle)
+                                        newSubTaskTitle = ""
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "添加")
+                            }
+                        }
+
+                        // Subtask list
+                        subTodos.forEach { subTodo ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (subTodo.isCompleted) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                                    contentDescription = if (subTodo.isCompleted) "取消完成" else "完成",
+                                    tint = if (subTodo.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable {
+                                            viewModel.toggleTodo(subTodo)
+                                        }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = subTodo.title,
+                                    fontSize = 13.sp,
+                                    textDecoration = if (subTodo.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.deleteTodo(subTodo) },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "删除",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -688,9 +984,25 @@ private fun EditTodoDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { if (title.isNotBlank()) onConfirm(todo.copy(title = title.trim(), priority = priority, category = category, reminderTime = reminderTime)) },
+                onClick = {
+                    if (title.isNotBlank()) {
+                        onConfirm(
+                            todo.copy(
+                                title = title.trim(),
+                                description = description.trim(),
+                                priority = priority,
+                                category = category,
+                                dueDate = dueDate,
+                                reminderTime = reminderTime,
+                                tags = tagsInput.trim(),
+                                recurringType = recurringType,
+                                progress = progress
+                            )
+                        )
+                    }
+                },
                 enabled = title.isNotBlank()
-            ) { Text("确定") }
+            ) { Text("保存") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
@@ -769,18 +1081,74 @@ private fun TodoItemCard(
 
             // Content column
             Column(modifier = Modifier.weight(1f)) {
-                // Title
-                Text(
-                    text = todo.title,
-                    color = textPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
-                    textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Title with pin indicator
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (todo.isPinned) {
+                        Icon(
+                            Icons.Default.PushPin,
+                            contentDescription = "置顶",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = todo.title,
+                        color = textPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
+                        textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-                // Category tag + priority + reminder + due date row
+                // Description preview
+                if (todo.description.isNotBlank()) {
+                    Text(
+                        text = todo.description,
+                        color = textSecondary,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                // Tags row
+                val tagList = TodoItem.getTagList(todo.tags)
+                if (tagList.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        tagList.take(3).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "#$tag",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                        if (tagList.size > 3) {
+                            Text(
+                                text = "+${tagList.size - 3}",
+                                fontSize = 10.sp,
+                                color = textSecondary
+                            )
+                        }
+                    }
+                }
+
+                // Category tag + priority + reminder + due date + recurring row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -813,6 +1181,16 @@ private fun TodoItemCard(
                                 .size(6.dp)
                                 .clip(CircleShape)
                                 .background(prioColor)
+                        )
+                    }
+
+                    // Recurring indicator
+                    if (todo.recurringType != TodoItem.RECURRING_NONE) {
+                        Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = "重复",
+                            tint = textSecondary,
+                            modifier = Modifier.size(12.dp)
                         )
                     }
 
@@ -853,6 +1231,43 @@ private fun TodoItemCard(
                             fontSize = 10.sp,
                             color = if (isOverdue) ErrorColor else textSecondary.copy(alpha = 0.6f)
                         )
+                    }
+                }
+
+                // Progress bar for goals
+                if (todo.category == TodoItem.CATEGORY_GOAL && !isCompleted) {
+                    Column(modifier = Modifier.padding(top = 6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "进度",
+                                fontSize = 10.sp,
+                                color = textSecondary
+                            )
+                            Text(
+                                text = "${todo.progress}%",
+                                fontSize = 10.sp,
+                                color = textSecondary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(todo.progress / 100f)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(SuccessColor)
+                            )
+                        }
                     }
                 }
             }
@@ -905,4 +1320,274 @@ private fun ClearCompletedButton(
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddTodoDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, description: String, priority: Int, category: String, dueDate: Long?, reminderTime: Long?, tags: List<String>, recurringType: String) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var priority by remember { mutableStateOf(0) }
+    var category by remember { mutableStateOf(TodoItem.CATEGORY_TASK) }
+    var dueDate by remember { mutableStateOf<Long?>(null) }
+    var reminderTime by remember { mutableStateOf<Long?>(null) }
+    var tagsInput by remember { mutableStateOf("") }
+    var recurringType by remember { mutableStateOf(TodoItem.RECURRING_NONE) }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+    val timePickerState = rememberTimePickerState(
+        initialHour = 9,
+        initialMinute = 0,
+        is24Hour = true
+    )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { dateMillis ->
+                        val date = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        val time = reminderTime?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
+                        } ?: LocalTime.of(9, 0)
+                        dueDate = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        reminderTime = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择提醒时间") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val date = dueDate?.let {
+                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    } ?: LocalDate.now()
+                    reminderTime = date.atTime(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建待办") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("标题") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("描述（可选）") },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Priority
+                Text("优先级", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
+                        val isSelected = priority == level
+                        val chipColor = when (level) {
+                            1 -> WarningColor
+                            2 -> ErrorColor
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) chipColor.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { priority = level }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Category
+                Text("分类", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        TodoItem.CATEGORY_TASK to "任务",
+                        TodoItem.CATEGORY_REMINDER to "提醒",
+                        TodoItem.CATEGORY_GOAL to "目标"
+                    ).forEach { (cat, label) ->
+                        val isSelected = category == cat
+                        val chipColor = CategoryColors[cat] ?: MaterialTheme.colorScheme.primary
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) chipColor.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { category = cat }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Due date & reminder
+                Text("截止日期 & 提醒", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { showDatePicker = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (dueDate != null) {
+                                Instant.ofEpochMilli(dueDate!!).atZone(ZoneId.systemDefault())
+                                    .toLocalDate().format(DateTimeFormatter.ofPattern("M月d日"))
+                            } else "选择日期",
+                            fontSize = 12.sp,
+                            color = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { showTimePicker = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (reminderTime != null) {
+                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
+                                    .toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } else "选择时间",
+                            fontSize = 12.sp,
+                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (dueDate != null || reminderTime != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ErrorColor.copy(alpha = 0.1f))
+                                .clickable {
+                                    dueDate = null
+                                    reminderTime = null
+                                }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text("清除", fontSize = 12.sp, color = ErrorColor)
+                        }
+                    }
+                }
+
+                // Recurring
+                Text("重复", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        TodoItem.RECURRING_NONE to "不重复",
+                        TodoItem.RECURRING_DAILY to "每天",
+                        TodoItem.RECURRING_WEEKLY to "每周",
+                        TodoItem.RECURRING_MONTHLY to "每月",
+                        TodoItem.RECURRING_YEARLY to "每年"
+                    ).forEach { (type, label) ->
+                        val isSelected = recurringType == type
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { recurringType = type }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Tags
+                OutlinedTextField(
+                    value = tagsInput,
+                    onValueChange = { tagsInput = it },
+                    label = { Text("标签（用逗号分隔）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        val tags = tagsInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        onConfirm(title.trim(), description.trim(), priority, category, dueDate, reminderTime, tags, recurringType)
+                    }
+                },
+                enabled = title.isNotBlank()
+            ) { Text("创建") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
 }

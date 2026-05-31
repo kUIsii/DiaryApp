@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -95,13 +95,28 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to todo_items
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN parentId INTEGER")
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN recurringType TEXT NOT NULL DEFAULT 'none'")
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN progress INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE todo_items ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0")
+                // Create indices for new columns
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_todo_items_parentId ON todo_items (parentId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_todo_items_tags ON todo_items (tags)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

@@ -110,11 +110,29 @@ interface DiaryDao {
     fun getTagUsage(): Flow<List<TagUsage>>
 
     // Todo queries
-    @Query("SELECT * FROM todo_items ORDER BY isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
+    @Query("SELECT * FROM todo_items WHERE parentId IS NULL ORDER BY isPinned DESC, isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
     fun getAllTodos(): Flow<List<TodoItem>>
 
-    @Query("SELECT * FROM todo_items WHERE dueDate >= :dayStart AND dueDate < :dayEnd ORDER BY isCompleted ASC, priority DESC, sortOrder ASC")
+    @Query("SELECT * FROM todo_items WHERE parentId IS NULL AND dueDate >= :dayStart AND dueDate < :dayEnd ORDER BY isPinned DESC, isCompleted ASC, priority DESC, sortOrder ASC")
     fun getTodosForDay(dayStart: Long, dayEnd: Long): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE parentId = :parentId ORDER BY isCompleted ASC, sortOrder ASC, createdAt ASC")
+    fun getSubTodos(parentId: Long): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE category = :category AND parentId IS NULL ORDER BY isPinned DESC, isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
+    fun getTodosByCategory(category: String): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE tags LIKE '%' || :tag || '%' AND parentId IS NULL ORDER BY isPinned DESC, isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
+    fun getTodosByTag(tag: String): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%') AND parentId IS NULL ORDER BY isPinned DESC, isCompleted ASC, priority DESC, createdAt DESC")
+    fun searchTodos(query: String): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE dueDate >= :dayStart AND dueDate < :dayEnd AND isCompleted = 0 AND parentId IS NULL ORDER BY priority DESC, dueDate ASC")
+    fun getTodayTodos(dayStart: Long, dayEnd: Long): Flow<List<TodoItem>>
+
+    @Query("SELECT * FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL ORDER BY priority DESC, dueDate ASC")
+    fun getUpcomingTodos(): Flow<List<TodoItem>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTodo(todo: TodoItem): Long
@@ -128,8 +146,20 @@ interface DiaryDao {
     @Query("UPDATE todo_items SET isCompleted = :completed, completedAt = :completedAt WHERE id = :id")
     suspend fun toggleTodo(id: Long, completed: Boolean, completedAt: Long?)
 
+    @Query("UPDATE todo_items SET isPinned = :isPinned WHERE id = :id")
+    suspend fun pinTodo(id: Long, isPinned: Boolean)
+
+    @Query("UPDATE todo_items SET progress = :progress WHERE id = :id")
+    suspend fun updateProgress(id: Long, progress: Int)
+
+    @Query("UPDATE todo_items SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: Long, sortOrder: Int)
+
     @Query("DELETE FROM todo_items WHERE isCompleted = 1 AND completedAt < :before")
     suspend fun deleteCompletedTodosBefore(before: Long)
+
+    @Query("DELETE FROM todo_items WHERE parentId = :parentId")
+    suspend fun deleteSubTodos(parentId: Long)
 
     // Todo reminder queries
     @Query("SELECT * FROM todo_items WHERE reminderTime IS NOT NULL AND reminderTime > :now AND isCompleted = 0 ORDER BY reminderTime ASC")
@@ -138,8 +168,19 @@ interface DiaryDao {
     @Query("SELECT * FROM todo_items WHERE id = :id")
     suspend fun getTodoById(id: Long): TodoItem?
 
-    @Query("SELECT * FROM todo_items WHERE isCompleted = 0 ORDER BY reminderTime ASC")
+    @Query("SELECT * FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL ORDER BY isPinned DESC, reminderTime ASC")
     fun getAllPendingTodos(): Flow<List<TodoItem>>
+
+    // Widget queries
+    @Query("SELECT * FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL ORDER BY isPinned DESC, priority DESC, dueDate ASC LIMIT :limit")
+    suspend fun getTopPendingTodos(limit: Int = 10): List<TodoItem>
+
+    @Query("SELECT COUNT(*) FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL")
+    fun getPendingTodoCount(): Flow<Int>
+
+    // Recurring task queries
+    @Query("SELECT * FROM todo_items WHERE recurringType != 'none' AND isCompleted = 1 AND parentId IS NULL")
+    suspend fun getCompletedRecurringTodos(): List<TodoItem>
 
     // "On This Day" - get entries from the same month+day in previous years
     // We use SQLite strftime to extract month and day from the epoch timestamp
