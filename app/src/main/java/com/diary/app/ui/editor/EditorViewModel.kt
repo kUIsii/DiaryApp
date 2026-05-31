@@ -20,7 +20,10 @@ data class DraftData(
     val moodLevel: Int?,
     val weather: String?,
     val tagIds: Set<Long>,
-    val timestamp: Long
+    val timestamp: Long,
+    val location: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -98,9 +101,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         latestTitle = title
     }
 
-    fun performAutoSave(diaryId: Long?, moodLevel: Int?, weather: String?) {
+    fun performAutoSave(diaryId: Long?, moodLevel: Int?, weather: String?,
+                        location: String? = null, latitude: Double? = null, longitude: Double? = null) {
         if (latestContent.isEmpty() && latestPlainText.isEmpty()) return
-        saveDraft(latestContent, latestPlainText, diaryId, latestTitle, moodLevel, weather)
+        saveDraft(latestContent, latestPlainText, diaryId, latestTitle, moodLevel, weather, location, latitude, longitude)
         _autoSaveVisible.value = true
         _hasUnsavedChanges.value = false
     }
@@ -121,9 +125,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun saveDraft(
         content: String, plainText: String, diaryId: Long?,
-        title: String, moodLevel: Int?, weather: String?
+        title: String, moodLevel: Int?, weather: String?,
+        location: String? = null, latitude: Double? = null, longitude: Double? = null
     ) {
-        val data = DraftData(content, plainText, title, moodLevel, weather, _selectedTagIds.value, System.currentTimeMillis())
+        val data = DraftData(content, plainText, title, moodLevel, weather, _selectedTagIds.value, System.currentTimeMillis(), location, latitude, longitude)
         prefs.edit().putString(draftKey(diaryId), gson.toJson(data)).apply()
     }
 
@@ -184,7 +189,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         plainText: String,
         diaryId: Long?,
         moodLevel: Int?,
-        weather: String?
+        weather: String?,
+        location: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
     ): Long {
         val entryId = if (diaryId != null) {
             val existing = dao.getEntryById(diaryId)
@@ -195,6 +203,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     plainText = plainText,
                     moodLevel = moodLevel,
                     weather = weather,
+                    location = location,
+                    latitude = latitude,
+                    longitude = longitude,
                     updatedAt = System.currentTimeMillis()
                 )
                 dao.updateEntry(updated)
@@ -203,7 +214,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 dao.insertEntry(
                     DiaryEntry(
                         title = title, content = content, plainText = plainText,
-                        moodLevel = moodLevel, weather = weather
+                        moodLevel = moodLevel, weather = weather,
+                        location = location, latitude = latitude, longitude = longitude
                     )
                 )
             }
@@ -211,7 +223,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             dao.insertEntry(
                 DiaryEntry(
                     title = title, content = content, plainText = plainText,
-                    moodLevel = moodLevel, weather = weather
+                    moodLevel = moodLevel, weather = weather,
+                    location = location, latitude = latitude, longitude = longitude
                 )
             )
         }

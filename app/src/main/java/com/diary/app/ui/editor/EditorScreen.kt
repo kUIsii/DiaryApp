@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.FormatClear
@@ -172,6 +173,9 @@ fun EditorScreen(
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
+    var selectedLocation by remember { mutableStateOf<String?>(null) }
+    var locationLat by remember { mutableStateOf<Double?>(null) }
+    var locationLng by remember { mutableStateOf<Double?>(null) }
     var showTagDialog by remember { mutableStateOf(false) }
     var showTemplateDialog by remember { mutableStateOf(false) }
     var showLinkDialog by remember { mutableStateOf(false) }
@@ -221,11 +225,19 @@ fun EditorScreen(
         currentEntry?.let { entry ->
             selectedMood = entry.moodLevel
             selectedWeather = entry.weather
+            selectedLocation = entry.location
+            locationLat = entry.latitude
+            locationLng = entry.longitude
             // Inject saved content into WebView when editing existing entry
             if (diaryId != null && entry.content.isNotBlank()) {
+                // Strip inline Base64 data URLs to prevent memory crash
+                val safeContent = entry.content.replace(
+                    Regex("\"data:image/[^\"]{0,5000000}\""),
+                    "\"\""
+                )
                 // Use Base64 encoding to avoid escaping issues
                 val base64Content = Base64.encodeToString(
-                    entry.content.toByteArray(Charsets.UTF_8),
+                    safeContent.toByteArray(Charsets.UTF_8),
                     Base64.NO_WRAP
                 )
                 webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
@@ -378,7 +390,7 @@ fun EditorScreen(
             webView?.evaluateJavascript("getContent()") { json ->
                 val cleanJson = unescapeEvaluateJsResult(json)
                 viewModel.updateLatestContent(cleanJson, latestPlainText, dateTitle)
-                viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
+                viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
             }
         }
     }
@@ -402,7 +414,7 @@ fun EditorScreen(
                         val cleanPlain = unescapeEvaluateJsResult(plain)
                         if (cleanPlain.isNotBlank()) {
                             viewModel.updateLatestContent(cleanJson, cleanPlain, dateTitle)
-                            viewModel.performAutoSave(diaryId, selectedMood, selectedWeather)
+                            viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
                         }
                     }
                 }
@@ -477,7 +489,7 @@ fun EditorScreen(
                             val cleanJson = unescapeEvaluateJsResult(json)
                             val cleanPlain = unescapeEvaluateJsResult(plain)
                             scope.launch {
-                                viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather)
+                                viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
                                 showUnsavedDialog = false
                                 onNavigateBack()
                             }
@@ -631,7 +643,10 @@ fun EditorScreen(
                                     plainText = cleanPlain,
                                     diaryId = diaryId,
                                     moodLevel = selectedMood,
-                                    weather = selectedWeather
+                                    weather = selectedWeather,
+                                    location = selectedLocation,
+                                    latitude = locationLat,
+                                    longitude = locationLng
                                 )
                                 haptic.success()
                                 snackbarHostState.showSnackbar(
@@ -710,6 +725,14 @@ fun EditorScreen(
                     isActive = activePanel == "tags",
                     onClick = { activePanel = if (activePanel == "tags") null else "tags" }
                 )
+                // Location chip
+                MetadataChip(
+                    label = selectedLocation ?: "位置",
+                    icon = Icons.Default.LocationOn,
+                    isSelected = selectedLocation != null,
+                    isActive = activePanel == "location",
+                    onClick = { activePanel = if (activePanel == "location") null else "location" }
+                )
             }
 
             // Expandable panels - simple background
@@ -761,6 +784,16 @@ fun EditorScreen(
                                 selectedTagIds = selectedTagIds,
                                 onTagToggle = { viewModel.toggleTag(it) },
                                 onAddTag = { showTagDialog = true }
+                            )
+                            "location" -> LocationSelector(
+                                selectedLocation = selectedLocation,
+                                latitude = locationLat,
+                                longitude = locationLng,
+                                onLocationSelected = { name, lat, lng ->
+                                    selectedLocation = name
+                                    locationLat = lat
+                                    locationLng = lng
+                                }
                             )
                         }
                     }

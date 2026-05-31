@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -767,7 +768,7 @@ private fun TimelineEntryCard(
                     }
 
                     // Bottom-left: mood + weather + tags
-                    val hasMetadata = entry.moodLevel != null || entry.weather != null || tags.isNotEmpty()
+                    val hasMetadata = entry.moodLevel != null || entry.weather != null || entry.location != null || tags.isNotEmpty()
                     if (hasMetadata) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
@@ -790,6 +791,14 @@ private fun TimelineEntryCard(
                                     imageVector = weatherIcon,
                                     contentDescription = null,
                                     tint = weatherTint.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            if (entry.location != null) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                                     modifier = Modifier.size(14.dp)
                                 )
                             }

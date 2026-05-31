@@ -210,9 +210,14 @@ fun DiaryDetailScreen(
                                             super.onPageFinished(view, url)
                                             evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
                                             if (currentEntry.content.isNotBlank()) {
+                                                // Strip inline Base64 data URLs to prevent memory crash
+                                                val safeContent = currentEntry.content.replace(
+                                                    Regex("\"data:image/[^\"]{0,5000000}\""),
+                                                    "\"\""
+                                                )
                                                 // Pass content via base64 to avoid escaping issues
                                                 val encoded = android.util.Base64.encodeToString(
-                                                    currentEntry.content.toByteArray(Charsets.UTF_8),
+                                                    safeContent.toByteArray(Charsets.UTF_8),
                                                     android.util.Base64.NO_WRAP
                                                 )
                                                 evaluateJavascript("setContentFromBase64('$encoded')", null)
