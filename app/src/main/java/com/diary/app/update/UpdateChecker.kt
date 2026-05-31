@@ -110,14 +110,15 @@ object UpdateChecker {
             if (latestPart < currentPart) return false
         }
 
-        // 基础版本相同，比较后缀（如 2.0.0-experimental vs 2.0.0-beta）
-        if (currentSuffix != latestSuffix) {
-            // 有后缀的版本比没有后缀的版本低
-            if (latestSuffix.isEmpty()) return true
-            if (currentSuffix.isEmpty()) return false
-            return latestSuffix > currentSuffix
-        }
+        // 基础版本相同，比较后缀
+        // 如果后缀相同，不需要更新
+        if (currentSuffix == latestSuffix) return false
 
-        return false
+        // 有后缀的版本比没有后缀的版本低（正式版 > 测试版）
+        if (latestSuffix.isEmpty()) return true
+        if (currentSuffix.isEmpty()) return false
+
+        // 两个不同的后缀，按字典序比较
+        return latestSuffix > currentSuffix
     }
 }
