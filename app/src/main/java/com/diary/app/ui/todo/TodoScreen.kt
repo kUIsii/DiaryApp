@@ -1035,255 +1035,126 @@ private fun TodoItemCard(
     val interactionSource = remember { MutableInteractionSource() }
     val hasReminder = todo.reminderTime != null && todo.reminderTime > System.currentTimeMillis()
 
-    GlassCard(
+    // Priority color
+    val prioColor = when (todo.priority) {
+        1 -> WarningColor
+        2 -> ErrorColor
+        else -> Color.Transparent
+    }
+    val catColor = CategoryColors[todo.category] ?: MaterialTheme.colorScheme.primary
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = itemAlpha },
-        cornerRadius = 16.dp,
-        innerPadding = 14.dp
+            .graphicsLayer { alpha = itemAlpha }
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onToggle,
+                onLongClick = onLongPress
+            )
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Checkbox
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onToggle,
-                    onLongClick = onLongPress
+                .size(22.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(
+                    if (isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    else Color.Transparent
                 ),
-            verticalAlignment = Alignment.CenterVertically
+            contentAlignment = Alignment.Center
         ) {
-            // Custom checkbox with bounce animation
+            Icon(
+                imageVector = if (isCompleted) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                contentDescription = if (isCompleted) "取消完成" else "标记完成",
+                tint = if (isCompleted) MaterialTheme.colorScheme.primary else textSecondary,
+                modifier = Modifier
+                    .size(18.dp)
+                    .graphicsLayer {
+                        scaleX = checkboxScale
+                        scaleY = checkboxScale
+                    }
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Priority indicator bar
+        if (todo.priority > 0) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else Color.Transparent
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
+                    .width(3.dp)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(prioColor)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        // Title
+        Text(
+            text = todo.title,
+            color = if (isCompleted) textSecondary else textPrimary,
+            fontSize = 15.sp,
+            fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
+            textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Right side indicators
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Recurring indicator
+            if (todo.recurringType != TodoItem.RECURRING_NONE) {
                 Icon(
-                    imageVector = if (isCompleted) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                    contentDescription = if (isCompleted) "取消完成" else "标记完成",
-                    tint = if (isCompleted) MaterialTheme.colorScheme.primary else textSecondary,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .graphicsLayer {
-                            scaleX = checkboxScale
-                            scaleY = checkboxScale
-                        }
+                    Icons.Default.Repeat,
+                    contentDescription = "重复",
+                    tint = textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(14.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Content column
-            Column(modifier = Modifier.weight(1f)) {
-                // Title with pin indicator
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (todo.isPinned) {
-                        Icon(
-                            Icons.Default.PushPin,
-                            contentDescription = "置顶",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Text(
-                        text = todo.title,
-                        color = textPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium,
-                        textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                // Description preview
-                if (todo.description.isNotBlank()) {
-                    Text(
-                        text = todo.description,
-                        color = textSecondary,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-
-                // Tags row
-                val tagList = TodoItem.getTagList(todo.tags)
-                if (tagList.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        tagList.take(3).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "#$tag",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                        }
-                        if (tagList.size > 3) {
-                            Text(
-                                text = "+${tagList.size - 3}",
-                                fontSize = 10.sp,
-                                color = textSecondary
-                            )
-                        }
-                    }
-                }
-
-                // Category tag + priority + reminder + due date + recurring row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    // Category tag
-                    val catColor = CategoryColors[todo.category] ?: MaterialTheme.colorScheme.primary
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(catColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = TodoItem.categoryLabel(todo.category),
-                            fontSize = 10.sp,
-                            color = catColor
-                        )
-                    }
-
-                    // Priority indicator
-                    if (todo.priority > 0) {
-                        val prioColor = when (todo.priority) {
-                            1 -> WarningColor
-                            2 -> ErrorColor
-                            else -> Color.Transparent
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(prioColor)
-                        )
-                    }
-
-                    // Recurring indicator
-                    if (todo.recurringType != TodoItem.RECURRING_NONE) {
-                        Icon(
-                            Icons.Default.Repeat,
-                            contentDescription = "重复",
-                            tint = textSecondary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-
-                    // Reminder indicator
-                    if (hasReminder) {
-                        val reminderText = Instant.ofEpochMilli(todo.reminderTime!!)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalTime()
-                            .format(DateTimeFormatter.ofPattern("HH:mm"))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Notifications,
-                                contentDescription = "提醒",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = reminderText,
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Due date
-                    todo.dueDate?.let { due ->
-                        val dueDate = Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault()).toLocalDate()
-                        val isOverdue = dueDate.isBefore(LocalDate.now()) && !isCompleted
-                        Text(
-                            text = dueDate.format(DateTimeFormatter.ofPattern("M月d日")),
-                            fontSize = 10.sp,
-                            color = if (isOverdue) ErrorColor else textSecondary.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                // Progress bar for goals
-                if (todo.category == TodoItem.CATEGORY_GOAL && !isCompleted) {
-                    Column(modifier = Modifier.padding(top = 6.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "进度",
-                                fontSize = 10.sp,
-                                color = textSecondary
-                            )
-                            Text(
-                                text = "${todo.progress}%",
-                                fontSize = 10.sp,
-                                color = textSecondary
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(todo.progress / 100f)
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(SuccessColor)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Delete button
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = textSecondary.copy(alpha = 0.4f),
-                    modifier = Modifier.size(18.dp)
+            // Reminder time
+            if (hasReminder) {
+                val reminderText = Instant.ofEpochMilli(todo.reminderTime!!)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalTime()
+                    .format(DateTimeFormatter.ofPattern("HH:mm"))
+                Text(
+                    text = reminderText,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            // Due date
+            todo.dueDate?.let { due ->
+                val dueDate = Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault()).toLocalDate()
+                val isOverdue = dueDate.isBefore(LocalDate.now()) && !isCompleted
+                Text(
+                    text = dueDate.format(DateTimeFormatter.ofPattern("M/d")),
+                    fontSize = 11.sp,
+                    color = if (isOverdue) ErrorColor else textSecondary.copy(alpha = 0.5f)
+                )
+            }
+
+            // Category dot
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(catColor)
+            )
         }
     }
 }

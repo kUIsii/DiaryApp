@@ -55,6 +55,11 @@ data class WordStats(
     val avgWordsPerEntry: Int,
 )
 
+data class HeatmapDay(
+    val date: LocalDate,
+    val count: Int,
+)
+
 data class StatsState(
     val totalEntries: Int = 0,
     val currentStreak: Int = 0,
@@ -66,6 +71,7 @@ data class StatsState(
     val writingHabit: WritingHabit? = null,
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
+    val heatmapData: List<HeatmapDay> = emptyList(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -115,6 +121,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
+            heatmapData = computeHeatmapData(dates, now),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -239,6 +246,21 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
+    }
+
+    private fun computeHeatmapData(entryDates: Set<LocalDate>, now: LocalDate): List<HeatmapDay> {
+        val result = mutableListOf<HeatmapDay>()
+        // Show last 365 days
+        for (i in 364 downTo 0) {
+            val date = now.minusDays(i.toLong())
+            result.add(
+                HeatmapDay(
+                    date = date,
+                    count = if (date in entryDates) 1 else 0,
+                )
+            )
+        }
+        return result
     }
 
 }

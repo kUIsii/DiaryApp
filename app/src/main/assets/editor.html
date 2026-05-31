@@ -106,10 +106,17 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border: 1px solid rgba(0,0,0,0.06);
+            margin: 8px 0;
         }
         .theme-dark img, .theme-dark video {
             border-color: rgba(255,255,255,0.08);
             filter: brightness(0.9);
+        }
+        /* Image loading state */
+        img[data-loading] {
+            opacity: 0.5;
+            min-height: 100px;
+            background: rgba(0,0,0,0.05);
         }
 
         /* Selection */
@@ -174,9 +181,40 @@
             if (r) quill.removeFormat(r.index, r.length);
         }
         function insertMedia(type, url) {
-            var r = quill.getSelection(true);
-            quill.insertEmbed(r.index, type, url);
-            quill.setSelection(r.index + 1);
+            try {
+                var r = quill.getSelection(true);
+                if (type === 'image') {
+                    // Insert image with loading state
+                    quill.insertEmbed(r.index, 'image', url);
+                    quill.setSelection(r.index + 1);
+                    // Find and update the image element
+                    setTimeout(function() {
+                        var imgs = document.querySelectorAll('img[src="' + url + '"]');
+                        imgs.forEach(function(img) {
+                            img.setAttribute('data-loading', '');
+                            img.onload = function() {
+                                img.removeAttribute('data-loading');
+                            };
+                            img.onerror = function() {
+                                img.removeAttribute('data-loading');
+                                img.style.border = '2px dashed rgba(255,0,0,0.3)';
+                                img.style.padding = '20px';
+                                img.alt = '图片加载失败';
+                            };
+                        });
+                    }, 100);
+                } else if (type === 'video') {
+                    quill.insertEmbed(r.index, 'video', url);
+                    quill.setSelection(r.index + 1);
+                } else if (type === 'audio') {
+                    // Insert audio as a link since Quill doesn't support audio natively
+                    quill.insertText(r.index, ' ');
+                    quill.insertText(r.index + 1, '音频文件', 'link', url);
+                    quill.setSelection(r.index + 2);
+                }
+            } catch(e) {
+                console.error('insertMedia error:', e);
+            }
         }
         function insertLink() {
             if (window.DiaryBridge) {

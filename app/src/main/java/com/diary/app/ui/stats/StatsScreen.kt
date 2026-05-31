@@ -68,8 +68,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.Month
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
@@ -154,6 +157,17 @@ fun StatsScreen(
                                 gradientColors = listOf(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f), MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                    }
+                }
+
+                // Heatmap
+                if (state.heatmapData.isNotEmpty()) {
+                    item {
+                        SectionTitle(text = "记录热力图")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        GlassCard {
+                            DiaryHeatmap(data = state.heatmapData)
                         }
                     }
                 }
@@ -788,6 +802,92 @@ private fun WeatherRow(
 }
 
 // ── Tag row with progress bar ──
+
+@Composable
+private fun DiaryHeatmap(data: List<HeatmapDay>) {
+    val cellSize = 12.dp
+    val cellGap = 3.dp
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    // Group data by week (7 days per column)
+    val weeks = data.chunked(7)
+
+    Column {
+        // Heatmap grid
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(cellGap)
+        ) {
+            weeks.forEach { week ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(cellGap)
+                ) {
+                    week.forEach { day ->
+                        Box(
+                            modifier = Modifier
+                                .size(cellSize)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    if (day.count > 0) primaryColor.copy(alpha = 0.8f)
+                                    else surfaceVariant.copy(alpha = 0.5f)
+                                )
+                        )
+                    }
+                    // Fill empty cells if week is incomplete
+                    repeat(7 - week.size) {
+                        Box(modifier = Modifier.size(cellSize))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Legend
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "少",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            repeat(4) { level ->
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (level == 0) surfaceVariant.copy(alpha = 0.5f)
+                            else primaryColor.copy(alpha = 0.2f + level * 0.2f)
+                        )
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "多",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Stats summary
+        val activeDays = data.count { it.count > 0 }
+        val totalDays = data.size
+        val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
+        Text(
+            text = "过去一年有 $activeDays 天写了日记，记录率 $percentage%",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
 
 @Composable
 private fun TagRow(

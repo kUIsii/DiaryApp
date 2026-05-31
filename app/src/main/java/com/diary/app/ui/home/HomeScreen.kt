@@ -201,15 +201,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Year overview stats
-                item {
-                    YearOverviewCard(
-                        entryDates = entryDates,
-                        onNavigateToReview = onNavigateToReview
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
                 // Calendar
                 item {
                     CalendarView(
@@ -414,111 +405,6 @@ private fun RecentSearchesRow(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun YearOverviewCard(
-    entryDates: Set<LocalDate>,
-    onNavigateToReview: () -> Unit
-) {
-    val currentYear = YearMonth.now().year
-    val yearDates = entryDates.filter { it.year == currentYear }
-    val currentMonth = YearMonth.now()
-    val monthDates = entryDates.filter {
-        YearMonth.from(it) == currentMonth
-    }
-
-    // Calculate streak
-    var streak = 0
-    var checkDate = LocalDate.now()
-    while (checkDate in entryDates) {
-        streak++
-        checkDate = checkDate.minusDays(1)
-    }
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${currentYear}年概览",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Icon(
-                    Icons.Default.TrendingUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatItem(
-                    label = "年度总天数",
-                    value = "${yearDates.size}",
-                    color = MaterialTheme.colorScheme.primary
-                )
-                StatItem(
-                    label = "本月天数",
-                    value = "${monthDates.size}",
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                StatItem(
-                    label = "连续天数",
-                    value = "$streak",
-                    color = if (streak > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Quick actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                TextButton(onClick = onNavigateToReview) {
-                    Text(
-                        text = "日记回顾",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
     }
 }
 
