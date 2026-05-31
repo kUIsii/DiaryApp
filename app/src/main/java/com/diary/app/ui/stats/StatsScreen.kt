@@ -816,29 +816,34 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
     val weeks = data.chunked(7)
 
     Column {
-        // Heatmap grid
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(cellGap)
+        // Heatmap grid - wrap in Box to allow horizontal overflow
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
         ) {
-            weeks.forEach { week ->
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(cellGap)
-                ) {
-                    week.forEach { day ->
-                        Box(
-                            modifier = Modifier
-                                .size(cellSize)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    if (day.count > 0) primaryColor.copy(alpha = 0.8f)
-                                    else surfaceVariant.copy(alpha = 0.5f)
-                                )
-                        )
-                    }
-                    // Fill empty cells if week is incomplete
-                    repeat(7 - week.size) {
-                        Box(modifier = Modifier.size(cellSize))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(cellGap)
+            ) {
+                weeks.forEach { week ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(cellGap)
+                    ) {
+                        week.forEach { day ->
+                            Box(
+                                modifier = Modifier
+                                    .size(cellSize)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        if (day.count > 0) primaryColor.copy(alpha = 0.8f)
+                                        else surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                            )
+                        }
+                        // Fill empty cells if week is incomplete
+                        repeat(7 - week.size) {
+                            Box(modifier = Modifier.size(cellSize))
+                        }
                     }
                 }
             }

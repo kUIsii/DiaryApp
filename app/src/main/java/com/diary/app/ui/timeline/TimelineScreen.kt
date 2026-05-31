@@ -738,8 +738,9 @@ private fun TimelineEntryCard(
                 Column(
                     modifier = Modifier.padding(14.dp)
                 ) {
-                    // Title
-                    if (entry.title.isNotBlank()) {
+                    // Title (skip if it's just a date string like "2026年6月1日")
+                    val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
+                    if (entry.title.isNotBlank() && !isDateTitle) {
                         Text(
                             text = entry.title,
                             fontSize = 16.sp,

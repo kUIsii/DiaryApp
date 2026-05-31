@@ -271,18 +271,39 @@ fun EditorScreen(
         }
     }
 
-    // Media pickers
+    // Media pickers - save images as files to avoid Base64 bloat in Delta JSON
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
+                val imagesDir = java.io.File(context.filesDir, "diary_images")
+                if (!imagesDir.exists()) imagesDir.mkdirs()
+                val fileName = "img_${System.currentTimeMillis()}.jpg"
+                val outputFile = java.io.File(imagesDir, fileName)
+
+                // Read and compress image
                 val inputStream = context.contentResolver.openInputStream(imageUri)
-                val bytes = inputStream?.readBytes()
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
-                if (bytes != null) {
-                    val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
-                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    val dataUrl = "data:$mimeType;base64,$base64"
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(dataUrl)}')", null)
+                if (bitmap != null) {
+                    // Scale down if larger than 1920px on longest side
+                    val maxDim = 1920
+                    val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                        val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
+                        android.graphics.Bitmap.createScaledBitmap(
+                            bitmap,
+                            (bitmap.width * scale).toInt(),
+                            (bitmap.height * scale).toInt(),
+                            true
+                        )
+                    } else bitmap
+                    outputFile.outputStream().use { out ->
+                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    if (scaled !== bitmap) scaled.recycle()
+                    bitmap.recycle()
+
+                    val filePath = "file://${outputFile.absolutePath}"
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(filePath)}')", null)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -290,10 +311,38 @@ fun EditorScreen(
         }
     }
     val videoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('video', '${escapeForJs(it.toString())}')", null) }
+        uri?.let { mediaUri ->
+            try {
+                val mediaDir = java.io.File(context.filesDir, "diary_media")
+                if (!mediaDir.exists()) mediaDir.mkdirs()
+                val ext = context.contentResolver.getType(mediaUri)?.substringAfterLast("/") ?: "mp4"
+                val fileName = "vid_${System.currentTimeMillis()}.$ext"
+                val outputFile = java.io.File(mediaDir, fileName)
+                context.contentResolver.openInputStream(mediaUri)?.use { input ->
+                    outputFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                webView?.evaluateJavascript("insertMedia('video', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
     val audioLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs(it.toString())}')", null) }
+        uri?.let { mediaUri ->
+            try {
+                val mediaDir = java.io.File(context.filesDir, "diary_media")
+                if (!mediaDir.exists()) mediaDir.mkdirs()
+                val ext = context.contentResolver.getType(mediaUri)?.substringAfterLast("/") ?: "mp3"
+                val fileName = "aud_${System.currentTimeMillis()}.$ext"
+                val outputFile = java.io.File(mediaDir, fileName)
+                context.contentResolver.openInputStream(mediaUri)?.use { input ->
+                    outputFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -730,6 +779,8 @@ fun EditorScreen(
                         }
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        settings.allowFileAccess = true
+                        settings.allowContentAccess = true
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         setBackgroundColor(0)
                         addJavascriptInterface(jsBridge, "DiaryBridge")

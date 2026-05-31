@@ -222,6 +222,8 @@ fun DiaryDetailScreen(
                                     }
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
+                                    settings.allowFileAccess = true
+                                    settings.allowContentAccess = true
                                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                     settings.setSupportZoom(true)
                                     settings.builtInZoomControls = true
