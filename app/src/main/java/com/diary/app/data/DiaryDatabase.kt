@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class],
-    version = 7,
+    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class],
+    version = 8,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -71,13 +71,37 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS trash_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        originalId INTEGER NOT NULL,
+                        title TEXT NOT NULL DEFAULT '',
+                        content TEXT NOT NULL DEFAULT '',
+                        plainText TEXT NOT NULL DEFAULT '',
+                        moodLevel INTEGER,
+                        weather TEXT,
+                        location TEXT,
+                        latitude REAL,
+                        longitude REAL,
+                        isFavorite INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0,
+                        deletedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_trash_entries_deletedAt ON trash_entries (deletedAt)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

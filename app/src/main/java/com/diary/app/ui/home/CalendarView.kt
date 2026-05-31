@@ -1,9 +1,17 @@
 package com.diary.app.ui.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.theme.PrimaryBlue
+import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -61,6 +70,7 @@ fun CalendarView(
     onModeChange: (CalendarMode) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val isDark = themeMode().isDark()
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     var currentWeekStart by remember { mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))) }
     val today = remember { LocalDate.now() }
@@ -69,11 +79,23 @@ fun CalendarView(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
 
+    // 浅色模式下添加灰色边框
+    val borderModifier = if (!isDark) {
+        Modifier.border(
+            width = 1.dp,
+            color = Color.Gray.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(16.dp)
+        )
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .then(borderModifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Navigation row with mode toggle
@@ -193,27 +215,47 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Date grid
-            if (calendarMode == CalendarMode.MONTH) {
-                MonthView(
-                    currentMonth = currentMonth,
-                    entryDates = entryDates,
-                    dayInfoMap = dayInfoMap,
-                    selectedDate = selectedDate,
-                    today = today,
-                    onDateSelected = onDateSelected,
-                    primary = primary
-                )
-            } else {
-                WeekView(
-                    weekStart = currentWeekStart,
-                    entryDates = entryDates,
-                    dayInfoMap = dayInfoMap,
-                    selectedDate = selectedDate,
-                    today = today,
-                    onDateSelected = onDateSelected,
-                    primary = primary
-                )
+            // Date grid with animation
+            AnimatedContent(
+                targetState = calendarMode,
+                transitionSpec = {
+                    if (targetState == CalendarMode.WEEK) {
+                        // 切换到周视图：向上滑入
+                        (slideInVertically(animationSpec = tween(300)) { height -> height } +
+                                fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
+                                        fadeOut(animationSpec = tween(300)))
+                    } else {
+                        // 切换到月视图：向下滑入
+                        (slideInVertically(animationSpec = tween(300)) { height -> -height } +
+                                fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutVertically(animationSpec = tween(300)) { height -> height } +
+                                        fadeOut(animationSpec = tween(300)))
+                    }
+                },
+                label = "calendarMode"
+            ) { mode ->
+                if (mode == CalendarMode.MONTH) {
+                    MonthView(
+                        currentMonth = currentMonth,
+                        entryDates = entryDates,
+                        dayInfoMap = dayInfoMap,
+                        selectedDate = selectedDate,
+                        today = today,
+                        onDateSelected = onDateSelected,
+                        primary = primary
+                    )
+                } else {
+                    WeekView(
+                        weekStart = currentWeekStart,
+                        entryDates = entryDates,
+                        dayInfoMap = dayInfoMap,
+                        selectedDate = selectedDate,
+                        today = today,
+                        onDateSelected = onDateSelected,
+                        primary = primary
+                    )
+                }
             }
         }
     }

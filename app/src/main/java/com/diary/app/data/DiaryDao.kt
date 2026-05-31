@@ -34,6 +34,9 @@ interface DiaryDao {
     @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun toggleFavorite(id: Long, isFavorite: Boolean)
 
+    @Query("SELECT * FROM diary_entries WHERE isFavorite = 1 ORDER BY createdAt DESC")
+    fun getFavoriteEntries(): Flow<List<DiaryEntry>>
+
     @Query("SELECT createdAt FROM diary_entries")
     fun getAllTimestamps(): Flow<List<Long>>
 
@@ -162,6 +165,22 @@ interface DiaryDao {
         ORDER BY createdAt DESC
     """)
     suspend fun getEntriesByMonthDay(month: Int, day: Int): List<DiaryEntry>
+
+    // Trash queries
+    @Query("SELECT * FROM trash_entries ORDER BY deletedAt DESC")
+    fun getTrashEntries(): Flow<List<TrashEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrashEntry(trashEntry: TrashEntry): Long
+
+    @Query("DELETE FROM trash_entries WHERE id = :id")
+    suspend fun deleteTrashEntryById(id: Long)
+
+    @Query("DELETE FROM trash_entries WHERE deletedAt < :before")
+    suspend fun deleteTrashEntriesBefore(before: Long)
+
+    @Query("SELECT * FROM trash_entries WHERE id = :id")
+    suspend fun getTrashEntryById(id: Long): TrashEntry?
 }
 
 data class TagUsage(

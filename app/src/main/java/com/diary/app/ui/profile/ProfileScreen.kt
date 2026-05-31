@@ -6,6 +6,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -17,6 +18,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +46,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.GetApp
@@ -130,7 +138,9 @@ private val AboutIconTint = Color(0xFF4CAF50)
 @Composable
 fun ProfileScreen(
     onNavigateToChangelog: () -> Unit = {},
-    onNavigateToTagManagement: () -> Unit = {}
+    onNavigateToTagManagement: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {},
+    onNavigateToTrash: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
@@ -169,6 +179,9 @@ fun ProfileScreen(
     var pinLockEnabled by remember { mutableStateOf(BiometricHelper.isPinLockEnabled(context)) }
     var showPinDialog by remember { mutableStateOf(false) }
     var showRemovePinDialog by remember { mutableStateOf(false) }
+
+    // Expanded state for each section
+    var expandedSection by remember { mutableStateOf<String?>(null) }
 
     var showContent by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showContent = true }
@@ -307,33 +320,32 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Single unified settings card
+            // Collapsible sections
             var alpha by remember { mutableFloatStateOf(0f) }
             var offsetY by remember { mutableFloatStateOf(20f) }
             LaunchedEffect(showContent) {
                 if (showContent) { delay(60L); alpha = 1f; offsetY = 0f }
             }
 
-            GlassCard(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer { this.alpha = alpha; translationY = offsetY },
-                cornerRadius = 24.dp,
-                innerPadding = 20.dp
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column {
-                    // ======== Appearance ========
-                    SectionGroupHeader(
-                        icon = Icons.Default.Palette,
-                        bg = AppearanceIconBg,
-                        tint = AppearanceIconTint,
-                        title = stringResource(R.string.profile_appearance),
-                        subtitle = "主题模式和字体大小",
-                        textColor = textColor,
-                        textTertiary = textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
+                // Appearance section
+                CollapsibleSection(
+                    icon = Icons.Default.Palette,
+                    iconBg = AppearanceIconBg,
+                    iconTint = AppearanceIconTint,
+                    title = stringResource(R.string.profile_appearance),
+                    subtitle = "主题模式和字体大小",
+                    isExpanded = expandedSection == "appearance",
+                    onToggle = { expandedSection = if (expandedSection == "appearance") null else "appearance" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
                     ThemeCardSelector(
                         currentMode = currentThemeMode,
                         textColor = textColor,
@@ -341,9 +353,7 @@ fun ProfileScreen(
                         textTertiary = textTertiary,
                         onSelectMode = { app.setThemeMode(it) }
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    Spacer(modifier = Modifier.height(12.dp))
                     FontSizeSliderItem(
                         currentKey = currentFontSizeKey,
                         options = fontSizeOptions,
@@ -357,21 +367,21 @@ fun ProfileScreen(
                                 .edit().putString("editor_font_size", key).apply()
                         }
                     )
+                }
 
-                    SettingDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-                    // ======== Data Management ========
-                    SectionGroupHeader(
-                        icon = Icons.Default.Backup,
-                        bg = DataIconBg,
-                        tint = DataIconTint,
-                        title = stringResource(R.string.profile_data_management),
-                        subtitle = "分类管理和数据备份",
-                        textColor = textColor,
-                        textTertiary = textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                // Data management section
+                CollapsibleSection(
+                    icon = Icons.Default.Backup,
+                    iconBg = DataIconBg,
+                    iconTint = DataIconTint,
+                    title = stringResource(R.string.profile_data_management),
+                    subtitle = "分类管理、备份和回收站",
+                    isExpanded = expandedSection == "data",
+                    onToggle = { expandedSection = if (expandedSection == "data") null else "data" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
                     ClickableSettingRow(
                         icon = Icons.Default.Label,
                         iconBg = DataIconBg,
@@ -381,6 +391,28 @@ fun ProfileScreen(
                         textColor = textColor,
                         textTertiary = textTertiary,
                         onClick = onNavigateToTagManagement
+                    )
+                    SettingDivider()
+                    ClickableSettingRow(
+                        icon = Icons.Default.Favorite,
+                        iconBg = DataIconBg,
+                        iconTint = DataIconTint,
+                        title = "收藏夹",
+                        subtitle = "查看收藏的日记",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = onNavigateToFavorites
+                    )
+                    SettingDivider()
+                    ClickableSettingRow(
+                        icon = Icons.Default.Delete,
+                        iconBg = DataIconBg,
+                        iconTint = DataIconTint,
+                        title = "回收站",
+                        subtitle = "恢复已删除的日记",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = onNavigateToTrash
                     )
                     SettingDivider()
                     ClickableSettingRow(
@@ -420,21 +452,21 @@ fun ProfileScreen(
                         },
                         onClick = { if (!isImporting) filePickerLauncher.launch(arrayOf("application/json")) }
                     )
+                }
 
-                    SettingDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-                    // ======== Reminders ========
-                    SectionGroupHeader(
-                        icon = Icons.Default.Notifications,
-                        bg = ReminderIconBg,
-                        tint = ReminderIconTint,
-                        title = stringResource(R.string.profile_reminder_settings),
-                        subtitle = "每日写作提醒",
-                        textColor = textColor,
-                        textTertiary = textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                // Reminders section
+                CollapsibleSection(
+                    icon = Icons.Default.Notifications,
+                    iconBg = ReminderIconBg,
+                    iconTint = ReminderIconTint,
+                    title = stringResource(R.string.profile_reminder_settings),
+                    subtitle = "每日写作提醒",
+                    isExpanded = expandedSection == "reminder",
+                    onToggle = { expandedSection = if (expandedSection == "reminder") null else "reminder" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
                     SwitchSettingRow(
                         icon = Icons.Default.Notifications,
                         iconBg = ReminderIconBg,
@@ -456,21 +488,21 @@ fun ProfileScreen(
                         },
                         subtitleClick = if (reminderEnabled) {{ showTimePicker = true }} else null
                     )
+                }
 
-                    SettingDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-                    // ======== Privacy & Security ========
-                    SectionGroupHeader(
-                        icon = Icons.Default.Security,
-                        bg = PrivacyIconBg,
-                        tint = PrivacyIconTint,
-                        title = stringResource(R.string.profile_privacy_security),
-                        subtitle = "应用锁和隐私保护",
-                        textColor = textColor,
-                        textTertiary = textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                // Privacy & Security section
+                CollapsibleSection(
+                    icon = Icons.Default.Security,
+                    iconBg = PrivacyIconBg,
+                    iconTint = PrivacyIconTint,
+                    title = stringResource(R.string.profile_privacy_security),
+                    subtitle = "应用锁和隐私保护",
+                    isExpanded = expandedSection == "privacy",
+                    onToggle = { expandedSection = if (expandedSection == "privacy") null else "privacy" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
                     SwitchSettingRow(
                         icon = Icons.Default.Lock,
                         iconBg = PrivacyIconBg,
@@ -511,21 +543,21 @@ fun ProfileScreen(
                             )
                         }
                     }
+                }
 
-                    SettingDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-                    // ======== About ========
-                    SectionGroupHeader(
-                        icon = Icons.Default.Info,
-                        bg = AboutIconBg,
-                        tint = AboutIconTint,
-                        title = stringResource(R.string.profile_about),
-                        subtitle = "版本信息和更新",
-                        textColor = textColor,
-                        textTertiary = textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                // About section
+                CollapsibleSection(
+                    icon = Icons.Default.Info,
+                    iconBg = AboutIconBg,
+                    iconTint = AboutIconTint,
+                    title = stringResource(R.string.profile_about),
+                    subtitle = "版本信息和更新",
+                    isExpanded = expandedSection == "about",
+                    onToggle = { expandedSection = if (expandedSection == "about") null else "about" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
                     ClickableSettingRow(
                         icon = Icons.Default.SystemUpdate,
                         iconBg = AboutIconBg,
@@ -562,37 +594,95 @@ fun ProfileScreen(
                         textTertiary = textTertiary,
                         onClick = onNavigateToChangelog
                     )
-
-                    // Version badge + footer
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(horizontal = 14.dp, vertical = 5.dp)
-                        ) {
-                            Text("v${BuildConfig.VERSION_NAME}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textSecondary)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.made_with_love), fontSize = 11.sp, color = textTertiary)
-                        Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFE91E63), modifier = Modifier.size(12.dp))
-                        Text(stringResource(R.string.made_by), fontSize = 11.sp, color = textTertiary)
-                    }
                 }
             }
 
+            // Version badge + footer
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(horizontal = 14.dp, vertical = 5.dp)
+                ) {
+                    Text("v${BuildConfig.VERSION_NAME}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.made_with_love), fontSize = 11.sp, color = textTertiary)
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFE91E63), modifier = Modifier.size(12.dp))
+                Text(stringResource(R.string.made_by), fontSize = 11.sp, color = textTertiary)
+            }
+
             Spacer(modifier = Modifier.height(48.dp))
+        }
+    }
+}
+
+// --- Collapsible Section ---
+
+@Composable
+private fun CollapsibleSection(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    textColor: Color,
+    textSecondary: Color,
+    textTertiary: Color,
+    content: @Composable () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 20.dp,
+        innerPadding = 16.dp
+    ) {
+        Column {
+            // Header row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconCircle(icon = icon, bg = iconBg, tint = iconTint)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
+                    Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    tint = textSecondary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Expandable content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+                exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    content()
+                }
+            }
         }
     }
 }

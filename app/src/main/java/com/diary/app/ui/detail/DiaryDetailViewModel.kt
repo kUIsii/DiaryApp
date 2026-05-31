@@ -8,6 +8,7 @@ import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryExporter
 import com.diary.app.data.Tag
+import com.diary.app.data.TrashEntry
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.weatherLabelFor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -116,6 +117,22 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     suspend fun deleteEntry() {
         val currentEntry = _entry.value ?: return
+        // Move to trash instead of permanent delete
+        val trashEntry = TrashEntry(
+            originalId = currentEntry.id,
+            title = currentEntry.title,
+            content = currentEntry.content,
+            plainText = currentEntry.plainText,
+            moodLevel = currentEntry.moodLevel,
+            weather = currentEntry.weather,
+            location = currentEntry.location,
+            latitude = currentEntry.latitude,
+            longitude = currentEntry.longitude,
+            isFavorite = currentEntry.isFavorite,
+            createdAt = currentEntry.createdAt,
+            updatedAt = currentEntry.updatedAt
+        )
+        dao.insertTrashEntry(trashEntry)
         dao.deleteEntry(currentEntry)
     }
 

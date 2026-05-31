@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
+import com.diary.app.data.TrashEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -317,13 +318,48 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteEntry(entry: DiaryEntry) {
         viewModelScope.launch {
+            // Move to trash instead of permanent delete
+            val trashEntry = TrashEntry(
+                originalId = entry.id,
+                title = entry.title,
+                content = entry.content,
+                plainText = entry.plainText,
+                moodLevel = entry.moodLevel,
+                weather = entry.weather,
+                location = entry.location,
+                latitude = entry.latitude,
+                longitude = entry.longitude,
+                isFavorite = entry.isFavorite,
+                createdAt = entry.createdAt,
+                updatedAt = entry.updatedAt
+            )
+            dao.insertTrashEntry(trashEntry)
             dao.deleteEntry(entry)
         }
     }
 
     fun deleteEntryById(id: Long) {
         viewModelScope.launch {
-            dao.deleteEntryById(id)
+            val entry = dao.getEntryById(id)
+            if (entry != null) {
+                // Move to trash instead of permanent delete
+                val trashEntry = TrashEntry(
+                    originalId = entry.id,
+                    title = entry.title,
+                    content = entry.content,
+                    plainText = entry.plainText,
+                    moodLevel = entry.moodLevel,
+                    weather = entry.weather,
+                    location = entry.location,
+                    latitude = entry.latitude,
+                    longitude = entry.longitude,
+                    isFavorite = entry.isFavorite,
+                    createdAt = entry.createdAt,
+                    updatedAt = entry.updatedAt
+                )
+                dao.insertTrashEntry(trashEntry)
+                dao.deleteEntry(entry)
+            }
         }
     }
 
@@ -352,4 +388,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
+
+    // Selected entries for the selected date
+    val selectedEntries: StateFlow<List<DiaryEntry>> = combine(
+        allEntries,
+        _selectedDate
+    ) { entries, date ->
+        if (date == null) {
+            emptyList()
+        } else {
+            entries.filter { entry ->
+                val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                entryDate == date
+            }.sortedByDescending { it.createdAt }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 }

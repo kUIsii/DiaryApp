@@ -68,7 +68,9 @@ import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.review.DiaryReviewScreen
-import com.diary.app.ui.map.MapScreen
+import com.diary.app.ui.timeline.TimelineScreen
+import com.diary.app.ui.favorites.FavoritesScreen
+import com.diary.app.ui.trash.TrashScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
 import com.diary.app.ui.settings.SettingsScreen
@@ -79,24 +81,26 @@ import com.diary.app.update.ChangelogScreen
 // region Screen definitions
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Home : Screen("home", "\u9996\u9875", Icons.Default.Home)
-    object Map : Screen("map", "\u65e5\u5386", Icons.Default.CalendarMonth)
-    object Todo : Screen("todo", "\u5f85\u529e", Icons.Default.CheckBox)
-    object Stats : Screen("stats", "\u7edf\u8ba1", Icons.Default.BarChart)
-    object Profile : Screen("profile", "\u6211\u7684", Icons.Default.Person)
-    object Editor : Screen("editor?diaryId={diaryId}", "\u7f16\u8f91\u65e5\u8bb0", Icons.Default.Home) {
+    object Home : Screen("home", "首页", Icons.Default.Home)
+    object Timeline : Screen("timeline", "时间线", Icons.Default.CalendarMonth)
+    object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
+    object Stats : Screen("stats", "统计", Icons.Default.BarChart)
+    object Profile : Screen("profile", "我的", Icons.Default.Person)
+    object Editor : Screen("editor?diaryId={diaryId}", "编辑日记", Icons.Default.Home) {
         fun createRoute(diaryId: Long? = null): String {
             return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
         }
     }
-    object Detail : Screen("detail/{diaryId}", "\u65e5\u8bb0\u8be6\u60c5", Icons.Default.Home) {
+    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Home) {
         fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
-    object Changelog : Screen("changelog", "\u66f4\u65b0\u65e5\u5fd7", Icons.Default.Home)
-    object TagManagement : Screen("tag_management", "\u5206\u7c7b\u7ba1\u7406", Icons.Default.Home)
-    object Review : Screen("review", "\u65e5\u8bb0\u56de\u987e", Icons.Default.Home)
-    object Settings : Screen("settings", "\u8bbe\u7f6e", Icons.Default.Home)
-    object Backup : Screen("backup", "\u5907\u4efd", Icons.Default.Home)
+    object Changelog : Screen("changelog", "更新日志", Icons.Default.Home)
+    object TagManagement : Screen("tag_management", "分类管理", Icons.Default.Home)
+    object Review : Screen("review", "日记回顾", Icons.Default.Home)
+    object Settings : Screen("settings", "设置", Icons.Default.Home)
+    object Backup : Screen("backup", "备份", Icons.Default.Home)
+    object Favorites : Screen("favorites", "收藏夹", Icons.Default.Home)
+    object Trash : Screen("trash", "回收站", Icons.Default.Home)
 }
 
 // endregion
@@ -111,7 +115,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home),
-    BottomNavItem(Screen.Map),
+    BottomNavItem(Screen.Timeline),
     BottomNavItem(Screen.Todo),
     BottomNavItem(Screen.Stats),
     BottomNavItem(Screen.Profile)
@@ -171,11 +175,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 HomeScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
-                    onNavigateToReview = { navController.navigate(Screen.Review.route) }
+                    onNavigateToReview = { navController.navigate(Screen.Review.route) },
+                    onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
+                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) }
                 )
             }
-            composable(Screen.Map.route) {
-                MapScreen(
+            composable(Screen.Timeline.route) {
+                TimelineScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) }
                 )
@@ -185,7 +191,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
-                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) }
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
+                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) }
                 )
             }
 
@@ -216,6 +224,18 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Backup.route) {
                 BackupScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Favorites.route) {
+                FavoritesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.Trash.route) {
+                TrashScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
 

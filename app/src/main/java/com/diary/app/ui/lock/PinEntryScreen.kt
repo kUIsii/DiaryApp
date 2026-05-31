@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.WarningColor
+import com.diary.app.ui.theme.themeMode
 import kotlinx.coroutines.delay
 
 @Composable
@@ -56,6 +57,19 @@ fun PinEntryScreen(
     onBiometricClick: (() -> Unit)? = null,
     lockoutSeconds: Int = 0
 ) {
+    val isDark = themeMode().isDark()
+    // 根据主题模式动态调整颜色
+    val textColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+    val textColorSecondary = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF666666)
+    val iconBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+    val iconColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+    val dotFilledColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+    val dotEmptyColor = if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
+    val keyBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+    val keyBgPressedColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f)
+    val keyTextColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+    val hintBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+
     var pin by remember { mutableStateOf("") }
     var errorShake by remember { mutableIntStateOf(0) }
     var showError by remember { mutableStateOf(false) }
@@ -117,12 +131,12 @@ fun PinEntryScreen(
             modifier = Modifier
                 .size(80.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.1f))
+                .background(iconBgColor)
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
                 contentDescription = null,
-                tint = Color.White,
+                tint = iconColor,
                 modifier = Modifier.size(36.dp)
             )
         }
@@ -134,7 +148,7 @@ fun PinEntryScreen(
             text = title,
             fontSize = 22.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White
+            color = textColor
         )
 
         if (subtitle.isNotBlank()) {
@@ -142,7 +156,7 @@ fun PinEntryScreen(
             Text(
                 text = subtitle,
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.6f)
+                color = textColorSecondary
             )
         }
 
@@ -164,8 +178,8 @@ fun PinEntryScreen(
 
                 val dotColor = when {
                     isError -> ErrorColor
-                    filled -> Color.White
-                    else -> Color.White.copy(alpha = 0.25f)
+                    filled -> dotFilledColor
+                    else -> dotEmptyColor
                 }
 
                 Box(
@@ -217,10 +231,10 @@ fun PinEntryScreen(
                 Text(
                     text = "提示：$hint",
                     fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = textColorSecondary,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.1f))
+                        .background(hintBgColor)
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
@@ -286,7 +300,7 @@ fun PinEntryScreen(
             Text(
                 text = "使用生物识别",
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.6f),
+                color = textColorSecondary,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { onBiometricClick() }
@@ -303,6 +317,11 @@ private fun PinKey(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
+    val isDark = themeMode().isDark()
+    val keyBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+    val keyBgPressedColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f)
+    val keyTextColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+
     val interactionSource = remember { MutableInteractionSource() }
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -318,7 +337,7 @@ private fun PinKey(
             .size(72.dp)
             .scale(scale)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = if (pressed) 0.2f else 0.1f))
+            .background(if (pressed) keyBgPressedColor else keyBgColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -333,7 +352,7 @@ private fun PinKey(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.White.copy(alpha = 0.7f * alpha),
+                tint = keyTextColor.copy(alpha = 0.7f * alpha),
                 modifier = Modifier.size(24.dp)
             )
         } else {
@@ -341,7 +360,7 @@ private fun PinKey(
                 text = label,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Light,
-                color = Color.White.copy(alpha = alpha),
+                color = keyTextColor.copy(alpha = alpha),
                 textAlign = TextAlign.Center
             )
         }

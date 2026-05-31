@@ -34,14 +34,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -132,7 +127,6 @@ fun DiaryDetailScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    var showMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Simple fade-in for content
@@ -160,36 +154,6 @@ fun DiaryDetailScreen(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                // More menu
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = null,
-                            tint = textSecondary
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.delete_diary), color = MaterialTheme.colorScheme.error) },
-                            onClick = {
-                                showMenu = false
-                                showDeleteDialog = true
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        )
-                    }
-                }
             }
 
             // Delete confirmation dialog
@@ -296,6 +260,7 @@ fun DiaryDetailScreen(
                         DetailBottomBar(
                             isFavorite = currentEntry.isFavorite,
                             onEdit = { onNavigateToEditor(diaryId) },
+                            onDelete = { showDeleteDialog = true },
                             onToggleFavorite = { viewModel.toggleFavorite() }
                         )
                     }
@@ -484,6 +449,7 @@ private fun DetailTimestamps(
 private fun DetailBottomBar(
     isFavorite: Boolean,
     onEdit: () -> Unit,
+    onDelete: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -502,6 +468,14 @@ private fun DetailBottomBar(
             label = "编辑",
             tint = textSecondary.copy(alpha = 0.7f),
             onClick = onEdit
+        )
+
+        // Delete
+        BottomActionButton(
+            icon = Icons.Default.Delete,
+            label = "删除",
+            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+            onClick = onDelete
         )
 
         // Favorite
