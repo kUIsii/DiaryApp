@@ -63,6 +63,25 @@
         <receiver
             android:name=".reminder.TodoReminderReceiver"
             android:exported="false" />
+
+        <!-- Todo Widget -->
+        <receiver
+            android:name=".widget.TodoWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.diary.app.widget.ACTION_TOGGLE_TODO" />
+                <action android:name="com.diary.app.widget.ACTION_ADD_TODO" />
+                <action android:name="com.diary.app.widget.ACTION_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_todo_info" />
+        </receiver>
+        <service
+            android:name=".widget.TodoWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 
 </manifest>

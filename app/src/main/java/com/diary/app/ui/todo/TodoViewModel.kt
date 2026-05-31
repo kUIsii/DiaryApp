@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.TodoItem
 import com.diary.app.reminder.TodoReminderManager
+import com.diary.app.widget.TodoWidgetProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -72,6 +73,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         TodoReminderManager.rescheduleAllPendingReminders(context)
     }
 
+    private fun refreshWidget() {
+        TodoWidgetProvider.updateAllWidgets(context)
+    }
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -125,6 +130,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     TodoReminderManager.scheduleReminder(context, id, title.trim(), time)
                 }
             }
+            refreshWidget()
         }
     }
 
@@ -150,6 +156,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 TodoReminderManager.cancelReminder(context, todo.id)
             }
+            refreshWidget()
         }
     }
 
@@ -168,6 +175,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     createRecurringCopy(todo)
                 }
             }
+            refreshWidget()
         }
     }
 
@@ -217,6 +225,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             dao.deleteTodo(todo)
             dao.deleteSubTodos(todo.id)
             TodoReminderManager.cancelReminder(context, todo.id)
+            refreshWidget()
         }
     }
 
@@ -224,6 +233,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val sevenDaysAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
             dao.deleteCompletedTodosBefore(sevenDaysAgo)
+            refreshWidget()
         }
     }
 

@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#A8D8B9</color>
+
+    <!-- Widget colors -->
+    <color name="widget_background">#FF1E1E2E</color>
+    <color name="widget_item_background">#FF2A2A3E</color>
+    <color name="widget_button_background">#FF3A3A4E</color>
+    <color name="widget_tag_background">#FF3A3A4E</color>
+    <color name="widget_text_primary">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#FFB0B0C0</color>
+    <color name="widget_accent">#FF7C8CF8</color>
+    <color name="widget_priority_high">#FFFF6B6B</color>
+    <color name="widget_priority_medium">#FFFFD93D</color>
+    <color name="widget_priority_low">#FF6BCB77</color>
 </resources>

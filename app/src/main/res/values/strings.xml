@@ -348,4 +348,11 @@
     <string name="share_from">来自 日记本 App</string>
     <string name="share_mood">心情: %s</string>
     <string name="share_weather">天气: %s</string>
+
+    <!-- Widget -->
+    <string name="widget_description">在桌面上显示待办事项列表</string>
+    <string name="widget_title">待办事项</string>
+    <string name="widget_empty">暂无待办事项</string>
+    <string name="widget_add">添加待办</string>
+    <string name="widget_pending_count">%d 项待完成</string>
 </resources>
