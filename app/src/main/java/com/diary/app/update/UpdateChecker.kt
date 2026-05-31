@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.pow
 
 data class GitHubRelease(
     @SerializedName("tag_name") val tagName: String,
@@ -48,7 +49,8 @@ object UpdateChecker {
                 val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java)
 
                 // 根据 flavor 过滤：experimental 只匹配 experimental，stable 只匹配非 experimental
-                val matchingRelease = releases.firstOrNull { release ->
+                // 找到版本号最高的 release（而不是第一个，因为 API 按创建时间排序）
+                val matchingRelease = releases.filter { release ->
                     val tag = release.tagName.lowercase()
                     val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
                     hasApk && if (isExperimental) {
@@ -56,6 +58,11 @@ object UpdateChecker {
                     } else {
                         !tag.contains("experimental")
                     }
+                }.maxByOrNull { release ->
+                    val version = release.tagName.removePrefix("v").substringBefore("-")
+                    val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
+                    // 将版本号转换为可比较的数值：major*1000000 + minor*1000 + patch
+                    parts.getOrElse(0) { 0 } * 1000000 + parts.getOrElse(1) { 0 } * 1000 + parts.getOrElse(2) { 0 }
                 } ?: return@withContext null
 
                 val latestVersion = matchingRelease.tagName.removePrefix("v")
