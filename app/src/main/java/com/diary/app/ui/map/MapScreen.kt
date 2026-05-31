@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -23,13 +22,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -63,6 +62,7 @@ import com.diary.app.ui.home.TagInfo
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -81,7 +81,6 @@ fun MapScreen(
 
     var calendarMode by remember { mutableStateOf(CalendarMode.MONTH) }
 
-    // Auto-select today on first load
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
             viewModel.selectDate(LocalDate.now())
@@ -103,13 +102,19 @@ fun MapScreen(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "共 ${entryDates.size} 天有记录",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Year overview stats
+            item {
+                YearOverviewCard(entryDates = entryDates)
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Calendar
@@ -125,10 +130,10 @@ fun MapScreen(
                     calendarMode = calendarMode,
                     onModeChange = { calendarMode = it }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Selected date label
+            // Selected date header
             if (selectedDate != null) {
                 item {
                     SelectedDateHeader(
@@ -173,6 +178,92 @@ fun MapScreen(
             // Bottom padding
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+}
+
+@Composable
+private fun YearOverviewCard(entryDates: Set<LocalDate>) {
+    val currentYear = YearMonth.now().year
+    val yearDates = entryDates.filter { it.year == currentYear }
+    val currentMonth = YearMonth.now()
+    val monthDates = entryDates.filter {
+        YearMonth.from(it) == currentMonth
+    }
+
+    // Calculate streak
+    var streak = 0
+    var checkDate = LocalDate.now()
+    while (checkDate in entryDates) {
+        streak++
+        checkDate = checkDate.minusDays(1)
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${currentYear}年概览",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Icon(
+                    Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem(
+                    label = "年度总天数",
+                    value = "${yearDates.size}",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                StatItem(
+                    label = "本月天数",
+                    value = "${monthDates.size}",
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                StatItem(
+                    label = "连续天数",
+                    value = "$streak",
+                    color = if (streak > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 

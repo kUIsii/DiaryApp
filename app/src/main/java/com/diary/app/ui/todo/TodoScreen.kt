@@ -35,7 +35,10 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +49,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDismissState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
 import androidx.compose.runtime.Composable
@@ -81,6 +87,7 @@ import com.diary.app.ui.theme.PrimaryBlue
 import com.diary.app.ui.theme.SuccessColor
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -104,6 +111,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val pendingCount = todos.count { !it.isCompleted }
+    val completedCount = todos.count { it.isCompleted }
     val today = remember { LocalDate.now() }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("M月d日 EEEE") }
 
@@ -144,10 +152,31 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${today.format(dateFormatter)} · ${stringResource(R.string.todo_remaining, pendingCount)}",
+                        text = "${today.format(dateFormatter)}",
                         color = textSecondary,
                         fontSize = 14.sp
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Stats row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        StatBadge(
+                            label = "待完成",
+                            count = pendingCount,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        StatBadge(
+                            label = "已完成",
+                            count = completedCount,
+                            color = SuccessColor
+                        )
+                        StatBadge(
+                            label = "总计",
+                            count = todos.size,
+                            color = textSecondary
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -247,9 +276,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            ErrorColor.copy(alpha = 0.15f * progress)
-                                        )
+                                        .background(ErrorColor.copy(alpha = 0.15f * progress))
                                         .padding(horizontal = 20.dp),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
@@ -325,6 +352,36 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     Text(stringResource(R.string.cancel))
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun StatBadge(label: String, count: Int, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = "$label ",
+            fontSize = 12.sp,
+            color = color.copy(alpha = 0.7f)
+        )
+        Text(
+            text = "$count",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
         )
     }
 }
@@ -434,6 +491,67 @@ private fun EditTodoDialog(
     var title by remember { mutableStateOf(todo.title) }
     var priority by remember { mutableStateOf(todo.priority) }
     var category by remember { mutableStateOf(todo.category) }
+    var reminderTime by remember { mutableStateOf(todo.reminderTime) }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = reminderTime ?: System.currentTimeMillis()
+    )
+    val timePickerState = rememberTimePickerState(
+        initialHour = if (reminderTime != null) {
+            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime().hour
+        } else 9,
+        initialMinute = if (reminderTime != null) {
+            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime().minute
+        } else 0,
+        is24Hour = true
+    )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { dateMillis ->
+                        val date = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        val time = if (reminderTime != null) {
+                            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime()
+                        } else LocalTime.of(9, 0)
+                        reminderTime = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择提醒时间") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val date = if (reminderTime != null) {
+                        Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                    } else LocalDate.now()
+                    reminderTime = date.atTime(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -508,11 +626,69 @@ private fun EditTodoDialog(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("提醒时间", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Date picker button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { showDatePicker = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (reminderTime != null) {
+                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
+                                    .toLocalDate().format(DateTimeFormatter.ofPattern("M月d日"))
+                            } else "选择日期",
+                            fontSize = 12.sp,
+                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Time picker button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { showTimePicker = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (reminderTime != null) {
+                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
+                                    .toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } else "选择时间",
+                            fontSize = 12.sp,
+                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Clear reminder
+                    if (reminderTime != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ErrorColor.copy(alpha = 0.1f))
+                                .clickable { reminderTime = null }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text("清除", fontSize = 12.sp, color = ErrorColor)
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (title.isNotBlank()) onConfirm(todo.copy(title = title.trim(), priority = priority, category = category)) },
+                onClick = { if (title.isNotBlank()) onConfirm(todo.copy(title = title.trim(), priority = priority, category = category, reminderTime = reminderTime)) },
                 enabled = title.isNotBlank()
             ) { Text("确定") }
         },
@@ -540,14 +716,12 @@ private fun TodoItemCard(
     )
     val checkboxScale by animateFloatAsState(
         targetValue = if (isCompleted) 1.15f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.6f,
-            stiffness = 400f
-        ),
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
         label = "checkbox_scale"
     )
 
-    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val interactionSource = remember { MutableInteractionSource() }
+    val hasReminder = todo.reminderTime != null && todo.reminderTime > System.currentTimeMillis()
 
     GlassCard(
         modifier = Modifier
@@ -606,7 +780,7 @@ private fun TodoItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Category tag + priority + due date row
+                // Category tag + priority + reminder + due date row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -640,6 +814,34 @@ private fun TodoItemCard(
                                 .clip(CircleShape)
                                 .background(prioColor)
                         )
+                    }
+
+                    // Reminder indicator
+                    if (hasReminder) {
+                        val reminderText = Instant.ofEpochMilli(todo.reminderTime!!)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalTime()
+                            .format(DateTimeFormatter.ofPattern("HH:mm"))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "提醒",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = reminderText,
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     // Due date
@@ -688,9 +890,7 @@ private fun ClearCompletedButton(
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.DeleteSweep,
                 contentDescription = "清除已完成",

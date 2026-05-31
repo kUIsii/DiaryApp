@@ -11,4 +11,15 @@
             android:targetPackage="com.diary.app"
             android:targetClass="com.diary.app.MainActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="quick_todo"
+        android:enabled="true"
+        android:icon="@drawable/ic_notification"
+        android:shortcutShortLabel="@string/shortcut_quick_todo_short"
+        android:shortcutLongLabel="@string/shortcut_quick_todo_long">
+        <intent
+            android:action="com.diary.app.QUICK_TODO"
+            android:targetPackage="com.diary.app"
+            android:targetClass="com.diary.app.MainActivity" />
+    </shortcut>
 </shortcuts>

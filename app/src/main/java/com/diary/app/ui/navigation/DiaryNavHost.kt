@@ -150,6 +150,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             if (navigateTo == "editor") {
                 navController.navigate(Screen.Editor.createRoute())
                 onNavigateHandled()
+            } else if (navigateTo == "todo") {
+                navController.navigate(Screen.Todo.route) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                onNavigateHandled()
             }
         }
 

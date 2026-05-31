@@ -128,6 +128,16 @@ interface DiaryDao {
     @Query("DELETE FROM todo_items WHERE isCompleted = 1 AND completedAt < :before")
     suspend fun deleteCompletedTodosBefore(before: Long)
 
+    // Todo reminder queries
+    @Query("SELECT * FROM todo_items WHERE reminderTime IS NOT NULL AND reminderTime > :now AND isCompleted = 0 ORDER BY reminderTime ASC")
+    suspend fun getPendingReminderTodos(now: Long = System.currentTimeMillis()): List<TodoItem>
+
+    @Query("SELECT * FROM todo_items WHERE id = :id")
+    suspend fun getTodoById(id: Long): TodoItem?
+
+    @Query("SELECT * FROM todo_items WHERE isCompleted = 0 ORDER BY reminderTime ASC")
+    fun getAllPendingTodos(): Flow<List<TodoItem>>
+
     // "On This Day" - get entries from the same month+day in previous years
     // We use SQLite strftime to extract month and day from the epoch timestamp
     @Query("""

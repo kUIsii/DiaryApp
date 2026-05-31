@@ -9,7 +9,8 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["dueDate"]),
         Index(value = ["isCompleted"]),
-        Index(value = ["category"])
+        Index(value = ["category"]),
+        Index(value = ["reminderTime"])
     ]
 )
 data class TodoItem(
@@ -22,7 +23,8 @@ data class TodoItem(
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
     val sortOrder: Int = 0,
-    val category: String = "task"  // task, reminder, goal
+    val category: String = "task",  // task, reminder, goal
+    val reminderTime: Long? = null  // epoch millis for notification reminder, null = no reminder
 ) {
     companion object {
         const val CATEGORY_TASK = "task"
@@ -30,6 +32,13 @@ data class TodoItem(
         const val CATEGORY_GOAL = "goal"
 
         fun categoryLabel(category: String): String = when (category) {
+            CATEGORY_TASK -> "任务"
+            CATEGORY_REMINDER -> "提醒"
+            CATEGORY_GOAL -> "目标"
+            else -> "任务"
+        }
+
+        fun categoryIcon(category: String): String = when (category) {
             CATEGORY_TASK -> "任务"
             CATEGORY_REMINDER -> "提醒"
             CATEGORY_GOAL -> "目标"

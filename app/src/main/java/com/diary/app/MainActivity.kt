@@ -335,6 +335,7 @@ class MainActivity : FragmentActivity() {
 
     private fun resolveNavigateTo(intent: Intent?): String? {
         if (intent?.action == "com.diary.app.NEW_DIARY") return "editor"
+        if (intent?.action == "com.diary.app.QUICK_TODO") return "todo"
         return intent?.getStringExtra("navigate_to")
     }
 }

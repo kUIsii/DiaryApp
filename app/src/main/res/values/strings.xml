@@ -9,6 +9,8 @@
     <!-- Shortcuts -->
     <string name="shortcut_new_diary_short">新建日记</string>
     <string name="shortcut_new_diary_long">快速创建一篇新日记</string>
+    <string name="shortcut_quick_todo_short">添加待办</string>
+    <string name="shortcut_quick_todo_long">快速添加今日待办</string>
 
     <!-- Navigation -->
     <string name="navigate_back">返回</string>

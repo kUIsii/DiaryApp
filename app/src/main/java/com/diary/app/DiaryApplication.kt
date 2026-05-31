@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.reminder.ReminderReceiver
+import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.ThemePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ class DiaryApplication : Application() {
         super.onCreate()
         _themeMode.value = ThemePreferences.getThemeMode(this)
         createNotificationChannel()
+        TodoReminderManager.createNotificationChannel(this)
     }
 
     private fun createNotificationChannel() {
