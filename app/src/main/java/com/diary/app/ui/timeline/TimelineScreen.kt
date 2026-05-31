@@ -62,6 +62,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
+import java.time.Month
 import java.util.Locale
 
 @Composable
@@ -86,74 +87,56 @@ fun TimelineScreen(
         }.toSortedMap(compareByDescending { it })
     }
 
+    // Group entries by month for magazine-style layout
+    val monthlyGroups = remember(groupedEntries) {
+        groupedEntries.entries.groupBy { (date, _) ->
+            YearMonth(date.year, date.monthValue)
+        }.toSortedMap(compareByDescending { it })
+    }
+
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Page header
+                // Page header - magazine style
                 item {
-                    Text(
-                        text = "时间线",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "共 ${entries.size} 篇日记",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    MagazineHeader(totalEntries = entries.size)
                 }
 
-                // Timeline entries
-                groupedEntries.forEach { (date, dayEntries) ->
-                    // Date header
+                // Monthly groups
+                monthlyGroups.forEach { (yearMonth, dateEntries) ->
+                    // Month header - elegant divider
                     item {
-                        DateHeader(date = date, entryCount = dayEntries.size)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        MonthHeader(yearMonth = yearMonth)
                     }
 
-                    // Entries for this date
-                    itemsIndexed(
-                        items = dayEntries,
-                        key = { _, entry -> entry.id }
-                    ) { index, entry ->
-                        val enterDelay = (index * 60).coerceAtMost(400)
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
-                        ) {
-                            TimelineEntryCard(
-                                entry = entry,
-                                tags = tagsMap[entry.id] ?: emptyList(),
-                                isLast = index == dayEntries.size - 1,
-                                onClick = {
+                    // Entries for each date in this month
+                    dateEntries.forEachIndexed { dateIndex, (date, dayEntries) ->
+                        // Date section with entries
+                        item {
+                            DateSection(
+                                date = date,
+                                entries = dayEntries,
+                                tagsMap = tagsMap,
+                                onNavigateToDetail = { entryId ->
                                     haptic.click()
-                                    onNavigateToDetail(entry.id)
+                                    onNavigateToDetail(entryId)
                                 }
                             )
                         }
                     }
 
-                    // Spacer between date groups
+                    // Spacer between months
                     item {
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(48.dp))
                     }
                 }
 
                 // Bottom padding
-                item { Spacer(modifier = Modifier.height(80.dp)) }
+                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
 
             // FAB
@@ -162,8 +145,122 @@ fun TimelineScreen(
     }
 }
 
+// Data class for year-month grouping
+private data class YearMonth(val year: Int, val month: Int) : Comparable<YearMonth> {
+    override fun compareTo(other: YearMonth): Int {
+        return if (this.year != other.year) {
+            other.year - this.year
+        } else {
+            other.month - this.month
+        }
+    }
+}
+
 @Composable
-private fun DateHeader(date: LocalDate, entryCount: Int) {
+private fun MagazineHeader(totalEntries: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 32.dp)
+    ) {
+        // Title - large, magazine style
+        Text(
+            text = "回忆",
+            fontSize = 42.sp,
+            fontWeight = FontWeight.Light,
+            color = MaterialTheme.colorScheme.onBackground,
+            letterSpacing = 2.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Subtitle with count
+        Text(
+            text = "共 $totalEntries 篇故事",
+            fontSize = 15.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Elegant divider
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
+        )
+    }
+}
+
+@Composable
+private fun MonthHeader(yearMonth: YearMonth) {
+    val monthName = when (yearMonth.month) {
+        1 -> "一月"
+        2 -> "二月"
+        3 -> "三月"
+        4 -> "四月"
+        5 -> "五月"
+        6 -> "六月"
+        7 -> "七月"
+        8 -> "八月"
+        9 -> "九月"
+        10 -> "十月"
+        11 -> "十一月"
+        12 -> "十二月"
+        else -> ""
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Year
+            Text(
+                text = "${yearMonth.year}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                letterSpacing = 2.sp
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Month - larger, bolder
+            Text(
+                text = monthName,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground,
+                letterSpacing = 1.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Subtle divider line
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+        )
+    }
+}
+
+@Composable
+private fun DateSection(
+    date: LocalDate,
+    entries: List<DiaryEntry>,
+    tagsMap: Map<Long, List<TagInfo>>,
+    onNavigateToDetail: (Long) -> Unit
+) {
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
 
@@ -171,7 +268,6 @@ private fun DateHeader(date: LocalDate, entryCount: Int) {
         today -> "今天"
         yesterday -> "昨天"
         else -> {
-            val formatter = DateTimeFormatter.ofPattern("M月d日")
             val dayOfWeek = when (date.dayOfWeek) {
                 DayOfWeek.MONDAY -> "周一"
                 DayOfWeek.TUESDAY -> "周二"
@@ -181,205 +277,196 @@ private fun DateHeader(date: LocalDate, entryCount: Int) {
                 DayOfWeek.SATURDAY -> "周六"
                 DayOfWeek.SUNDAY -> "周日"
             }
-            "${date.format(formatter)} $dayOfWeek"
+            dayOfWeek
         }
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    val dayNumber = date.dayOfMonth.toString()
+    val isSpecialDate = date == today || date == yesterday
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
-        // Timeline dot
+        // Date row - elegant layout
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Day number - large, prominent
+            Text(
+                text = dayNumber,
+                fontSize = if (isSpecialDate) 48.sp else 42.sp,
+                fontWeight = FontWeight.Light,
+                color = if (isSpecialDate) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                },
+                lineHeight = 1.sp
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Day of week and entry count
+            Column(
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Text(
+                    text = dateText,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                if (entries.size > 1) {
+                    Text(
+                        text = "${entries.size} 篇",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Entries for this date
+        entries.forEachIndexed { index, entry ->
+            EntryCard(
+                entry = entry,
+                tags = tagsMap[entry.id] ?: emptyList(),
+                onClick = { onNavigateToDetail(entry.id) }
+            )
+
+            if (index < entries.size - 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Subtle separator
         Box(
             modifier = Modifier
-                .size(12.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-        )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Date text
-        Text(
-            text = dateText,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Entry count
-        Text(
-            text = "$entryCount 篇",
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f))
         )
     }
 }
 
 @Composable
-private fun TimelineEntryCard(
+private fun EntryCard(
     entry: DiaryEntry,
     tags: List<TagInfo>,
-    isLast: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(durationMillis = 150),
         label = "entryCardScale"
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        // Timeline line
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(24.dp)
-        ) {
-            // Vertical line
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .height(if (isLast) 20.dp else 160.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        // Time - subtle
+        Text(
+            text = formatEntryTime(entry.createdAt),
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Title - clean, readable
+        if (entry.title.isNotBlank()) {
+            Text(
+                text = entry.title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 26.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Content preview - magazine style
+        if (entry.plainText.isNotBlank()) {
+            Text(
+                text = entry.plainText,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 24.sp
             )
         }
 
-        // Entry card
-        GlassCard(
-            modifier = Modifier
-                .weight(1f)
-                .padding(bottom = 12.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+        // Bottom info - mood, weather, tags - minimal
+        if (entry.moodLevel != null || entry.weather != null || tags.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Mood - subtle indicator
+                if (entry.moodLevel != null) {
+                    val (_, moodTint) = moodIconForLevel(entry.moodLevel)
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(moodTint.copy(alpha = 0.6f))
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                ),
-            cornerRadius = 16.dp,
-            innerPadding = 16.dp
-        ) {
-            Column {
-                // Time row
-                Row(verticalAlignment = Alignment.CenterVertically) {
+
+                // Weather - minimal icon
+                if (entry.weather != null) {
+                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
                     Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(13.dp)
+                        imageVector = weatherIcon,
+                        contentDescription = "天气",
+                        tint = weatherTint.copy(alpha = 0.5f),
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = formatEntryTime(entry.createdAt),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                // Title if present
-                if (entry.title.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = entry.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Spacer(modifier = Modifier.weight(1f))
 
-                // Text preview
-                if (entry.plainText.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                // Tags - very minimal
+                if (tags.isNotEmpty()) {
                     Text(
-                        text = entry.plainText,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 22.sp
+                        text = tags.first().name,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
-                }
-
-                // Bottom info: mood + weather + tags
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (entry.moodLevel != null) {
-                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = "心情",
-                            tint = moodTint,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    if (tags.size > 1) {
                         Text(
-                            text = moodLabelForLevel(entry.moodLevel),
-                            fontSize = 12.sp,
-                            color = moodTint,
-                            fontWeight = FontWeight.Medium
+                            text = " +${tags.size - 1}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
-
-                    if (entry.weather != null) {
-                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                        Icon(
-                            imageVector = weatherIcon,
-                            contentDescription = "天气",
-                            tint = weatherTint,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Tags
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        tags.take(2).forEach { tag ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(tag.color.copy(alpha = 0.12f))
-                                    .padding(horizontal = 7.dp, vertical = 2.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(tag.color)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = tag.name,
-                                    fontSize = 11.sp,
-                                    color = tag.color,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                        if (tags.size > 2) {
-                            Text(
-                                text = "+${tags.size - 2}",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
                     }
                 }
             }
@@ -396,19 +483,17 @@ private fun formatEntryTime(timestamp: Long): String {
 
 @Composable
 private fun FAB(onClick: () -> Unit) {
-    val fabColor = MaterialTheme.colorScheme.primary
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(end = 20.dp, bottom = 16.dp),
+            .padding(end = 24.dp, bottom = 32.dp),
         contentAlignment = Alignment.BottomEnd
     ) {
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(fabColor.copy(alpha = 0.9f))
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
