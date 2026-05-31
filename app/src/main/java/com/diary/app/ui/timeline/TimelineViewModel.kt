@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.home.TagInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,7 +36,7 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
     private val _filterState = MutableStateFlow(FilterState())
     val filterState: StateFlow<FilterState> = _filterState
 
-    private val allEntries: StateFlow<List<DiaryEntry>> = dao.getAllEntries()
+    private val allEntries: StateFlow<List<DiaryPreview>> = dao.getAllPreviews()
         .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -56,7 +56,7 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Filtered and searched entries
-    val entries: StateFlow<List<DiaryEntry>> = combine(
+    val entries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
         _searchQuery,
         _filterState,

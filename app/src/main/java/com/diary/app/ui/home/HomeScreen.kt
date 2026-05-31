@@ -77,7 +77,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
@@ -492,7 +492,7 @@ private fun NoEntriesForDate() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EntryCard(
-    entry: DiaryEntry,
+    entry: DiaryPreview,
     tags: List<com.diary.app.ui.home.TagInfo>,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}

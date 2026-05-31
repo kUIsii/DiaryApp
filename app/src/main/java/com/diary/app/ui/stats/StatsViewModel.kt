@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TagUsage
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodLabelForLevel
@@ -78,7 +78,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
 
     val state: StateFlow<StatsState> = combine(
-        dao.getAllEntries(),
+        dao.getAllPreviews(),
         dao.getTagUsage()
     ) { entries, tagUsage ->
         val zone = ZoneId.systemDefault()
@@ -136,7 +136,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun computeMonthlyTrend(
-        entries: List<DiaryEntry>,
+        entries: List<DiaryPreview>,
         zone: ZoneId,
         now: LocalDate
     ): List<MonthTrend> {
@@ -158,7 +158,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun computeWritingHabit(
-        entries: List<DiaryEntry>,
+        entries: List<DiaryPreview>,
         zone: ZoneId,
         now: LocalDate
     ): WritingHabit? {
@@ -197,7 +197,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun computeMoodTrend(
-        entries: List<DiaryEntry>,
+        entries: List<DiaryPreview>,
         zone: ZoneId,
         now: LocalDate
     ): MoodTrend? {
@@ -238,7 +238,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun computeWordStats(entries: List<DiaryEntry>): WordStats? {
+    private fun computeWordStats(entries: List<DiaryPreview>): WordStats? {
         if (entries.isEmpty()) return null
         val totalWords = entries.sumOf { it.plainText.length }
         val avgWords = totalWords / entries.size

@@ -49,7 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
@@ -248,7 +248,7 @@ private fun EmptyState() {
 
 @Composable
 private fun FavoriteEntryCard(
-    entry: DiaryEntry,
+    entry: DiaryPreview,
     tags: List<TagInfo>,
     onClick: () -> Unit
 ) {

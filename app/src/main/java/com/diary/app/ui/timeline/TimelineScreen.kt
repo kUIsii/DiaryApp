@@ -57,7 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
@@ -661,7 +661,7 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
 
 @Composable
 private fun TimelineEntryCard(
-    entry: DiaryEntry,
+    entry: DiaryPreview,
     tags: List<TagInfo>,
     isLast: Boolean,
     onClick: () -> Unit

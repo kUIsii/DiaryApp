@@ -13,6 +13,13 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC")
     fun getAllEntries(): Flow<List<DiaryEntry>>
 
+    // Lightweight queries (no content field) for list views - prevents OOM
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries ORDER BY createdAt DESC")
+    fun getAllPreviews(): Flow<List<DiaryPreview>>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE id = :id")
+    suspend fun getPreviewById(id: Long): DiaryPreview?
+
     @Query("SELECT * FROM diary_entries WHERE id = :id")
     suspend fun getEntryById(id: Long): DiaryEntry?
 
@@ -31,11 +38,17 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
 
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
+    fun searchPreviews(query: String): Flow<List<DiaryPreview>>
+
     @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun toggleFavorite(id: Long, isFavorite: Boolean)
 
     @Query("SELECT * FROM diary_entries WHERE isFavorite = 1 ORDER BY createdAt DESC")
     fun getFavoriteEntries(): Flow<List<DiaryEntry>>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE isFavorite = 1 ORDER BY createdAt DESC")
+    fun getFavoritePreviews(): Flow<List<DiaryPreview>>
 
     @Query("SELECT createdAt FROM diary_entries")
     fun getAllTimestamps(): Flow<List<Long>>
@@ -69,6 +82,9 @@ interface DiaryDao {
 
     @Query("SELECT * FROM diary_entries WHERE id IN (SELECT diaryId FROM diary_tag_cross_ref WHERE tagId = :tagId) ORDER BY createdAt DESC")
     fun getEntriesByTag(tagId: Long): Flow<List<DiaryEntry>>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE id IN (SELECT diaryId FROM diary_tag_cross_ref WHERE tagId = :tagId) ORDER BY createdAt DESC")
+    fun getPreviewsByTag(tagId: Long): Flow<List<DiaryPreview>>
 
     @Query("SELECT COUNT(*) FROM tags")
     suspend fun getTagCount(): Int
@@ -194,9 +210,22 @@ interface DiaryDao {
     """)
     fun getOnThisDayEntries(month: Int, day: Int, year: Int, excludeId: Long = -1): Flow<List<DiaryEntry>>
 
+    @Query("""
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
+        WHERE id != :excludeId
+          AND CAST(strftime('%m', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :month
+          AND CAST(strftime('%d', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :day
+          AND CAST(strftime('%Y', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) != :year
+        ORDER BY createdAt DESC
+    """)
+    fun getOnThisDayPreviews(month: Int, day: Int, year: Int, excludeId: Long = -1): Flow<List<DiaryPreview>>
+
     // Get entries within a timestamp range (one-shot)
     @Query("SELECT * FROM diary_entries WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
     suspend fun getEntriesByDateRange(start: Long, end: Long): List<DiaryEntry>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
+    suspend fun getPreviewsByDateRange(start: Long, end: Long): List<DiaryPreview>
 
     // Get entries matching month+day across all years (for review)
     @Query("""
@@ -206,6 +235,14 @@ interface DiaryDao {
         ORDER BY createdAt DESC
     """)
     suspend fun getEntriesByMonthDay(month: Int, day: Int): List<DiaryEntry>
+
+    @Query("""
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
+        WHERE CAST(strftime('%m', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :month
+          AND CAST(strftime('%d', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) = :day
+        ORDER BY createdAt DESC
+    """)
+    suspend fun getPreviewsByMonthDay(month: Int, day: Int): List<DiaryPreview>
 
     // Trash queries
     @Query("SELECT * FROM trash_entries ORDER BY deletedAt DESC")
@@ -223,6 +260,21 @@ interface DiaryDao {
     @Query("SELECT * FROM trash_entries WHERE id = :id")
     suspend fun getTrashEntryById(id: Long): TrashEntry?
 }
+
+// Lightweight projection without content field - used for list views to avoid OOM
+data class DiaryPreview(
+    val id: Long,
+    val title: String,
+    val plainText: String,
+    val moodLevel: Int?,
+    val weather: String?,
+    val location: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val isFavorite: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long
+)
 
 data class TagUsage(
     val tagId: Long,

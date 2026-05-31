@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
 import com.diary.app.ui.home.TagInfo
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +21,7 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    val entries: StateFlow<List<DiaryEntry>> = dao.getFavoriteEntries()
+    val entries: StateFlow<List<DiaryPreview>> = dao.getFavoritePreviews()
         .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

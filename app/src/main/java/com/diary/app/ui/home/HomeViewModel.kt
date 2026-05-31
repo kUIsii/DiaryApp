@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
-import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +26,7 @@ data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
 
 data class DayInfo(val moodLevel: Int?, val weather: String?)
 
-data class ReviewEntry(val label: String, val entry: DiaryEntry)
+data class ReviewEntry(val label: String, val entry: DiaryPreview)
 
 data class SearchFilters(
     val moodLevel: Int? = null,
@@ -86,9 +86,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val isLoading: StateFlow<Boolean> = _isLoading
 
     // "On This Day" - entries from the same month+day in previous years
-    val onThisDayEntries: StateFlow<List<DiaryEntry>> = run {
+    val onThisDayEntries: StateFlow<List<DiaryPreview>> = run {
         val now = LocalDate.now()
-        dao.getOnThisDayEntries(now.monthValue, now.dayOfMonth, now.year)
+        dao.getOnThisDayPreviews(now.monthValue, now.dayOfMonth, now.year)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
@@ -110,18 +110,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val weekAgo = now.minusWeeks(1)
             val weekStart = weekAgo.atStartOfDay(zone).toInstant().toEpochMilli()
             val weekEnd = weekAgo.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-            val weekEntries = dao.getEntriesByDateRange(weekStart, weekEnd)
+            val weekEntries = dao.getPreviewsByDateRange(weekStart, weekEnd)
             weekEntries.firstOrNull()?.let { results.add(ReviewEntry("一周前", it)) }
 
             // One month ago
             val monthAgo = now.minusMonths(1)
             val monthStart = monthAgo.atStartOfDay(zone).toInstant().toEpochMilli()
             val monthEnd = monthAgo.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-            val monthEntries = dao.getEntriesByDateRange(monthStart, monthEnd)
+            val monthEntries = dao.getPreviewsByDateRange(monthStart, monthEnd)
             monthEntries.firstOrNull()?.let { results.add(ReviewEntry("一个月前", it)) }
 
             // Last year today
-            val lastYearEntries = dao.getEntriesByMonthDay(now.monthValue, now.dayOfMonth)
+            val lastYearEntries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
                 .filter { entry ->
                     val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
                     entryDate.year < now.year
@@ -140,7 +140,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches
 
-    private val allEntries: StateFlow<List<DiaryEntry>> = dao.getAllEntries()
+    private val allEntries: StateFlow<List<DiaryPreview>> = dao.getAllPreviews()
         .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -221,7 +221,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WeeklySummary())
 
-    private val filteredEntries: StateFlow<List<DiaryEntry>> = combine(
+    private val filteredEntries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
         _selectedDate,
         _searchQuery,
@@ -230,7 +230,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _searchFilters
     ) { args ->
         @Suppress("UNCHECKED_CAST")
-        val entries = args[0] as List<DiaryEntry>
+        val entries = args[0] as List<DiaryPreview>
         val date = args[1] as LocalDate?
         val query = args[2] as String
         val tagFilter = args[3] as Long?
@@ -263,7 +263,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val entries: StateFlow<List<DiaryEntry>> = combine(filteredEntries, _sortOrder) { filtered, sort ->
+    val entries: StateFlow<List<DiaryPreview>> = combine(filteredEntries, _sortOrder) { filtered, sort ->
         sortEntries(filtered, sort)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -310,31 +310,32 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _sortOrder.value = order
     }
 
-    fun toggleFavorite(entry: DiaryEntry) {
+    fun toggleFavorite(entry: DiaryPreview) {
         viewModelScope.launch {
             dao.toggleFavorite(entry.id, !entry.isFavorite)
         }
     }
 
-    fun deleteEntry(entry: DiaryEntry) {
+    fun deleteEntry(entry: DiaryPreview) {
         viewModelScope.launch {
-            // Move to trash instead of permanent delete
+            // Fetch full entry (with content) for trash
+            val fullEntry = dao.getEntryById(entry.id) ?: return@launch
             val trashEntry = TrashEntry(
-                originalId = entry.id,
-                title = entry.title,
-                content = entry.content,
-                plainText = entry.plainText,
-                moodLevel = entry.moodLevel,
-                weather = entry.weather,
-                location = entry.location,
-                latitude = entry.latitude,
-                longitude = entry.longitude,
-                isFavorite = entry.isFavorite,
-                createdAt = entry.createdAt,
-                updatedAt = entry.updatedAt
+                originalId = fullEntry.id,
+                title = fullEntry.title,
+                content = fullEntry.content,
+                plainText = fullEntry.plainText,
+                moodLevel = fullEntry.moodLevel,
+                weather = fullEntry.weather,
+                location = fullEntry.location,
+                latitude = fullEntry.latitude,
+                longitude = fullEntry.longitude,
+                isFavorite = fullEntry.isFavorite,
+                createdAt = fullEntry.createdAt,
+                updatedAt = fullEntry.updatedAt
             )
             dao.insertTrashEntry(trashEntry)
-            dao.deleteEntry(entry)
+            dao.deleteEntry(fullEntry)
         }
     }
 
@@ -342,7 +343,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val entry = dao.getEntryById(id)
             if (entry != null) {
-                // Move to trash instead of permanent delete
                 val trashEntry = TrashEntry(
                     originalId = entry.id,
                     title = entry.title,
@@ -378,19 +378,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         return streak
     }
 
-    private fun sortEntries(entries: List<DiaryEntry>, sort: SortOrder): List<DiaryEntry> {
+    private fun sortEntries(entries: List<DiaryPreview>, sort: SortOrder): List<DiaryPreview> {
         return when (sort) {
             SortOrder.NEWEST -> entries.sortedByDescending { it.createdAt }
             SortOrder.OLDEST -> entries.sortedBy { it.createdAt }
             SortOrder.BEST_MOOD -> entries.sortedByDescending { it.moodLevel ?: 0 }
             SortOrder.FAVORITES -> entries.sortedWith(
-                compareByDescending<DiaryEntry> { it.isFavorite }.thenByDescending { it.createdAt }
+                compareByDescending<DiaryPreview> { it.isFavorite }.thenByDescending { it.createdAt }
             )
         }
     }
 
     // Selected entries for the selected date
-    val selectedEntries: StateFlow<List<DiaryEntry>> = combine(
+    val selectedEntries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
         _selectedDate
     ) { entries, date ->
