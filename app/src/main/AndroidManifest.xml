@@ -63,6 +63,15 @@
         <receiver
             android:name=".reminder.TodoReminderReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".reminder.SnoozeReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminder.CompleteReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminder.DailySummaryReceiver"
+            android:exported="false" />
 
         <!-- Todo Widget -->
         <receiver

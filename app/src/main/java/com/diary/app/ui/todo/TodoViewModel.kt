@@ -71,6 +71,8 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     init {
         TodoReminderManager.createNotificationChannel(context)
         TodoReminderManager.rescheduleAllPendingReminders(context)
+        // Schedule daily summary at 8:00 AM
+        TodoReminderManager.scheduleDailySummary(context, 8, 0)
     }
 
     private fun refreshWidget() {
