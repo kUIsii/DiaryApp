@@ -145,7 +145,14 @@
         var quill = new Quill('#editor', {
             theme: 'snow',
             placeholder: '开始写日记...',
-            modules: { toolbar: false }
+            modules: {
+                toolbar: false,
+                history: {
+                    delay: 1000,
+                    maxStack: 100,
+                    userOnly: true
+                }
+            }
         });
 
         function setTheme(mode) {
