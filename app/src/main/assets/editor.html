@@ -63,40 +63,56 @@
             border-radius: 0 8px 8px 0;
         }
 
-        /* Lists */
+        /* Lists - let Quill handle numbering, just style markers */
         .ql-editor ol {
-            counter-reset: list-counter;
-            padding-left: 0;
+            padding-left: 24px;
+            margin-bottom: 12px;
         }
         .ql-editor ol li {
-            counter-increment: list-counter;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+        }
+        .ql-editor ul {
+            padding-left: 24px;
+            margin-bottom: 12px;
+        }
+        .ql-editor ul li {
+            margin-bottom: 4px;
+        }
+        .ql-editor ul li::marker {
+            color: var(--accent);
+        }
+
+        /* Checked/unchecked lists (checkboxes) */
+        .ql-editor li[data-list="checked"],
+        .ql-editor li[data-list="unchecked"] {
             list-style: none;
             position: relative;
             padding-left: 24px;
         }
-        .ql-editor ol li::before {
-            content: counter(list-counter) ".";
+        .ql-editor li[data-list="checked"]::before {
+            content: "\2611";
             position: absolute;
             left: 0;
             color: var(--accent);
-            font-weight: 600;
-            font-size: 14px;
+            font-size: 16px;
         }
-        .ql-editor ul { padding-left: 20px; }
-        .ql-editor ul li {
-            margin-bottom: 6px;
-            list-style-type: disc;
-        }
-        .ql-editor ul li::marker {
+        .ql-editor li[data-list="unchecked"]::before {
+            content: "\2610";
+            position: absolute;
+            left: 0;
             color: var(--accent);
+            font-size: 16px;
+        }
+        .ql-editor li[data-list="checked"] {
+            text-decoration: line-through;
+            opacity: 0.6;
         }
 
         /* Divider */
         hr {
             border: none;
             height: 1px;
-            background: linear-gradient(to right, transparent, rgba(128,128,128,0.4), transparent);
+            background: linear-gradient(to right, transparent 5%, rgba(128,128,128,0.5) 15%, rgba(128,128,128,0.5) 85%, transparent 95%);
             margin: 20px 0;
         }
 
@@ -252,12 +268,25 @@
         function setContentBase64(base64) {
             try {
                 var decoded = decodeURIComponent(escape(atob(base64)));
-                var parsed = JSON.parse(decoded);
-                if (parsed && parsed.ops) {
-                    quill.setContents(parsed);
-                } else {
-                    quill.setText(decoded);
-                }
+                // Try normal JSON parse first
+                try {
+                    var parsed = JSON.parse(decoded);
+                    if (parsed && parsed.ops) {
+                        quill.setContents(parsed);
+                        return;
+                    }
+                } catch(e1) {}
+                // Try fixing corrupted JSON (literal newlines in strings)
+                try {
+                    var fixed = decoded.replace(/[\r\n]/g, function(m) { return m === '\r' ? '\\r' : '\\n'; });
+                    var parsed2 = JSON.parse(fixed);
+                    if (parsed2 && parsed2.ops) {
+                        quill.setContents(parsed2);
+                        return;
+                    }
+                } catch(e2) {}
+                // Fallback: set as plain text
+                quill.setText(decoded);
             } catch(e) {
                 console.error('setContentBase64 error:', e);
             }

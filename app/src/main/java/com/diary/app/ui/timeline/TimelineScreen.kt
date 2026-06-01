@@ -3,6 +3,7 @@ package com.diary.app.ui.timeline
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,6 +31,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -40,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +72,7 @@ import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.home.TagInfo
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
@@ -89,13 +94,34 @@ fun TimelineScreen(
     var isSearchExpanded by remember { mutableStateOf(false) }
     var isFilterExpanded by remember { mutableStateOf(false) }
 
-    // Group entries by date
-    val groupedEntries = remember(entries) {
-        entries.groupBy { entry ->
-            Instant.ofEpochMilli(entry.createdAt)
+    // Group entries by month (YearMonth), then by date within each month
+    val monthlyGroups = remember(entries) {
+        val byMonth = entries.groupBy { entry ->
+            val date = Instant.ofEpochMilli(entry.createdAt)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate()
+            YearMonth.from(date)
         }.toSortedMap(compareByDescending { it })
+
+        byMonth.map { (month, monthEntries) ->
+            val byDate = monthEntries.groupBy { entry ->
+                Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }.toSortedMap(compareByDescending { it })
+            month to byDate
+        }
+    }
+
+    // Track which months are expanded (first month expanded by default)
+    val expandedMonths = remember {
+        mutableStateOf(setOf<YearMonth>())
+    }
+    // Initialize first month as expanded
+    LaunchedEffect(monthlyGroups) {
+        if (expandedMonths.value.isEmpty() && monthlyGroups.isNotEmpty()) {
+            expandedMonths.value = setOf(monthlyGroups.first().first)
+        }
     }
 
     GradientBackground {
@@ -223,8 +249,8 @@ fun TimelineScreen(
                     }
                 }
 
-                // Timeline entries grouped by date
-                if (groupedEntries.isEmpty()) {
+                // Timeline entries grouped by month
+                if (monthlyGroups.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
@@ -253,31 +279,55 @@ fun TimelineScreen(
                         }
                     }
                 } else {
-                    groupedEntries.forEach { (date, dayEntries) ->
-                        item {
-                            DateGroupHeader(
-                                date = date,
-                                entryCount = dayEntries.size
-                            )
-                        }
+                    monthlyGroups.forEach { (month, dateGroups) ->
+                        val isExpanded = month in expandedMonths.value
+                        val monthTotal = dateGroups.values.sumOf { it.size }
 
-                        itemsIndexed(
-                            items = dayEntries,
-                            key = { _, entry -> entry.id }
-                        ) { index, entry ->
-                            TimelineEntryCard(
-                                entry = entry,
-                                tags = tagsMap[entry.id] ?: emptyList(),
-                                isLast = index == dayEntries.size - 1,
+                        // Month header (clickable to expand/collapse)
+                        item(key = "month_$month") {
+                            MonthGroupHeader(
+                                month = month,
+                                entryCount = monthTotal,
+                                isExpanded = isExpanded,
                                 onClick = {
-                                    haptic.click()
-                                    onNavigateToDetail(entry.id)
+                                    expandedMonths.value = if (isExpanded) {
+                                        expandedMonths.value - month
+                                    } else {
+                                        expandedMonths.value + month
+                                    }
                                 }
                             )
                         }
 
-                        item {
-                            Spacer(modifier = Modifier.height(8.dp))
+                        // Date groups within the month (only when expanded)
+                        if (isExpanded) {
+                            dateGroups.forEach { (date, dayEntries) ->
+                                item(key = "date_${date}") {
+                                    DateGroupHeader(
+                                        date = date,
+                                        entryCount = dayEntries.size
+                                    )
+                                }
+
+                                itemsIndexed(
+                                    items = dayEntries,
+                                    key = { _, entry -> entry.id }
+                                ) { index, entry ->
+                                    TimelineEntryCard(
+                                        entry = entry,
+                                        tags = tagsMap[entry.id] ?: emptyList(),
+                                        isLast = index == dayEntries.size - 1,
+                                        onClick = {
+                                            haptic.click()
+                                            onNavigateToDetail(entry.id)
+                                        }
+                                    )
+                                }
+
+                                item(key = "spacer_${date}") {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
                         }
                     }
                 }
@@ -583,6 +633,72 @@ private fun ActiveFilterChip(
 }
 
 @Composable
+private fun MonthGroupHeader(
+    month: YearMonth,
+    entryCount: Int,
+    isExpanded: Boolean,
+    onClick: () -> Unit
+) {
+    val now = YearMonth.now()
+    val isCurrentMonth = month == now
+
+    val monthText = if (isCurrentMonth) {
+        "本月"
+    } else {
+        "${month.year}年${month.monthValue}月"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Timeline axis dot
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+        )
+
+        Text(
+            text = monthText,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isCurrentMonth) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onBackground
+        )
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = "$entryCount",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            contentDescription = if (isExpanded) "折叠" else "展开",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
 private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
@@ -610,7 +726,7 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Left: timeline axis alignment
@@ -621,8 +737,8 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
             Box(
                 modifier = Modifier
                     .width(2.dp)
-                    .height(20.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    .height(18.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
             )
         }
 
@@ -695,7 +811,7 @@ private fun TimelineEntryCard(
                     modifier = Modifier
                         .width(2.dp)
                         .weight(1f)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                 )
             }
         }
@@ -716,18 +832,23 @@ private fun TimelineEntryCard(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            // Card
+            // Card with border
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
-                        elevation = 2.dp,
+                        elevation = 1.dp,
                         shape = RoundedCornerShape(12.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.05f),
-                        spotColor = Color.Black.copy(alpha = 0.05f)
+                        ambientColor = Color.Black.copy(alpha = 0.06f),
+                        spotColor = Color.Black.copy(alpha = 0.06f)
                     )
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surface)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -769,18 +890,21 @@ private fun TimelineEntryCard(
                         )
                     }
 
-                    // Bottom-left: mood + weather + location + tags
+                    // Bottom: mood + weather + location + tags (merged in one FlowRow)
                     val hasMetadata = entry.moodLevel != null || entry.weather != null || entry.location != null || tags.isNotEmpty()
                     if (hasMetadata) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            // Mood + Weather + Location row
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                if (entry.moodLevel != null) {
-                                    val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (entry.moodLevel != null) {
+                                val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
@@ -793,8 +917,13 @@ private fun TimelineEntryCard(
                                         color = tint.copy(alpha = 0.7f)
                                     )
                                 }
-                                if (entry.weather != null) {
-                                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                            }
+                            if (entry.weather != null) {
+                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
                                     Icon(
                                         imageVector = weatherIcon,
                                         contentDescription = null,
@@ -807,37 +936,39 @@ private fun TimelineEntryCard(
                                         color = weatherTint.copy(alpha = 0.6f)
                                     )
                                 }
-                                if (entry.location != null) {
+                            }
+                            if (entry.location != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(14.dp)
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = entry.location,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        maxLines = 1
                                     )
                                 }
                             }
-                            // Tags - FlowRow, show all
-                            if (tags.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                            tags.forEach { tag ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(tag.color.copy(alpha = 0.1f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
-                                    tags.forEach { tag ->
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(tag.color.copy(alpha = 0.1f))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = tag.name,
-                                                fontSize = 10.sp,
-                                                color = tag.color.copy(alpha = 0.8f),
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
+                                    Text(
+                                        text = tag.name,
+                                        fontSize = 10.sp,
+                                        color = tag.color.copy(alpha = 0.8f),
+                                        maxLines = 1
+                                    )
                                 }
                             }
                         }

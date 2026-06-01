@@ -1,12 +1,8 @@
 package com.diary.app.ui.stats
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -81,7 +77,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.moodIconForLevel
-import com.diary.app.ui.components.weatherIconForType
+import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import kotlin.math.roundToInt
@@ -230,10 +226,12 @@ fun StatsScreen(
                         GlassCard {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 state.weatherDistribution.forEach { weather ->
+                                    val (wIcon, wTint) = weatherIconFor(weather.type)
                                     WeatherRow(
                                         type = weather.type,
                                         count = weather.count,
-                                        icon = weatherIconForType(weather.type)
+                                        icon = wIcon,
+                                        tint = wTint
                                     )
                                 }
                             }
@@ -312,28 +310,6 @@ private fun OverviewCard(
     gradientColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
-    // Shimmer animation
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -0.5f,
-        targetValue = 1.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmerOffset"
-    )
-    // Subtle glow pulse
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.08f,
-        targetValue = 0.18f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
-
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
 
     Box(
@@ -341,30 +317,15 @@ private fun OverviewCard(
             .clip(RoundedCornerShape(16.dp))
             .background(Brush.linearGradient(gradientColors))
             .drawBehind {
-                // Subtle glow at top
+                // Subtle static highlight at top
                 drawRect(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            onPrimaryColor.copy(alpha = glowAlpha),
+                            onPrimaryColor.copy(alpha = 0.1f),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.3f, size.height * 0.2f),
                         radius = size.width * 0.6f
-                    ),
-                    size = size
-                )
-                // Shimmer stripe
-                val shimmerWidth = size.width * 0.4f
-                val shimmerX = shimmerOffset * (size.width + shimmerWidth) - shimmerWidth
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            onPrimaryColor.copy(alpha = 0.12f),
-                            Color.Transparent
-                        ),
-                        startX = shimmerX,
-                        endX = shimmerX + shimmerWidth
                     ),
                     size = size
                 )
@@ -378,13 +339,13 @@ private fun OverviewCard(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
                 tint = onPrimaryColor.copy(alpha = 0.85f)
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             AnimatedCounter(
                 targetValue = value,
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp),
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 24.sp),
                 fontWeight = FontWeight.Bold,
                 color = onPrimaryColor
             )
@@ -776,7 +737,8 @@ private fun MoodBar(
 private fun WeatherRow(
     type: String,
     count: Int,
-    icon: ImageVector
+    icon: ImageVector,
+    tint: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -786,7 +748,7 @@ private fun WeatherRow(
             imageVector = icon,
             contentDescription = type,
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = tint
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
@@ -807,16 +769,29 @@ private fun WeatherRow(
 
 @Composable
 private fun DiaryHeatmap(data: List<HeatmapDay>) {
-    val cellSize = 12.dp
+    val cellSize = 14.dp
     val cellGap = 3.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
-    // Group data by week (7 days per column)
-    val weeks = data.chunked(7)
+    // Group data by calendar week (Monday-based columns)
+    val weeks = remember(data) {
+        if (data.isEmpty()) return@remember emptyList()
+        // Pad start to align with Monday (DayOfWeek.MONDAY = 1)
+        val firstDayOfWeek = data.first().date.dayOfWeek.value // 1=Mon, 7=Sun
+        val paddedStart = if (firstDayOfWeek > 1) {
+            List(firstDayOfWeek - 1) { null } + data.map { it }
+        } else {
+            data.map { it }
+        }
+        // Chunk into weeks of 7
+        paddedStart.chunked(7).map { week ->
+            week.map { it }
+        }
+    }
 
     Column {
-        // Heatmap grid - wrap in Box to allow horizontal overflow
+        // Heatmap grid - horizontal scroll
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -829,18 +804,23 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(cellGap)
                     ) {
-                        week.forEach { day ->
-                            Box(
-                                modifier = Modifier
-                                    .size(cellSize)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(
-                                        if (day.count > 0) primaryColor.copy(alpha = 0.8f)
-                                        else surfaceVariant.copy(alpha = 0.5f)
-                                    )
-                            )
+                        for (day in week) {
+                            if (day != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(cellSize)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(
+                                            if (day.count > 0) primaryColor.copy(alpha = 0.75f)
+                                            else surfaceVariant.copy(alpha = 0.4f)
+                                        )
+                                )
+                            } else {
+                                // Empty cell for padding
+                                Box(modifier = Modifier.size(cellSize))
+                            }
                         }
-                        // Fill empty cells if week is incomplete
+                        // Fill remaining cells if week is incomplete
                         repeat(7 - week.size) {
                             Box(modifier = Modifier.size(cellSize))
                         }
@@ -869,7 +849,7 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                         .size(10.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(
-                            if (level == 0) surfaceVariant.copy(alpha = 0.5f)
+                            if (level == 0) surfaceVariant.copy(alpha = 0.4f)
                             else primaryColor.copy(alpha = 0.2f + level * 0.2f)
                         )
                 )

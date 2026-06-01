@@ -127,20 +127,23 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Properly unescape a JSON-encoded string returned by WebView.evaluateJavascript().
- * The callback value is a JSON string literal: outer quotes + escaped inner characters.
- * We need to handle: \" -> ", \\ -> \, \n -> newline, \t -> tab, \r -> carriage return
+ * Uses org.json.JSONTokener for correct handling of all escape sequences.
  */
 private fun unescapeEvaluateJsResult(raw: String?): String {
     if (raw.isNullOrEmpty()) return ""
-    // Remove surrounding quotes
-    val s = if (raw.startsWith("\"") && raw.endsWith("\"")) raw.substring(1, raw.length - 1) else raw
-    // Unescape JSON escape sequences
-    return s.replace("\\\"", "\"")
-        .replace("\\n", "\n")
-        .replace("\\t", "\t")
-        .replace("\\r", "\r")
-        .replace("\\\\", "\u0000")  // temp placeholder for literal backslash
-        .replace("\u0000", "\\")     // restore literal backslash
+    return try {
+        val value = org.json.JSONTokener(raw).nextValue()
+        if (value is String) value else raw
+    } catch (_: Exception) {
+        // Fallback: manual unescape with correct order (\\\\ must come before \\n etc.)
+        val s = if (raw.startsWith("\"") && raw.endsWith("\"")) raw.substring(1, raw.length - 1) else raw
+        s.replace("\\\\", "\u0000")
+            .replace("\\\"", "\"")
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\r", "\r")
+            .replace("\u0000", "\\")
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -726,53 +729,64 @@ fun EditorScreen(
                 }
             }
 
-            // Metadata buttons row - simple chips
-            Row(
+            // Metadata buttons - two rows
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Mood chip
-                val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
-                MetadataChip(
-                    label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
-                    icon = moodIconForLevel(selectedMood ?: 3).icon,
-                    isSelected = selectedMood != null,
-                    isActive = activePanel == "mood",
-                    onClick = { activePanel = if (activePanel == "mood") null else "mood" },
-                    accentColor = moodColor
-                )
-                // Weather chip
-                val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
-                MetadataChip(
-                    label = selectedWeather ?: "天气",
-                    icon = weatherIconFor(selectedWeather).icon,
-                    isSelected = selectedWeather != null,
-                    isActive = activePanel == "weather",
-                    onClick = { activePanel = if (activePanel == "weather") null else "weather" },
-                    accentColor = weatherColor
-                )
-                // Tags chip - show full tag names
-                val tagLabel = if (selectedTagIds.isNotEmpty()) {
-                    val names = allTags.filter { it.id in selectedTagIds }.map { it.name }
-                    names.joinToString(" ")
-                } else "标签"
-                MetadataChip(
-                    label = tagLabel,
-                    icon = Icons.Default.Sell,
-                    isSelected = selectedTagIds.isNotEmpty(),
-                    isActive = activePanel == "tags",
-                    onClick = { activePanel = if (activePanel == "tags") null else "tags" }
-                )
-                // Location chip
-                MetadataChip(
-                    label = selectedLocation ?: "位置",
-                    icon = Icons.Default.LocationOn,
-                    isSelected = selectedLocation != null,
-                    isActive = activePanel == "location",
-                    onClick = { activePanel = if (activePanel == "location") null else "location" }
-                )
+                // Row 1: mood + weather + tags
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Mood chip
+                    val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+                    MetadataChip(
+                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
+                        icon = moodIconForLevel(selectedMood ?: 3).icon,
+                        isSelected = selectedMood != null,
+                        isActive = activePanel == "mood",
+                        onClick = { activePanel = if (activePanel == "mood") null else "mood" },
+                        accentColor = moodColor
+                    )
+                    // Weather chip
+                    val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
+                    MetadataChip(
+                        label = selectedWeather ?: "天气",
+                        icon = weatherIconFor(selectedWeather).icon,
+                        isSelected = selectedWeather != null,
+                        isActive = activePanel == "weather",
+                        onClick = { activePanel = if (activePanel == "weather") null else "weather" },
+                        accentColor = weatherColor
+                    )
+                    // Tags chip - show full tag names
+                    val tagLabel = if (selectedTagIds.isNotEmpty()) {
+                        val names = allTags.filter { it.id in selectedTagIds }.map { it.name }
+                        names.joinToString(" ")
+                    } else "标签"
+                    MetadataChip(
+                        label = tagLabel,
+                        icon = Icons.Default.Sell,
+                        isSelected = selectedTagIds.isNotEmpty(),
+                        isActive = activePanel == "tags",
+                        onClick = { activePanel = if (activePanel == "tags") null else "tags" }
+                    )
+                }
+                // Row 2: location (auto-wrap)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetadataChip(
+                        label = selectedLocation ?: "位置",
+                        icon = Icons.Default.LocationOn,
+                        isSelected = selectedLocation != null,
+                        isActive = activePanel == "location",
+                        onClick = { activePanel = if (activePanel == "location") null else "location" }
+                    )
+                }
             }
 
             // Expandable panels - simple background

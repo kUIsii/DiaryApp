@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -554,79 +555,79 @@ private fun EntryCard(
                 )
             }
 
-            // Bottom info: mood + weather + tags
-            Spacer(modifier = Modifier.height(10.dp))
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Mood + Weather row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+            // Bottom info: mood + weather + tags (merged in one FlowRow)
+            val hasMetadata = entry.moodLevel != null || entry.weather != null || tags.isNotEmpty()
+            if (hasMetadata) {
+                Spacer(modifier = Modifier.height(10.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (entry.moodLevel != null) {
                         val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = "心情",
-                            tint = moodTint,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = moodLabelForLevel(entry.moodLevel),
-                            fontSize = 12.sp,
-                            color = moodTint,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = moodIcon,
+                                contentDescription = "心情",
+                                tint = moodTint,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = moodLabelForLevel(entry.moodLevel),
+                                fontSize = 12.sp,
+                                color = moodTint,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
                     if (entry.weather != null) {
                         val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                        Icon(
-                            imageVector = weatherIcon,
-                            contentDescription = "天气",
-                            tint = weatherTint,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = weatherLabelFor(entry.weather),
-                            fontSize = 12.sp,
-                            color = weatherTint,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = weatherIcon,
+                                contentDescription = "天气",
+                                tint = weatherTint,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = weatherLabelFor(entry.weather),
+                                fontSize = 12.sp,
+                                color = weatherTint,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-                }
 
-                // Tags - FlowRow, show all, min 3 per row
-                if (tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    androidx.compose.foundation.layout.FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        tags.forEach { tag ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                    tags.forEach { tag ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(tag.color.copy(alpha = 0.12f))
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(tag.color.copy(alpha = 0.12f))
-                                    .padding(horizontal = 7.dp, vertical = 2.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(tag.color)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = tag.name,
-                                    fontSize = 11.sp,
-                                    color = tag.color,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1
-                                )
-                            }
+                                    .size(5.dp)
+                                    .clip(CircleShape)
+                                    .background(tag.color)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = tag.name,
+                                fontSize = 11.sp,
+                                color = tag.color,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
                         }
                     }
                 }

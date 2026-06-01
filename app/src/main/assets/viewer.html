@@ -89,32 +89,18 @@
 
         /* Lists */
         #content ol {
-            counter-reset: list-counter;
-            padding-left: 0;
+            padding-left: 24px;
             margin-bottom: 16px;
         }
         #content ol li {
-            counter-increment: list-counter;
             margin-bottom: 6px;
-            list-style: none;
-            position: relative;
-            padding-left: 24px;
-        }
-        #content ol li::before {
-            content: counter(list-counter) ".";
-            position: absolute;
-            left: 0;
-            color: var(--accent);
-            font-weight: 600;
-            font-size: 14px;
         }
         #content ul {
-            padding-left: 20px;
+            padding-left: 24px;
             margin-bottom: 16px;
         }
         #content ul li {
             margin-bottom: 6px;
-            list-style-type: disc;
         }
         #content ul li::marker {
             color: var(--accent);
@@ -125,16 +111,34 @@
             list-style: none;
             text-decoration: line-through;
             opacity: 0.6;
+            position: relative;
+            padding-left: 24px;
+        }
+        #content li.task-checked::before {
+            content: "\2611";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 16px;
         }
         #content li.task-unchecked {
             list-style: none;
+            position: relative;
+            padding-left: 24px;
+        }
+        #content li.task-unchecked::before {
+            content: "\2610";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 16px;
         }
 
         /* Divider */
         #content hr {
             border: none;
             height: 1px;
-            background: linear-gradient(to right, transparent, rgba(128,128,128,0.4), transparent);
+            background: linear-gradient(to right, transparent 5%, rgba(128,128,128,0.5) 15%, rgba(128,128,128,0.5) 85%, transparent 95%);
             margin: 20px 0;
         }
 
@@ -248,7 +252,9 @@
 
         function deltaToHtml(delta) {
             if (!delta || !delta.ops) return '';
-            var html = '';
+
+            // First pass: collect all blocks
+            var blocks = [];
             var currentBlock = '';
             var blockAttrs = null;
 
@@ -259,7 +265,7 @@
                     var lines = text.split('\n');
                     for (var j = 0; j < lines.length; j++) {
                         if (j > 0) {
-                            html += wrapBlock(currentBlock, blockAttrs);
+                            blocks.push({ html: currentBlock, attrs: blockAttrs });
                             currentBlock = '';
                             blockAttrs = null;
                         }
@@ -277,17 +283,61 @@
                         currentBlock += '<video src="' + escapeHtml(op.insert.video) + '" controls></video>';
                     } else if (op.insert.divider) {
                         if (currentBlock) {
-                            html += wrapBlock(currentBlock, blockAttrs);
+                            blocks.push({ html: currentBlock, attrs: blockAttrs });
                             currentBlock = '';
                             blockAttrs = null;
                         }
-                        html += '<hr/>';
+                        blocks.push({ html: '', attrs: { divider: true } });
                     }
                 }
             }
             if (currentBlock) {
-                html += wrapBlock(currentBlock, blockAttrs);
+                blocks.push({ html: currentBlock, attrs: blockAttrs });
             }
+
+            // Second pass: group consecutive list items
+            var html = '';
+            var listBuffer = [];
+            var listType = null;
+
+            function flushList() {
+                if (listBuffer.length === 0) return;
+                if (listType === 'ordered') {
+                    html += '<ol>' + listBuffer.join('') + '</ol>';
+                } else if (listType === 'bullet') {
+                    html += '<ul>' + listBuffer.join('') + '</ul>';
+                } else if (listType === 'checked' || listType === 'unchecked') {
+                    html += '<ul>' + listBuffer.join('') + '</ul>';
+                }
+                listBuffer = [];
+                listType = null;
+            }
+
+            for (var k = 0; k < blocks.length; k++) {
+                var block = blocks[k];
+                var attrs = block.attrs;
+                var currentListType = attrs ? (attrs.list || null) : null;
+
+                if (currentListType) {
+                    // This is a list item
+                    if (listType && listType !== currentListType) {
+                        flushList();
+                    }
+                    listType = currentListType;
+                    var liClass = '';
+                    if (currentListType === 'checked') liClass = ' class="task-checked"';
+                    else if (currentListType === 'unchecked') liClass = ' class="task-unchecked"';
+                    var extra = '';
+                    if (attrs.indent) extra = ' style="padding-left:' + (attrs.indent * 24) + 'px"';
+                    listBuffer.push('<li' + liClass + extra + '>' + block.html + '</li>');
+                } else {
+                    // Not a list item - flush any pending list
+                    flushList();
+                    html += wrapBlock(block.html, attrs);
+                }
+            }
+            flushList();
+
             return html;
         }
 
@@ -302,35 +352,60 @@
         }
 
         function setContent(deltaJSON) {
-            try {
-                var parsed = JSON.parse(deltaJSON);
-                if (parsed && parsed.ops) {
-                    document.getElementById('content').innerHTML = deltaToHtml(parsed);
-                } else {
-                    document.getElementById('content').innerHTML = '<p>' + escapeHtml(deltaJSON) + '</p>';
-                }
-            } catch(e) {
-                document.getElementById('content').innerHTML = '<p>' + escapeHtml(deltaJSON) + '</p>';
-            }
+            renderContent(deltaJSON);
         }
 
         function setContentFromBase64(base64) {
             try {
                 var decoded = atob(base64);
                 decoded = decodeURIComponent(escape(decoded));
-                try {
-                    var parsed = JSON.parse(decoded);
-                    if (parsed && parsed.ops) {
-                        document.getElementById('content').innerHTML = deltaToHtml(parsed);
-                    } else {
-                        document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
-                    }
-                } catch(e) {
-                    document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
+                renderContent(decoded);
+            } catch(e) {
+                console.error('Failed to decode Base64 content:', e);
+                document.getElementById('content').innerHTML = '<p style="color:#999;">内容解码失败</p>';
+            }
+        }
+
+        function renderContent(decoded) {
+            try {
+                var parsed = JSON.parse(decoded);
+                if (parsed && parsed.ops) {
+                    document.getElementById('content').innerHTML = deltaToHtml(parsed);
+                    return;
                 }
             } catch(e) {
-                console.error('Failed to decode content:', e);
+                // JSON parse failed - try to fix common issues
             }
+
+            // Try fixing corrupted JSON (literal newlines inside strings)
+            try {
+                var fixed = decoded.replace(/[\r\n]/g, function(match) {
+                    return match === '\r' ? '\\r' : '\\n';
+                });
+                var parsed2 = JSON.parse(fixed);
+                if (parsed2 && parsed2.ops) {
+                    document.getElementById('content').innerHTML = deltaToHtml(parsed2);
+                    return;
+                }
+            } catch(e2) {}
+
+            // Try extracting text content from malformed Delta JSON using regex
+            try {
+                var textParts = [];
+                var regex = /"insert"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+                var match;
+                while ((match = regex.exec(decoded)) !== null) {
+                    var text = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    if (text.trim()) textParts.push(escapeHtml(text));
+                }
+                if (textParts.length > 0) {
+                    document.getElementById('content').innerHTML = textParts.map(function(t) { return '<p>' + t + '</p>'; }).join('');
+                    return;
+                }
+            } catch(e3) {}
+
+            // Last resort: show decoded text as-is (not raw JSON)
+            document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
         }
 
         function setHtmlContent(html) {
