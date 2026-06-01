@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class],
-    version = 9,
+    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class],
+    version = 10,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -110,13 +110,28 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS diary_images (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        entryId INTEGER NOT NULL,
+                        localPath TEXT NOT NULL,
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (entryId) REFERENCES diary_entries(id) ON DELETE CASCADE
+                    )
+                """)
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_diary_images_entryId ON diary_images (entryId)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

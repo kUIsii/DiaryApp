@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -61,12 +61,19 @@
     <div id="picked-info"></div>
     <button id="confirm-btn" onclick="confirmSelection()">确认选择</button>
 
+    <div id="loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;color:#666;font-size:14px;">加载地图中...</div>
     <script>
-        var map = L.map('map').setView([31.23, 121.47], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
+        var map;
+        try {
+            map = L.map('map').setView([31.23, 121.47], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+            document.getElementById('loading').style.display = 'none';
+        } catch(e) {
+            document.getElementById('loading').textContent = '地图加载失败，请检查网络';
+        }
 
         var marker = null;
         var pickedLat = null;
@@ -113,8 +120,14 @@
         }
 
         function confirmSelection() {
-            if (pickedLat !== null && pickedLng !== null && window.MapBridge) {
-                MapBridge.onLocationPicked(pickedLat, pickedLng, pickedName);
+            if (pickedLat !== null && pickedLng !== null) {
+                if (window.MapBridge) {
+                    MapBridge.onLocationPicked(pickedLat, pickedLng, pickedName);
+                } else {
+                    alert('Bridge not ready, please try again');
+                }
+            } else {
+                alert('请先在地图上选择位置');
             }
         }
 

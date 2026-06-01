@@ -34,8 +34,8 @@
             line-height: 1.6;
         }
         .ql-editor {
-            min-height: calc(100vh - 120px);
-            padding: 0 16px;
+            min-height: calc(100vh - 80px);
+            padding: 0 16px 200px;
             color: var(--text);
             background: rgba(248, 251, 255, 0.5);
         }
@@ -271,6 +271,11 @@
             if (window.DiaryBridge) {
                 DiaryBridge.onContentChange(quill.getText());
             }
+            // Auto-scroll on text change to keep cursor visible
+            setTimeout(function() {
+                var sel = quill.getSelection();
+                if (sel) scrollToCursor(sel.index, sel.length);
+            }, 30);
         });
 
         // Selection change: report format state + auto-scroll to cursor
@@ -282,19 +287,26 @@
                     DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
                 }
                 // Auto-scroll cursor into view
-                setTimeout(function() {
-                    var bounds = quill.getBounds(range.index, range.length);
+                scrollToCursor(range.index, range.length);
+            }
+        });
+
+        function scrollToCursor(index, length) {
+            setTimeout(function() {
+                try {
+                    var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
                         var cursorBottom = bounds.top + bounds.height;
                         var editorVisibleBottom = editor.scrollTop + editor.clientHeight;
-                        if (cursorBottom > editorVisibleBottom - 40 || bounds.top < editor.scrollTop + 20) {
+                        // Scroll if cursor is near bottom or above visible area
+                        if (cursorBottom > editorVisibleBottom - 60 || bounds.top < editor.scrollTop + 30) {
                             editor.scrollTo({ top: bounds.top - editor.clientHeight / 3, behavior: 'smooth' });
                         }
                     }
-                }, 50);
-            }
-        });
+                } catch(e) {}
+            }, 50);
+        }
     </script>
 </body>
 </html>

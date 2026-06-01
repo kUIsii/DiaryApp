@@ -2,9 +2,13 @@ package com.diary.app.ui.editor
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -30,6 +34,7 @@ import androidx.compose.material.icons.filled.EditLocation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -242,39 +247,75 @@ fun LocationSelector(
 
         // Map picker dialog
         if (showMapPicker) {
+            val mainHandler = Handler(Looper.getMainLooper())
             AlertDialog(
                 onDismissRequest = { showMapPicker = false },
                 title = { Text("地图选点") },
                 text = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(400.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    ) {
-                        AndroidView(
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    webViewClient = WebViewClient()
-                                    settings.javaScriptEnabled = true
-                                    settings.domStorageEnabled = true
-                                    addJavascriptInterface(object {
-                                        @JavascriptInterface
-                                        fun onLocationPicked(lat: Double, lng: Double, name: String) {
-                                            onLocationSelected(name, lat, lng)
-                                            showMapPicker = false
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(400.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        ) {
+                            AndroidView(
+                                factory = { ctx ->
+                                    WebView(ctx).apply {
+                                        webViewClient = WebViewClient()
+                                        settings.javaScriptEnabled = true
+                                        settings.domStorageEnabled = true
+                                        settings.domStorageEnabled = true
+                                        settings.allowContentAccess = true
+                                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                        addJavascriptInterface(object {
+                                            @JavascriptInterface
+                                            fun onLocationPicked(lat: Double, lng: Double, name: String) {
+                                                mainHandler.post {
+                                                    onLocationSelected(name, lat, lng)
+                                                    showMapPicker = false
+                                                }
+                                            }
+                                        }, "MapBridge")
+                                        loadUrl("file:///android_asset/map_picker.html")
+                                        if (latitude != null && longitude != null) {
+                                            postDelayed({
+                                                evaluateJavascript("setInitialLocation($latitude, $longitude)", null)
+                                            }, 1500)
                                         }
-                                    }, "MapBridge")
-                                    loadUrl("file:///android_asset/map_picker.html")
-                                    if (latitude != null && longitude != null) {
-                                        postDelayed({
-                                            evaluateJavascript("setInitialLocation($latitude, $longitude)", null)
-                                        }, 1000)
                                     }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // System map option
+                        TextButton(
+                            onClick = {
+                                val lat = latitude ?: 31.23
+                                val lng = longitude ?: 121.47
+                                try {
+                                    val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng")
+                                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    try {
+                                        val uri = Uri.parse("https://www.google.com/maps?q=$lat,$lng")
+                                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("打开系统地图查看", fontSize = 13.sp)
+                        }
                     }
                 },
                 confirmButton = {},

@@ -28,28 +28,80 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _relatedEntries = MutableStateFlow<List<DiaryPreview>>(emptyList())
     val relatedEntries = _relatedEntries.asStateFlow()
 
+    private val _loadError = MutableStateFlow(false)
+    val loadError = _loadError.asStateFlow()
+
     fun loadEntry(id: Long) {
         viewModelScope.launch {
-            _entry.value = dao.getEntryById(id)
-            _tags.value = dao.getTagInfoForDiary(id)
+            try {
+                val loaded = dao.getEntryById(id)
+                if (loaded == null) {
+                    _loadError.value = true
+                    return@launch
+                }
+                // Sanitize content: strip Base64 data URLs to prevent OOM
+                _entry.value = if (loaded.content.contains("data:image/")) {
+                    loaded.copy(content = stripBase64FromDelta(loaded.content))
+                } else {
+                    loaded
+                }
+                _tags.value = dao.getTagInfoForDiary(id)
 
-            // Load related entries from the same day in previous years (lightweight query)
-            val entry = _entry.value
-            if (entry != null) {
-                val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                // Load related entries from the same day in previous years (lightweight query)
+                val entry = _entry.value
+                if (entry != null) {
+                    val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
+                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
-                val monthDayEntries = dao.getPreviewsByMonthDay(entryDate.monthValue, entryDate.dayOfMonth)
-                val related = monthDayEntries.filter { other ->
-                    other.id != entry.id && run {
-                        val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
-                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                        otherDate.year != entryDate.year
-                    }
-                }.sortedByDescending { it.createdAt }.take(3)
+                    val monthDayEntries = dao.getPreviewsByMonthDay(entryDate.monthValue, entryDate.dayOfMonth)
+                    val related = monthDayEntries.filter { other ->
+                        other.id != entry.id && run {
+                            val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
+                                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                            otherDate.year != entryDate.year
+                        }
+                    }.sortedByDescending { it.createdAt }.take(3)
 
-                _relatedEntries.value = related
+                    _relatedEntries.value = related
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _loadError.value = true
             }
+        }
+    }
+
+    /**
+     * Strip Base64 data URLs from Delta JSON to prevent OOM.
+     * Replaces data:image/... base64 strings with empty placeholder.
+     */
+    private fun stripBase64FromDelta(content: String): String {
+        return try {
+            // Use a conservative approach: replace data:image blocks with empty strings
+            // The regex matches "data:image/..." patterns within JSON string values
+            val sb = StringBuilder(content.length)
+            var i = 0
+            while (i < content.length) {
+                val dataIdx = content.indexOf("data:image/", i)
+                if (dataIdx == -1) {
+                    sb.append(content, i, content.length)
+                    break
+                }
+                sb.append(content, i, dataIdx)
+                // Find the end of the base64 string (closing quote)
+                val endQuote = content.indexOf('"', dataIdx)
+                if (endQuote == -1) {
+                    sb.append(content, dataIdx, content.length)
+                    break
+                }
+                sb.append("") // replace the data URL with empty
+                i = endQuote
+            }
+            sb.toString()
+        } catch (e: Exception) {
+            // If stripping fails, return content as-is but log
+            e.printStackTrace()
+            content
         }
     }
 

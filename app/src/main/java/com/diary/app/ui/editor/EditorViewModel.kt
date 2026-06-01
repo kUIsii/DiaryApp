@@ -194,12 +194,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         latitude: Double? = null,
         longitude: Double? = null
     ): Long {
+        // Strip Base64 data URLs from content before saving to prevent OOM on load
+        val safeContent = stripBase64FromContent(content)
+
         val entryId = if (diaryId != null) {
             val existing = dao.getEntryById(diaryId)
             if (existing != null) {
                 val updated = existing.copy(
                     title = title,
-                    content = content,
+                    content = safeContent,
                     plainText = plainText,
                     moodLevel = moodLevel,
                     weather = weather,
@@ -213,7 +216,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 dao.insertEntry(
                     DiaryEntry(
-                        title = title, content = content, plainText = plainText,
+                        title = title, content = safeContent, plainText = plainText,
                         moodLevel = moodLevel, weather = weather,
                         location = location, latitude = latitude, longitude = longitude
                     )
@@ -222,7 +225,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             dao.insertEntry(
                 DiaryEntry(
-                    title = title, content = content, plainText = plainText,
+                    title = title, content = safeContent, plainText = plainText,
                     moodLevel = moodLevel, weather = weather,
                     location = location, latitude = latitude, longitude = longitude
                 )
@@ -239,5 +242,35 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _hasUnsavedChanges.value = false
 
         return entryId
+    }
+
+    /**
+     * Strip Base64 data URLs from Delta JSON content.
+     * Images should be stored as files, not inline Base64.
+     */
+    private fun stripBase64FromContent(content: String): String {
+        if (!content.contains("data:image/")) return content
+        return try {
+            val sb = StringBuilder(content.length)
+            var i = 0
+            while (i < content.length) {
+                val dataIdx = content.indexOf("data:image/", i)
+                if (dataIdx == -1) {
+                    sb.append(content, i, content.length)
+                    break
+                }
+                sb.append(content, i, dataIdx)
+                val endQuote = content.indexOf('"', dataIdx)
+                if (endQuote == -1) {
+                    sb.append(content, dataIdx, content.length)
+                    break
+                }
+                sb.append("")
+                i = endQuote
+            }
+            sb.toString()
+        } catch (e: Exception) {
+            content
+        }
     }
 }

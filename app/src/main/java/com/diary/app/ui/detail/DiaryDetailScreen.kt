@@ -96,6 +96,7 @@ fun DiaryDetailScreen(
     val entry by viewModel.entry.collectAsState()
     val tags by viewModel.tags.collectAsState()
     val relatedEntries by viewModel.relatedEntries.collectAsState()
+    val loadError by viewModel.loadError.collectAsState()
 
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -157,6 +158,34 @@ fun DiaryDetailScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
 
+            // Error state
+            if (loadError) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "日记加载失败",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = textSecondary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "内容可能已损坏，请返回重试",
+                            fontSize = 13.sp,
+                            color = textSecondary.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextButton(onClick = onNavigateBack) {
+                            Text("返回", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+                return@GradientBackground
+            }
+
             // Delete confirmation dialog
             if (showDeleteDialog) {
                 AlertDialog(
@@ -203,6 +232,7 @@ fun DiaryDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Content WebView
+                        val maxContentSize = 2 * 1024 * 1024 // 2MB limit for WebView content
                         AndroidView(
                             factory = { ctx ->
                                 WebView(ctx).apply {
@@ -211,17 +241,26 @@ fun DiaryDetailScreen(
                                             super.onPageFinished(view, url)
                                             evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
                                             if (currentEntry.content.isNotBlank()) {
-                                                // Strip inline Base64 data URLs to prevent memory crash
-                                                val safeContent = currentEntry.content.replace(
-                                                    Regex("\"data:image/[^\"]{0,5000000}\""),
-                                                    "\"\""
-                                                )
-                                                // Pass content via base64 to avoid escaping issues
-                                                val encoded = android.util.Base64.encodeToString(
-                                                    safeContent.toByteArray(Charsets.UTF_8),
-                                                    android.util.Base64.NO_WRAP
-                                                )
-                                                evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                                try {
+                                                    // Content was already sanitized in ViewModel
+                                                    val safeContent = currentEntry.content
+                                                    if (safeContent.length > maxContentSize) {
+                                                        // Content too large - show plain text fallback
+                                                        val fallback = currentEntry.plainText.take(5000)
+                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})")
+                                                    } else {
+                                                        val encoded = android.util.Base64.encodeToString(
+                                                            safeContent.toByteArray(Charsets.UTF_8),
+                                                            android.util.Base64.NO_WRAP
+                                                        )
+                                                        evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                                    }
+                                                } catch (e: Exception) {
+                                                    e.printStackTrace()
+                                                    // Fallback to plain text
+                                                    val fallback = currentEntry.plainText.take(5000)
+                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})")
+                                                }
                                             }
                                             evaluateJavascript("setFontSize($fontSizePx)", null)
                                         }

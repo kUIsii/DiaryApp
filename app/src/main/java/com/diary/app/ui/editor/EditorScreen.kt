@@ -601,7 +601,7 @@ fun EditorScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().imePadding()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // Top bar - simplified: only undo, redo, save
             Row(
                 modifier = Modifier
@@ -695,35 +695,30 @@ fun EditorScreen(
                 }
                 AnimatedVisibility(
                     visible = promptVisible,
-                    enter = fadeIn(tween(500)) + expandVertically(tween(400))
+                    enter = fadeIn(tween(400))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 4.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { viewModel.refreshPrompt() }
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-                            .border(
-                                width = 0.5.dp,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(10.dp)
-                            )
+                            .background(textSecondary.copy(alpha = 0.04f))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "\u201C",
-                            fontSize = 22.sp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 14.sp
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                         )
                         Text(
                             text = writingPrompt,
-                            fontSize = 13.sp,
-                            color = textSecondary.copy(alpha = 0.8f),
+                            fontSize = 12.sp,
+                            color = textSecondary.copy(alpha = 0.55f),
                             modifier = Modifier.weight(1f),
                             lineHeight = 18.sp
                         )
@@ -739,24 +734,32 @@ fun EditorScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Mood chip
+                val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
                 MetadataChip(
                     label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
                     icon = moodIconForLevel(selectedMood ?: 3).icon,
                     isSelected = selectedMood != null,
                     isActive = activePanel == "mood",
-                    onClick = { activePanel = if (activePanel == "mood") null else "mood" }
+                    onClick = { activePanel = if (activePanel == "mood") null else "mood" },
+                    accentColor = moodColor
                 )
                 // Weather chip
+                val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
                 MetadataChip(
                     label = selectedWeather ?: "天气",
                     icon = weatherIconFor(selectedWeather).icon,
                     isSelected = selectedWeather != null,
                     isActive = activePanel == "weather",
-                    onClick = { activePanel = if (activePanel == "weather") null else "weather" }
+                    onClick = { activePanel = if (activePanel == "weather") null else "weather" },
+                    accentColor = weatherColor
                 )
-                // Tags chip
+                // Tags chip - show full tag names
+                val tagLabel = if (selectedTagIds.isNotEmpty()) {
+                    val names = allTags.filter { it.id in selectedTagIds }.map { it.name }
+                    names.joinToString(" ")
+                } else "标签"
                 MetadataChip(
-                    label = if (selectedTagIds.isNotEmpty()) "${selectedTagIds.size}个标签" else "标签",
+                    label = tagLabel,
                     icon = Icons.Default.Sell,
                     isSelected = selectedTagIds.isNotEmpty(),
                     isActive = activePanel == "tags",
@@ -861,12 +864,12 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
 
-            // Word count and writing duration
-            if (charCount > 0 || writingDuration > 0) {
+            // Word count and writing duration - integrated into space above toolbar
+            if (charCount > 0 || writingDuration > 30) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                        .padding(horizontal = 20.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -880,7 +883,6 @@ fun EditorScreen(
                                 fontSize = 11.sp,
                                 color = textSecondary.copy(alpha = 0.4f)
                             )
-                            // Writing milestone encouragement
                             val milestone = when {
                                 charCount >= 1000 -> "长篇佳作"
                                 charCount >= 500 -> "文思泉涌"
@@ -889,24 +891,15 @@ fun EditorScreen(
                                 else -> null
                             }
                             if (milestone != null) {
-                                var milestoneVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(milestone) {
-                                    milestoneVisible = true
-                                }
-                                AnimatedVisibility(
-                                    visible = milestoneVisible,
-                                    enter = fadeIn(tween(300)) + expandVertically(tween(300))
-                                ) {
-                                    Text(
-                                        text = milestone,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                    )
-                                }
+                                Text(
+                                    text = milestone,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
                             }
                         }
                     }
-                    if (writingDuration > 30) { // Show after 30 seconds
+                    if (writingDuration > 30) {
                         Text(
                             text = "已写${viewModel.getFormattedDuration()}",
                             fontSize = 11.sp,
@@ -915,8 +908,9 @@ fun EditorScreen(
                     }
                 }
             }
-
-            // Bottom toolbar - redesigned with top action bar + grid
+        }
+        // Floating toolbar overlay - positioned above keyboard
+        Box(modifier = Modifier.align(Alignment.BottomCenter).imePadding()) {
             EditorToolbar(
                 showToolbar = showToolbar,
                 onToggleToolbar = { showToolbar = !showToolbar; activeCategory = -1 },
@@ -961,10 +955,11 @@ private fun MetadataChip(
     icon: ImageVector,
     isSelected: Boolean,
     isActive: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    accentColor: Color? = null
 ) {
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val primary = MaterialTheme.colorScheme.primary
+    val primary = accentColor ?: MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     val bgColor = if (isActive) primary.copy(alpha = 0.08f) else surfaceVariant.copy(alpha = 0.5f)
@@ -1367,27 +1362,41 @@ private fun SubFunctionButton(
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = description,
-                    tint = if (isActive) activeColor else textColor,
-                    modifier = Modifier.size(16.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = description,
+                        tint = if (isActive) activeColor else textColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Text(
+                    text = label,
+                    fontSize = 13.sp,
+                    color = if (isActive) activeColor else textColor,
+                    style = textStyle,
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
                 )
             }
-            Text(
-                text = label,
-                fontSize = 13.sp,
-                color = if (isActive) activeColor else textColor,
-                style = textStyle
-            )
+            if (description.isNotBlank()) {
+                Text(
+                    text = description,
+                    fontSize = 9.sp,
+                    color = (if (isActive) activeColor else textColor).copy(alpha = 0.5f),
+                    maxLines = 1
+                )
+            }
         }
     }
 }

@@ -244,6 +244,19 @@ interface DiaryDao {
     """)
     suspend fun getPreviewsByMonthDay(month: Int, day: Int): List<DiaryPreview>
 
+    // Image queries
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertImage(image: DiaryImage): Long
+
+    @Query("SELECT * FROM diary_images WHERE entryId = :entryId ORDER BY sortOrder ASC")
+    suspend fun getImagesForEntry(entryId: Long): List<DiaryImage>
+
+    @Query("DELETE FROM diary_images WHERE entryId = :entryId")
+    suspend fun deleteImagesForEntry(entryId: Long)
+
+    @Query("SELECT * FROM diary_images")
+    suspend fun getAllImages(): List<DiaryImage>
+
     // Trash queries
     @Query("SELECT * FROM trash_entries ORDER BY deletedAt DESC")
     fun getTrashEntries(): Flow<List<TrashEntry>>
