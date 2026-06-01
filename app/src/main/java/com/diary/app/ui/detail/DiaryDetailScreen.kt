@@ -247,7 +247,7 @@ fun DiaryDetailScreen(
                                                     if (safeContent.length > maxContentSize) {
                                                         // Content too large - show plain text fallback
                                                         val fallback = currentEntry.plainText.take(5000)
-                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})")
+                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                     } else {
                                                         val encoded = android.util.Base64.encodeToString(
                                                             safeContent.toByteArray(Charsets.UTF_8),
@@ -259,7 +259,7 @@ fun DiaryDetailScreen(
                                                     e.printStackTrace()
                                                     // Fallback to plain text
                                                     val fallback = currentEntry.plainText.take(5000)
-                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})")
+                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                 }
                                             }
                                             evaluateJavascript("setFontSize($fontSizePx)", null)
