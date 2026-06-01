@@ -4,6 +4,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -156,10 +157,61 @@ fun StatsScreen(
                 // Heatmap
                 if (state.heatmapData.isNotEmpty()) {
                     item {
-                        SectionTitle(text = "记录热力图")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                            )
+                                        )
+                                    )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "记录热力图",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            // Range toggle
+                            val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(surfaceVariant.copy(alpha = 0.3f))
+                                    .padding(3.dp)
+                            ) {
+                                HeatmapToggleButton(
+                                    text = "1个月",
+                                    selected = state.heatmapRange == HeatmapRange.ONE_MONTH,
+                                    onClick = { viewModel.toggleHeatmapRange() }
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                HeatmapToggleButton(
+                                    text = "半年",
+                                    selected = state.heatmapRange == HeatmapRange.SIX_MONTHS,
+                                    onClick = { viewModel.toggleHeatmapRange() }
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
-                            DiaryHeatmap(data = state.heatmapData)
+                            DiaryHeatmap(
+                                data = state.heatmapData,
+                                range = state.heatmapRange,
+                            )
                         }
                     }
                 }
@@ -720,41 +772,162 @@ private fun WeatherRow(
 // ── Diary heatmap ──
 
 @Composable
-private fun DiaryHeatmap(data: List<HeatmapDay>) {
+private fun DiaryHeatmap(
+    data: List<HeatmapDay>,
+    range: HeatmapRange,
+) {
+    when (range) {
+        HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data)
+        HeatmapRange.SIX_MONTHS -> HalfYearHeatmap(data = data)
+    }
+}
+
+@Composable
+private fun MonthlyHeatmap(data: List<HeatmapDay>) {
+    if (data.isEmpty()) return
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val today = LocalDate.now()
+
+    // Group by weeks (Mon-Sun), pad start to align with Monday
+    val weeks = remember(data) {
+        val firstDate = data.first().date
+        val daysToPad = (firstDate.dayOfWeek.value - 1 + 7) % 7
+        val padded: List<HeatmapDay?> = List(daysToPad) { null } + data
+        padded.chunked(7)
+    }
+
+    Column {
+        // Day of week headers
+        Row(modifier = Modifier.fillMaxWidth()) {
+            listOf("一", "二", "三", "四", "五", "六", "日").forEach { day ->
+                Text(
+                    text = day,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Calendar grid
+        weeks.forEach { week ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (i in 0 until 7) {
+                    val day = week.getOrNull(i)
+                    if (day != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .padding(2.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (day.count > 0) primaryColor
+                                    else surfaceVariant.copy(alpha = 0.4f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${day.date.dayOfMonth}",
+                                fontSize = 11.sp,
+                                fontWeight = if (day.date == today) FontWeight.Bold else FontWeight.Normal,
+                                color = if (day.count > 0) Color.White
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .padding(2.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Legend
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "无记录",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(surfaceVariant.copy(alpha = 0.4f))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "有记录",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(primaryColor)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Stats summary
+        val activeDays = data.count { it.count > 0 }
+        val totalDays = data.size
+        val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
+        Text(
+            text = "最近30天有 $activeDays 天写了日记，记录率 $percentage%",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun HalfYearHeatmap(data: List<HeatmapDay>) {
     val cellSize = 16.dp
     val cellGap = 4.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
-    // Group data by calendar week (Monday-based columns)
     val weeks = remember(data) {
         if (data.isEmpty()) return@remember emptyList<List<HeatmapDay?>>()
-        // Pad start to align with Monday (DayOfWeek.MONDAY = 1)
-        val firstDayOfWeek = data.first().date.dayOfWeek.value // 1=Mon, 7=Sun
+        val firstDayOfWeek = data.first().date.dayOfWeek.value
         val paddedStart: List<HeatmapDay?> = if (firstDayOfWeek > 1) {
             List(firstDayOfWeek - 1) { null } + data
         } else {
             data
         }
-        // Chunk into weeks of 7
         paddedStart.chunked(7)
     }
 
     Column {
-        // Heatmap grid - horizontal scroll
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height((cellSize * 7 + cellGap * 6))
                 .horizontalScroll(rememberScrollState())
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(cellGap)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(cellGap)) {
                 weeks.forEach { week ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(cellGap)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
                         for (day in week) {
                             if (day != null) {
                                 Box(
@@ -767,11 +940,9 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                                         )
                                 )
                             } else {
-                                // Empty cell for padding
                                 Box(modifier = Modifier.size(cellSize))
                             }
                         }
-                        // Fill remaining cells if week is incomplete
                         repeat(7 - week.size) {
                             Box(modifier = Modifier.size(cellSize))
                         }
@@ -816,14 +987,40 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Stats summary
         val activeDays = data.count { it.count > 0 }
         val totalDays = data.size
         val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
         Text(
-            text = "过去一年有 $activeDays 天写了日记，记录率 $percentage%",
+            text = "过去半年有 $activeDays 天写了日记，记录率 $percentage%",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun HeatmapToggleButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary
+                else Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

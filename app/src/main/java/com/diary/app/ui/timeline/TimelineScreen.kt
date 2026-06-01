@@ -32,6 +32,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -74,6 +76,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
+import androidx.compose.runtime.mutableStateMapOf
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -109,6 +112,14 @@ fun TimelineScreen(
             }.toSortedMap(compareByDescending { it })
             month to byDate
         }
+    }
+
+    // Track expanded/collapsed state for each month (default: current month expanded)
+    val expandedMonths = remember { mutableStateMapOf<YearMonth, Boolean>() }
+    val currentMonth = YearMonth.now()
+    // Ensure current month is expanded by default
+    if (!expandedMonths.containsKey(currentMonth)) {
+        expandedMonths[currentMonth] = true
     }
 
     GradientBackground {
@@ -268,27 +279,34 @@ fun TimelineScreen(
                 } else {
                     monthlyGroups.forEach { (month, dateGroups) ->
                         val monthTotal = dateGroups.values.sumOf { it.size }
+                        val isExpanded = expandedMonths[month] ?: false
 
-                        // Month header
+                        // Month header (clickable to expand/collapse)
                         item(key = "month_$month") {
                             MonthGroupHeader(
                                 month = month,
-                                entryCount = monthTotal
+                                entryCount = monthTotal,
+                                isExpanded = isExpanded,
+                                onClick = {
+                                    expandedMonths[month] = !isExpanded
+                                }
                             )
                         }
 
-                        // Date groups within the month (always visible)
-                        dateGroups.forEach { (date, dayEntries) ->
-                            item(key = "date_${date}") {
-                                DayGroupCard(
-                                    date = date,
-                                    entries = dayEntries,
-                                    tagsMap = tagsMap,
-                                    onEntryClick = { entryId ->
-                                        haptic.click()
-                                        onNavigateToDetail(entryId)
-                                    }
-                                )
+                        // Date groups within the month (only when expanded)
+                        if (isExpanded) {
+                            dateGroups.forEach { (date, dayEntries) ->
+                                item(key = "date_${date}") {
+                                    DayGroupCard(
+                                        date = date,
+                                        entries = dayEntries,
+                                        tagsMap = tagsMap,
+                                        onEntryClick = { entryId ->
+                                            haptic.click()
+                                            onNavigateToDetail(entryId)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -597,7 +615,9 @@ private fun ActiveFilterChip(
 @Composable
 private fun MonthGroupHeader(
     month: YearMonth,
-    entryCount: Int
+    entryCount: Int,
+    isExpanded: Boolean,
+    onClick: () -> Unit
 ) {
     val now = YearMonth.now()
     val isCurrentMonth = month == now
@@ -611,24 +631,16 @@ private fun MonthGroupHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Timeline axis dot
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-        )
-
         Text(
             text = monthText,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isCurrentMonth) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onBackground
+            color = Color.Black
         )
 
         Box(
@@ -641,9 +653,18 @@ private fun MonthGroupHeader(
                 text = "$entryCount",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
+                color = Color.Black
             )
         }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+            contentDescription = if (isExpanded) "折叠" else "展开",
+            tint = Color.Black.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -689,8 +710,8 @@ private fun DayGroupCard(
             // Dot at the branch point (aligned with date text)
             Box(
                 modifier = Modifier
-                    .padding(top = 14.dp)
-                    .size(10.dp)
+                    .padding(top = 6.dp)
+                    .size(8.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             )
@@ -716,7 +737,7 @@ private fun DayGroupCard(
                     text = dateText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = Color.Black
                 )
 
                 // Entry count badge

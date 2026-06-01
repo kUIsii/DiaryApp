@@ -96,6 +96,7 @@
     <string name="save_and_exit">保存并退出</string>
     <string name="exit_without_saving">不保存退出</string>
     <string name="continue_editing">继续编辑</string>
+    <string name="save_as_draft">保存为草稿</string>
     <string name="draft_found">发现草稿</string>
     <string name="draft_found_message">发现上次未保存的草稿，是否恢复？</string>
     <string name="restore">恢复</string>

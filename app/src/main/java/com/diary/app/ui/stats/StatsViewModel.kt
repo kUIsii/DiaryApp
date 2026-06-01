@@ -11,6 +11,7 @@ import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
@@ -44,6 +45,11 @@ data class WritingHabit(
 
 enum class TrendDirection { UP, DOWN, FLAT }
 
+enum class HeatmapRange(val days: Int) {
+    ONE_MONTH(30),
+    SIX_MONTHS(180)
+}
+
 data class MoodTrend(
     val recent30Avg: Double?,
     val previous30Avg: Double?,
@@ -72,15 +78,25 @@ data class StatsState(
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
     val heatmapData: List<HeatmapDay> = emptyList(),
+    val heatmapRange: HeatmapRange = HeatmapRange.SIX_MONTHS,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+    private val _heatmapRange = MutableStateFlow(HeatmapRange.SIX_MONTHS)
+
+    fun toggleHeatmapRange() {
+        _heatmapRange.value = when (_heatmapRange.value) {
+            HeatmapRange.ONE_MONTH -> HeatmapRange.SIX_MONTHS
+            HeatmapRange.SIX_MONTHS -> HeatmapRange.ONE_MONTH
+        }
+    }
 
     val state: StateFlow<StatsState> = combine(
         dao.getAllPreviews(),
-        dao.getTagUsage()
-    ) { entries, tagUsage ->
+        dao.getTagUsage(),
+        _heatmapRange
+    ) { entries, tagUsage, heatmapRange ->
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now()
 
@@ -121,7 +137,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            heatmapData = computeHeatmapData(dates, now),
+            heatmapData = computeHeatmapData(dates, now, heatmapRange.days),
+            heatmapRange = heatmapRange,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -248,10 +265,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun computeHeatmapData(entryDates: Set<LocalDate>, now: LocalDate): List<HeatmapDay> {
+    private fun computeHeatmapData(entryDates: Set<LocalDate>, now: LocalDate, days: Int): List<HeatmapDay> {
         val result = mutableListOf<HeatmapDay>()
-        // Show last 365 days
-        for (i in 364 downTo 0) {
+        for (i in (days - 1) downTo 0) {
             val date = now.minusDays(i.toLong())
             result.add(
                 HeatmapDay(

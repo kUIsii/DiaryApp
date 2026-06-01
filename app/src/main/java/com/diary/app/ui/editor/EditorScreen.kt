@@ -491,7 +491,7 @@ fun EditorScreen(
         )
     }
 
-    // Unsaved changes dialog
+    // Unsaved changes dialog - redesigned with proper button layout
     if (showUnsavedDialog) {
         AlertDialog(
             onDismissRequest = { showUnsavedDialog = false },
@@ -499,37 +499,64 @@ fun EditorScreen(
             text = {
                 Column {
                     Text(stringResource(R.string.unsaved_changes_message))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    TextButton(
-                        onClick = { showUnsavedDialog = false },
-                        modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(20.dp))
+                    // Three buttons stacked vertically with consistent styling
+                    // 1. Continue editing
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { showUnsavedDialog = false }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(stringResource(R.string.continue_editing), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.continue_editing), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    webView?.evaluateJavascript("getContent()") { json ->
-                        webView?.evaluateJavascript("getPlainText()") { plain ->
-                            val cleanJson = unescapeEvaluateJsResult(json)
-                            val cleanPlain = unescapeEvaluateJsResult(plain)
-                            scope.launch {
-                                viewModel.saveEntry(dateTitle, cleanJson, cleanPlain, diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // 2. Save as draft
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable {
+                                webView?.evaluateJavascript("getContent()") { json ->
+                                    webView?.evaluateJavascript("getPlainText()") { plain ->
+                                        val cleanJson = unescapeEvaluateJsResult(json)
+                                        val cleanPlain = unescapeEvaluateJsResult(plain)
+                                        viewModel.saveDraft(cleanJson, cleanPlain, diaryId, dateTitle, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
+                                        showUnsavedDialog = false
+                                        onNavigateBack()
+                                    }
+                                }
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.save_as_draft), fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // 3. Exit without saving
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable {
+                                viewModel.clearDraft(diaryId)
                                 showUnsavedDialog = false
                                 onNavigateBack()
                             }
-                        }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.exit_without_saving), fontSize = 15.sp, color = MaterialTheme.colorScheme.error)
                     }
-                }) { Text(stringResource(R.string.save_and_exit)) }
+                }
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    viewModel.clearDraft(null)
-                    showUnsavedDialog = false
-                    onNavigateBack()
-                }) { Text(stringResource(R.string.exit_without_saving)) }
-            }
+            confirmButton = {},
+            dismissButton = {}
         )
     }
 
@@ -1187,6 +1214,12 @@ private fun FormatSubPanel(
     activeFormats: Map<String, Any> = emptyMap()
 ) {
     val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val selectedBg = Color(0xFFBBDEFB) // light blue for selected state
+    val currentHeader = activeFormats["header"]?.toString()?.toIntOrNull() ?: 0
+    val isBold = activeFormats["bold"] == true
+    val isItalic = activeFormats["italic"] == true
+    val isUnderline = activeFormats["underline"] == true
+    val isStrike = activeFormats["strike"] == true
 
     Column(
         modifier = Modifier
@@ -1194,24 +1227,108 @@ private fun FormatSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Row 1: H1 | H2 | H3
-        val currentHeader = activeFormats["header"]?.toString()?.toIntOrNull() ?: 0
+        // Row 1: H1 | H2 | H3 - heading preview with corresponding font size
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "H1", icon = null, description = "一级标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 1, activeColor = activeColor)
-            SubFunctionButton(label = "H2", icon = null, description = "二级标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 2, activeColor = activeColor)
-            SubFunctionButton(label = "H3", icon = null, description = "三级标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 3, activeColor = activeColor)
+            listOf(
+                Triple(1, "一级标题", 22.sp),
+                Triple(2, "二级标题", 18.sp),
+                Triple(3, "三级标题", 16.sp)
+            ).forEach { (level, desc, fontSize) ->
+                val isActive = currentHeader == level
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.95f else 1f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+                    label = "h$level"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isActive) selectedBg else btnBg)
+                        .clickable(interactionSource = interactionSource, indication = null) { onHeading(level) }
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = desc,
+                        fontSize = fontSize,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isActive) Color(0xFF1565C0) else textColor
+                    )
+                }
+            }
         }
-        // Row 2: Bold | Italic | Underline
+        // Row 2: Bold | Italic | Underline - with light blue selected state
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "B", icon = null, description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontWeight = FontWeight.Bold), isActive = activeFormats["bold"] == true, activeColor = activeColor)
-            SubFunctionButton(label = "I", icon = null, description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontStyle = FontStyle.Italic), isActive = activeFormats["italic"] == true, activeColor = activeColor)
-            SubFunctionButton(label = "U", icon = null, description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.Underline), isActive = activeFormats["underline"] == true, activeColor = activeColor)
+            FormatToggleButton(label = "B", description = "加粗", isActive = isBold, textStyle = TextStyle(fontWeight = FontWeight.Bold), onClick = { onFormat("toggleBold()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
+            FormatToggleButton(label = "I", description = "斜体", isActive = isItalic, textStyle = TextStyle(fontStyle = FontStyle.Italic), onClick = { onFormat("toggleItalic()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
+            FormatToggleButton(label = "U", description = "下划线", isActive = isUnderline, textStyle = TextStyle(textDecoration = TextDecoration.Underline), onClick = { onFormat("toggleUnderline()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
         }
         // Row 3: Strikethrough | Clear
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "S", icon = null, description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.LineThrough), isActive = activeFormats["strike"] == true, activeColor = activeColor)
+            FormatToggleButton(label = "S", description = "删除线", isActive = isStrike, textStyle = TextStyle(textDecoration = TextDecoration.LineThrough), onClick = { onFormat("toggleStrike()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
             SubFunctionButton(label = "清除", icon = Icons.Default.FormatClear, description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun FormatToggleButton(
+    label: String,
+    description: String,
+    isActive: Boolean,
+    textStyle: TextStyle,
+    onClick: () -> Unit,
+    textColor: Color,
+    selectedBg: Color,
+    normalBg: Color,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "fmt_$label"
+    )
+
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isActive) selectedBg else normalBg)
+            .border(
+                width = if (isActive) 1.dp else 0.dp,
+                color = if (isActive) Color(0xFF90CAF9) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                color = if (isActive) Color(0xFF1565C0) else textColor,
+                style = textStyle,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+            )
+            Text(
+                text = description,
+                fontSize = 9.sp,
+                color = (if (isActive) Color(0xFF1565C0) else textColor).copy(alpha = 0.5f),
+                maxLines = 1
+            )
         }
     }
 }
