@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -303,29 +304,15 @@ fun TimelineScreen(
                         if (isExpanded) {
                             dateGroups.forEach { (date, dayEntries) ->
                                 item(key = "date_${date}") {
-                                    DateGroupHeader(
+                                    DayGroupCard(
                                         date = date,
-                                        entryCount = dayEntries.size
-                                    )
-                                }
-
-                                itemsIndexed(
-                                    items = dayEntries,
-                                    key = { _, entry -> entry.id }
-                                ) { index, entry ->
-                                    TimelineEntryCard(
-                                        entry = entry,
-                                        tags = tagsMap[entry.id] ?: emptyList(),
-                                        isLast = index == dayEntries.size - 1,
-                                        onClick = {
+                                        entries = dayEntries,
+                                        tagsMap = tagsMap,
+                                        onEntryClick = { entryId ->
                                             haptic.click()
-                                            onNavigateToDetail(entry.id)
+                                            onNavigateToDetail(entryId)
                                         }
                                     )
-                                }
-
-                                item(key = "spacer_${date}") {
-                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
                         }
@@ -698,8 +685,14 @@ private fun MonthGroupHeader(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
+private fun DayGroupCard(
+    date: LocalDate,
+    entries: List<DiaryPreview>,
+    tagsMap: Map<Long, List<TagInfo>>,
+    onEntryClick: (Long) -> Unit
+) {
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
 
@@ -726,51 +719,108 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(bottom = 12.dp)
     ) {
-        // Left: timeline axis alignment
-        Box(
-            modifier = Modifier.width(24.dp),
-            contentAlignment = Alignment.Center
+        // Left: vertical timeline axis with horizontal branch
+        Column(
+            modifier = Modifier.width(36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Dot at the branch point (aligned with date text)
+            Box(
+                modifier = Modifier
+                    .padding(top = 14.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+
+            // Vertical line continues down through the card
             Box(
                 modifier = Modifier
                     .width(2.dp)
-                    .height(18.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                    .weight(1f)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        // Right: date header + day card containing all entries
+        Column(modifier = Modifier.weight(1f)) {
+            // Date label with horizontal branch line
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 10.dp)
+            ) {
+                // Horizontal branch line
+                Box(
+                    modifier = Modifier
+                        .width(12.dp)
+                        .height(2.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                )
 
-        // Date label
-        Text(
-            text = dateText,
-            fontSize = if (isSpecial) 16.sp else 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isSpecial) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onBackground
+                // Date text
+                Text(
+                    text = dateText,
+                    fontSize = if (isSpecial) 16.sp else 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSpecial) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onBackground
+                    }
+                )
+
+                // Entry count badge
+                if (entries.size > 1) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${entries.size}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
-        )
 
-        // Entry count badge
-        if (entryCount > 1) {
-            Spacer(modifier = Modifier.width(8.dp))
+            // Day card (big card containing all entries)
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(16.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.08f),
+                        spotColor = Color.Black.copy(alpha = 0.08f)
+                    )
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
             ) {
-                Text(
-                    text = "$entryCount",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    entries.forEach { entry ->
+                        val tags = tagsMap[entry.id] ?: emptyList()
+                        EntryItemCard(
+                            entry = entry,
+                            tags = tags,
+                            onClick = { onEntryClick(entry.id) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -778,199 +828,178 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TimelineEntryCard(
+private fun EntryItemCard(
     entry: DiaryPreview,
     tags: List<TagInfo>,
-    isLast: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = tween(durationMillis = 100),
-        label = "cardScale"
+        label = "entryScale"
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Left: vertical timeline axis + dot node
-        Column(
-            modifier = Modifier.width(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+    // Mood-based background color
+    val moodBgColor = when (entry.moodLevel) {
+        1 -> Color(0xFFFFF3E0) // warm orange for sad
+        2 -> Color(0xFFFFF8E1) // light amber
+        3 -> Color(0xFFF5F5F5) // neutral gray
+        4 -> Color(0xFFE8F5E9) // light green
+        5 -> Color(0xFFE3F2FD) // light blue
+        6 -> Color(0xFFF3E5F5) // light purple
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 1.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.04f)
             )
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .weight(1f)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(moodBgColor)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            // Time row
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = formatEntryTime(entry.createdAt),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            // Title (skip if it's just a date string)
+            val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
+            if (entry.title.isNotBlank() && !isDateTitle) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = entry.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-        // Right: time label + card content
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else 8.dp)
-        ) {
-            // Time label above the card
-            Text(
-                text = formatEntryTime(entry.createdAt),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
+            // Content preview
+            if (entry.plainText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = entry.plainText.replace("\\n", "\n"),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 18.sp
+                )
+            }
 
-            // Card with border
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = 1.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.06f),
-                        spotColor = Color.Black.copy(alpha = 0.06f)
-                    )
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onClick
-                    )
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp)
+            // Bottom: mood + weather + location + tags
+            val hasMetadata = entry.moodLevel != null || entry.weather != null || entry.location != null || tags.isNotEmpty()
+            if (hasMetadata) {
+                Spacer(modifier = Modifier.height(6.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Title (skip if it's just a date string like "2026年6月1日")
-                    val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
-                    if (entry.title.isNotBlank() && !isDateTitle) {
-                        Text(
-                            text = entry.title,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                    }
-
-                    // Content preview
-                    if (entry.plainText.isNotBlank()) {
-                        Text(
-                            text = entry.plainText,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-
-                    // Bottom: mood + weather + location + tags (merged in one FlowRow)
-                    val hasMetadata = entry.moodLevel != null || entry.weather != null || entry.location != null || tags.isNotEmpty()
-                    if (hasMetadata) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                    if (entry.moodLevel != null) {
+                        val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
-                            if (entry.moodLevel != null) {
-                                val (icon, tint) = moodIconForLevel(entry.moodLevel)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = tint.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = moodLabelForLevel(entry.moodLevel),
-                                        fontSize = 11.sp,
-                                        color = tint.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-                            if (entry.weather != null) {
-                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = weatherIcon,
-                                        contentDescription = null,
-                                        tint = weatherTint.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = weatherLabelFor(entry.weather),
-                                        fontSize = 11.sp,
-                                        color = weatherTint.copy(alpha = 0.6f)
-                                    )
-                                }
-                            }
-                            if (entry.location != null) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = entry.location,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            tags.forEach { tag ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(tag.color.copy(alpha = 0.1f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = tag.name,
-                                        fontSize = 10.sp,
-                                        color = tag.color.copy(alpha = 0.8f),
-                                        maxLines = 1
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = tint.copy(alpha = 0.7f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = moodLabelForLevel(entry.moodLevel),
+                                fontSize = 11.sp,
+                                color = tint.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    if (entry.weather != null) {
+                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = weatherIcon,
+                                contentDescription = null,
+                                tint = weatherTint.copy(alpha = 0.6f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = weatherLabelFor(entry.weather),
+                                fontSize = 11.sp,
+                                color = weatherTint.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                    if (entry.location != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = entry.location,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    tags.forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(tag.color.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = tag.name,
+                                fontSize = 10.sp,
+                                color = tag.color.copy(alpha = 0.8f),
+                                maxLines = 1
+                            )
                         }
                     }
                 }

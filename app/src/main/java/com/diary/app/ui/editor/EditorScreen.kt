@@ -186,8 +186,8 @@ fun EditorScreen(
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
 
-    // Toolbar state
-    var showToolbar by remember { mutableStateOf(true) }
+    // Toolbar state - initially hidden, shown when keyboard appears
+    var showToolbar by remember { mutableStateOf(false) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
 
@@ -453,7 +453,7 @@ fun EditorScreen(
         }
     }
 
-    // Auto-show keyboard after WebView loads
+    // Auto-show keyboard after WebView loads and show toolbar
     LaunchedEffect(webView) {
         webView?.let {
             kotlinx.coroutines.delay(500)
@@ -462,6 +462,8 @@ fun EditorScreen(
                 "document.querySelector('.ql-editor').focus()",
                 null
             )
+            // Show toolbar when keyboard appears
+            showToolbar = true
         }
     }
 
@@ -1274,15 +1276,15 @@ private fun ColorSubPanel(
                 modifier = Modifier.padding(bottom = 6.dp)
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 textColors.forEach { color ->
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color(color))
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                             .clickable {
                                 onFormat("setTextColor('#${Integer.toHexString(color.toInt()).substring(2)}')")
                             }
@@ -1300,15 +1302,15 @@ private fun ColorSubPanel(
                 modifier = Modifier.padding(bottom = 6.dp)
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 bgColors.forEach { color ->
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color(color))
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                             .clickable {
                                 onFormat("setBackgroundColor('#${Integer.toHexString(color.toInt()).substring(2)}')")
                             }

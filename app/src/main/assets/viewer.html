@@ -377,10 +377,11 @@
                 // JSON parse failed - try to fix common issues
             }
 
-            // Try fixing corrupted JSON (literal newlines inside strings)
+            // Try fixing corrupted JSON (literal newlines inside JSON string values)
+            // Only replace newlines that appear between quotes (inside string values)
             try {
-                var fixed = decoded.replace(/[\r\n]/g, function(match) {
-                    return match === '\r' ? '\\r' : '\\n';
+                var fixed = decoded.replace(/"([^"]*?)[\r\n]([^"]*?)"/g, function(match) {
+                    return match.replace(/[\r\n]/g, '\\n');
                 });
                 var parsed2 = JSON.parse(fixed);
                 if (parsed2 && parsed2.ops) {
@@ -395,17 +396,30 @@
                 var regex = /"insert"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
                 var match;
                 while ((match = regex.exec(decoded)) !== null) {
-                    var text = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-                    if (text.trim()) textParts.push(escapeHtml(text));
+                    var text = match[1]
+                        .replace(/\\n/g, '\n')
+                        .replace(/\\r/g, '\r')
+                        .replace(/\\"/g, '"')
+                        .replace(/\\\\/g, '\\');
+                    if (text.trim()) {
+                        // Split by newlines and wrap each line in <p>
+                        var lines = text.split(/\n/);
+                        lines.forEach(function(line) {
+                            if (line.trim()) {
+                                textParts.push('<p>' + escapeHtml(line) + '</p>');
+                            }
+                        });
+                    }
                 }
                 if (textParts.length > 0) {
-                    document.getElementById('content').innerHTML = textParts.map(function(t) { return '<p>' + t + '</p>'; }).join('');
+                    document.getElementById('content').innerHTML = textParts.join('');
                     return;
                 }
             } catch(e3) {}
 
-            // Last resort: show decoded text as-is (not raw JSON)
-            document.getElementById('content').innerHTML = '<p>' + escapeHtml(decoded) + '</p>';
+            // Last resort: show decoded text as-is, converting newlines to <br>
+            var escaped = escapeHtml(decoded).replace(/\n/g, '<br>');
+            document.getElementById('content').innerHTML = '<p>' + escaped + '</p>';
         }
 
         function setHtmlContent(html) {

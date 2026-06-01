@@ -1,7 +1,6 @@
 package com.diary.app.ui.stats
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -38,16 +37,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -126,14 +120,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_total_diaries),
                                 value = state.totalEntries,
                                 icon = Icons.Default.Edit,
-                                gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                                gradientColors = listOf(Color(0xFF5B86E5), Color(0xFF36D1DC)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = stringResource(R.string.stat_streak),
                                 value = state.currentStreak,
                                 icon = Icons.Default.LocalFireDepartment,
-                                gradientColors = listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
+                                gradientColors = listOf(Color(0xFFFF512F), Color(0xFFF09819)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -145,14 +139,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_this_month),
                                 value = state.thisMonthEntries,
                                 icon = Icons.Default.CalendarMonth,
-                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)),
+                                gradientColors = listOf(Color(0xFF11998E), Color(0xFF38EF7D)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = "总字数",
                                 value = state.wordStats?.totalWords ?: 0,
                                 icon = Icons.Default.TextSnippet,
-                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f), MaterialTheme.colorScheme.primary),
+                                gradientColors = listOf(Color(0xFF9B59B6), Color(0xFFE74C3C)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -267,39 +261,6 @@ fun StatsScreen(
     }
 }
 
-// ── Animated number counter ──
-
-@Composable
-private fun AnimatedCounter(
-    targetValue: Int,
-    modifier: Modifier = Modifier,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
-    fontWeight: FontWeight = FontWeight.Bold,
-    color: Color = Color.Unspecified
-) {
-    var animatedValue by remember { mutableFloatStateOf(0f) }
-    val animatedFloat by animateFloatAsState(
-        targetValue = animatedValue,
-        animationSpec = tween(
-            durationMillis = 800,
-            easing = FastOutSlowInEasing
-        ),
-        label = "counter"
-    )
-
-    LaunchedEffect(targetValue) {
-        animatedValue = targetValue.toFloat()
-    }
-
-    Text(
-        text = "${animatedFloat.toInt()}",
-        style = style,
-        fontWeight = fontWeight,
-        color = color,
-        modifier = modifier
-    )
-}
-
 // ── Overview card with gradient ──
 
 @Composable
@@ -314,41 +275,32 @@ private fun OverviewCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(Brush.linearGradient(gradientColors))
-            .drawBehind {
-                // Subtle static highlight at top
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            onPrimaryColor.copy(alpha = 0.1f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.3f, size.height * 0.2f),
-                        radius = size.width * 0.6f
-                    ),
-                    size = size
-                )
-            }
-            .padding(14.dp)
+            .padding(12.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(20.dp),
-                tint = onPrimaryColor.copy(alpha = 0.85f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            AnimatedCounter(
-                targetValue = value,
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 24.sp),
-                fontWeight = FontWeight.Bold,
-                color = onPrimaryColor
-            )
+            // Icon and value in one row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    modifier = Modifier.size(18.dp),
+                    tint = onPrimaryColor.copy(alpha = 0.85f)
+                )
+                Text(
+                    text = "$value",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 22.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = onPrimaryColor
+                )
+            }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
@@ -765,7 +717,7 @@ private fun WeatherRow(
     }
 }
 
-// ── Tag row with progress bar ──
+// ── Diary heatmap ──
 
 @Composable
 private fun DiaryHeatmap(data: List<HeatmapDay>) {
@@ -776,18 +728,16 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
 
     // Group data by calendar week (Monday-based columns)
     val weeks = remember(data) {
-        if (data.isEmpty()) return@remember emptyList()
+        if (data.isEmpty()) return@remember emptyList<List<HeatmapDay?>>()
         // Pad start to align with Monday (DayOfWeek.MONDAY = 1)
         val firstDayOfWeek = data.first().date.dayOfWeek.value // 1=Mon, 7=Sun
-        val paddedStart = if (firstDayOfWeek > 1) {
-            List(firstDayOfWeek - 1) { null } + data.map { it }
+        val paddedStart: List<HeatmapDay?> = if (firstDayOfWeek > 1) {
+            List(firstDayOfWeek - 1) { null } + data
         } else {
-            data.map { it }
+            data
         }
         // Chunk into weeks of 7
-        paddedStart.chunked(7).map { week ->
-            week.map { it }
-        }
+        paddedStart.chunked(7)
     }
 
     Column {
@@ -811,8 +761,8 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                                         .size(cellSize)
                                         .clip(RoundedCornerShape(3.dp))
                                         .background(
-                                            if (day.count > 0) primaryColor.copy(alpha = 0.75f)
-                                            else surfaceVariant.copy(alpha = 0.4f)
+                                            if (day.count > 0) primaryColor.copy(alpha = 0.9f)
+                                            else surfaceVariant.copy(alpha = 0.3f)
                                         )
                                 )
                             } else {
@@ -849,8 +799,8 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                         .size(10.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(
-                            if (level == 0) surfaceVariant.copy(alpha = 0.4f)
-                            else primaryColor.copy(alpha = 0.2f + level * 0.2f)
+                            if (level == 0) surfaceVariant.copy(alpha = 0.3f)
+                            else primaryColor.copy(alpha = 0.2f + level * 0.25f)
                         )
                 )
                 Spacer(modifier = Modifier.width(2.dp))
