@@ -220,6 +220,8 @@
         function wrapBlock(innerHtml, attrs) {
             if (!attrs) return '<p>' + innerHtml + '</p>';
 
+            if (attrs.divider) return '<hr />';
+
             var tag = 'p';
             var extra = '';
 
