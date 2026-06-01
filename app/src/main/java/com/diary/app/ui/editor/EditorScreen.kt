@@ -38,6 +38,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -146,6 +148,7 @@ private fun unescapeEvaluateJsResult(raw: String?): String {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun EditorScreen(
@@ -190,6 +193,17 @@ fun EditorScreen(
     var showToolbar by remember { mutableStateOf(false) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
+
+    // Detect keyboard visibility and show/hide toolbar
+    val isKeyboardVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isKeyboardVisible) {
+        if (isKeyboardVisible) {
+            showToolbar = true
+        } else if (activeCategory < 0) {
+            // Only hide toolbar if no sub-panel is open
+            showToolbar = false
+        }
+    }
 
     // Word count state
     var charCount by remember { mutableIntStateOf(0) }
@@ -287,22 +301,16 @@ fun EditorScreen(
         }
     }
 
-    // Media pickers - save images as files to avoid Base64 bloat in Delta JSON
+    // Media pickers - use Base64 data URL for images to avoid file access issues
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
-                val imagesDir = java.io.File(context.filesDir, "diary_images")
-                if (!imagesDir.exists()) imagesDir.mkdirs()
-                val fileName = "img_${System.currentTimeMillis()}.jpg"
-                val outputFile = java.io.File(imagesDir, fileName)
-
-                // Read and compress image
                 val inputStream = context.contentResolver.openInputStream(imageUri)
                 val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
                 if (bitmap != null) {
-                    // Scale down if larger than 1920px on longest side
-                    val maxDim = 1920
+                    // Scale down if larger than 1200px on longest side
+                    val maxDim = 1200
                     val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
                         val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
                         android.graphics.Bitmap.createScaledBitmap(
@@ -312,14 +320,15 @@ fun EditorScreen(
                             true
                         )
                     } else bitmap
-                    outputFile.outputStream().use { out ->
-                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
-                    }
+                    // Convert to Base64 data URL
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                    val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+                    val dataUrl = "data:image/jpeg;base64,$base64"
                     if (scaled !== bitmap) scaled.recycle()
                     bitmap.recycle()
 
-                    val filePath = "file://${outputFile.absolutePath}"
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(filePath)}')", null)
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(dataUrl)}')", null)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -387,10 +396,11 @@ fun EditorScreen(
         jsBridge.linkInsertRequest.collect { showLinkDialog = true }
     }
 
-    // Collect format state changes from Quill editor
+    // Collect format state changes from Quill editor with debounce
     LaunchedEffect(Unit) {
         jsBridge.formatChanges.collect { json ->
             try {
+                kotlinx.coroutines.delay(80) // Debounce to reduce lag
                 val parsed = org.json.JSONObject(json)
                 val map = mutableMapOf<String, Any>()
                 parsed.keys().forEach { key -> map[key] = parsed.get(key) }
@@ -453,7 +463,7 @@ fun EditorScreen(
         }
     }
 
-    // Auto-show keyboard after WebView loads and show toolbar
+    // Auto-show keyboard after WebView loads
     LaunchedEffect(webView) {
         webView?.let {
             kotlinx.coroutines.delay(500)
@@ -462,8 +472,6 @@ fun EditorScreen(
                 "document.querySelector('.ql-editor').focus()",
                 null
             )
-            // Show toolbar when keyboard appears
-            showToolbar = true
         }
     }
 
@@ -929,10 +937,27 @@ fun EditorScreen(
         Box(modifier = Modifier.align(Alignment.BottomCenter).imePadding()) {
             EditorToolbar(
                 showToolbar = showToolbar,
-                onToggleToolbar = { showToolbar = !showToolbar; activeCategory = -1 },
+                onToggleToolbar = {
+                    if (showToolbar && activeCategory >= 0) {
+                        // Close sub-panel and show keyboard
+                        activeCategory = -1
+                        webView?.requestFocus()
+                        webView?.evaluateJavascript("focusEditor()", null)
+                    }
+                },
                 activeCategory = activeCategory,
                 onCategoryChange = { cat ->
-                    activeCategory = if (activeCategory == cat) -1 else cat
+                    if (activeCategory == cat) {
+                        // Same category clicked - close it and show keyboard
+                        activeCategory = -1
+                        webView?.requestFocus()
+                        webView?.evaluateJavascript("focusEditor()", null)
+                    } else {
+                        // New category - open it and hide keyboard
+                        activeCategory = cat
+                        val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                        imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                    }
                 },
                 activeFormats = activeFormats,
                 onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
@@ -1254,6 +1279,7 @@ private fun ColorSubPanel(
     textColor: Color,
     activeColor: Color
 ) {
+    var isTextColorMode by remember { mutableStateOf(true) }
     val textColors = listOf(
         0xFFE74C3C, 0xFFE67E22, 0xFFF1C40F, 0xFF2ECC71, 0xFF3498DB, 0xFF9B59B6, 0xFF1A1A1A, 0xFFFFFFFF
     )
@@ -1267,52 +1293,76 @@ private fun ColorSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Text color section
-        Column {
-            Text(
-                text = "文字颜色",
-                fontSize = 12.sp,
-                color = textColor.copy(alpha = 0.6f),
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                textColors.forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(color))
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .clickable {
-                                onFormat("setTextColor('#${Integer.toHexString(color.toInt()).substring(2)}')")
-                            }
+        // Toggle buttons: 字体颜色 / 背景颜色
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isTextColorMode) activeColor.copy(alpha = 0.15f) else btnBg)
+                    .border(
+                        width = if (isTextColorMode) 1.dp else 0.dp,
+                        color = if (isTextColorMode) activeColor.copy(alpha = 0.4f) else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
                     )
-                }
+                    .clickable { isTextColorMode = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "字体颜色",
+                    fontSize = 13.sp,
+                    fontWeight = if (isTextColorMode) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isTextColorMode) activeColor else textColor
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (!isTextColorMode) activeColor.copy(alpha = 0.15f) else btnBg)
+                    .border(
+                        width = if (!isTextColorMode) 1.dp else 0.dp,
+                        color = if (!isTextColorMode) activeColor.copy(alpha = 0.4f) else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .clickable { isTextColorMode = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "背景颜色",
+                    fontSize = 13.sp,
+                    fontWeight = if (!isTextColorMode) FontWeight.Bold else FontWeight.Normal,
+                    color = if (!isTextColorMode) activeColor else textColor
+                )
             }
         }
 
-        // Background color section
-        Column {
-            Text(
-                text = "背景颜色",
-                fontSize = 12.sp,
-                color = textColor.copy(alpha = 0.6f),
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
+        // Color swatches with animated transition
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(tween(150)),
+            exit = fadeOut(tween(100))
+        ) {
+            val colors = if (isTextColorMode) textColors else bgColors
+            val command = if (isTextColorMode) "setTextColor" else "setBackgroundColor"
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                bgColors.forEach { color ->
+                colors.forEach { color ->
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Color(color))
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                             .clickable {
-                                onFormat("setBackgroundColor('#${Integer.toHexString(color.toInt()).substring(2)}')")
+                                onFormat("$command('#${Integer.toHexString(color.toInt()).substring(2)}')")
                             }
                     )
                 }

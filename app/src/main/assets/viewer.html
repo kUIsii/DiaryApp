@@ -89,18 +89,22 @@
 
         /* Lists */
         #content ol {
-            padding-left: 24px;
+            padding-left: 20px;
             margin-bottom: 16px;
+            list-style-position: outside;
         }
         #content ol li {
             margin-bottom: 6px;
+            padding-left: 4px;
         }
         #content ul {
-            padding-left: 24px;
+            padding-left: 20px;
             margin-bottom: 16px;
+            list-style-position: outside;
         }
         #content ul li {
             margin-bottom: 6px;
+            padding-left: 4px;
         }
         #content ul li::marker {
             color: var(--accent);
@@ -262,6 +266,8 @@
                 var op = delta.ops[i];
                 if (typeof op.insert === 'string') {
                     var text = op.insert;
+                    // Normalize: handle literal \n (two chars) and actual newlines
+                    text = text.replace(/\\n/g, '\n').replace(/\\r\\n/g, '\n').replace(/\\r/g, '\n');
                     var lines = text.split('\n');
                     for (var j = 0; j < lines.length; j++) {
                         if (j > 0) {

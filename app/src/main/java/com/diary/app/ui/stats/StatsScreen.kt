@@ -721,8 +721,8 @@ private fun WeatherRow(
 
 @Composable
 private fun DiaryHeatmap(data: List<HeatmapDay>) {
-    val cellSize = 14.dp
-    val cellGap = 3.dp
+    val cellSize = 16.dp
+    val cellGap = 4.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
@@ -745,6 +745,7 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .height((cellSize * 7 + cellGap * 6))
                 .horizontalScroll(rememberScrollState())
         ) {
             Row(
@@ -761,8 +762,8 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                                         .size(cellSize)
                                         .clip(RoundedCornerShape(3.dp))
                                         .background(
-                                            if (day.count > 0) primaryColor.copy(alpha = 0.9f)
-                                            else surfaceVariant.copy(alpha = 0.3f)
+                                            if (day.count > 0) primaryColor
+                                            else surfaceVariant.copy(alpha = 0.5f)
                                         )
                                 )
                             } else {
@@ -799,8 +800,8 @@ private fun DiaryHeatmap(data: List<HeatmapDay>) {
                         .size(10.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(
-                            if (level == 0) surfaceVariant.copy(alpha = 0.3f)
-                            else primaryColor.copy(alpha = 0.2f + level * 0.25f)
+                            if (level == 0) surfaceVariant.copy(alpha = 0.5f)
+                            else primaryColor.copy(alpha = 0.3f + level * 0.2f)
                         )
                 )
                 Spacer(modifier = Modifier.width(2.dp))

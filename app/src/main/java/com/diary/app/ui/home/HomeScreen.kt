@@ -329,7 +329,10 @@ private fun EntryCard(
             if (entry.plainText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = entry.plainText.replace("\\n", "\n"),
+                    text = entry.plainText
+                        .replace("\\n", "\n")
+                        .replace("\r\n", "\n")
+                        .replace("\r", "\n"),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
@@ -345,7 +348,7 @@ private fun EntryCard(
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Left: mood + weather
                     Column(

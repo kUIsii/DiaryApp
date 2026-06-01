@@ -31,8 +31,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
@@ -44,7 +42,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -111,17 +108,6 @@ fun TimelineScreen(
                     .toLocalDate()
             }.toSortedMap(compareByDescending { it })
             month to byDate
-        }
-    }
-
-    // Track which months are expanded (first month expanded by default)
-    val expandedMonths = remember {
-        mutableStateOf(setOf<YearMonth>())
-    }
-    // Initialize first month as expanded
-    LaunchedEffect(monthlyGroups) {
-        if (expandedMonths.value.isEmpty() && monthlyGroups.isNotEmpty()) {
-            expandedMonths.value = setOf(monthlyGroups.first().first)
         }
     }
 
@@ -281,39 +267,28 @@ fun TimelineScreen(
                     }
                 } else {
                     monthlyGroups.forEach { (month, dateGroups) ->
-                        val isExpanded = month in expandedMonths.value
                         val monthTotal = dateGroups.values.sumOf { it.size }
 
-                        // Month header (clickable to expand/collapse)
+                        // Month header
                         item(key = "month_$month") {
                             MonthGroupHeader(
                                 month = month,
-                                entryCount = monthTotal,
-                                isExpanded = isExpanded,
-                                onClick = {
-                                    expandedMonths.value = if (isExpanded) {
-                                        expandedMonths.value - month
-                                    } else {
-                                        expandedMonths.value + month
-                                    }
-                                }
+                                entryCount = monthTotal
                             )
                         }
 
-                        // Date groups within the month (only when expanded)
-                        if (isExpanded) {
-                            dateGroups.forEach { (date, dayEntries) ->
-                                item(key = "date_${date}") {
-                                    DayGroupCard(
-                                        date = date,
-                                        entries = dayEntries,
-                                        tagsMap = tagsMap,
-                                        onEntryClick = { entryId ->
-                                            haptic.click()
-                                            onNavigateToDetail(entryId)
-                                        }
-                                    )
-                                }
+                        // Date groups within the month (always visible)
+                        dateGroups.forEach { (date, dayEntries) ->
+                            item(key = "date_${date}") {
+                                DayGroupCard(
+                                    date = date,
+                                    entries = dayEntries,
+                                    tagsMap = tagsMap,
+                                    onEntryClick = { entryId ->
+                                        haptic.click()
+                                        onNavigateToDetail(entryId)
+                                    }
+                                )
                             }
                         }
                     }
@@ -622,9 +597,7 @@ private fun ActiveFilterChip(
 @Composable
 private fun MonthGroupHeader(
     month: YearMonth,
-    entryCount: Int,
-    isExpanded: Boolean,
-    onClick: () -> Unit
+    entryCount: Int
 ) {
     val now = YearMonth.now()
     val isCurrentMonth = month == now
@@ -638,8 +611,6 @@ private fun MonthGroupHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -673,15 +644,6 @@ private fun MonthGroupHeader(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-            contentDescription = if (isExpanded) "折叠" else "展开",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
 
@@ -714,8 +676,6 @@ private fun DayGroupCard(
         }
     }
 
-    val isSpecial = date == today || date == yesterday
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -746,29 +706,17 @@ private fun DayGroupCard(
 
         // Right: date header + day card containing all entries
         Column(modifier = Modifier.weight(1f)) {
-            // Date label with horizontal branch line
+            // Date label
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 10.dp)
             ) {
-                // Horizontal branch line
-                Box(
-                    modifier = Modifier
-                        .width(12.dp)
-                        .height(2.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-                )
-
                 // Date text
                 Text(
                     text = dateText,
-                    fontSize = if (isSpecial) 16.sp else 14.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isSpecial) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    }
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 // Entry count badge
@@ -863,6 +811,7 @@ private fun EntryItemCard(
             )
             .clip(RoundedCornerShape(12.dp))
             .background(moodBgColor)
+            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale

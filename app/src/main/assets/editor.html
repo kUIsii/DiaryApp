@@ -193,9 +193,11 @@
         function toggleCheckbox() { var f = quill.getFormat(); quill.format('list', f.list === 'checked' ? false : 'checked'); }
         function insertDivider() {
             var r = quill.getSelection(true);
-            quill.insertText(r.index, '\n');
-            quill.insertEmbed(r.index + 1, 'divider', true);
-            quill.setSelection(r.index + 2);
+            // Move to end of current line first
+            var line = quill.getLine(r.index);
+            var lineEnd = r.index + (line ? line[0].length() - line[1] : 0);
+            quill.insertEmbed(lineEnd, 'divider', true);
+            quill.setSelection(lineEnd + 1);
         }
         function setTextColor(color) { quill.format('color', color); }
         function setBackgroundColor(color) { quill.format('background', color); }
@@ -317,6 +319,14 @@
                 }
                 // Auto-scroll cursor into view
                 scrollToCursor(range.index, range.length);
+            }
+        });
+
+        // Double-click to clear formatting
+        document.querySelector('.ql-editor').addEventListener('dblclick', function() {
+            var sel = quill.getSelection();
+            if (sel && sel.length > 0) {
+                quill.removeFormat(sel.index, sel.length);
             }
         });
 
