@@ -64,6 +64,7 @@ import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
+import com.diary.app.ui.components.weatherLabelFor
 import com.diary.app.ui.home.TagInfo
 import java.time.Instant
 import java.time.LocalDate
@@ -659,6 +660,7 @@ private fun DateGroupHeader(date: LocalDate, entryCount: Int) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimelineEntryCard(
     entry: DiaryPreview,
@@ -767,62 +769,76 @@ private fun TimelineEntryCard(
                         )
                     }
 
-                    // Bottom-left: mood + weather + tags
+                    // Bottom-left: mood + weather + location + tags
                     val hasMetadata = entry.moodLevel != null || entry.weather != null || entry.location != null || tags.isNotEmpty()
                     if (hasMetadata) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (entry.moodLevel != null) {
-                                val (icon, tint) = moodIconForLevel(entry.moodLevel)
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = tint.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            if (entry.weather != null) {
-                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                                Icon(
-                                    imageVector = weatherIcon,
-                                    contentDescription = null,
-                                    tint = weatherTint.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            if (entry.location != null) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            tags.take(3).forEach { tag ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(tag.color.copy(alpha = 0.1f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Mood + Weather + Location row
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (entry.moodLevel != null) {
+                                    val (icon, tint) = moodIconForLevel(entry.moodLevel)
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = tint.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                     Text(
-                                        text = tag.name,
-                                        fontSize = 10.sp,
-                                        color = tag.color.copy(alpha = 0.8f),
-                                        maxLines = 1
+                                        text = moodLabelForLevel(entry.moodLevel),
+                                        fontSize = 11.sp,
+                                        color = tint.copy(alpha = 0.7f)
+                                    )
+                                }
+                                if (entry.weather != null) {
+                                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                                    Icon(
+                                        imageVector = weatherIcon,
+                                        contentDescription = null,
+                                        tint = weatherTint.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = weatherLabelFor(entry.weather),
+                                        fontSize = 11.sp,
+                                        color = weatherTint.copy(alpha = 0.6f)
+                                    )
+                                }
+                                if (entry.location != null) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(14.dp)
                                     )
                                 }
                             }
-                            if (tags.size > 3) {
-                                Text(
-                                    text = "+${tags.size - 3}",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                )
+                            // Tags - FlowRow, show all
+                            if (tags.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    tags.forEach { tag ->
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(tag.color.copy(alpha = 0.1f))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = tag.name,
+                                                fontSize = 10.sp,
+                                                color = tag.color.copy(alpha = 0.8f),
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

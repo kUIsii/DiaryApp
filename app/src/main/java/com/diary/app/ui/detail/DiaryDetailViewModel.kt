@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryExporter
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
 import com.diary.app.data.TrashEntry
 import com.diary.app.ui.components.moodLabelForLevel
@@ -24,7 +25,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _tags = MutableStateFlow<List<Tag>>(emptyList())
     val tags = _tags.asStateFlow()
 
-    private val _relatedEntries = MutableStateFlow<List<DiaryEntry>>(emptyList())
+    private val _relatedEntries = MutableStateFlow<List<DiaryPreview>>(emptyList())
     val relatedEntries = _relatedEntries.asStateFlow()
 
     fun loadEntry(id: Long) {
@@ -32,20 +33,19 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
             _entry.value = dao.getEntryById(id)
             _tags.value = dao.getTagInfoForDiary(id)
 
-            // Load related entries from the same day in previous years
+            // Load related entries from the same day in previous years (lightweight query)
             val entry = _entry.value
             if (entry != null) {
                 val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
                     .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
-                val allEntries = dao.getAllEntriesOnce()
-                val related = allEntries.filter { other ->
-                    if (other.id == entry.id) return@filter false
-                    val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
-                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                    otherDate.year != entryDate.year
-                        && otherDate.monthValue == entryDate.monthValue
-                        && otherDate.dayOfMonth == entryDate.dayOfMonth
+                val monthDayEntries = dao.getPreviewsByMonthDay(entryDate.monthValue, entryDate.dayOfMonth)
+                val related = monthDayEntries.filter { other ->
+                    other.id != entry.id && run {
+                        val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        otherDate.year != entryDate.year
+                    }
                 }.sortedByDescending { it.createdAt }.take(3)
 
                 _relatedEntries.value = related

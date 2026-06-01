@@ -186,6 +186,7 @@ fun EditorScreen(
     // Toolbar state
     var showToolbar by remember { mutableStateOf(true) }
     var activeCategory by remember { mutableIntStateOf(-1) }
+    var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
 
     // Word count state
     var charCount by remember { mutableIntStateOf(0) }
@@ -381,6 +382,18 @@ fun EditorScreen(
     // Collect link insert requests from JS bridge
     LaunchedEffect(Unit) {
         jsBridge.linkInsertRequest.collect { showLinkDialog = true }
+    }
+
+    // Collect format state changes from Quill editor
+    LaunchedEffect(Unit) {
+        jsBridge.formatChanges.collect { json ->
+            try {
+                val parsed = org.json.JSONObject(json)
+                val map = mutableMapOf<String, Any>()
+                parsed.keys().forEach { key -> map[key] = parsed.get(key) }
+                activeFormats = map
+            } catch (_: Exception) {}
+        }
     }
 
     // Auto-save with 5s debounce (softer, less aggressive)
@@ -674,23 +687,47 @@ fun EditorScreen(
 
             // Writing prompt (only for new entries, hide after 50 chars)
             if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { viewModel.refreshPrompt() }
-                        .background(surfaceVariant.copy(alpha = 0.3f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                var promptVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(writingPrompt) {
+                    promptVisible = false
+                    kotlinx.coroutines.delay(100)
+                    promptVisible = true
+                }
+                AnimatedVisibility(
+                    visible = promptVisible,
+                    enter = fadeIn(tween(500)) + expandVertically(tween(400))
                 ) {
-                    Text(
-                        text = writingPrompt,
-                        fontSize = 13.sp,
-                        color = textSecondary.copy(alpha = 0.7f),
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { viewModel.refreshPrompt() }
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                            .border(
+                                width = 0.5.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "\u201C",
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 14.sp
+                        )
+                        Text(
+                            text = writingPrompt,
+                            fontSize = 13.sp,
+                            color = textSecondary.copy(alpha = 0.8f),
+                            modifier = Modifier.weight(1f),
+                            lineHeight = 18.sp
+                        )
+                    }
                 }
             }
 
@@ -887,6 +924,7 @@ fun EditorScreen(
                 onCategoryChange = { cat ->
                     activeCategory = if (activeCategory == cat) -1 else cat
                 },
+                activeFormats = activeFormats,
                 onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
                 onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
                 onInsert = { action ->
@@ -895,6 +933,14 @@ fun EditorScreen(
                     }
                 },
                 onImageInsert = { imageLauncher.launch("image/*") },
+                onHideKeyboard = {
+                    val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                },
+                onShowKeyboard = {
+                    webView?.requestFocus()
+                    webView?.evaluateJavascript("focusEditor()", null)
+                },
                 onClose = {
                     if (hasUnsavedChanges) showUnsavedDialog = true
                     else onNavigateBack()
@@ -957,10 +1003,13 @@ private fun EditorToolbar(
     onToggleToolbar: () -> Unit,
     activeCategory: Int,
     onCategoryChange: (Int) -> Unit,
+    activeFormats: Map<String, Any> = emptyMap(),
     onFormat: (String) -> Unit,
     onHeading: (Int) -> Unit,
     onInsert: (String) -> Unit,
     onImageInsert: () -> Unit = {},
+    onHideKeyboard: () -> Unit = {},
+    onShowKeyboard: () -> Unit = {},
     onClose: () -> Unit = {}
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -999,15 +1048,36 @@ private fun EditorToolbar(
                         if (activeCategory == category.index && showToolbar) {
                             onCategoryChange(-1)
                             onToggleToolbar()
+                            onShowKeyboard()
                         } else {
                             onCategoryChange(category.index)
                             if (!showToolbar) onToggleToolbar()
+                            onHideKeyboard()
                         }
                     },
                     textColor = textColor,
                     activeColor = activeColor
                 )
             }
+            // Expand/collapse arrow button
+            CategoryButton(
+                icon = if (showToolbar && activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                label = if (showToolbar && activeCategory >= 0) "收起" else "展开",
+                isActive = false,
+                onClick = {
+                    if (showToolbar && activeCategory >= 0) {
+                        onCategoryChange(-1)
+                        onToggleToolbar()
+                        onShowKeyboard()
+                    } else {
+                        onCategoryChange(0)
+                        if (!showToolbar) onToggleToolbar()
+                        onHideKeyboard()
+                    }
+                },
+                textColor = textColor,
+                activeColor = activeColor
+            )
         }
 
         // Expandable sub-function panel
@@ -1030,8 +1100,8 @@ private fun EditorToolbar(
                 )
 
                 when (activeCategory) {
-                    0 -> FormatSubPanel(onFormat = onFormat, onHeading = onHeading, textColor = textColor, activeColor = activeColor)
-                    1 -> ListSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor)
+                    0 -> FormatSubPanel(onFormat = onFormat, onHeading = onHeading, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
+                    1 -> ListSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
                     2 -> InsertSubPanel(onFormat = onFormat, onInsert = onInsert, onImageInsert = onImageInsert, textColor = textColor, activeColor = activeColor)
                     3 -> ColorSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor)
                 }
@@ -1077,7 +1147,8 @@ private fun FormatSubPanel(
     onFormat: (String) -> Unit,
     onHeading: (Int) -> Unit,
     textColor: Color,
-    activeColor: Color
+    activeColor: Color,
+    activeFormats: Map<String, Any> = emptyMap()
 ) {
     val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
@@ -1088,20 +1159,21 @@ private fun FormatSubPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Row 1: H1 | H2 | H3
+        val currentHeader = activeFormats["header"]?.toString()?.toIntOrNull() ?: 0
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "H1", icon = null, description = "一级标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "H2", icon = null, description = "二级标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "H3", icon = null, description = "三级标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            SubFunctionButton(label = "H1", icon = null, description = "一级标题", onClick = { onHeading(1) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 1, activeColor = activeColor)
+            SubFunctionButton(label = "H2", icon = null, description = "二级标题", onClick = { onHeading(2) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 2, activeColor = activeColor)
+            SubFunctionButton(label = "H3", icon = null, description = "三级标题", onClick = { onHeading(3) }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentHeader == 3, activeColor = activeColor)
         }
         // Row 2: Bold | Italic | Underline
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "B", icon = null, description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontWeight = FontWeight.Bold))
-            SubFunctionButton(label = "I", icon = null, description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontStyle = FontStyle.Italic))
-            SubFunctionButton(label = "U", icon = null, description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.Underline))
+            SubFunctionButton(label = "B", icon = null, description = "加粗", onClick = { onFormat("toggleBold()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontWeight = FontWeight.Bold), isActive = activeFormats["bold"] == true, activeColor = activeColor)
+            SubFunctionButton(label = "I", icon = null, description = "斜体", onClick = { onFormat("toggleItalic()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(fontStyle = FontStyle.Italic), isActive = activeFormats["italic"] == true, activeColor = activeColor)
+            SubFunctionButton(label = "U", icon = null, description = "下划线", onClick = { onFormat("toggleUnderline()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.Underline), isActive = activeFormats["underline"] == true, activeColor = activeColor)
         }
         // Row 3: Strikethrough | Clear
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "S", icon = null, description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.LineThrough))
+            SubFunctionButton(label = "S", icon = null, description = "删除线", onClick = { onFormat("toggleStrike()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), textStyle = TextStyle(textDecoration = TextDecoration.LineThrough), isActive = activeFormats["strike"] == true, activeColor = activeColor)
             SubFunctionButton(label = "清除", icon = Icons.Default.FormatClear, description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -1112,9 +1184,12 @@ private fun FormatSubPanel(
 private fun ListSubPanel(
     onFormat: (String) -> Unit,
     textColor: Color,
-    activeColor: Color
+    activeColor: Color,
+    activeFormats: Map<String, Any> = emptyMap()
 ) {
     val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val currentList = activeFormats["list"]?.toString()
+    val isBlockquote = activeFormats["blockquote"] == true
 
     Column(
         modifier = Modifier
@@ -1124,13 +1199,13 @@ private fun ListSubPanel(
     ) {
         // Row 1: Bullet | Ordered | Checkbox
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "无序列表", icon = Icons.Default.FormatListBulleted, onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "有序列表", icon = Icons.Default.FormatListNumbered, onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "复选框", icon = Icons.Default.CheckBox, onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            SubFunctionButton(label = "无序列表", icon = Icons.Default.FormatListBulleted, onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "bullet", activeColor = activeColor)
+            SubFunctionButton(label = "有序列表", icon = Icons.Default.FormatListNumbered, onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "ordered", activeColor = activeColor)
+            SubFunctionButton(label = "复选框", icon = Icons.Default.CheckBox, onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "checked", activeColor = activeColor)
         }
         // Row 2: Quote
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "引文", icon = Icons.Default.FormatQuote, onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            SubFunctionButton(label = "引文", icon = Icons.Default.FormatQuote, onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = isBlockquote, activeColor = activeColor)
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -1265,7 +1340,9 @@ private fun SubFunctionButton(
     textColor: Color,
     bg: Color,
     modifier: Modifier = Modifier,
-    textStyle: TextStyle = TextStyle()
+    textStyle: TextStyle = TextStyle(),
+    isActive: Boolean = false,
+    activeColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -1283,7 +1360,12 @@ private fun SubFunctionButton(
             .height(44.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(10.dp))
-            .background(bg)
+            .background(if (isActive) activeColor.copy(alpha = 0.15f) else bg)
+            .border(
+                width = if (isActive) 1.dp else 0.dp,
+                color = if (isActive) activeColor.copy(alpha = 0.4f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
@@ -1296,14 +1378,14 @@ private fun SubFunctionButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = description,
-                    tint = textColor,
+                    tint = if (isActive) activeColor else textColor,
                     modifier = Modifier.size(16.dp)
                 )
             }
             Text(
                 text = label,
                 fontSize = 13.sp,
-                color = textColor,
+                color = if (isActive) activeColor else textColor,
                 style = textStyle
             )
         }

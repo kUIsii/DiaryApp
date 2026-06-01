@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -25,12 +28,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EditLocation
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import java.util.Locale
 
@@ -60,6 +67,7 @@ fun LocationSelector(
     var showManualInput by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
+    var showMapPicker by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -189,6 +197,13 @@ fun LocationSelector(
                     onClick = { showManualInput = !showManualInput },
                     modifier = Modifier.weight(1f)
                 )
+
+                LocationActionButton(
+                    icon = Icons.Default.Map,
+                    label = "地图选点",
+                    onClick = { showMapPicker = true },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             if (showManualInput) {
@@ -223,6 +238,52 @@ fun LocationSelector(
                     }
                 }
             }
+        }
+
+        // Map picker dialog
+        if (showMapPicker) {
+            AlertDialog(
+                onDismissRequest = { showMapPicker = false },
+                title = { Text("地图选点") },
+                text = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    webViewClient = WebViewClient()
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    addJavascriptInterface(object {
+                                        @JavascriptInterface
+                                        fun onLocationPicked(lat: Double, lng: Double, name: String) {
+                                            onLocationSelected(name, lat, lng)
+                                            showMapPicker = false
+                                        }
+                                    }, "MapBridge")
+                                    loadUrl("file:///android_asset/map_picker.html")
+                                    if (latitude != null && longitude != null) {
+                                        postDelayed({
+                                            evaluateJavascript("setInitialLocation($latitude, $longitude)", null)
+                                        }, 1000)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showMapPicker = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
     }
 }

@@ -66,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.R
 import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
@@ -526,8 +527,8 @@ private fun BottomActionButton(
 
 @Composable
 private fun RelatedEntriesSection(
-    entries: List<DiaryEntry>,
-    onEntryClick: (DiaryEntry) -> Unit,
+    entries: List<DiaryPreview>,
+    onEntryClick: (DiaryPreview) -> Unit,
     textSecondary: Color
 ) {
     Column(

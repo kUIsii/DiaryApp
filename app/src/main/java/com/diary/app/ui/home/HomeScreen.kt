@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -85,6 +86,7 @@ import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
+import com.diary.app.ui.components.weatherLabelFor
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -489,7 +491,7 @@ private fun NoEntriesForDate() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun EntryCard(
     entry: DiaryPreview,
@@ -554,73 +556,78 @@ private fun EntryCard(
 
             // Bottom info: mood + weather + tags
             Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (entry.moodLevel != null) {
-                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                    Icon(
-                        imageVector = moodIcon,
-                        contentDescription = "心情",
-                        tint = moodTint,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = moodLabelForLevel(entry.moodLevel),
-                        fontSize = 12.sp,
-                        color = moodTint,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-
-                if (entry.weather != null) {
-                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                    Icon(
-                        imageVector = weatherIcon,
-                        contentDescription = "天气",
-                        tint = weatherTint,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Tags
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    tags.take(2).forEach { tag ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(tag.color.copy(alpha = 0.12f))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(5.dp)
-                                    .clip(CircleShape)
-                                    .background(tag.color)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = tag.name,
-                                fontSize = 11.sp,
-                                color = tag.color,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                    if (tags.size > 2) {
-                        Text(
-                            text = "+${tags.size - 2}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Mood + Weather row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (entry.moodLevel != null) {
+                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = "心情",
+                            tint = moodTint,
+                            modifier = Modifier.size(16.dp)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = moodLabelForLevel(entry.moodLevel),
+                            fontSize = 12.sp,
+                            color = moodTint,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+
+                    if (entry.weather != null) {
+                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = "天气",
+                            tint = weatherTint,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = weatherLabelFor(entry.weather),
+                            fontSize = 12.sp,
+                            color = weatherTint,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Tags - FlowRow, show all, min 3 per row
+                if (tags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        tags.forEach { tag ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(tag.color.copy(alpha = 0.12f))
+                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(tag.color)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = tag.name,
+                                    fontSize = 11.sp,
+                                    color = tag.color,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
             }

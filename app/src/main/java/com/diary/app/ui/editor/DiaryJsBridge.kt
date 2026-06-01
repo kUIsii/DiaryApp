@@ -17,6 +17,14 @@ class DiaryJsBridge {
         _contentChanges.tryEmit(text)
     }
 
+    private val _formatChanges = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val formatChanges: SharedFlow<String> = _formatChanges.asSharedFlow()
+
+    @JavascriptInterface
+    fun onFormatChange(formatJson: String) {
+        _formatChanges.tryEmit(formatJson)
+    }
+
     @JavascriptInterface
     fun pickImage() {
         _events.tryEmit("image")
