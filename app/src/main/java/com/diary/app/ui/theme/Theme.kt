@@ -1,11 +1,6 @@
 package com.diary.app.ui.theme
 
 import android.app.Activity
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -124,15 +119,7 @@ fun DiaryAppTheme(
             colorScheme = colorScheme,
             typography = Typography
         ) {
-            AnimatedContent(
-                targetState = themeMode,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(400)) togetherWith fadeOut(animationSpec = tween(400))
-                },
-                label = "themeTransition"
-            ) {
-                content()
-            }
+            content()
         }
     }
 }

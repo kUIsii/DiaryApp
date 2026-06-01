@@ -169,6 +169,11 @@
         ::selection {
             background: var(--accent-light);
         }
+
+        /* Dark mode: boost brightness of colored text for readability */
+        .theme-dark #content span[style*="color"] {
+            filter: brightness(1.3);
+        }
     </style>
 </head>
 <body>

@@ -640,7 +640,7 @@ private fun MonthGroupHeader(
             text = monthText,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Box(
@@ -653,7 +653,7 @@ private fun MonthGroupHeader(
                 text = "$entryCount",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -662,7 +662,7 @@ private fun MonthGroupHeader(
         Icon(
             imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
             contentDescription = if (isExpanded) "折叠" else "展开",
-            tint = Color.Black.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
@@ -737,7 +737,7 @@ private fun DayGroupCard(
                     text = dateText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 // Entry count badge

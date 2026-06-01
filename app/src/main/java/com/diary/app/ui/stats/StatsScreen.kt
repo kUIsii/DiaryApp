@@ -918,9 +918,6 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>) {
         paddedStart.chunked(7)
     }
 
-    val weekWidth = cellSize + cellGap
-    val totalWidth = weekWidth * weeks.size
-
     Column {
         Box(
             modifier = Modifier
@@ -929,7 +926,6 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>) {
                 .horizontalScroll(rememberScrollState())
         ) {
             Row(
-                modifier = Modifier.width(totalWidth),
                 horizontalArrangement = Arrangement.spacedBy(cellGap)
             ) {
                 weeks.forEach { week ->
