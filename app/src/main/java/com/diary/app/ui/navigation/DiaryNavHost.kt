@@ -86,9 +86,12 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
     object Stats : Screen("stats", "统计", Icons.Default.BarChart)
     object Profile : Screen("profile", "我的", Icons.Default.Person)
-    object Editor : Screen("editor?diaryId={diaryId}", "编辑日记", Icons.Default.Home) {
-        fun createRoute(diaryId: Long? = null): String {
-            return if (diaryId != null) "editor?diaryId=$diaryId" else "editor"
+    object Editor : Screen("editor?diaryId={diaryId}&draftId={draftId}", "编辑日记", Icons.Default.Home) {
+        fun createRoute(diaryId: Long? = null, draftId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (diaryId != null) params.add("diaryId=$diaryId")
+            if (draftId != null) params.add("draftId=$draftId")
+            return if (params.isEmpty()) "editor" else "editor?${params.joinToString("&")}"
         }
     }
     object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Home) {
@@ -244,7 +247,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
 
             composable(
                 route = Screen.Editor.route,
-                arguments = listOf(navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }),
+                arguments = listOf(
+                    navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("draftId") { type = NavType.StringType; defaultValue = "" }
+                ),
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
@@ -271,8 +277,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
+                val draftId = backStackEntry.arguments?.getString("draftId") ?: ""
                 EditorScreen(
                     diaryId = if (diaryId == -1L) null else diaryId,
+                    draftId = draftId.ifBlank { null },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

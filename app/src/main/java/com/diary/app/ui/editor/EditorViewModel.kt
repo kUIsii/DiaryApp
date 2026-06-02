@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class DraftData(
+    val id: String = java.util.UUID.randomUUID().toString(),
     val content: String,
     val plainText: String,
     val title: String,
@@ -128,7 +129,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         title: String, moodLevel: Int?, weather: String?,
         location: String? = null, latitude: Double? = null, longitude: Double? = null
     ) {
-        val data = DraftData(content, plainText, title, moodLevel, weather, _selectedTagIds.value, System.currentTimeMillis(), location, latitude, longitude)
+        val data = DraftData(content = content, plainText = plainText, title = title, moodLevel = moodLevel, weather = weather, tagIds = _selectedTagIds.value, timestamp = System.currentTimeMillis(), location = location, latitude = latitude, longitude = longitude)
         prefs.edit().putString(draftKey(diaryId), gson.toJson(data)).apply()
     }
 
@@ -139,6 +140,55 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearDraft(diaryId: Long?) {
         prefs.edit().remove(draftKey(diaryId)).apply()
+    }
+
+    // Draft list management
+    private fun getAllDraftIds(): MutableSet<String> {
+        return prefs.getStringSet("draft_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun saveDraftIds(ids: Set<String>) {
+        prefs.edit().putStringSet("draft_ids", ids).apply()
+    }
+
+    fun getAllDrafts(): List<DraftData> {
+        val ids = getAllDraftIds()
+        return ids.mapNotNull { id ->
+            val json = prefs.getString("draft_item_$id", null) ?: return@mapNotNull null
+            try { gson.fromJson(json, DraftData::class.java) } catch (_: Exception) { null }
+        }.sortedByDescending { it.timestamp }
+    }
+
+    fun saveDraftToList(
+        content: String, plainText: String, title: String,
+        moodLevel: Int?, weather: String?,
+        location: String? = null, latitude: Double? = null, longitude: Double? = null,
+        existingDraftId: String? = null
+    ): String {
+        val id = existingDraftId ?: java.util.UUID.randomUUID().toString()
+        val data = DraftData(
+            id = id, content = content, plainText = plainText, title = title,
+            moodLevel = moodLevel, weather = weather,
+            tagIds = _selectedTagIds.value, timestamp = System.currentTimeMillis(),
+            location = location, latitude = latitude, longitude = longitude
+        )
+        prefs.edit().putString("draft_item_$id", gson.toJson(data)).apply()
+        val ids = getAllDraftIds()
+        ids.add(id)
+        saveDraftIds(ids)
+        return id
+    }
+
+    fun deleteDraft(draftId: String) {
+        prefs.edit().remove("draft_item_$draftId").apply()
+        val ids = getAllDraftIds()
+        ids.remove(draftId)
+        saveDraftIds(ids)
+    }
+
+    fun loadDraftById(draftId: String): DraftData? {
+        val json = prefs.getString("draft_item_$draftId", null) ?: return null
+        return try { gson.fromJson(json, DraftData::class.java) } catch (_: Exception) { null }
     }
 
     init {
@@ -174,6 +224,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val current = _selectedTagIds.value.toMutableSet()
         if (tagId in current) current.remove(tagId) else current.add(tagId)
         _selectedTagIds.value = current
+    }
+
+    fun setSelectedTagIds(tagIds: Set<Long>) {
+        _selectedTagIds.value = tagIds
     }
 
     fun addTag(name: String, color: Long) {

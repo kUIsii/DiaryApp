@@ -46,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.FormatSize
@@ -154,6 +155,7 @@ private fun unescapeEvaluateJsResult(raw: String?): String {
 @Composable
 fun EditorScreen(
     diaryId: Long?,
+    draftId: String? = null,
     onNavigateBack: () -> Unit
 ) {
     val haptic = rememberHapticFeedback()
@@ -186,6 +188,8 @@ fun EditorScreen(
     var showTagDialog by remember { mutableStateOf(false) }
     var showTemplateDialog by remember { mutableStateOf(false) }
     var showLinkDialog by remember { mutableStateOf(false) }
+    var showDraftsDialog by remember { mutableStateOf(false) }
+    var currentDraftId by remember { mutableStateOf(draftId) }
 
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
@@ -232,6 +236,26 @@ fun EditorScreen(
         if (diaryId != null) viewModel.loadEntry(diaryId)
         viewModel.startWritingTimer()
         viewModel.loadWritingPrompt()
+    }
+
+    // Load draft when opened with draftId
+    LaunchedEffect(draftId) {
+        if (draftId != null && diaryId == null) {
+            val draft = viewModel.loadDraftById(draftId)
+            if (draft != null) {
+                val base64Content = android.util.Base64.encodeToString(
+                    draft.content.toByteArray(Charsets.UTF_8),
+                    android.util.Base64.NO_WRAP
+                )
+                webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
+                selectedMood = draft.moodLevel
+                selectedWeather = draft.weather
+                selectedLocation = draft.location
+                locationLat = draft.latitude
+                locationLng = draft.longitude
+                currentDraftId = draftId
+            }
+        }
     }
 
     // Update writing duration periodically
@@ -532,7 +556,7 @@ fun EditorScreen(
                                     webView?.evaluateJavascript("getPlainText()") { plain ->
                                         val cleanJson = unescapeEvaluateJsResult(json)
                                         val cleanPlain = unescapeEvaluateJsResult(plain)
-                                        viewModel.saveDraft(cleanJson, cleanPlain, diaryId, dateTitle, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
+                                        viewModel.saveDraftToList(cleanJson, cleanPlain, dateTitle, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng, currentDraftId)
                                         showUnsavedDialog = false
                                         onNavigateBack()
                                     }
@@ -637,7 +661,98 @@ fun EditorScreen(
         )
     }
 
-    // Back press handler
+    // Drafts dialog
+    if (showDraftsDialog) {
+        val drafts = remember(showDraftsDialog) { viewModel.getAllDrafts() }
+        AlertDialog(
+            onDismissRequest = { showDraftsDialog = false },
+            title = { Text("草稿箱", fontWeight = FontWeight.Bold) },
+            text = {
+                if (drafts.isEmpty()) {
+                    Text("暂无草稿", color = textSecondary, modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        drafts.forEach { draft ->
+                            val previewText = draft.plainText.take(50).ifBlank { draft.title.take(20) }
+                            val timeAgo = getTimeAgo(draft.timestamp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable {
+                                        showDraftsDialog = false
+                                        // Load the draft directly into current editor
+                                        val base64Content = android.util.Base64.encodeToString(
+                                            draft.content.toByteArray(Charsets.UTF_8),
+                                            android.util.Base64.NO_WRAP
+                                        )
+                                        webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
+                                        selectedMood = draft.moodLevel
+                                        selectedWeather = draft.weather
+                                        selectedLocation = draft.location
+                                        locationLat = draft.latitude
+                                        locationLng = draft.longitude
+                                        currentDraftId = draft.id
+                                        viewModel.setSelectedTagIds(draft.tagIds)
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = draft.title.ifBlank { "无标题" },
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = textColor,
+                                        maxLines = 1
+                                    )
+                                    if (previewText.isNotBlank()) {
+                                        Text(
+                                            text = previewText,
+                                            fontSize = 12.sp,
+                                            color = textSecondary.copy(alpha = 0.7f),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Text(
+                                        text = timeAgo,
+                                        fontSize = 11.sp,
+                                        color = textSecondary.copy(alpha = 0.5f)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.deleteDraft(draft.id)
+                                        showDraftsDialog = false
+                                        showDraftsDialog = true // Refresh
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "删除",
+                                        tint = textSecondary.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDraftsDialog = false }) {
+                    Text("关闭")
+                }
+            }
+        )
+    }
+
     BackHandler {
         if (hasUnsavedChanges) {
             showUnsavedDialog = true
@@ -682,6 +797,9 @@ fun EditorScreen(
                 }
                 IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Redo, contentDescription = stringResource(R.string.redo), tint = textSecondary, modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = { showDraftsDialog = true }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Description, contentDescription = "草稿箱", tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = { showTemplateDialog = true }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.MenuBook, contentDescription = stringResource(R.string.select_template), tint = textSecondary, modifier = Modifier.size(20.dp))
@@ -1952,5 +2070,20 @@ private fun templateCategoryLabel(category: TemplateCategory): String {
         TemplateCategory.CREATIVE -> "创意"
         TemplateCategory.TRAVEL -> "旅行"
         TemplateCategory.WORK -> "工作"
+    }
+}
+
+private fun getTimeAgo(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    return when {
+        diff < 60_000 -> "刚刚"
+        diff < 3_600_000 -> "${diff / 60_000}分钟前"
+        diff < 86_400_000 -> "${diff / 3_600_000}小时前"
+        diff < 604_800_000 -> "${diff / 86_400_000}天前"
+        else -> {
+            val date = java.util.Date(timestamp)
+            java.text.SimpleDateFormat("MM/dd", java.util.Locale.getDefault()).format(date)
+        }
     }
 }
