@@ -946,6 +946,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
 
     Column {
         val sharedScrollState = rememberScrollState()
+        val weekColumnWidth = cellSize + cellGap
 
         // Month labels row
         Box(
@@ -954,11 +955,14 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
                 .horizontalScroll(sharedScrollState)
         ) {
             Row {
-                // Space for weekday labels
                 Spacer(modifier = Modifier.width(24.dp))
+                // Render one box per week, only showing text at month boundaries
                 weeks.forEachIndexed { index, _ ->
                     val label = monthLabels.find { it.first == index }
-                    Box(modifier = Modifier.width(cellSize + cellGap)) {
+                    Box(
+                        modifier = Modifier.width(weekColumnWidth),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
                         if (label != null) {
                             Text(
                                 text = label.second,
@@ -999,12 +1003,9 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
                     }
                 }
 
-                // Heatmap cells
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(cellGap)
-                ) {
-                    weeks.forEach { week ->
-                        Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
+                // Heatmap cells - one column per week
+                weeks.forEach { week ->
+                    Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
                             for (day in week) {
                                 if (day != null) {
                                     val isToday = day.date == today
@@ -1083,7 +1084,6 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
 
 @Composable
 private fun HeatmapToggleButton(

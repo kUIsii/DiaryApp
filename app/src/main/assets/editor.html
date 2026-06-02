@@ -30,7 +30,7 @@
         .ql-toolbar.ql-snow { display: none !important; }
         .ql-container.ql-snow {
             border: none !important;
-            font-size: 16px;
+            font-size: 14px;
             line-height: 1.6;
         }
         .ql-editor {
@@ -263,7 +263,19 @@
         function setBackgroundColor(color) { quill.format('background', color || false); reportFormat(); }
         function clearFormatting() {
             var r = quill.getSelection();
-            if (r) quill.removeFormat(r.index, r.length);
+            if (r) {
+                if (r.length > 0) {
+                    quill.removeFormat(r.index, r.length);
+                } else {
+                    // No selection - clear current line format
+                    var line = quill.getLine(r.index);
+                    if (line) {
+                        var lineIndex = quill.getIndex(line[0]);
+                        var lineLength = line[0].length();
+                        quill.removeFormat(lineIndex, lineLength);
+                    }
+                }
+            }
             reportFormat();
         }
         function insertMedia(type, url) {
@@ -386,23 +398,32 @@
                 if (!sel) return;
                 var index = sel.index;
                 var length = sel.length;
-                // If there's a selection, let Quill handle it normally
-                if (length > 0) return;
-                // Check multiple positions around cursor for divider
-                var positions = [];
-                if (e.key === 'Backspace') {
-                    positions = [index - 1, index - 2];
-                } else {
-                    positions = [index, index + 1];
+                // If there's a selection that includes a divider, let Quill handle
+                if (length > 0) {
+                    var selOps = quill.getContents(index, length).ops;
+                    for (var j = 0; j < selOps.length; j++) {
+                        if (selOps[j].insert && selOps[j].insert.divider) return;
+                    }
+                    return;
                 }
+                // Check multiple positions around cursor for divider
+                var positions = e.key === 'Backspace'
+                    ? [index - 1, index - 2, index - 3]
+                    : [index, index + 1, index + 2];
+                var docLen = quill.getLength();
                 for (var i = 0; i < positions.length; i++) {
-                    var checkIndex = positions[i];
-                    if (checkIndex < 0) continue;
-                    if (checkIndex >= quill.getLength()) continue;
-                    var ops = quill.getContents(checkIndex, 1).ops;
+                    var ci = positions[i];
+                    if (ci < 0 || ci >= docLen) continue;
+                    var ops = quill.getContents(ci, 1).ops;
                     if (ops.length > 0 && ops[0].insert && ops[0].insert.divider) {
                         e.preventDefault();
-                        quill.deleteText(checkIndex, 1);
+                        // Also delete the newline after divider if present
+                        var nextOps = ci + 1 < docLen ? quill.getContents(ci + 1, 1).ops : null;
+                        if (nextOps && nextOps[0] && nextOps[0].insert === '\n') {
+                            quill.deleteText(ci, 2);
+                        } else {
+                            quill.deleteText(ci, 1);
+                        }
                         return;
                     }
                 }
@@ -411,8 +432,14 @@
 
         // Click to select divider for easy deletion
         document.querySelector('.ql-editor').addEventListener('click', function(e) {
-            if (e.target.tagName === 'HR') {
-                var blot = Quill.find(e.target);
+            var hr = e.target.closest ? e.target.closest('hr') : (e.target.tagName === 'HR' ? e.target : null);
+            if (!hr && e.target.tagName !== 'HR') {
+                // Check if clicked element contains an hr
+                var hrs = e.target.querySelectorAll && e.target.querySelectorAll('hr');
+                if (hrs && hrs.length > 0) hr = hrs[0];
+            }
+            if (hr) {
+                var blot = Quill.find(hr);
                 if (blot) {
                     var idx = quill.getIndex(blot);
                     quill.setSelection(idx, 1);
