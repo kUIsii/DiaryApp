@@ -63,23 +63,30 @@
             border-radius: 0 8px 8px 0;
         }
 
-        /* Lists - let Quill handle numbering, just style markers */
+        /* Lists - markers at line start */
         .ql-editor ol {
-            padding-left: 24px;
-            margin-bottom: 12px;
+            padding-left: 4px;
+            margin: 0 0 12px 0;
         }
         .ql-editor ol li {
             margin-bottom: 4px;
         }
         .ql-editor ul {
-            padding-left: 24px;
-            margin-bottom: 12px;
+            padding-left: 0;
+            margin: 0 0 12px 0;
         }
         .ql-editor ul li {
             margin-bottom: 4px;
+            list-style: none;
+            position: relative;
+            padding-left: 24px;
         }
-        .ql-editor ul li::marker {
+        .ql-editor ul li:not([data-list="checked"]):not([data-list="unchecked"])::before {
+            content: "\2022";
+            position: absolute;
+            left: 6px;
             color: var(--accent);
+            font-weight: bold;
         }
 
         /* Checked/unchecked lists (checkboxes) */
@@ -181,13 +188,21 @@
             }
         }
 
+        // Report current format state to Kotlin bridge
+        function reportFormat() {
+            if (window.DiaryBridge) {
+                var formats = quill.getFormat();
+                DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
+            }
+        }
+
         // Format commands (called from Compose toolbar)
-        function toggleBold() { var f = quill.getFormat(); quill.format('bold', !f.bold); }
-        function toggleItalic() { var f = quill.getFormat(); quill.format('italic', !f.italic); }
-        function toggleUnderline() { var f = quill.getFormat(); quill.format('underline', !f.underline); }
-        function toggleStrike() { var f = quill.getFormat(); quill.format('strike', !f.strike); }
-        function toggleBlockquote() { var f = quill.getFormat(); quill.format('blockquote', !f.blockquote); }
-        function setHeading(level) { quill.format('header', level === 0 ? false : level); }
+        function toggleBold() { var f = quill.getFormat(); quill.format('bold', !f.bold); reportFormat(); }
+        function toggleItalic() { var f = quill.getFormat(); quill.format('italic', !f.italic); reportFormat(); }
+        function toggleUnderline() { var f = quill.getFormat(); quill.format('underline', !f.underline); reportFormat(); }
+        function toggleStrike() { var f = quill.getFormat(); quill.format('strike', !f.strike); reportFormat(); }
+        function toggleBlockquote() { var f = quill.getFormat(); quill.format('blockquote', !f.blockquote); reportFormat(); }
+        function setHeading(level) { quill.format('header', level === 0 ? false : level); reportFormat(); }
         function setOrderedList() {
             var r = quill.getSelection(true);
             var line = quill.getLine(r.index);
@@ -196,6 +211,7 @@
                 var lineLength = line[0].length();
                 var f = quill.getFormat(lineIndex, lineLength);
                 quill.formatLine(lineIndex, lineLength, 'list', f.list === 'ordered' ? false : 'ordered');
+                reportFormat();
             }
         }
         function setBulletList() {
@@ -206,6 +222,7 @@
                 var lineLength = line[0].length();
                 var f = quill.getFormat(lineIndex, lineLength);
                 quill.formatLine(lineIndex, lineLength, 'list', f.list === 'bullet' ? false : 'bullet');
+                reportFormat();
             }
         }
         function toggleCheckbox() {
@@ -222,6 +239,7 @@
                 } else {
                     quill.formatLine(lineIndex, lineLength, 'list', 'unchecked');
                 }
+                reportFormat();
             }
         }
         function insertDivider() {
@@ -232,40 +250,23 @@
             quill.insertEmbed(lineEnd, 'divider', true);
             quill.setSelection(lineEnd + 1);
         }
-        function setTextColor(color) { quill.format('color', color); }
-        function setBackgroundColor(color) { quill.format('background', color); }
+        function setTextColor(color) { quill.format('color', color); reportFormat(); }
+        function setBackgroundColor(color) { quill.format('background', color); reportFormat(); }
         function clearFormatting() {
             var r = quill.getSelection();
             if (r) quill.removeFormat(r.index, r.length);
+            reportFormat();
         }
         function insertMedia(type, url) {
             try {
                 var r = quill.getSelection(true);
                 if (type === 'image') {
-                    // Insert image with loading state
                     quill.insertEmbed(r.index, 'image', url);
                     quill.setSelection(r.index + 1);
-                    // Find and update the image element
-                    setTimeout(function() {
-                        var imgs = document.querySelectorAll('img[src="' + url + '"]');
-                        imgs.forEach(function(img) {
-                            img.setAttribute('data-loading', '');
-                            img.onload = function() {
-                                img.removeAttribute('data-loading');
-                            };
-                            img.onerror = function() {
-                                img.removeAttribute('data-loading');
-                                img.style.border = '2px dashed rgba(255,0,0,0.3)';
-                                img.style.padding = '20px';
-                                img.alt = '图片加载失败';
-                            };
-                        });
-                    }, 100);
                 } else if (type === 'video') {
                     quill.insertEmbed(r.index, 'video', url);
                     quill.setSelection(r.index + 1);
                 } else if (type === 'audio') {
-                    // Insert audio as a link since Quill doesn't support audio natively
                     quill.insertText(r.index, ' ');
                     quill.insertText(r.index + 1, '音频文件', 'link', url);
                     quill.setSelection(r.index + 2);
@@ -342,25 +343,31 @@
             }, 30);
         });
 
-        // Selection change: report format state + auto-scroll to cursor
+        // Selection change: report format state + auto-scroll to cursor (with debounce)
+        var formatChangeTimer = null;
         quill.on('selection-change', function(range) {
             if (range) {
-                // Report active formats to Compose toolbar
+                // Debounce format change reporting to reduce lag
                 if (window.DiaryBridge) {
-                    var formats = quill.getFormat(range);
-                    DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
+                    clearTimeout(formatChangeTimer);
+                    formatChangeTimer = setTimeout(function() {
+                        var formats = quill.getFormat(range);
+                        DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
+                    }, 120);
                 }
                 // Auto-scroll cursor into view
                 scrollToCursor(range.index, range.length);
             }
         });
 
-        // Double-click to clear formatting
+        // Double-click to clear formatting (with delay for browser word selection)
         document.querySelector('.ql-editor').addEventListener('dblclick', function() {
-            var sel = quill.getSelection();
-            if (sel && sel.length > 0) {
-                quill.removeFormat(sel.index, sel.length);
-            }
+            setTimeout(function() {
+                var sel = quill.getSelection();
+                if (sel && sel.length > 0) {
+                    quill.removeFormat(sel.index, sel.length);
+                }
+            }, 50);
         });
 
         function scrollToCursor(index, length) {

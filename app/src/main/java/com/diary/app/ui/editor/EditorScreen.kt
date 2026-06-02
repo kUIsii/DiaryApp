@@ -200,8 +200,11 @@ fun EditorScreen(
         if (isKeyboardVisible) {
             showToolbar = true
         } else if (activeCategory < 0) {
-            // Only hide toolbar if no sub-panel is open
-            showToolbar = false
+            // Delay hiding to avoid flicker when transitioning from sub-panel to keyboard
+            kotlinx.coroutines.delay(200)
+            if (activeCategory < 0) {
+                showToolbar = false
+            }
         }
     }
 
@@ -301,7 +304,7 @@ fun EditorScreen(
         }
     }
 
-    // Media pickers - use Base64 data URL for images to avoid file access issues
+    // Media pickers - save images to local files for reliable display
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
@@ -320,15 +323,18 @@ fun EditorScreen(
                             true
                         )
                     } else bitmap
-                    // Convert to Base64 data URL
-                    val outputStream = java.io.ByteArrayOutputStream()
-                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
-                    val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-                    val dataUrl = "data:image/jpeg;base64,$base64"
+                    // Save to local file instead of Base64 inline
+                    val mediaDir = java.io.File(context.filesDir, "diary_media")
+                    if (!mediaDir.exists()) mediaDir.mkdirs()
+                    val fileName = "img_${System.currentTimeMillis()}.jpg"
+                    val outputFile = java.io.File(mediaDir, fileName)
+                    java.io.FileOutputStream(outputFile).use { fos ->
+                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, fos)
+                    }
                     if (scaled !== bitmap) scaled.recycle()
                     bitmap.recycle()
 
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(dataUrl)}')", null)
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -400,7 +406,7 @@ fun EditorScreen(
     LaunchedEffect(Unit) {
         jsBridge.formatChanges.collect { json ->
             try {
-                kotlinx.coroutines.delay(80) // Debounce to reduce lag
+                kotlinx.coroutines.delay(150) // Debounce to reduce lag
                 val parsed = org.json.JSONObject(json)
                 val map = mutableMapOf<String, Any>()
                 parsed.keys().forEach { key -> map[key] = parsed.get(key) }
@@ -1304,8 +1310,8 @@ private fun FormatToggleButton(
             .clip(RoundedCornerShape(10.dp))
             .background(if (isActive) selectedBg else normalBg)
             .border(
-                width = if (isActive) 1.dp else 0.dp,
-                color = if (isActive) Color(0xFF90CAF9) else Color.Transparent,
+                width = if (isActive) 1.5.dp else 0.dp,
+                color = if (isActive) Color(0xFF42A5F5) else Color.Transparent,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
@@ -1354,7 +1360,7 @@ private fun ListSubPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SubFunctionButton(label = "无序列表", icon = Icons.Default.FormatListBulleted, onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "bullet", activeColor = activeColor)
             SubFunctionButton(label = "有序列表", icon = Icons.Default.FormatListNumbered, onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "ordered", activeColor = activeColor)
-            SubFunctionButton(label = "复选框", icon = Icons.Default.CheckBox, onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "checked", activeColor = activeColor)
+            SubFunctionButton(label = "复选框", icon = Icons.Default.CheckBox, onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "checked" || currentList == "unchecked", activeColor = activeColor)
         }
         // Row 2: Quote
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1540,8 +1546,8 @@ private fun SubFunctionButton(
             .clip(RoundedCornerShape(10.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.15f) else bg)
             .border(
-                width = if (isActive) 1.dp else 0.dp,
-                color = if (isActive) activeColor.copy(alpha = 0.4f) else Color.Transparent,
+                width = if (isActive) 1.5.dp else 0.dp,
+                color = if (isActive) activeColor.copy(alpha = 0.6f) else Color.Transparent,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
