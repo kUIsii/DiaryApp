@@ -1801,6 +1801,7 @@ private data class ToolbarCategory(val icon: String, val label: String)
 
 private fun getEditorFontSize(prefs: android.content.SharedPreferences): Int {
     return when (prefs.getString("editor_font_size", "small")) {
+        "tiny" -> 10
         "small" -> 14
         "large" -> 18
         "extra_large" -> 20

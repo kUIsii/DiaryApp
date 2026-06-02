@@ -107,11 +107,11 @@ class TodoRemoteViewsFactory(
             views.setViewVisibility(R.id.tv_due_date, View.GONE)
         }
 
-        // Set up fill-in intent for click handling
+        // Set up fill-in intent for click handling (entire row)
         val fillInIntent = Intent().apply {
             putExtra(TodoWidgetProvider.EXTRA_TODO_ID, todo.id)
         }
-        views.setOnClickFillInIntent(R.id.cb_todo, fillInIntent)
+        views.setOnClickFillInIntent(R.id.ll_item_root, fillInIntent)
 
         return views
     }

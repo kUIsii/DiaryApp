@@ -948,7 +948,18 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
         val sharedScrollState = rememberScrollState()
         val weekColumnWidth = cellSize + cellGap
 
-        // Month labels row
+        // Calculate month spans: each month label spans from its start week to the next month
+        val monthSpans = remember(monthLabels, weeks.size) {
+            val spans = mutableListOf<Triple<Int, Int, String>>() // startWeek, weekCount, label
+            for (i in monthLabels.indices) {
+                val startWeek = monthLabels[i].first
+                val endWeek = if (i + 1 < monthLabels.size) monthLabels[i + 1].first else weeks.size
+                spans.add(Triple(startWeek, endWeek - startWeek, monthLabels[i].second))
+            }
+            spans
+        }
+
+        // Month labels row - each label spans its month's weeks
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -956,26 +967,23 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
         ) {
             Row {
                 Spacer(modifier = Modifier.width(24.dp))
-                // Render one box per week, only showing text at month boundaries
-                weeks.forEachIndexed { index, _ ->
-                    val label = monthLabels.find { it.first == index }
-                    Box(
-                        modifier = Modifier.width(weekColumnWidth),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (label != null) {
-                            Text(
-                                text = label.second,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
+                // Spacer for weeks before the first month label
+                if (monthSpans.isNotEmpty() && monthSpans.first().first > 0) {
+                    Spacer(modifier = Modifier.width(weekColumnWidth * monthSpans.first().first))
+                }
+                monthSpans.forEach { (_, weekCount, label) ->
+                    Text(
+                        text = label,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        modifier = Modifier.width(weekColumnWidth * weekCount)
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Heatmap grid with weekday labels
         Box(

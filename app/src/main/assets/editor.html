@@ -72,49 +72,41 @@
             margin-bottom: 4px;
         }
         .ql-editor ul {
-            padding-left: 0;
+            padding-left: 16px;
             margin: 0 0 12px 0;
         }
         .ql-editor ul li {
             margin-bottom: 4px;
             list-style: none;
             position: relative;
-            padding-left: 24px;
+            padding-left: 20px;
         }
-        .ql-editor ul li:not([data-list="checked"]):not([data-list="unchecked"])::before {
+        .ql-editor ul li::before {
             content: "\25CF";
             position: absolute;
-            left: 4px;
+            left: 0;
             top: 0;
             color: var(--accent);
             font-size: 10px;
             line-height: inherit;
         }
 
-        /* Checked/unchecked lists (checkboxes) */
-        .ql-editor li[data-list="checked"],
-        .ql-editor li[data-list="unchecked"] {
-            list-style: none;
-            position: relative;
+        /* Checked/unchecked lists (checkboxes) - higher specificity to override bullet */
+        .ql-editor ul li[data-list="checked"],
+        .ql-editor ul li[data-list="unchecked"] {
             padding-left: 24px;
         }
-        .ql-editor li[data-list="checked"]::before {
-            content: "\2611";
-            position: absolute;
-            left: 2px;
-            top: 0;
-            color: var(--accent);
-            font-size: 16px;
+        .ql-editor ul li[data-list="checked"]::before {
+            content: "\2611" !important;
+            left: 0 !important;
+            font-size: 16px !important;
         }
-        .ql-editor li[data-list="unchecked"]::before {
-            content: "\2610";
-            position: absolute;
-            left: 2px;
-            top: 0;
-            color: var(--accent);
-            font-size: 16px;
+        .ql-editor ul li[data-list="unchecked"]::before {
+            content: "\2610" !important;
+            left: 0 !important;
+            font-size: 16px !important;
         }
-        .ql-editor li[data-list="checked"] {
+        .ql-editor ul li[data-list="checked"] {
             text-decoration: line-through;
             opacity: 0.6;
         }
@@ -398,18 +390,23 @@
                 if (!sel) return;
                 var index = sel.index;
                 var length = sel.length;
-                // If there's a selection that includes a divider, let Quill handle
+                // If there's a selection that includes a divider, delete explicitly
                 if (length > 0) {
                     var selOps = quill.getContents(index, length).ops;
                     for (var j = 0; j < selOps.length; j++) {
-                        if (selOps[j].insert && selOps[j].insert.divider) return;
+                        if (selOps[j].insert && selOps[j].insert.divider) {
+                            e.preventDefault();
+                            quill.deleteText(index, length);
+                            quill.setSelection(index);
+                            return;
+                        }
                     }
                     return;
                 }
-                // Check multiple positions around cursor for divider
+                // Check positions around cursor for divider (include current position)
                 var positions = e.key === 'Backspace'
-                    ? [index - 1, index - 2, index - 3]
-                    : [index, index + 1, index + 2];
+                    ? [index, index - 1, index - 2, index - 3, index - 4]
+                    : [index, index + 1, index + 2, index + 3];
                 var docLen = quill.getLength();
                 for (var i = 0; i < positions.length; i++) {
                     var ci = positions[i];

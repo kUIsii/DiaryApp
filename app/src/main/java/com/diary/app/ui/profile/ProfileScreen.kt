@@ -154,6 +154,7 @@ fun ProfileScreen(
     var isDownloading by remember { mutableStateOf(false) }
     var isForceUpdate by remember { mutableStateOf(false) }
     val fontSizeOptions = listOf(
+        FontSizeOption("tiny", "极小", 10),
         FontSizeOption("small", "小", 14),
         FontSizeOption("medium", "中", 16),
         FontSizeOption("large", "大", 18),

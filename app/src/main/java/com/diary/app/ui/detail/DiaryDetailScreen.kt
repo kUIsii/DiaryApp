@@ -103,6 +103,7 @@ fun DiaryDetailScreen(
     val fontSizePx = remember {
         val prefs = context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
         when (prefs.getString("editor_font_size", "small")) {
+            "tiny" -> 10
             "small" -> 14
             "large" -> 18
             "extra_large" -> 20
