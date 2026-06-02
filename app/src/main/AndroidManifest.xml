@@ -76,6 +76,7 @@
         <!-- Todo Widget -->
         <receiver
             android:name=".widget.TodoWidgetProvider"
+            android:label="待办事项"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
