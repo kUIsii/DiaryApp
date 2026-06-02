@@ -120,7 +120,7 @@ private fun WeatherItem(
     val baseColor = themeColor.copy(alpha = 0.12f)
     val iconColor = themeColor
 
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
 
     Box(
         modifier = Modifier

@@ -358,7 +358,7 @@ private fun OverviewCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(Brush.linearGradient(gradientColors))
             .padding(12.dp)
     ) {
@@ -368,7 +368,7 @@ private fun OverviewCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     imageVector = icon,
@@ -432,10 +432,10 @@ private fun WordStatItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
@@ -588,7 +588,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly

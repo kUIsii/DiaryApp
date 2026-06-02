@@ -44,7 +44,7 @@ fun TagChip(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
         label = "tagScale"
     )

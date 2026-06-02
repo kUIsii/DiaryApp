@@ -103,7 +103,7 @@ private val CategoryColors = mapOf(
     TodoItem.CATEGORY_GOAL to SuccessColor
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val haptic = rememberHapticFeedback()
@@ -233,7 +233,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     Icons.Default.Add,
                                     contentDescription = "添加待办",
                                     tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
@@ -389,6 +389,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     val enterDelay = (index * 40).coerceAtMost(400)
                     AnimatedVisibility(
                         visible = true,
+                        modifier = Modifier.animateItemPlacement(),
                         enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
                                 slideInVertically(
                                     animationSpec = tween(300, delayMillis = enterDelay),
@@ -589,7 +590,7 @@ private fun InputRow(
                     Icons.Default.Add,
                     contentDescription = "添加",
                     tint = Color.White.copy(alpha = if (value.isNotBlank()) 1f else 0.5f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -1028,12 +1029,12 @@ private fun TodoItemCard(
     val isCompleted = todo.isCompleted
     val itemAlpha by animateFloatAsState(
         targetValue = if (isCompleted) 0.5f else 1f,
-        animationSpec = tween(300),
+        animationSpec = tween(400),
         label = "item_alpha"
     )
     val checkboxScale by animateFloatAsState(
-        targetValue = if (isCompleted) 1.15f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        targetValue = if (isCompleted) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 300f),
         label = "checkbox_scale"
     )
 

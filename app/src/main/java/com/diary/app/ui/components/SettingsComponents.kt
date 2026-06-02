@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -25,12 +26,21 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun SettingDivider(modifier: Modifier = Modifier) {
+    val dividerColor = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(start = 46.dp)
             .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        dividerColor.copy(alpha = 0.12f),
+                        dividerColor.copy(alpha = 0.06f),
+                        Color.Transparent
+                    )
+                )
+            )
     )
 }
 

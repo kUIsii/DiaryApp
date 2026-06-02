@@ -925,7 +925,7 @@ private fun EntryItemCard(
                                 imageVector = icon,
                                 contentDescription = null,
                                 tint = tint.copy(alpha = 0.7f),
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = moodLabelForLevel(entry.moodLevel),
@@ -944,7 +944,7 @@ private fun EntryItemCard(
                                 imageVector = weatherIcon,
                                 contentDescription = null,
                                 tint = weatherTint.copy(alpha = 0.6f),
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = weatherLabelFor(entry.weather),

@@ -399,7 +399,7 @@ private fun BackupHistoryItem(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 18.dp
+        cornerRadius = 16.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -504,7 +504,7 @@ private fun BackupSettingRow(
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
@@ -585,7 +585,7 @@ private fun BackupActionButton(
         Box(
             modifier = Modifier
                 .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(iconBg),
             contentAlignment = Alignment.Center
         ) {

@@ -315,7 +315,7 @@ private fun EntryCard(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(13.dp)
+                    modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
@@ -345,7 +345,7 @@ private fun EntryCard(
             val hasMoodWeather = entry.moodLevel != null || entry.weather != null
             val hasTags = tags.isNotEmpty()
             if (hasMoodWeather || hasTags) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -384,7 +384,7 @@ private fun EntryCard(
                                     imageVector = weatherIcon,
                                     contentDescription = "天气",
                                     tint = weatherTint,
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = weatherLabelFor(entry.weather),
@@ -411,7 +411,7 @@ private fun EntryCard(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(tag.color.copy(alpha = 0.12f))
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier

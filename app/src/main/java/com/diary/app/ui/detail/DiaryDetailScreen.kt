@@ -428,7 +428,7 @@ private fun DetailTags(tags: List<Tag>) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(tagColor.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {

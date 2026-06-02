@@ -607,7 +607,7 @@ fun ProfileScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                         .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
@@ -828,7 +828,7 @@ private fun IconCircle(icon: ImageVector, bg: Color, tint: Color) {
     Box(
         modifier = Modifier
             .size(34.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(bg),
         contentAlignment = Alignment.Center
     ) {
@@ -871,9 +871,9 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
                 Icon(Icons.Default.Palette, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
             }
         }
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = textColor, letterSpacing = 1.sp)
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(stringResource(R.string.app_subtitle), fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
     }
 }
@@ -947,7 +947,7 @@ private fun ThemeCard(
             }
             Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Brush.linearGradient(listOf(previewStart, previewEnd))))
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Icon(icon, contentDescription = mode.label, tint = if (isSelected) DarkAccentStart else textSecondary.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.height(3.dp))
         Text(mode.label, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -972,7 +972,7 @@ private fun FontSizeSliderItem(
             Spacer(modifier = Modifier.width(12.dp))
             Text(stringResource(R.string.profile_font_size), fontSize = 15.sp, color = textColor)
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Slider(
                 value = sliderPosition,
@@ -982,7 +982,7 @@ private fun FontSizeSliderItem(
                 colors = SliderDefaults.colors(thumbColor = accentColor, activeTrackColor = accentColor, inactiveTrackColor = accentColor.copy(alpha = 0.2f)),
                 modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                 Text("${previewSize.label} ${previewSize.sizePx}sp", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textSecondary)
             }

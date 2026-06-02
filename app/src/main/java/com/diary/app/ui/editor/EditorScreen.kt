@@ -542,7 +542,7 @@ fun EditorScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { showUnsavedDialog = false }
                             .padding(vertical = 12.dp),
@@ -555,7 +555,7 @@ fun EditorScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
                                 webView?.evaluateJavascript("getContent()") { json ->
@@ -578,7 +578,7 @@ fun EditorScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
                                 viewModel.clearDraft(diaryId)
@@ -687,7 +687,7 @@ fun EditorScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(surfaceVariant.copy(alpha = 0.5f))
                                     .clickable {
                                         showDraftsDialog = false
@@ -1337,7 +1337,7 @@ private fun EditorToolbar(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .clickable {
                         val sizes = listOf(10, 12, 14, 16, 18, 20)
@@ -1406,9 +1406,9 @@ private fun CategoryButton(
             imageVector = icon,
             contentDescription = label,
             tint = if (isActive) activeColor else textColor,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 11.sp,
@@ -1450,7 +1450,7 @@ private fun FormatSubPanel(
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
                 val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.95f else 1f,
+                    targetValue = if (isPressed) 0.97f else 1f,
                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
                     label = "h$level"
                 )
@@ -1459,7 +1459,7 @@ private fun FormatSubPanel(
                         .weight(1f)
                         .height(44.dp)
                         .graphicsLayer { scaleX = scale; scaleY = scale }
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(if (isActive) selectedBg else btnBg)
                         .clickable(interactionSource = interactionSource, indication = null) { onHeading(level) }
                         .padding(horizontal = 4.dp),
@@ -1504,7 +1504,7 @@ private fun FormatToggleButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
         label = "fmt_$label"
     )
@@ -1514,12 +1514,12 @@ private fun FormatToggleButton(
         modifier = modifier
             .height(44.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(if (isActive) selectedBg else normalBg)
             .border(
                 width = if (isActive) 1.5.dp else 0.dp,
                 color = if (isActive) primaryColor else Color.Transparent,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 4.dp),
@@ -1695,12 +1695,12 @@ private fun ColorSubPanel(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(Color(color))
                             .border(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) activeColor else Color.Gray.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(12.dp)
                             )
                             .clickable {
                                 if (isSelected) {
@@ -1766,7 +1766,7 @@ private fun SubFunctionButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
@@ -1778,12 +1778,12 @@ private fun SubFunctionButton(
         modifier = modifier
             .height(44.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.15f) else bg)
             .border(
                 width = if (isActive) 1.5.dp else 0.dp,
                 color = if (isActive) activeColor.copy(alpha = 0.6f) else Color.Transparent,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 4.dp),
@@ -1839,7 +1839,7 @@ private fun GridItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
@@ -2085,7 +2085,7 @@ private fun TemplateItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh

@@ -335,7 +335,7 @@ private fun SettingsNavigateItem(
         Box(
             modifier = Modifier
                 .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(iconBg),
             contentAlignment = Alignment.Center
         ) {
