@@ -66,6 +66,8 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
+import com.diary.app.ui.theme.themeMode
+import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
@@ -811,14 +813,27 @@ private fun EntryItemCard(
     )
 
     // Mood-based background color
-    val moodBgColor = when (entry.moodLevel) {
-        1 -> Color(0xFFFFF3E0) // warm orange for sad
-        2 -> Color(0xFFFFF8E1) // light amber
-        3 -> Color(0xFFF5F5F5) // neutral gray
-        4 -> Color(0xFFE8F5E9) // light green
-        5 -> Color(0xFFE3F2FD) // light blue
-        6 -> Color(0xFFF3E5F5) // light purple
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    val isDark = themeMode().isDark()
+    val moodBgColor = if (isDark) {
+        when (entry.moodLevel) {
+            1 -> Color(0xFF2D2218) // dark warm brown
+            2 -> Color(0xFF2D2818) // dark amber
+            3 -> Color(0xFF222222) // dark neutral
+            4 -> Color(0xFF1A2D1A) // dark green
+            5 -> Color(0xFF1A2235) // dark blue
+            6 -> Color(0xFF251A30) // dark purple
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        }
+    } else {
+        when (entry.moodLevel) {
+            1 -> Color(0xFFFFF3E0) // warm orange
+            2 -> Color(0xFFFFF8E1) // light amber
+            3 -> Color(0xFFF5F5F5) // neutral gray
+            4 -> Color(0xFFE8F5E9) // light green
+            5 -> Color(0xFFE3F2FD) // light blue
+            6 -> Color(0xFFF3E5F5) // light purple
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        }
     }
 
     Box(

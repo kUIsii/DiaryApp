@@ -51,7 +51,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
-import com.diary.app.ui.theme.PrimaryBlue
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
@@ -446,7 +445,7 @@ private fun CalendarDay(
                     moodColorForLevel(moodLevel).copy(alpha = 0.8f)
                 } else {
                     // White-blue gradient dot for entries without mood
-                    PrimaryBlue.copy(alpha = 0.6f)
+                    primary.copy(alpha = 0.6f)
                 }
                 Box(
                     modifier = Modifier

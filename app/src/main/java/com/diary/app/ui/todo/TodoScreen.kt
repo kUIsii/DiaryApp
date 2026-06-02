@@ -84,8 +84,7 @@ import com.diary.app.data.TodoItem
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.rememberHapticFeedback
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
+import com.diary.app.ui.theme.LocalExtendedColors
 import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.WarningColor
 import androidx.compose.ui.res.stringResource
@@ -122,6 +121,9 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
 
     val textPrimary = MaterialTheme.colorScheme.onSurface
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val extendedColors = LocalExtendedColors.current
+    val gradientStart = extendedColors.gradientStart
+    val gradientEnd = extendedColors.gradientEnd
 
     val pendingCount = todos.count { !it.isCompleted }
     val completedCount = todos.count { it.isCompleted }
@@ -221,7 +223,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     .clip(CircleShape)
                                     .background(
                                         Brush.linearGradient(
-                                            colors = listOf(DarkAccentStart, DarkAccentEnd)
+                                            colors = listOf(gradientStart, gradientEnd)
                                         )
                                     )
                                     .clickable { showAddDialog = true },
@@ -530,6 +532,9 @@ private fun InputRow(
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit
 ) {
+    val extendedColors = LocalExtendedColors.current
+    val gradientStart = extendedColors.gradientStart
+    val gradientEnd = extendedColors.gradientEnd
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 16.dp,
@@ -565,10 +570,10 @@ private fun InputRow(
                     .clip(RoundedCornerShape(12.dp))
                     .background(
                         Brush.linearGradient(
-                            colors = if (value.isNotBlank()) listOf(DarkAccentStart, DarkAccentEnd)
+                            colors = if (value.isNotBlank()) listOf(gradientStart, gradientEnd)
                             else listOf(
-                                DarkAccentStart.copy(alpha = 0.3f),
-                                DarkAccentEnd.copy(alpha = 0.3f)
+                                gradientStart.copy(alpha = 0.3f),
+                                gradientEnd.copy(alpha = 0.3f)
                             )
                         )
                     )

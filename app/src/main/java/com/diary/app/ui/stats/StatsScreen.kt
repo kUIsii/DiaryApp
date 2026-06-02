@@ -6,9 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,28 +48,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.Month
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -243,29 +228,6 @@ fun StatsScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            // Range toggle
-                            val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(surfaceVariant.copy(alpha = 0.3f))
-                                    .padding(3.dp)
-                            ) {
-                                HeatmapToggleButton(
-                                    text = "1月",
-                                    selected = state.heatmapRange == HeatmapRange.ONE_MONTH,
-                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.ONE_MONTH) }
-                                )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                HeatmapToggleButton(
-                                    text = "3月",
-                                    selected = state.heatmapRange == HeatmapRange.THREE_MONTHS,
-                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.THREE_MONTHS) }
-                                )
-                            }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard {
@@ -845,10 +807,7 @@ private fun DiaryHeatmap(
     range: HeatmapRange,
     onDayClick: (LocalDate) -> Unit = {}
 ) {
-    when (range) {
-        HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data, onDayClick = onDayClick)
-        HeatmapRange.THREE_MONTHS -> HalfYearHeatmap(data = data, cellSize = 12.dp, onDayClick = onDayClick)
-    }
+    MonthlyHeatmap(data = data, onDayClick = onDayClick)
 }
 
 @Composable
@@ -970,225 +929,6 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
     }
 }
 
-@Composable
-private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp, onDayClick: (LocalDate) -> Unit = {}) {
-    val cellGap = if (cellSize < 16.dp) 2.dp else 4.dp
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val today = java.time.LocalDate.now()
-
-    val weeks = remember(data) {
-        if (data.isEmpty()) return@remember emptyList<List<HeatmapDay?>>()
-        val firstDayOfWeek = data.first().date.dayOfWeek.value
-        val paddedStart: List<HeatmapDay?> = if (firstDayOfWeek > 1) {
-            List(firstDayOfWeek - 1) { null } + data
-        } else {
-            data
-        }
-        paddedStart.chunked(7)
-    }
-
-    // Month labels for each week column (with year at boundaries)
-    val monthLabels = remember(weeks) {
-        val labels = mutableListOf<Pair<Int, String>>()
-        var lastMonth = -1
-        var lastYear = -1
-        weeks.forEachIndexed { index, week ->
-            val firstDay = week.firstOrNull { it != null }
-            if (firstDay != null) {
-                val month = firstDay.date.monthValue
-                val year = firstDay.date.year
-                if (month != lastMonth) {
-                    val label = if (year != lastYear) {
-                        "${year}/${month}月"
-                    } else {
-                        "${month}月"
-                    }
-                    labels.add(index to label)
-                    lastMonth = month
-                    lastYear = year
-                }
-            }
-        }
-        labels
-    }
-
-    Column {
-        val sharedScrollState = rememberScrollState()
-        val weekColumnWidth = cellSize + cellGap
-
-        // Calculate month spans: each month label spans from its start week to the next month
-        val monthSpans = remember(monthLabels, weeks.size) {
-            val spans = mutableListOf<Triple<Int, Int, String>>() // startWeek, weekCount, label
-            for (i in monthLabels.indices) {
-                val startWeek = monthLabels[i].first
-                val endWeek = if (i + 1 < monthLabels.size) monthLabels[i + 1].first else weeks.size
-                spans.add(Triple(startWeek, endWeek - startWeek, monthLabels[i].second))
-            }
-            spans
-        }
-
-        // Month labels row - each label spans its month's weeks
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(sharedScrollState)
-        ) {
-            Row {
-                Spacer(modifier = Modifier.width(24.dp))
-                // Spacer for weeks before the first month label
-                if (monthSpans.isNotEmpty() && monthSpans.first().first > 0) {
-                    Spacer(modifier = Modifier.width(weekColumnWidth * monthSpans.first().first))
-                }
-                monthSpans.forEach { (_, weekCount, label) ->
-                    Text(
-                        text = label,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        maxLines = 1,
-                        modifier = Modifier.width(weekColumnWidth * weekCount)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Heatmap grid with weekday labels
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(sharedScrollState)
-        ) {
-            Row {
-                // Weekday labels column
-                Column(
-                    modifier = Modifier.width(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(cellGap)
-                ) {
-                    listOf("一", "二", "三", "四", "五", "六", "日").forEach { label ->
-                        Box(
-                            modifier = Modifier.size(cellSize),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
-
-                // Heatmap cells - one column per week
-                weeks.forEach { week ->
-                    Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
-                            for (day in week) {
-                                if (day != null) {
-                                    val isToday = day.date == today
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(RoundedCornerShape(3.dp))
-                                            .then(
-                                                if (isToday) Modifier.border(
-                                                    1.5.dp,
-                                                    primaryColor,
-                                                    RoundedCornerShape(3.dp)
-                                                ) else Modifier
-                                            )
-                                            .background(
-                                                if (day.count > 0) primaryColor
-                                                else surfaceVariant.copy(alpha = 0.5f)
-                                            )
-                                            .clickable { onDayClick(day.date) }
-                                    )
-                                } else {
-                                    Box(modifier = Modifier.size(cellSize))
-                                }
-                            }
-                            repeat(7 - week.size) {
-                                Box(modifier = Modifier.size(cellSize))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Legend
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "无记录",
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(surfaceVariant.copy(alpha = 0.5f))
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "有记录",
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(primaryColor)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        val activeDays = data.count { it.count > 0 }
-        val totalDays = data.size
-        val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
-        Text(
-            text = "过去${totalDays}天有${activeDays}天写了日记，记录率${percentage}%",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-
-@Composable
-private fun HeatmapToggleButton(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary
-                else Color.Transparent
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
 @Composable
 private fun TagRow(

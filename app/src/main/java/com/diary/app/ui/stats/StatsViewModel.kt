@@ -46,8 +46,7 @@ data class WritingHabit(
 enum class TrendDirection { UP, DOWN, FLAT }
 
 enum class HeatmapRange(val days: Int) {
-    ONE_MONTH(30),
-    THREE_MONTHS(90)
+    ONE_MONTH(30)
 }
 
 data class MoodTrend(
@@ -78,18 +77,15 @@ data class StatsState(
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
     val heatmapData: List<HeatmapDay> = emptyList(),
-    val heatmapRange: HeatmapRange = HeatmapRange.THREE_MONTHS,
+    val heatmapRange: HeatmapRange = HeatmapRange.ONE_MONTH,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
-    private val _heatmapRange = MutableStateFlow(HeatmapRange.THREE_MONTHS)
+    private val _heatmapRange = MutableStateFlow(HeatmapRange.ONE_MONTH)
 
     fun toggleHeatmapRange() {
-        _heatmapRange.value = when (_heatmapRange.value) {
-            HeatmapRange.ONE_MONTH -> HeatmapRange.THREE_MONTHS
-            HeatmapRange.THREE_MONTHS -> HeatmapRange.ONE_MONTH
-        }
+        // Only one range now, no-op
     }
 
     fun setHeatmapRange(range: HeatmapRange) {

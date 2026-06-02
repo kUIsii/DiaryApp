@@ -685,8 +685,12 @@ private fun CollapsibleSection(
             // Expandable content
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-                exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                enter = expandVertically(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+                ) + fadeIn(animationSpec = tween(250, delayMillis = 50)),
+                exit = shrinkVertically(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+                ) + fadeOut(animationSpec = tween(200))
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))

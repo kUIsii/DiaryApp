@@ -1426,7 +1426,7 @@ private fun FormatSubPanel(
     activeFormats: Map<String, Any> = emptyMap()
 ) {
     val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val selectedBg = Color(0xFFBBDEFB) // light blue for selected state
+    val selectedBg = activeColor.copy(alpha = 0.15f)
     val currentHeader = activeFormats["header"]?.toString()?.toIntOrNull() ?: 0
     val isBold = activeFormats["bold"] == true
     val isItalic = activeFormats["italic"] == true
@@ -1469,7 +1469,7 @@ private fun FormatSubPanel(
                         text = desc,
                         fontSize = fontSize,
                         fontWeight = FontWeight.Bold,
-                        color = if (isActive) Color(0xFF1565C0) else textColor
+                        color = if (isActive) activeColor else textColor
                     )
                 }
             }
@@ -1508,6 +1508,7 @@ private fun FormatToggleButton(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
         label = "fmt_$label"
     )
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = modifier
@@ -1517,7 +1518,7 @@ private fun FormatToggleButton(
             .background(if (isActive) selectedBg else normalBg)
             .border(
                 width = if (isActive) 1.5.dp else 0.dp,
-                color = if (isActive) Color(0xFF42A5F5) else Color.Transparent,
+                color = if (isActive) primaryColor else Color.Transparent,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
@@ -1531,14 +1532,14 @@ private fun FormatToggleButton(
             Text(
                 text = label,
                 fontSize = 15.sp,
-                color = if (isActive) Color(0xFF1565C0) else textColor,
+                color = if (isActive) primaryColor else textColor,
                 style = textStyle,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
             )
             Text(
                 text = description,
                 fontSize = 9.sp,
-                color = (if (isActive) Color(0xFF1565C0) else textColor).copy(alpha = 0.5f),
+                color = (if (isActive) primaryColor else textColor).copy(alpha = 0.5f),
                 maxLines = 1
             )
         }
