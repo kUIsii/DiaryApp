@@ -47,7 +47,6 @@ enum class TrendDirection { UP, DOWN, FLAT }
 
 enum class HeatmapRange(val days: Int) {
     ONE_MONTH(30),
-    THREE_MONTHS(90),
     SIX_MONTHS(180)
 }
 
@@ -84,12 +83,11 @@ data class StatsState(
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
-    private val _heatmapRange = MutableStateFlow(HeatmapRange.THREE_MONTHS)
+    private val _heatmapRange = MutableStateFlow(HeatmapRange.SIX_MONTHS)
 
     fun toggleHeatmapRange() {
         _heatmapRange.value = when (_heatmapRange.value) {
-            HeatmapRange.ONE_MONTH -> HeatmapRange.THREE_MONTHS
-            HeatmapRange.THREE_MONTHS -> HeatmapRange.SIX_MONTHS
+            HeatmapRange.ONE_MONTH -> HeatmapRange.SIX_MONTHS
             HeatmapRange.SIX_MONTHS -> HeatmapRange.ONE_MONTH
         }
     }

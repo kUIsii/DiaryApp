@@ -82,14 +82,13 @@
             padding-left: 24px;
         }
         .ql-editor ul li:not([data-list="checked"]):not([data-list="unchecked"])::before {
-            content: "";
+            content: "\25CF";
             position: absolute;
-            left: 6px;
-            top: 8px;
-            width: 6px;
-            height: 6px;
-            background: var(--accent);
-            border-radius: 50%;
+            left: 4px;
+            top: 0;
+            color: var(--accent);
+            font-size: 10px;
+            line-height: inherit;
         }
 
         /* Checked/unchecked lists (checkboxes) */

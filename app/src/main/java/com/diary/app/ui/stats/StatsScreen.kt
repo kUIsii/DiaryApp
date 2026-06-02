@@ -202,12 +202,6 @@ fun StatsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 HeatmapToggleButton(
-                                    text = "3月",
-                                    selected = state.heatmapRange == HeatmapRange.THREE_MONTHS,
-                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.THREE_MONTHS) }
-                                )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                HeatmapToggleButton(
                                     text = "半年",
                                     selected = state.heatmapRange == HeatmapRange.SIX_MONTHS,
                                     onClick = { viewModel.setHeatmapRange(HeatmapRange.SIX_MONTHS) }
@@ -785,7 +779,6 @@ private fun DiaryHeatmap(
 ) {
     when (range) {
         HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data)
-        HeatmapRange.THREE_MONTHS -> HalfYearHeatmap(data = data, cellSize = 16.dp)
         HeatmapRange.SIX_MONTHS -> HalfYearHeatmap(data = data, cellSize = 12.dp)
     }
 }
@@ -952,11 +945,13 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
     }
 
     Column {
+        val sharedScrollState = rememberScrollState()
+
         // Month labels row
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
+                .horizontalScroll(sharedScrollState)
         ) {
             Row {
                 // Space for weekday labels
@@ -982,7 +977,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
+                .horizontalScroll(sharedScrollState)
         ) {
             Row {
                 // Weekday labels column
