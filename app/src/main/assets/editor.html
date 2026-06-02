@@ -82,11 +82,14 @@
             padding-left: 24px;
         }
         .ql-editor ul li:not([data-list="checked"]):not([data-list="unchecked"])::before {
-            content: "\2022";
+            content: "";
             position: absolute;
             left: 6px;
-            color: var(--accent);
-            font-weight: bold;
+            top: 8px;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
         }
 
         /* Checked/unchecked lists (checkboxes) */
@@ -99,14 +102,16 @@
         .ql-editor li[data-list="checked"]::before {
             content: "\2611";
             position: absolute;
-            left: 0;
+            left: 2px;
+            top: 0;
             color: var(--accent);
             font-size: 16px;
         }
         .ql-editor li[data-list="unchecked"]::before {
             content: "\2610";
             position: absolute;
-            left: 0;
+            left: 2px;
+            top: 0;
             color: var(--accent);
             font-size: 16px;
         }
@@ -121,6 +126,11 @@
             height: 1px;
             background: linear-gradient(to right, transparent 5%, rgba(128,128,128,0.5) 15%, rgba(128,128,128,0.5) 85%, transparent 95%);
             margin: 20px 0;
+            cursor: pointer;
+        }
+        hr.ql-selected {
+            background: var(--accent) !important;
+            height: 2px !important;
         }
 
         /* Images and Videos */
@@ -377,24 +387,36 @@
                 if (!sel) return;
                 var index = sel.index;
                 var length = sel.length;
-                // If there's a selection, check if it includes a divider
-                if (length > 0) {
-                    var ops = quill.getContents(index, length).ops;
-                    for (var i = 0; i < ops.length; i++) {
-                        if (ops[i].insert && ops[i].insert.divider) {
-                            // Let Quill handle it normally for selections
-                            return;
-                        }
-                    }
-                    return;
+                // If there's a selection, let Quill handle it normally
+                if (length > 0) return;
+                // Check multiple positions around cursor for divider
+                var positions = [];
+                if (e.key === 'Backspace') {
+                    positions = [index - 1, index - 2];
+                } else {
+                    positions = [index, index + 1];
                 }
-                // No selection - check if cursor is next to a divider
-                var checkIndex = e.key === 'Backspace' ? index - 1 : index;
-                if (checkIndex < 0) return;
-                var ops = quill.getContents(checkIndex, 1).ops;
-                if (ops.length > 0 && ops[0].insert && ops[0].insert.divider) {
-                    e.preventDefault();
-                    quill.deleteText(checkIndex, 1);
+                for (var i = 0; i < positions.length; i++) {
+                    var checkIndex = positions[i];
+                    if (checkIndex < 0) continue;
+                    if (checkIndex >= quill.getLength()) continue;
+                    var ops = quill.getContents(checkIndex, 1).ops;
+                    if (ops.length > 0 && ops[0].insert && ops[0].insert.divider) {
+                        e.preventDefault();
+                        quill.deleteText(checkIndex, 1);
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Click to select divider for easy deletion
+        document.querySelector('.ql-editor').addEventListener('click', function(e) {
+            if (e.target.tagName === 'HR') {
+                var blot = Quill.find(e.target);
+                if (blot) {
+                    var idx = quill.getIndex(blot);
+                    quill.setSelection(idx, 1);
                 }
             }
         });

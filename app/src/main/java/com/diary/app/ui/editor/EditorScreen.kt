@@ -18,6 +18,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -204,6 +206,10 @@ fun EditorScreen(
     LaunchedEffect(isKeyboardVisible) {
         if (isKeyboardVisible) {
             showToolbar = true
+            // When keyboard reappears, close any open sub-panel
+            if (activeCategory >= 0) {
+                activeCategory = -1
+            }
         } else if (activeCategory < 0) {
             // Delay hiding to avoid flicker when transitioning from sub-panel to keyboard
             kotlinx.coroutines.delay(200)
@@ -1030,6 +1036,10 @@ fun EditorScreen(
                         settings.domStorageEnabled = true
                         settings.allowFileAccess = true
                         settings.allowContentAccess = true
+                        @Suppress("DEPRECATION")
+                        settings.allowFileAccessFromFileURLs = true
+                        @Suppress("DEPRECATION")
+                        settings.allowUniversalAccessFromFileURLs = true
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         setBackgroundColor(0)
                         addJavascriptInterface(jsBridge, "DiaryBridge")
@@ -1085,32 +1095,30 @@ fun EditorScreen(
                 }
             }
         }
-        // Floating toolbar overlay - positioned above keyboard
-        Box(modifier = Modifier.align(Alignment.BottomCenter).imePadding()) {
-            EditorToolbar(
-                showToolbar = showToolbar,
-                onToggleToolbar = {
-                    if (showToolbar && activeCategory >= 0) {
-                        // Close sub-panel and show keyboard
-                        activeCategory = -1
-                        webView?.requestFocus()
-                        webView?.evaluateJavascript("focusEditor()", null)
-                    }
-                },
-                activeCategory = activeCategory,
-                onCategoryChange = { cat ->
-                    if (activeCategory == cat) {
-                        // Same category clicked - close it and show keyboard
-                        activeCategory = -1
-                        webView?.requestFocus()
-                        webView?.evaluateJavascript("focusEditor()", null)
-                    } else {
-                        // New category - open it and hide keyboard
-                        activeCategory = cat
-                        val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                        imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
-                    }
-                },
+        // Floating toolbar overlay - hidden by default, shown when keyboard appears
+        AnimatedVisibility(
+            visible = showToolbar,
+            enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
+            exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150)),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Box(modifier = Modifier.imePadding()) {
+                EditorToolbar(
+                    showToolbar = showToolbar,
+                    activeCategory = activeCategory,
+                    onCategoryChange = { cat ->
+                        if (activeCategory == cat) {
+                            // Same category clicked - close it and show keyboard
+                            activeCategory = -1
+                            webView?.requestFocus()
+                            webView?.evaluateJavascript("focusEditor()", null)
+                        } else {
+                            // New category - open it and hide keyboard
+                            activeCategory = cat
+                            val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                            imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                        }
+                    },
                 activeFormats = activeFormats,
                 onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
                 onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
@@ -1133,6 +1141,7 @@ fun EditorScreen(
                     else onNavigateBack()
                 }
             )
+            }
         }
         SnackbarHost(
             hostState = snackbarHostState,
@@ -1188,7 +1197,6 @@ private fun MetadataChip(
 @Composable
 private fun EditorToolbar(
     showToolbar: Boolean,
-    onToggleToolbar: () -> Unit,
     activeCategory: Int,
     onCategoryChange: (Int) -> Unit,
     activeFormats: Map<String, Any> = emptyMap(),
@@ -1231,15 +1239,15 @@ private fun EditorToolbar(
                 CategoryButton(
                     icon = category.icon,
                     label = category.label,
-                    isActive = activeCategory == category.index && showToolbar,
+                    isActive = activeCategory == category.index,
                     onClick = {
-                        if (activeCategory == category.index && showToolbar) {
+                        if (activeCategory == category.index) {
+                            // Same category - close it and show keyboard
                             onCategoryChange(-1)
-                            onToggleToolbar()
                             onShowKeyboard()
                         } else {
+                            // New category - open it and hide keyboard
                             onCategoryChange(category.index)
-                            if (!showToolbar) onToggleToolbar()
                             onHideKeyboard()
                         }
                     },
@@ -1249,17 +1257,17 @@ private fun EditorToolbar(
             }
             // Expand/collapse arrow button
             CategoryButton(
-                icon = if (showToolbar && activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                label = if (showToolbar && activeCategory >= 0) "收起" else "展开",
+                icon = if (activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                label = if (activeCategory >= 0) "收起" else "展开",
                 isActive = false,
                 onClick = {
-                    if (showToolbar && activeCategory >= 0) {
+                    if (activeCategory >= 0) {
+                        // Collapse - close sub-panel, show keyboard
                         onCategoryChange(-1)
-                        onToggleToolbar()
                         onShowKeyboard()
                     } else {
+                        // Expand - open format panel, hide keyboard
                         onCategoryChange(0)
-                        if (!showToolbar) onToggleToolbar()
                         onHideKeyboard()
                     }
                 },
@@ -1270,7 +1278,7 @@ private fun EditorToolbar(
 
         // Expandable sub-function panel
         AnimatedVisibility(
-            visible = showToolbar && activeCategory >= 0,
+            visible = activeCategory >= 0,
             enter = expandVertically(tween(200)) + fadeIn(),
             exit = shrinkVertically(tween(150)) + fadeOut()
         ) {

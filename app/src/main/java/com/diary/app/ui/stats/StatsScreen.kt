@@ -926,17 +926,25 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
         paddedStart.chunked(7)
     }
 
-    // Month labels for each week column
+    // Month labels for each week column (with year at boundaries)
     val monthLabels = remember(weeks) {
         val labels = mutableListOf<Pair<Int, String>>()
         var lastMonth = -1
+        var lastYear = -1
         weeks.forEachIndexed { index, week ->
             val firstDay = week.firstOrNull { it != null }
             if (firstDay != null) {
                 val month = firstDay.date.monthValue
+                val year = firstDay.date.year
                 if (month != lastMonth) {
-                    labels.add(index to "${month}月")
+                    val label = if (year != lastYear) {
+                        "${year}/${month}月"
+                    } else {
+                        "${month}月"
+                    }
+                    labels.add(index to label)
                     lastMonth = month
+                    lastYear = year
                 }
             }
         }
@@ -952,7 +960,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
         ) {
             Row {
                 // Space for weekday labels
-                Spacer(modifier = Modifier.width(20.dp))
+                Spacer(modifier = Modifier.width(24.dp))
                 weeks.forEachIndexed { index, _ ->
                     val label = monthLabels.find { it.first == index }
                     Box(modifier = Modifier.width(cellSize + cellGap)) {
@@ -979,21 +987,19 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
             Row {
                 // Weekday labels column
                 Column(
-                    modifier = Modifier.width(20.dp),
+                    modifier = Modifier.width(24.dp),
                     verticalArrangement = Arrangement.spacedBy(cellGap)
                 ) {
-                    listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { index, label ->
+                    listOf("一", "二", "三", "四", "五", "六", "日").forEach { label ->
                         Box(
                             modifier = Modifier.size(cellSize),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (index % 2 == 0) { // Show only Mon, Wed, Fri
-                                Text(
-                                    text = label,
-                                    fontSize = 9.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                            Text(
+                                text = label,
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
                         }
                     }
                 }
@@ -1045,28 +1051,29 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "少",
+                text = "无记录",
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.width(4.dp))
-            repeat(4) { level ->
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(
-                            if (level == 0) surfaceVariant.copy(alpha = 0.5f)
-                            else primaryColor.copy(alpha = 0.3f + level * 0.2f)
-                        )
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-            }
-            Spacer(modifier = Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(surfaceVariant.copy(alpha = 0.5f))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "多",
+                text = "有记录",
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(primaryColor)
             )
         }
 
