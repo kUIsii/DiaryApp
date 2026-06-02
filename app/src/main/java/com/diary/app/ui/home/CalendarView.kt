@@ -94,7 +94,7 @@ fun CalendarView(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .background(if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.9f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
             .then(borderModifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

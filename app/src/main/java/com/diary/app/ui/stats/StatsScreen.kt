@@ -88,6 +88,7 @@ fun StatsScreen(
     selectedDate?.let { date ->
         AlertDialog(
             onDismissRequest = { selectedDate = null; selectedEntries = emptyList() },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "${date.monthValue}月${date.dayOfMonth}日",

@@ -710,6 +710,7 @@ private fun EditTodoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("编辑待办") },
         text = {
             Column(
@@ -1273,6 +1274,7 @@ private fun AddTodoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("新建待办") },
         text = {
             Column(
