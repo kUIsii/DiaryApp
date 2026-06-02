@@ -162,7 +162,7 @@ fun ProfileScreen(
     var currentFontSizeKey by remember {
         mutableStateOf(
             context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
-                .getString("editor_font_size", "medium") ?: "medium"
+                .getString("editor_font_size", "small") ?: "small"
         )
     }
     var isExporting by remember { mutableStateOf(false) }

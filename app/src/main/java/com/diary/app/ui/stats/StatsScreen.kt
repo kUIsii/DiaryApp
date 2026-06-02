@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.DayOfWeek
@@ -195,15 +196,21 @@ fun StatsScreen(
                                     .padding(3.dp)
                             ) {
                                 HeatmapToggleButton(
-                                    text = "1个月",
+                                    text = "1月",
                                     selected = state.heatmapRange == HeatmapRange.ONE_MONTH,
-                                    onClick = { viewModel.toggleHeatmapRange() }
+                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.ONE_MONTH) }
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                HeatmapToggleButton(
+                                    text = "3月",
+                                    selected = state.heatmapRange == HeatmapRange.THREE_MONTHS,
+                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.THREE_MONTHS) }
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 HeatmapToggleButton(
                                     text = "半年",
                                     selected = state.heatmapRange == HeatmapRange.SIX_MONTHS,
-                                    onClick = { viewModel.toggleHeatmapRange() }
+                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.SIX_MONTHS) }
                                 )
                             }
                         }
@@ -778,7 +785,8 @@ private fun DiaryHeatmap(
 ) {
     when (range) {
         HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data)
-        HeatmapRange.SIX_MONTHS -> HalfYearHeatmap(data = data)
+        HeatmapRange.THREE_MONTHS -> HalfYearHeatmap(data = data, cellSize = 16.dp)
+        HeatmapRange.SIX_MONTHS -> HalfYearHeatmap(data = data, cellSize = 12.dp)
     }
 }
 
@@ -901,9 +909,8 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>) {
 }
 
 @Composable
-private fun HalfYearHeatmap(data: List<HeatmapDay>) {
-    val cellSize = 16.dp
-    val cellGap = 4.dp
+private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
+    val cellGap = if (cellSize < 16.dp) 2.dp else 4.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val today = java.time.LocalDate.now()
@@ -1069,7 +1076,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>) {
         val totalDays = data.size
         val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
         Text(
-            text = "过去半年有 $activeDays 天写了日记，记录率 $percentage%",
+            text = "过去${totalDays}天有${activeDays}天写了日记，记录率${percentage}%",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

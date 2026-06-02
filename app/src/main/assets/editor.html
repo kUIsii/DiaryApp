@@ -250,8 +250,8 @@
             quill.insertEmbed(lineEnd, 'divider', true);
             quill.setSelection(lineEnd + 1);
         }
-        function setTextColor(color) { quill.format('color', color); reportFormat(); }
-        function setBackgroundColor(color) { quill.format('background', color); reportFormat(); }
+        function setTextColor(color) { quill.format('color', color || false); reportFormat(); }
+        function setBackgroundColor(color) { quill.format('background', color || false); reportFormat(); }
         function clearFormatting() {
             var r = quill.getSelection();
             if (r) quill.removeFormat(r.index, r.length);
@@ -368,6 +368,35 @@
                     quill.removeFormat(sel.index, sel.length);
                 }
             }, 50);
+        });
+
+        // Handle backspace/delete for divider removal
+        document.querySelector('.ql-editor').addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                var sel = quill.getSelection();
+                if (!sel) return;
+                var index = sel.index;
+                var length = sel.length;
+                // If there's a selection, check if it includes a divider
+                if (length > 0) {
+                    var ops = quill.getContents(index, length).ops;
+                    for (var i = 0; i < ops.length; i++) {
+                        if (ops[i].insert && ops[i].insert.divider) {
+                            // Let Quill handle it normally for selections
+                            return;
+                        }
+                    }
+                    return;
+                }
+                // No selection - check if cursor is next to a divider
+                var checkIndex = e.key === 'Backspace' ? index - 1 : index;
+                if (checkIndex < 0) return;
+                var ops = quill.getContents(checkIndex, 1).ops;
+                if (ops.length > 0 && ops[0].insert && ops[0].insert.divider) {
+                    e.preventDefault();
+                    quill.deleteText(checkIndex, 1);
+                }
+            }
         });
 
         function scrollToCursor(index, length) {

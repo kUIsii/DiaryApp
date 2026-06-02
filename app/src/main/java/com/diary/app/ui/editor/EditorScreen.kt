@@ -1497,7 +1497,13 @@ private fun ColorSubPanel(
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .clickable {
-                                onFormat("$command('#${Integer.toHexString(color.toInt()).substring(2)}')")
+                                if (isSelected) {
+                                    // Clicking selected color again clears it
+                                    val clearCmd = if (isTextColorMode) "setTextColor(false)" else "setBackgroundColor(false)"
+                                    onFormat(clearCmd)
+                                } else {
+                                    onFormat("$command('#${Integer.toHexString(color.toInt()).substring(2)}')")
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -1668,7 +1674,7 @@ private fun GridItem(
 private data class ToolbarCategory(val icon: String, val label: String)
 
 private fun getEditorFontSize(prefs: android.content.SharedPreferences): Int {
-    return when (prefs.getString("editor_font_size", "medium")) {
+    return when (prefs.getString("editor_font_size", "small")) {
         "small" -> 14
         "large" -> 18
         "extra_large" -> 20
