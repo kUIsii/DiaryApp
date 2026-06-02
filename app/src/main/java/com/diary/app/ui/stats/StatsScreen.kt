@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -121,14 +122,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_total_diaries),
                                 value = state.totalEntries,
                                 icon = Icons.Default.Edit,
-                                gradientColors = listOf(Color(0xFF5B86E5), Color(0xFF36D1DC)),
+                                gradientColors = listOf(Color(0xFFB3D4FC), Color(0xFF81B4F8)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = stringResource(R.string.stat_streak),
                                 value = state.currentStreak,
                                 icon = Icons.Default.LocalFireDepartment,
-                                gradientColors = listOf(Color(0xFFFF512F), Color(0xFFF09819)),
+                                gradientColors = listOf(Color(0xFFFFCCBC), Color(0xFFFFAB91)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -140,14 +141,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_this_month),
                                 value = state.thisMonthEntries,
                                 icon = Icons.Default.CalendarMonth,
-                                gradientColors = listOf(Color(0xFF11998E), Color(0xFF38EF7D)),
+                                gradientColors = listOf(Color(0xFFC8E6C9), Color(0xFFA5D6A7)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = "总字数",
                                 value = state.wordStats?.totalWords ?: 0,
                                 icon = Icons.Default.TextSnippet,
-                                gradientColors = listOf(Color(0xFF9B59B6), Color(0xFFE74C3C)),
+                                gradientColors = listOf(Color(0xFFE1BEE7), Color(0xFFCE93D8)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -323,7 +324,7 @@ private fun OverviewCard(
     gradientColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+    val contentColor = Color(0xFF37474F)
 
     Box(
         modifier = modifier
@@ -335,7 +336,6 @@ private fun OverviewCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Icon and value in one row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -344,20 +344,20 @@ private fun OverviewCard(
                     imageVector = icon,
                     contentDescription = label,
                     modifier = Modifier.size(18.dp),
-                    tint = onPrimaryColor.copy(alpha = 0.85f)
+                    tint = contentColor.copy(alpha = 0.7f)
                 )
                 Text(
                     text = "$value",
                     style = MaterialTheme.typography.headlineMedium.copy(fontSize = 22.sp),
                     fontWeight = FontWeight.Bold,
-                    color = onPrimaryColor
+                    color = contentColor
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = onPrimaryColor.copy(alpha = 0.8f)
+                color = contentColor.copy(alpha = 0.7f)
             )
         }
     }
@@ -906,6 +906,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>) {
     val cellGap = 4.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val today = java.time.LocalDate.now()
 
     val weeks = remember(data) {
         if (data.isEmpty()) return@remember emptyList<List<HeatmapDay?>>()
@@ -918,35 +919,110 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>) {
         paddedStart.chunked(7)
     }
 
+    // Month labels for each week column
+    val monthLabels = remember(weeks) {
+        val labels = mutableListOf<Pair<Int, String>>()
+        var lastMonth = -1
+        weeks.forEachIndexed { index, week ->
+            val firstDay = week.firstOrNull { it != null }
+            if (firstDay != null) {
+                val month = firstDay.date.monthValue
+                if (month != lastMonth) {
+                    labels.add(index to "${month}月")
+                    lastMonth = month
+                }
+            }
+        }
+        labels
+    }
+
     Column {
+        // Month labels row
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((cellSize * 7 + cellGap * 6))
                 .horizontalScroll(rememberScrollState())
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(cellGap)
-            ) {
-                weeks.forEach { week ->
-                    Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
-                        for (day in week) {
-                            if (day != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(cellSize)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(
-                                            if (day.count > 0) primaryColor
-                                            else surfaceVariant.copy(alpha = 0.5f)
-                                        )
+            Row {
+                // Space for weekday labels
+                Spacer(modifier = Modifier.width(20.dp))
+                weeks.forEachIndexed { index, _ ->
+                    val label = monthLabels.find { it.first == index }
+                    Box(modifier = Modifier.width(cellSize + cellGap)) {
+                        if (label != null) {
+                            Text(
+                                text = label.second,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Heatmap grid with weekday labels
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+        ) {
+            Row {
+                // Weekday labels column
+                Column(
+                    modifier = Modifier.width(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(cellGap)
+                ) {
+                    listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { index, label ->
+                        Box(
+                            modifier = Modifier.size(cellSize),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (index % 2 == 0) { // Show only Mon, Wed, Fri
+                                Text(
+                                    text = label,
+                                    fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
-                            } else {
-                                Box(modifier = Modifier.size(cellSize))
                             }
                         }
-                        repeat(7 - week.size) {
-                            Box(modifier = Modifier.size(cellSize))
+                    }
+                }
+
+                // Heatmap cells
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(cellGap)
+                ) {
+                    weeks.forEach { week ->
+                        Column(verticalArrangement = Arrangement.spacedBy(cellGap)) {
+                            for (day in week) {
+                                if (day != null) {
+                                    val isToday = day.date == today
+                                    Box(
+                                        modifier = Modifier
+                                            .size(cellSize)
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .then(
+                                                if (isToday) Modifier.border(
+                                                    1.5.dp,
+                                                    primaryColor,
+                                                    RoundedCornerShape(3.dp)
+                                                ) else Modifier
+                                            )
+                                            .background(
+                                                if (day.count > 0) primaryColor
+                                                else surfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                    )
+                                } else {
+                                    Box(modifier = Modifier.size(cellSize))
+                                }
+                            }
+                            repeat(7 - week.size) {
+                                Box(modifier = Modifier.size(cellSize))
+                            }
                         }
                     }
                 }

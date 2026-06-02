@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FormatClear
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -1172,7 +1173,7 @@ private fun EditorToolbar(
                     0 -> FormatSubPanel(onFormat = onFormat, onHeading = onHeading, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
                     1 -> ListSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
                     2 -> InsertSubPanel(onFormat = onFormat, onInsert = onInsert, onImageInsert = onImageInsert, textColor = textColor, activeColor = activeColor)
-                    3 -> ColorSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor)
+                    3 -> ColorSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
                 }
             }
         }
@@ -1400,7 +1401,8 @@ private fun InsertSubPanel(
 private fun ColorSubPanel(
     onFormat: (String) -> Unit,
     textColor: Color,
-    activeColor: Color
+    activeColor: Color,
+    activeFormats: Map<String, Any> = emptyMap()
 ) {
     var isTextColorMode by remember { mutableStateOf(true) }
     val textColors = listOf(
@@ -1474,20 +1476,41 @@ private fun ColorSubPanel(
         ) {
             val colors = if (isTextColorMode) textColors else bgColors
             val command = if (isTextColorMode) "setTextColor" else "setBackgroundColor"
+            val activeColorKey = if (isTextColorMode) "color" else "background"
+            val currentColorHex = activeFormats[activeColorKey]?.toString()?.lowercase()
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 colors.forEach { color ->
+                    val hex = "#${Integer.toHexString(color.toInt()).substring(2).lowercase()}"
+                    val isSelected = currentColorHex == hex
+
                     Box(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(color))
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) activeColor else Color.Gray.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
                             .clickable {
                                 onFormat("$command('#${Integer.toHexString(color.toInt()).substring(2)}')")
-                            }
-                    )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = if (color == 0xFFFFFFFFL || color == 0xFFFFF9C4L || color == 0xFFFFE0B2L || color == 0xFFF8BBD0L || color == 0xFFFFF3E0L || color == 0xFFB3E5FCL || color == 0xFFBBDEFBL || color == 0xFFC8E6C9L)
+                                    Color(0xFF37474F) else Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
