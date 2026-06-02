@@ -267,6 +267,16 @@ interface DiaryDao {
     @Query("DELETE FROM trash_entries WHERE id = :id")
     suspend fun deleteTrashEntryById(id: Long)
 
+    // Recent locations
+    @Query("""
+        SELECT DISTINCT location, latitude, longitude
+        FROM diary_entries
+        WHERE location IS NOT NULL AND location != ''
+        ORDER BY createdAt DESC
+        LIMIT 10
+    """)
+    suspend fun getRecentLocations(): List<RecentLocation>
+
     @Query("DELETE FROM trash_entries WHERE deletedAt < :before")
     suspend fun deleteTrashEntriesBefore(before: Long)
 
@@ -301,4 +311,10 @@ data class DiaryTagPair(
     val tagId: Long,
     val name: String,
     val color: Long
+)
+
+data class RecentLocation(
+    val location: String,
+    val latitude: Double?,
+    val longitude: Double?
 )

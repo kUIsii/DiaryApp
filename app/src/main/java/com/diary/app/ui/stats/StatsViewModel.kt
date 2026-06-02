@@ -47,7 +47,7 @@ enum class TrendDirection { UP, DOWN, FLAT }
 
 enum class HeatmapRange(val days: Int) {
     ONE_MONTH(30),
-    SIX_MONTHS(180)
+    THREE_MONTHS(90)
 }
 
 data class MoodTrend(
@@ -78,17 +78,17 @@ data class StatsState(
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
     val heatmapData: List<HeatmapDay> = emptyList(),
-    val heatmapRange: HeatmapRange = HeatmapRange.SIX_MONTHS,
+    val heatmapRange: HeatmapRange = HeatmapRange.THREE_MONTHS,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
-    private val _heatmapRange = MutableStateFlow(HeatmapRange.SIX_MONTHS)
+    private val _heatmapRange = MutableStateFlow(HeatmapRange.THREE_MONTHS)
 
     fun toggleHeatmapRange() {
         _heatmapRange.value = when (_heatmapRange.value) {
-            HeatmapRange.ONE_MONTH -> HeatmapRange.SIX_MONTHS
-            HeatmapRange.SIX_MONTHS -> HeatmapRange.ONE_MONTH
+            HeatmapRange.ONE_MONTH -> HeatmapRange.THREE_MONTHS
+            HeatmapRange.THREE_MONTHS -> HeatmapRange.ONE_MONTH
         }
     }
 
@@ -145,6 +145,13 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             heatmapRange = heatmapRange,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
+
+    suspend fun getEntriesForDate(date: LocalDate): List<DiaryPreview> {
+        val zone = ZoneId.systemDefault()
+        val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+        return dao.getPreviewsByDateRange(startOfDay, endOfDay)
+    }
 
     private fun calculateStreak(dates: Set<LocalDate>): Int {
         var streak = 0

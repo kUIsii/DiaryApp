@@ -653,10 +653,19 @@ private fun CollapsibleSection(
     ) {
         Column {
             // Header row
+            val headerInteraction = remember { MutableInteractionSource() }
+            val headerPressed by headerInteraction.collectIsPressedAsState()
+            val headerBg by animateColorAsState(
+                targetValue = if (headerPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
+                animationSpec = tween(durationMillis = 150),
+                label = "headerBg"
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle() },
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(headerBg)
+                    .clickable(interactionSource = headerInteraction, indication = null) { onToggle() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconCircle(icon = icon, bg = iconBg, tint = iconTint)
@@ -727,18 +736,20 @@ private fun ClickableSettingRow(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
-        label = "scale"
+    val bgColor by animateColorAsState(
+        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 150),
+        label = "rowBg"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (enabled) 1f else 0.4f }
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled) { onClick() }
-            .padding(vertical = 10.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp)
+            .graphicsLayer { alpha = if (enabled) 1f else 0.4f },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

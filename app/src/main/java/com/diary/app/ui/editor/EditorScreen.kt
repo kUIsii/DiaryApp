@@ -1139,6 +1139,19 @@ fun EditorScreen(
                 onClose = {
                     if (hasUnsavedChanges) showUnsavedDialog = true
                     else onNavigateBack()
+                },
+                fontSize = editorFontSize,
+                onFontSizeChange = { newSize ->
+                    editorFontSize = newSize
+                    prefs.edit().putString("editor_font_size", when(newSize) {
+                        10 -> "tiny"
+                        14 -> "small"
+                        16 -> "medium"
+                        18 -> "large"
+                        20 -> "extra_large"
+                        else -> "small"
+                    }).apply()
+                    webView?.evaluateJavascript("setFontSize($newSize)", null)
                 }
             )
             }
@@ -1206,7 +1219,9 @@ private fun EditorToolbar(
     onImageInsert: () -> Unit = {},
     onHideKeyboard: () -> Unit = {},
     onShowKeyboard: () -> Unit = {},
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    fontSize: Int = 14,
+    onFontSizeChange: (Int) -> Unit = {}
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val borderColor = MaterialTheme.colorScheme.outlineVariant
@@ -1274,6 +1289,70 @@ private fun EditorToolbar(
                 textColor = textColor,
                 activeColor = activeColor
             )
+        }
+
+        // Font size control row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "字号",
+                fontSize = 11.sp,
+                color = textColor.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            // Decrease button
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .clickable {
+                        val sizes = listOf(10, 12, 14, 16, 18, 20)
+                        val currentIndex = sizes.indexOf(fontSize).coerceAtLeast(0)
+                        if (currentIndex > 0) onFontSizeChange(sizes[currentIndex - 1])
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "A-",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+            }
+            // Current size display
+            Text(
+                text = "${fontSize}",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            // Increase button
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .clickable {
+                        val sizes = listOf(10, 12, 14, 16, 18, 20)
+                        val currentIndex = sizes.indexOf(fontSize).coerceIn(0, sizes.lastIndex)
+                        if (currentIndex < sizes.lastIndex) onFontSizeChange(sizes[currentIndex + 1])
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "A+",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+            }
         }
 
         // Expandable sub-function panel

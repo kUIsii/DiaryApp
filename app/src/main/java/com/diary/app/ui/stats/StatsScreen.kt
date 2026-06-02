@@ -35,12 +35,18 @@ import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Weekend
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +76,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.EmptyState
@@ -77,6 +84,7 @@ import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -84,6 +92,57 @@ fun StatsScreen(
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
+    // State for day click dialog
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
+    var isLoadingEntries by remember { mutableStateOf(false) }
+
+    // Dialog for showing entries on a specific day
+    selectedDate?.let { date ->
+        AlertDialog(
+            onDismissRequest = { selectedDate = null; selectedEntries = emptyList() },
+            title = {
+                Text(
+                    text = "${date.monthValue}月${date.dayOfMonth}日",
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                if (isLoadingEntries) {
+                    Text("加载中...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else if (selectedEntries.isEmpty()) {
+                    Text("当天没有日记", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        selectedEntries.forEach { entry ->
+                            Column {
+                                Text(
+                                    text = entry.title.ifBlank { "无标题" },
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                                if (entry.plainText.isNotBlank()) {
+                                    Text(
+                                        text = entry.plainText.take(100) + if (entry.plainText.length > 100) "..." else "",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 3
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedDate = null; selectedEntries = emptyList() }) {
+                    Text("关闭")
+                }
+            }
+        )
+    }
 
     GradientBackground {
         if (state.totalEntries == 0) {
@@ -202,9 +261,9 @@ fun StatsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 HeatmapToggleButton(
-                                    text = "半年",
-                                    selected = state.heatmapRange == HeatmapRange.SIX_MONTHS,
-                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.SIX_MONTHS) }
+                                    text = "3月",
+                                    selected = state.heatmapRange == HeatmapRange.THREE_MONTHS,
+                                    onClick = { viewModel.setHeatmapRange(HeatmapRange.THREE_MONTHS) }
                                 )
                             }
                         }
@@ -213,6 +272,14 @@ fun StatsScreen(
                             DiaryHeatmap(
                                 data = state.heatmapData,
                                 range = state.heatmapRange,
+                                onDayClick = { date ->
+                                    selectedDate = date
+                                    isLoadingEntries = true
+                                    scope.launch {
+                                        selectedEntries = viewModel.getEntriesForDate(date)
+                                        isLoadingEntries = false
+                                    }
+                                }
                             )
                         }
                     }
@@ -776,15 +843,16 @@ private fun WeatherRow(
 private fun DiaryHeatmap(
     data: List<HeatmapDay>,
     range: HeatmapRange,
+    onDayClick: (LocalDate) -> Unit = {}
 ) {
     when (range) {
-        HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data)
-        HeatmapRange.SIX_MONTHS -> HalfYearHeatmap(data = data, cellSize = 12.dp)
+        HeatmapRange.ONE_MONTH -> MonthlyHeatmap(data = data, onDayClick = onDayClick)
+        HeatmapRange.THREE_MONTHS -> HalfYearHeatmap(data = data, cellSize = 12.dp, onDayClick = onDayClick)
     }
 }
 
 @Composable
-private fun MonthlyHeatmap(data: List<HeatmapDay>) {
+private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Unit = {}) {
     if (data.isEmpty()) return
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
@@ -829,7 +897,8 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>) {
                                 .background(
                                     if (day.count > 0) primaryColor
                                     else surfaceVariant.copy(alpha = 0.4f)
-                                ),
+                                )
+                                .clickable { onDayClick(day.date) },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -902,7 +971,7 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>) {
 }
 
 @Composable
-private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
+private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp, onDayClick: (LocalDate) -> Unit = {}) {
     val cellGap = if (cellSize < 16.dp) 2.dp else 4.dp
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
@@ -1032,6 +1101,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
                                                 if (day.count > 0) primaryColor
                                                 else surfaceVariant.copy(alpha = 0.5f)
                                             )
+                                            .clickable { onDayClick(day.date) }
                                     )
                                 } else {
                                     Box(modifier = Modifier.size(cellSize))
@@ -1046,7 +1116,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Legend
         Row(
@@ -1081,7 +1151,7 @@ private fun HalfYearHeatmap(data: List<HeatmapDay>, cellSize: Dp = 16.dp) {
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         val activeDays = data.count { it.count > 0 }
         val totalDays = data.size
