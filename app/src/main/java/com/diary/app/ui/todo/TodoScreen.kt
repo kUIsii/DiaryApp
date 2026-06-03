@@ -43,8 +43,6 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,10 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDismissState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
 import androidx.compose.runtime.Composable
@@ -93,7 +88,6 @@ import com.diary.app.ui.theme.PrimaryBlue
 import com.diary.app.ui.theme.SuccessColor
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -647,67 +641,6 @@ private fun EditTodoDialog(
 
     val subTodos by viewModel.getSubTodos(todo.id).collectAsState()
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = dueDate ?: reminderTime ?: System.currentTimeMillis()
-    )
-    val timePickerState = rememberTimePickerState(
-        initialHour = if (reminderTime != null) {
-            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime().hour
-        } else 9,
-        initialMinute = if (reminderTime != null) {
-            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime().minute
-        } else 0,
-        is24Hour = true
-    )
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { dateMillis ->
-                        val date = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-                        val time = if (reminderTime != null) {
-                            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime()
-                        } else LocalTime.of(9, 0)
-                        dueDate = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        reminderTime = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    }
-                    showDatePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("选择提醒时间") },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val date = if (reminderTime != null) {
-                        Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalDate()
-                    } else LocalDate.now()
-                    reminderTime = date.atTime(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    showTimePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-            }
-        )
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -717,79 +650,24 @@ private fun EditTodoDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("标题") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                TodoFormContent(
+                    title = title,
+                    onTitleChange = { title = it },
+                    description = description,
+                    onDescriptionChange = { description = it },
+                    priority = priority,
+                    onPriorityChange = { priority = it },
+                    category = category,
+                    onCategoryChange = { category = it },
+                    dueDate = dueDate,
+                    onDueDateChange = { dueDate = it },
+                    reminderTime = reminderTime,
+                    onReminderTimeChange = { reminderTime = it },
+                    recurringType = recurringType,
+                    onRecurringTypeChange = { recurringType = it },
+                    tags = tagsInput,
+                    onTagsChange = { tagsInput = it }
                 )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("描述") },
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Priority
-                Text("优先级", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
-                        val isSelected = priority == level
-                        val chipColor = when (level) {
-                            1 -> WarningColor
-                            2 -> ErrorColor
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) chipColor.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { priority = level }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Category
-                Text("分类", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        TodoItem.CATEGORY_TASK to "任务",
-                        TodoItem.CATEGORY_REMINDER to "提醒",
-                        TodoItem.CATEGORY_GOAL to "目标"
-                    ).forEach { (cat, label) ->
-                        val isSelected = category == cat
-                        val chipColor = CategoryColors[cat] ?: MaterialTheme.colorScheme.primary
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) chipColor.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { category = cat }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
 
                 // Progress (for goals)
                 if (category == TodoItem.CATEGORY_GOAL) {
@@ -801,104 +679,6 @@ private fun EditTodoDialog(
                         steps = 99
                     )
                 }
-
-                // Due date & reminder
-                Text("截止日期 & 提醒", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { showDatePicker = true }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = if (dueDate != null) {
-                                Instant.ofEpochMilli(dueDate!!).atZone(ZoneId.systemDefault())
-                                    .toLocalDate().format(DateTimeFormatter.ofPattern("M月d日"))
-                            } else "选择日期",
-                            fontSize = 12.sp,
-                            color = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { showTimePicker = true }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = if (reminderTime != null) {
-                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
-                                    .toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
-                            } else "选择时间",
-                            fontSize = 12.sp,
-                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (dueDate != null || reminderTime != null) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ErrorColor.copy(alpha = 0.1f))
-                                .clickable {
-                                    dueDate = null
-                                    reminderTime = null
-                                }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
-                        ) {
-                            Text("清除", fontSize = 12.sp, color = ErrorColor)
-                        }
-                    }
-                }
-
-                // Recurring
-                Text("重复", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        TodoItem.RECURRING_NONE to "不重复",
-                        TodoItem.RECURRING_DAILY to "每天",
-                        TodoItem.RECURRING_WEEKLY to "每周",
-                        TodoItem.RECURRING_MONTHLY to "每月",
-                        TodoItem.RECURRING_YEARLY to "每年"
-                    ).forEach { (type, label) ->
-                        val isSelected = recurringType == type
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { recurringType = type }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Tags
-                OutlinedTextField(
-                    value = tagsInput,
-                    onValueChange = { tagsInput = it },
-                    label = { Text("标签（用逗号分隔）") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 // Subtasks section
                 if (todo.parentId == null) {
@@ -1215,244 +995,29 @@ private fun AddTodoDialog(
     var tagsInput by remember { mutableStateOf("") }
     var recurringType by remember { mutableStateOf(TodoItem.RECURRING_NONE) }
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis()
-    )
-    val timePickerState = rememberTimePickerState(
-        initialHour = 9,
-        initialMinute = 0,
-        is24Hour = true
-    )
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { dateMillis ->
-                        val date = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-                        val time = reminderTime?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
-                        } ?: LocalTime.of(9, 0)
-                        dueDate = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        reminderTime = date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    }
-                    showDatePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("选择提醒时间") },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val date = dueDate?.let {
-                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                    } ?: LocalDate.now()
-                    reminderTime = date.atTime(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    showTimePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-            }
-        )
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("新建待办") },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("标题") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("描述（可选）") },
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Priority
-                Text("优先级", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
-                        val isSelected = priority == level
-                        val chipColor = when (level) {
-                            1 -> WarningColor
-                            2 -> ErrorColor
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) chipColor.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { priority = level }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Category
-                Text("分类", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        TodoItem.CATEGORY_TASK to "任务",
-                        TodoItem.CATEGORY_REMINDER to "提醒",
-                        TodoItem.CATEGORY_GOAL to "目标"
-                    ).forEach { (cat, label) ->
-                        val isSelected = category == cat
-                        val chipColor = CategoryColors[cat] ?: MaterialTheme.colorScheme.primary
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) chipColor.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { category = cat }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) chipColor else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Due date & reminder
-                Text("截止日期 & 提醒", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { showDatePicker = true }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = if (dueDate != null) {
-                                Instant.ofEpochMilli(dueDate!!).atZone(ZoneId.systemDefault())
-                                    .toLocalDate().format(DateTimeFormatter.ofPattern("M月d日"))
-                            } else "选择日期",
-                            fontSize = 12.sp,
-                            color = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { showTimePicker = true }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = if (reminderTime != null) {
-                                Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault())
-                                    .toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
-                            } else "选择时间",
-                            fontSize = 12.sp,
-                            color = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (dueDate != null || reminderTime != null) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ErrorColor.copy(alpha = 0.1f))
-                                .clickable {
-                                    dueDate = null
-                                    reminderTime = null
-                                }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
-                        ) {
-                            Text("清除", fontSize = 12.sp, color = ErrorColor)
-                        }
-                    }
-                }
-
-                // Recurring
-                Text("重复", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        TodoItem.RECURRING_NONE to "不重复",
-                        TodoItem.RECURRING_DAILY to "每天",
-                        TodoItem.RECURRING_WEEKLY to "每周",
-                        TodoItem.RECURRING_MONTHLY to "每月",
-                        TodoItem.RECURRING_YEARLY to "每年"
-                    ).forEach { (type, label) ->
-                        val isSelected = recurringType == type
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                                .clickable { recurringType = type }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Tags
-                OutlinedTextField(
-                    value = tagsInput,
-                    onValueChange = { tagsInput = it },
-                    label = { Text("标签（用逗号分隔）") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            TodoFormContent(
+                title = title,
+                onTitleChange = { title = it },
+                description = description,
+                onDescriptionChange = { description = it },
+                priority = priority,
+                onPriorityChange = { priority = it },
+                category = category,
+                onCategoryChange = { category = it },
+                dueDate = dueDate,
+                onDueDateChange = { dueDate = it },
+                reminderTime = reminderTime,
+                onReminderTimeChange = { reminderTime = it },
+                recurringType = recurringType,
+                onRecurringTypeChange = { recurringType = it },
+                tags = tagsInput,
+                onTagsChange = { tagsInput = it }
+            )
         },
         confirmButton = {
             TextButton(
