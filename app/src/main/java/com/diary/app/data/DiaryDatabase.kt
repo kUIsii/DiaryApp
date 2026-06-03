@@ -139,7 +139,6 @@ abstract class DiaryDatabase : RoomDatabase() {
                         createdAt INTEGER NOT NULL DEFAULT 0
                     )
                 """)
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_countdown_items_targetDate ON countdown_items (targetDate)")
             }
         }
 
@@ -151,6 +150,12 @@ abstract class DiaryDatabase : RoomDatabase() {
                     "diary_database"
                 ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .fallbackToDestructiveMigrationOnDowngrade()
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (_: Exception) {}
+                    }
+                })
                 .build()
                 INSTANCE = instance
                 instance
