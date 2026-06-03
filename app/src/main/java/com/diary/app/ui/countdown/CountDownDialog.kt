@@ -30,7 +30,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,7 +66,7 @@ fun CountDownDialog(
 ) {
     var title by remember { mutableStateOf(editingItem?.title ?: "") }
     var targetDateMillis by remember {
-        mutableLongStateOf(
+        mutableStateOf(
             editingItem?.targetDate ?: System.currentTimeMillis()
         )
     }
