@@ -282,6 +282,30 @@ interface DiaryDao {
 
     @Query("SELECT * FROM trash_entries WHERE id = :id")
     suspend fun getTrashEntryById(id: Long): TrashEntry?
+
+    // CountDown queries
+    @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC")
+    fun getAllCountDownItems(): Flow<List<CountDownItem>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCountDownItem(item: CountDownItem): Long
+
+    @Update
+    suspend fun updateCountDownItem(item: CountDownItem)
+
+    @Query("DELETE FROM countdown_items WHERE id = :id")
+    suspend fun deleteCountDownItem(id: Long)
+
+    @Query("SELECT * FROM countdown_items WHERE id = :id")
+    suspend fun getCountDownItemById(id: Long): CountDownItem?
+
+    // Widget queries for CountDown
+    @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC LIMIT :limit")
+    suspend fun getTopCountDownItems(limit: Int = 10): List<CountDownItem>
+
+    // One-shot query for widget
+    @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC")
+    suspend fun getAllCountDownItemsOnce(): List<CountDownItem>
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

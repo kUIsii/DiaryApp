@@ -1,0 +1,9 @@
+{
+  "name": "qwen-vision-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "openai": "^4.0.0"
+  }
+}

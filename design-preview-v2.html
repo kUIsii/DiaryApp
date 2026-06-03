@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaryApp 设计预览 V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito Sans', sans-serif;
+            min-height: 100vh;
+            position: relative;
+            /* 浅蓝白背景 */
+            background: #F5F8FB;
+        }
+
+        /* 清晰的网格纸背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(180, 210, 230, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(180, 210, 230, 0.4) 1px, transparent 1px);
+            background-size: 16px 16px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 页面标题 - 左对齐 */
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1E3A5F;
+            margin-bottom: 4px;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: #7A8FA6;
+            margin-bottom: 20px;
+        }
+
+        /* 用户信息卡片 - 浅蓝色渐变 */
+        .user-card {
+            background: linear-gradient(135deg, #B8D4E8 0%, #A8C8DC 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #1E3A5F;
+            font-weight: 700;
+            border: 3px solid rgba(255,255,255,0.8);
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1E3A5F;
+            margin-bottom: 6px;
+        }
+
+        .user-id {
+            font-size: 11px;
+            color: #5A7A96;
+            background: rgba(255,255,255,0.5);
+            padding: 3px 8px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .edit-btn {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            background: white;
+            color: #1E3A5F;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* 卡片通用样式 - 虚线边框 */
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1.5px dashed #C8D8E8;
+        }
+
+        /* 设置项 */
+        .setting-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed #E8F0F6;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .icon-pink { background: #FFE4EC; }
+        .icon-green { background: #E8F5E9; }
+        .icon-yellow { background: #FFF9E6; }
+        .icon-blue { background: #E3F2FD; }
+        .icon-orange { background: #FFF3E0; }
+        .icon-purple { background: #F3E5F5; }
+
+        .setting-content {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1E3A5F;
+        }
+
+        .setting-value {
+            font-size: 13px;
+            color: #7A8FA6;
+        }
+
+        .setting-arrow {
+            color: #B8C8D8;
+            margin-left: 8px;
+            font-size: 18px;
+        }
+
+        /* 开关 - 更柔和 */
+        .toggle {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: #D8E4EE;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle.active {
+            background: #5A9AC8;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        /* 退出按钮 - 红色边框 */
+        .btn-logout {
+            background: #FFF0F0;
+            color: #D32F2F;
+            border: 1.5px solid #FFCDD2;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-top: 1px solid #E8F0F6;
+            padding: 8px 0;
+            padding-bottom: env(safe-area-inset-bottom);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            color: #7A8FA6;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #1E3A5F;
+        }
+
+        .nav-item .icon {
+            font-size: 22px;
+            margin-bottom: 2px;
+        }
+
+        .nav-add {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #5A9AC8 0%, #4A8AB8 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 26px;
+            box-shadow: 0 4px 12px rgba(90, 154, 200, 0.3);
+            margin-top: -12px;
+        }
+
+        /* 页边距 */
+        .scroll-container {
+            padding-bottom: 90px;
+        }
+
+        /* 网格线装饰（可选） */
+        .grid-decoration {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 120px;
+            height: 100%;
+            background-image:
+                linear-gradient(90deg, rgba(180, 210, 230, 0.3) 1px, transparent 1px);
+            background-size: 16px 16px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-decoration"></div>
+    <div class="container scroll-container">
+        <!-- 页面标题 -->
+        <div class="page-title">空间贴纸墙</div>
+        <div class="page-subtitle">查看空间动态，看见彼此的小进展</div>
+
+        <!-- 用户卡片 -->
+        <div class="user-card">
+            <div class="user-avatar">陪</div>
+            <div class="user-info">
+                <div class="user-name">等你下班的雨伞</div>
+                <div class="user-id">ID WY-1FB54BWXZTA8 🔗</div>
+            </div>
+            <button class="edit-btn">编辑</button>
+        </div>
+
+        <!-- 设置卡片 -->
+        <div class="card">
+            <div class="setting-item">
+                <div class="setting-icon icon-blue">📋</div>
+                <div class="setting-content">
+                    <div class="setting-label">待办设置</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 外观分组 -->
+        <div class="card" style="padding-top: 8px;">
+            <div style="font-size: 13px; font-weight: 600; color: #5A9AC8; margin-bottom: 8px; padding-left: 4px;">外观</div>
+            <div class="setting-item">
+                <div class="setting-icon icon-pink">🎨</div>
+                <div class="setting-content">
+                    <div class="setting-label">主题设置</div>
+                </div>
+                <div class="toggle active"></div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon icon-green">🌙</div>
+                <div class="setting-content">
+                    <div class="setting-label">深色模式</div>
+                </div>
+                <div class="setting-value">浅色模式</div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon icon-purple">🌐</div>
+                <div class="setting-content">
+                    <div class="setting-label">语言</div>
+                </div>
+                <div class="setting-value">简体中文</div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 其他分组 -->
+        <div class="card" style="padding-top: 8px;">
+            <div style="font-size: 13px; font-weight: 600; color: #5A9AC8; margin-bottom: 8px; padding-left: 4px;">其他</div>
+            <div class="setting-item">
+                <div class="setting-icon icon-orange">📝</div>
+                <div class="setting-content">
+                    <div class="setting-label">更新日志</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon icon-blue">💬</div>
+                <div class="setting-content">
+                    <div class="setting-label">联系开发者</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon icon-yellow">ℹ️</div>
+                <div class="setting-content">
+                    <div class="setting-label">关于陪你办</div>
+                </div>
+                <div class="setting-value">v1.8.0</div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 退出按钮 -->
+        <button class="btn-logout">退出登录</button>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-items">
+            <div class="nav-item">
+                <span class="icon">📋</span>
+                <span>待办</span>
+            </div>
+            <div class="nav-item">
+                <span class="icon">📄</span>
+                <span>备忘</span>
+            </div>
+            <div class="nav-add">+</div>
+            <div class="nav-item active">
+                <span class="icon">🏠</span>
+                <span>空间</span>
+            </div>
+            <div class="nav-item">
+                <span class="icon">😊</span>
+                <span>我的</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

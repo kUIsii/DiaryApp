@@ -356,4 +356,33 @@
     <string name="widget_empty">暂无待办事项</string>
     <string name="widget_add">添加待办</string>
     <string name="widget_pending_count">%d 项待完成</string>
+
+    <!-- CountDown -->
+    <string name="countdown_title">倒数日</string>
+    <string name="countdown_empty_title">暂无倒数日</string>
+    <string name="countdown_empty_subtitle">添加你的第一个倒数日</string>
+    <string name="countdown_add">添加倒数日</string>
+    <string name="countdown_days_format">%d 天</string>
+    <string name="countdown_days_ago_format">已过 %d 天</string>
+    <string name="countdown_today">今天</string>
+    <string name="countdown_event_name">事件名称</string>
+    <string name="countdown_target_date">目标日期</string>
+    <string name="countdown_type">类型</string>
+    <string name="countdown_type_countdown">倒数 (距今还有)</string>
+    <string name="countdown_type_countup">正数 (已经过去)</string>
+    <string name="countdown_repeat_yearly">每年重复</string>
+    <string name="countdown_select_color">选择颜色</string>
+    <string name="countdown_confirm">确定</string>
+    <string name="countdown_cancel">取消</string>
+    <string name="countdown_delete">删除</string>
+    <string name="countdown_delete_confirm">确认删除</string>
+    <string name="countdown_delete_message">确定要删除这个倒数日吗？</string>
+    <string name="countdown_pin">置顶</string>
+    <string name="countdown_unpin">取消置顶</string>
+    <string name="countdown_edit">编辑</string>
+    <string name="countdown_widget_description">在桌面上显示倒数日</string>
+    <string name="countdown_widget_title">倒数日</string>
+    <string name="countdown_widget_empty">暂无倒数日</string>
+    <string name="countdown_widget_count">%d 个事件</string>
+    <string name="functions_menu">功能</string>
 </resources>

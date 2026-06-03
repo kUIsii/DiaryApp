@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaryApp 设计预览</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Nunito Sans', sans-serif;
+            background: #F0F9FF;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 网格纸背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(8, 145, 178, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(8, 145, 178, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-family: 'Nunito Sans', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #164E63;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #E0F2FE;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #0891B2;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #E0F2FE;
+        }
+
+        .card-dashed {
+            border: 1px dashed #0891B2;
+            border-style: dashed;
+        }
+
+        /* 用户信息卡片 */
+        .user-card {
+            background: linear-gradient(135deg, #0891B2, #22D3EE);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .user-card .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+            border: 2px solid white;
+        }
+
+        .user-card .name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .user-card .id {
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .edit-btn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: white;
+            color: #0891B2;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* 分组标题 */
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0891B2;
+            margin-bottom: 12px;
+            margin-top: 8px;
+        }
+
+        /* 设置项 */
+        .setting-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #F0F9FF;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .setting-icon.blue { background: #E0F2FE; }
+        .setting-icon.green { background: #DCFCE7; }
+        .setting-icon.yellow { background: #FEF9C3; }
+
+        .setting-content {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #164E63;
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: #64748B;
+            margin-top: 2px;
+        }
+
+        .setting-value {
+            font-size: 14px;
+            color: #64748B;
+        }
+
+        .setting-arrow {
+            color: #CBD5E1;
+            margin-left: 8px;
+        }
+
+        /* 开关 */
+        .toggle {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: #E0F2FE;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle.active {
+            background: #0891B2;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        /* 时间选择器 */
+        .time-picker {
+            background: #FEF9C3;
+            color: #854D0E;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 按钮 */
+        .btn-primary {
+            background: #0891B2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #0891B2;
+            border: 1px solid #0891B2;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-danger {
+            background: #FEE2E2;
+            color: #DC2626;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* 标签 */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid #E0F2FE;
+            background: white;
+            color: #164E63;
+            cursor: pointer;
+        }
+
+        .tag.active {
+            background: #0891B2;
+            color: white;
+            border-color: #0891B2;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-top: 1px solid #E0F2FE;
+            padding: 8px 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            color: #64748B;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #0891B2;
+        }
+
+        .nav-item .icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .nav-add {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0891B2, #22D3EE);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+        }
+
+        /* 卡片变体 */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #164E63;
+        }
+
+        .card-link {
+            font-size: 13px;
+            color: #0891B2;
+            text-decoration: none;
+        }
+
+        /* 活动项 */
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px dashed #E0F2FE;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #E0F2FE;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 16px;
+            color: #0891B2;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            color: #164E63;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #64748B;
+            margin-top: 4px;
+        }
+
+        .activity-badge {
+            background: #E0F2FE;
+            color: #0891B2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* 页头间距 */
+        .page-title {
+            font-family: 'Nunito Sans', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #164E63;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: #64748B;
+            margin-bottom: 20px;
+        }
+
+        /* 滚动容器 */
+        .scroll-container {
+            padding-bottom: 80px;
+        }
+
+        /* 颜色标注 */
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .color-label {
+            font-size: 11px;
+            color: #64748B;
+            text-align: center;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container scroll-container">
+        <!-- 页面标题 -->
+        <div class="page-title">空间贴纸墙</div>
+        <div class="page-subtitle">查看空间动态，看见彼此的小进展</div>
+
+        <!-- 用户卡片 -->
+        <div class="user-card" style="position: relative;">
+            <div class="avatar">陪</div>
+            <div class="name">等你下班的雨伞</div>
+            <div class="id">ID WY-1FB54BWXZTA8 🔗</div>
+            <button class="edit-btn">编辑</button>
+        </div>
+
+        <!-- 设置卡片 -->
+        <div class="card">
+            <div class="setting-item">
+                <div class="setting-icon blue">📋</div>
+                <div class="setting-content">
+                    <div class="setting-label">待办设置</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 外观分组 -->
+        <div class="section-title">外观</div>
+        <div class="card">
+            <div class="setting-item">
+                <div class="setting-icon blue">🎨</div>
+                <div class="setting-content">
+                    <div class="setting-label">主题设置</div>
+                </div>
+                <div class="toggle active"></div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon yellow">🌙</div>
+                <div class="setting-content">
+                    <div class="setting-label">深色模式</div>
+                </div>
+                <div class="setting-value">浅色模式</div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon green">🌐</div>
+                <div class="setting-content">
+                    <div class="setting-label">语言</div>
+                </div>
+                <div class="setting-value">简体中文</div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 其他分组 -->
+        <div class="section-title">其他</div>
+        <div class="card">
+            <div class="setting-item">
+                <div class="setting-icon blue">📝</div>
+                <div class="setting-content">
+                    <div class="setting-label">更新日志</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon blue">💬</div>
+                <div class="setting-content">
+                    <div class="setting-label">联系开发者</div>
+                </div>
+                <span class="setting-arrow">›</span>
+            </div>
+            <div class="setting-item">
+                <div class="setting-icon yellow">ℹ️</div>
+                <div class="setting-content">
+                    <div class="setting-label">关于陪你办</div>
+                </div>
+                <div class="setting-value">v1.8.0</div>
+                <span class="setting-arrow">›</span>
+            </div>
+        </div>
+
+        <!-- 退出按钮 -->
+        <button class="btn-danger">退出登录</button>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-items">
+            <div class="nav-item">
+                <span class="icon">📋</span>
+                <span>待办</span>
+            </div>
+            <div class="nav-item">
+                <span class="icon">📄</span>
+                <span>备忘</span>
+            </div>
+            <div class="nav-add">+</div>
+            <div class="nav-item active">
+                <span class="icon">🏠</span>
+                <span>空间</span>
+            </div>
+            <div class="nav-item">
+                <span class="icon">😊</span>
+                <span>我的</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

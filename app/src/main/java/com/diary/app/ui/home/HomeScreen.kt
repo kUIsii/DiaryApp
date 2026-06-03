@@ -30,8 +30,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,6 +56,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.FunctionMenu
+import com.diary.app.ui.components.FunctionMenuItem
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -71,6 +75,7 @@ fun HomeScreen(
     onNavigateToReview: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
+    onNavigateToCountDown: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -84,6 +89,7 @@ fun HomeScreen(
     val tagsMap by viewModel.tagsMap.collectAsState()
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
+    var showFunctionMenu by remember { mutableStateOf(false) }
 
     // Multi-select state
     var multiSelectMode by remember { mutableStateOf(false) }
@@ -97,6 +103,20 @@ fun HomeScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Function menu overlay
+            FunctionMenu(
+                expanded = showFunctionMenu,
+                onDismiss = { showFunctionMenu = false },
+                items = listOf(
+                    FunctionMenuItem(
+                        id = "countdown",
+                        title = "倒数日",
+                        icon = Icons.Default.Timer,
+                        onClick = onNavigateToCountDown
+                    )
+                )
+            )
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -105,19 +125,41 @@ fun HomeScreen(
             ) {
                 // Page header
                 item {
-                    Column {
-                        Text(
-                            text = "首页",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "共 ${entryDates.size} 天有记录",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "首页",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "共 ${entryDates.size} 天有记录",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Function menu button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .clickable { showFunctionMenu = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Apps,
+                                contentDescription = "功能",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }

@@ -92,6 +92,25 @@
             android:name=".widget.TodoWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
+
+        <!-- CountDown Widget -->
+        <receiver
+            android:name=".widget.CountDownWidgetProvider"
+            android:label="倒数日"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.diary.app.widget.ACTION_COUNTDOWN_REFRESH" />
+                <action android:name="com.diary.app.widget.ACTION_COUNTDOWN_OPEN_APP" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_countdown_info" />
+        </receiver>
+        <service
+            android:name=".widget.CountDownWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 
 </manifest>

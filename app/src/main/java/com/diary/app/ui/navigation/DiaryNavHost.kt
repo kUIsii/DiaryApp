@@ -63,6 +63,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diary.app.ui.backup.BackupScreen
+import com.diary.app.ui.countdown.CountDownScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -104,6 +105,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Backup : Screen("backup", "备份", Icons.Default.Home)
     object Favorites : Screen("favorites", "收藏夹", Icons.Default.Home)
     object Trash : Screen("trash", "回收站", Icons.Default.Home)
+    object CountDown : Screen("countdown", "倒数日", Icons.Default.Home)
 }
 
 // endregion
@@ -180,7 +182,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
                     onNavigateToReview = { navController.navigate(Screen.Review.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
-                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) }
+                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
+                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -238,6 +241,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 TrashScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.CountDown.route) {
+                CountDownScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
