@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -23,7 +24,7 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries WHERE id = :id")
     suspend fun getEntryById(id: Long): DiaryEntry?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertEntry(entry: DiaryEntry): Long
 
     @Update
@@ -34,6 +35,13 @@ interface DiaryDao {
 
     @Query("DELETE FROM diary_entries WHERE id = :id")
     suspend fun deleteEntryById(id: Long)
+
+    @Transaction
+    suspend fun deleteEntryWithTags(entry: DiaryEntry) {
+        deleteTagsForDiary(entry.id)
+        deleteImagesForEntry(entry.id)
+        deleteEntry(entry)
+    }
 
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
@@ -57,7 +65,7 @@ interface DiaryDao {
     @Query("SELECT * FROM tags ORDER BY isPreset DESC, name ASC")
     fun getAllTags(): Flow<List<Tag>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTag(tag: Tag): Long
 
     @Delete
@@ -150,7 +158,7 @@ interface DiaryDao {
     @Query("SELECT * FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL ORDER BY priority DESC, dueDate ASC")
     fun getUpcomingTodos(): Flow<List<TodoItem>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTodo(todo: TodoItem): Long
 
     @Update
@@ -287,7 +295,7 @@ interface DiaryDao {
     @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC")
     fun getAllCountDownItems(): Flow<List<CountDownItem>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCountDownItem(item: CountDownItem): Long
 
     @Update

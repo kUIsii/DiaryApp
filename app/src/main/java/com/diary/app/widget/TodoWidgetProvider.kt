@@ -35,31 +35,48 @@ class TodoWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        val pendingResult = goAsync()
         super.onReceive(context, intent)
 
         when (intent.action) {
             ACTION_TOGGLE_TODO -> {
                 val todoId = intent.getLongExtra(EXTRA_TODO_ID, -1)
                 if (todoId != -1L) {
-                    toggleTodo(context, todoId)
+                    scope.launch {
+                        try {
+                            toggleTodo(context, todoId)
+                        } finally {
+                            pendingResult.finish()
+                        }
+                    }
+                } else {
+                    pendingResult.finish()
                 }
             }
             ACTION_ADD_TODO -> {
-                // Open app to add todo
                 val launchIntent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("navigate_to", "todo")
                     putExtra("action", "add")
                 }
                 context.startActivity(launchIntent)
+                pendingResult.finish()
             }
             ACTION_REFRESH -> {
-                // Refresh all widgets
                 val appWidgetManager = AppWidgetManager.getInstance(context)
                 val componentName = ComponentName(context, TodoWidgetProvider::class.java)
                 val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-                onUpdate(context, appWidgetManager, appWidgetIds)
+                scope.launch {
+                    try {
+                        for (appWidgetId in appWidgetIds) {
+                            updateAppWidget(context, appWidgetManager, appWidgetId)
+                        }
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
+            else -> pendingResult.finish()
         }
     }
 
@@ -68,6 +85,8 @@ class TodoWidgetProvider : AppWidgetProvider() {
         const val ACTION_ADD_TODO = "com.diary.app.widget.ACTION_ADD_TODO"
         const val ACTION_REFRESH = "com.diary.app.widget.ACTION_REFRESH"
         const val EXTRA_TODO_ID = "todo_id"
+
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -118,7 +137,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.btn_add, addPendingIntent)
 
             // Update pending count
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             scope.launch {
                 try {
                     val db = DiaryDatabase.getDatabase(context)
@@ -136,23 +154,20 @@ class TodoWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun toggleTodo(context: Context, todoId: Long) {
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            scope.launch {
-                try {
-                    val db = DiaryDatabase.getDatabase(context)
-                    val todo = db.diaryDao().getTodoById(todoId) ?: return@launch
-                    val nowCompleted = !todo.isCompleted
-                    db.diaryDao().toggleTodo(
-                        id = todoId,
-                        completed = nowCompleted,
-                        completedAt = if (nowCompleted) System.currentTimeMillis() else null
-                    )
-                    // Refresh widgets
-                    updateAllWidgets(context)
-                } catch (e: Exception) {
-                    // Ignore
-                }
+        private suspend fun toggleTodo(context: Context, todoId: Long) {
+            try {
+                val db = DiaryDatabase.getDatabase(context)
+                val todo = db.diaryDao().getTodoById(todoId) ?: return
+                val nowCompleted = !todo.isCompleted
+                db.diaryDao().toggleTodo(
+                    id = todoId,
+                    completed = nowCompleted,
+                    completedAt = if (nowCompleted) System.currentTimeMillis() else null
+                )
+                // Refresh widgets
+                updateAllWidgets(context)
+            } catch (e: Exception) {
+                // Ignore
             }
         }
     }

@@ -187,7 +187,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
             updatedAt = currentEntry.updatedAt
         )
         dao.insertTrashEntry(trashEntry)
-        dao.deleteEntry(currentEntry)
+        dao.deleteEntryWithTags(currentEntry)
     }
 
     suspend fun exportToMarkdown(context: Context): String? {

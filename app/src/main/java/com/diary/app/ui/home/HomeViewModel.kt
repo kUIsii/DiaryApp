@@ -335,7 +335,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 updatedAt = fullEntry.updatedAt
             )
             dao.insertTrashEntry(trashEntry)
-            dao.deleteEntry(fullEntry)
+            dao.deleteEntryWithTags(fullEntry)
         }
     }
 
@@ -358,7 +358,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     updatedAt = entry.updatedAt
                 )
                 dao.insertTrashEntry(trashEntry)
-                dao.deleteEntry(entry)
+                dao.deleteEntryWithTags(entry)
             }
         }
     }

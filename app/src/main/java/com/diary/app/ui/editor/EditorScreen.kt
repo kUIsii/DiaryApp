@@ -181,6 +181,7 @@ fun EditorScreen(
     val allTags by viewModel.allTags.collectAsState()
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
     val currentEntry by viewModel.currentEntry.collectAsState()
+    val recentLocations by viewModel.recentLocations.collectAsState()
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -1015,7 +1016,8 @@ fun EditorScreen(
                                     selectedLocation = name
                                     locationLat = lat
                                     locationLng = lng
-                                }
+                                },
+                                recentLocations = recentLocations
                             )
                         }
                     }
@@ -1038,9 +1040,7 @@ fun EditorScreen(
                         settings.allowContentAccess = true
                         @Suppress("DEPRECATION")
                         settings.allowFileAccessFromFileURLs = true
-                        @Suppress("DEPRECATION")
-                        settings.allowUniversalAccessFromFileURLs = true
-                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                         setBackgroundColor(0)
                         addJavascriptInterface(jsBridge, "DiaryBridge")
                         loadUrl("file:///android_asset/editor.html")

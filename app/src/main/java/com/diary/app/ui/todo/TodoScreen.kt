@@ -97,7 +97,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val CategoryColors = mapOf(
+internal val CategoryColors = mapOf(
     TodoItem.CATEGORY_TASK to PrimaryBlue,
     TodoItem.CATEGORY_REMINDER to WarningColor,
     TodoItem.CATEGORY_GOAL to SuccessColor

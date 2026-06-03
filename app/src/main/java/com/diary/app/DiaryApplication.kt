@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.diary.app.data.DiaryDatabase
+import com.diary.app.di.AppContainer
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ui.theme.ThemeMode
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class DiaryApplication : Application() {
     val database by lazy { DiaryDatabase.getDatabase(this) }
+    val container by lazy { AppContainer(this) }
 
     private val _themeMode = MutableStateFlow(ThemeMode.PURE_LIGHT)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()

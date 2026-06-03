@@ -272,9 +272,7 @@ fun DiaryDetailScreen(
                                     settings.allowContentAccess = true
                                     @Suppress("DEPRECATION")
                                     settings.allowFileAccessFromFileURLs = true
-                                    @Suppress("DEPRECATION")
-                                    settings.allowUniversalAccessFromFileURLs = true
-                                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                                     settings.setSupportZoom(true)
                                     settings.builtInZoomControls = true
                                     settings.displayZoomControls = false

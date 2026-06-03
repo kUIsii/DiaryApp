@@ -59,10 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.diary.app.DiaryApplication
 import com.diary.app.data.RecentLocation
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -72,25 +69,16 @@ fun LocationSelector(
     latitude: Double?,
     longitude: Double?,
     onLocationSelected: (String?, Double?, Double?) -> Unit,
+    recentLocations: List<RecentLocation> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
-    val dao = app.database.diaryDao()
     var isGettingLocation by remember { mutableStateOf(false) }
     var manualInput by remember { mutableStateOf("") }
     var showManualInput by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var showMapPicker by remember { mutableStateOf(false) }
-    var recentLocations by remember { mutableStateOf<List<RecentLocation>>(emptyList()) }
-
-    // Load recent locations
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            recentLocations = dao.getRecentLocations()
-        }
-    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -328,9 +316,8 @@ fun LocationSelector(
                                         webViewClient = WebViewClient()
                                         settings.javaScriptEnabled = true
                                         settings.domStorageEnabled = true
-                                        settings.domStorageEnabled = true
                                         settings.allowContentAccess = true
-                                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                                         addJavascriptInterface(object {
                                             @JavascriptInterface
                                             fun onLocationPicked(lat: Double, lng: Double, name: String) {

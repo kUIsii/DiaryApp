@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryTag
+import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedTagIds = _selectedTagIds.asStateFlow()
+
+    private val _recentLocations = MutableStateFlow<List<RecentLocation>>(emptyList())
+    val recentLocations = _recentLocations.asStateFlow()
 
     // Auto-save and word count state
     private val _autoSaveVisible = MutableStateFlow(false)
@@ -193,6 +197,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
+            _recentLocations.value = dao.getRecentLocations()
+
             val appPrefs = application.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
             if (!appPrefs.getBoolean("has_seeded_presets", false)) {
                 val presets = listOf(

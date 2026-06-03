@@ -33,6 +33,7 @@ class CountDownWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        val pendingResult = goAsync()
         super.onReceive(context, intent)
 
         when (intent.action) {
@@ -40,7 +41,15 @@ class CountDownWidgetProvider : AppWidgetProvider() {
                 val appWidgetManager = AppWidgetManager.getInstance(context)
                 val componentName = ComponentName(context, CountDownWidgetProvider::class.java)
                 val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-                onUpdate(context, appWidgetManager, appWidgetIds)
+                scope.launch {
+                    try {
+                        for (appWidgetId in appWidgetIds) {
+                            updateAppWidget(context, appWidgetManager, appWidgetId)
+                        }
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
             ACTION_OPEN_APP -> {
                 val launchIntent = Intent(context, MainActivity::class.java).apply {
@@ -48,13 +57,17 @@ class CountDownWidgetProvider : AppWidgetProvider() {
                     putExtra("navigate_to", "countdown")
                 }
                 context.startActivity(launchIntent)
+                pendingResult.finish()
             }
+            else -> pendingResult.finish()
         }
     }
 
     companion object {
         const val ACTION_REFRESH = "com.diary.app.widget.ACTION_COUNTDOWN_REFRESH"
         const val ACTION_OPEN_APP = "com.diary.app.widget.ACTION_COUNTDOWN_OPEN_APP"
+
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -93,7 +106,6 @@ class CountDownWidgetProvider : AppWidgetProvider() {
             views.setPendingIntentTemplate(R.id.lv_countdown, openAppPendingIntent)
 
             // Update count
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             scope.launch {
                 try {
                     val db = DiaryDatabase.getDatabase(context)
