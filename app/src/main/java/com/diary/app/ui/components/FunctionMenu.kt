@@ -48,6 +48,7 @@ fun FunctionMenu(
     modifier: Modifier = Modifier
 ) {
     if (expanded) {
+        // Full screen overlay with background click to dismiss
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -56,8 +57,10 @@ fun FunctionMenu(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = onDismiss
-                )
+                ),
+            contentAlignment = Alignment.TopEnd
         ) {
+            // Menu content - positioned at top right
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn(animationSpec = tween(150)) +
@@ -70,9 +73,7 @@ fun FunctionMenu(
                             animationSpec = tween(100),
                             targetOffsetY = { -it / 4 }
                         ),
-                modifier = modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp, top = 60.dp)
+                modifier = modifier.padding(end = 16.dp, top = 60.dp)
             ) {
                 Column(
                     modifier = Modifier
