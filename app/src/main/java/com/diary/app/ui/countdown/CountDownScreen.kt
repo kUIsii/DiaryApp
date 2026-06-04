@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -113,66 +114,75 @@ fun CountDownScreen(
     }
 
     GradientBackground {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("倒数日") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.showAddDialog() }) {
-                        Icon(Icons.Default.Add, contentDescription = "添加")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                )
-            )
-
-            if (items.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Add,
-                    title = "暂无倒数日",
-                    subtitle = "点击右上角按钮添加你的第一个倒数日"
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item { Spacer(modifier = Modifier.height(4.dp)) }
-
-                    itemsIndexed(
-                        items = items,
-                        key = { _, item -> item.id }
-                    ) { index, item ->
-                        val enterDelay = (index * 60).coerceAtMost(400)
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
-                        ) {
-                            CountDownItemCard(
-                                item = item,
-                                daysRemaining = viewModel.getDaysRemaining(item),
-                                onClick = { viewModel.showEditDialog(item) },
-                                onPin = { viewModel.togglePin(item) },
-                                onDelete = {
-                                    itemToDelete = item
-                                    showDeleteDialog = true
-                                }
-                            )
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("倒数日") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                         }
-                    }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.showAddDialog() }) {
+                            Icon(Icons.Default.Add, contentDescription = "添加")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                    )
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                if (items.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Default.Add,
+                        title = "暂无倒数日",
+                        subtitle = "点击右上角按钮添加你的第一个倒数日"
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item { Spacer(modifier = Modifier.height(4.dp)) }
 
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                        itemsIndexed(
+                            items = items,
+                            key = { _, item -> item.id }
+                        ) { index, item ->
+                            val enterDelay = (index * 60).coerceAtMost(400)
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
+                                        slideInVertically(
+                                            animationSpec = tween(300, delayMillis = enterDelay),
+                                            initialOffsetY = { it / 5 }
+                                        )
+                            ) {
+                                CountDownItemCard(
+                                    item = item,
+                                    daysRemaining = viewModel.getDaysRemaining(item),
+                                    onClick = { viewModel.showEditDialog(item) },
+                                    onPin = { viewModel.togglePin(item) },
+                                    onDelete = {
+                                        itemToDelete = item
+                                        showDeleteDialog = true
+                                    }
+                                )
+                            }
+                        }
+
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                    }
                 }
             }
         }
