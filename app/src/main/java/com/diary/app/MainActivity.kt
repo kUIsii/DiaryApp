@@ -53,6 +53,7 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.lock.PinEntryScreen
 import com.diary.app.ui.navigation.DiaryNavHost
 import com.diary.app.ui.theme.DiaryAppTheme
+import com.diary.app.ui.theme.isDarkStatic
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
@@ -119,7 +120,7 @@ class MainActivity : FragmentActivity() {
                                 )
 
                                 // Version info at the bottom
-                                val versionColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                val versionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
@@ -166,7 +167,7 @@ class MainActivity : FragmentActivity() {
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     // Breathing lock icon
-                                    val biometricTextColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White else Color(0xFF1A1A1A)
+                                    val biometricTextColor = if (themeMode.isDarkStatic()) Color.White else Color(0xFF1A1A1A)
                                     Icon(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = null,
@@ -245,7 +246,7 @@ class MainActivity : FragmentActivity() {
 
                                 // Switch to PIN button (only if PIN is also enabled)
                                 if (pinLockEnabled) {
-                                    val switchPinColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                    val switchPinColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                     Text(
                                         text = "使用PIN码",
                                         fontSize = 13.sp,
@@ -258,7 +259,7 @@ class MainActivity : FragmentActivity() {
                                 }
 
                                 // Version info at the bottom
-                                val biometricVersionColor = if (themeMode == com.diary.app.ui.theme.ThemeMode.PURE_DARK) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                val biometricVersionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,

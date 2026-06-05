@@ -68,7 +68,59 @@ private val PureDarkColorScheme = darkColorScheme(
     onSurfaceVariant = DarkTextSecondary,
 )
 
+// ---- Moss Green Light mode color scheme ----
+
+private val MossGreenLightColorScheme = lightColorScheme(
+    primary = MossGreenLightAccentStart,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF6B8E5E),
+    onPrimaryContainer = Color.White,
+    secondary = MossGreenLightAccentEnd,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = MossGreenLightBackgroundStart,
+    onBackground = MossGreenLightTextPrimary,
+    surface = MossGreenLightSurface,
+    onSurface = MossGreenLightTextPrimary,
+    surfaceVariant = MossGreenLightCardBackground,
+    onSurfaceVariant = MossGreenLightTextSecondary,
+)
+
+// ---- Moss Green Dark mode color scheme ----
+
+private val MossGreenDarkColorScheme = darkColorScheme(
+    primary = MossGreenDarkAccentStart,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF5A8E4E),
+    onPrimaryContainer = Color.White,
+    secondary = MossGreenDarkAccentEnd,
+    onSecondary = Color.White,
+    error = ErrorColor,
+    background = MossGreenDarkBackgroundStart,
+    onBackground = MossGreenDarkTextPrimary,
+    surface = MossGreenDarkSurface,
+    onSurface = MossGreenDarkTextPrimary,
+    surfaceVariant = MossGreenDarkCardBackground,
+    onSurfaceVariant = MossGreenDarkTextSecondary,
+)
+
 // ---- Extended color presets per theme variant ----
+
+private val MossGreenLightExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = MossGreenLightAccentStart,
+    gradientEnd = MossGreenLightAccentEnd
+)
+
+private val MossGreenDarkExtendedColors = ExtendedColors(
+    success = SuccessColor,
+    warning = WarningColor,
+    info = InfoColor,
+    gradientStart = MossGreenDarkAccentStart,
+    gradientEnd = MossGreenDarkAccentEnd
+)
 
 private val PureLightExtendedColors = ExtendedColors(
     success = SuccessColor,
@@ -95,11 +147,15 @@ fun DiaryAppTheme(
     val colorScheme = when (themeMode) {
         ThemeMode.PURE_LIGHT -> PureLightColorScheme
         ThemeMode.PURE_DARK -> PureDarkColorScheme
+        ThemeMode.MOSS_GREEN_LIGHT -> MossGreenLightColorScheme
+        ThemeMode.MOSS_GREEN_DARK -> MossGreenDarkColorScheme
     }
 
     val extendedColors = when (themeMode) {
         ThemeMode.PURE_LIGHT -> PureLightExtendedColors
         ThemeMode.PURE_DARK -> PureDarkExtendedColors
+        ThemeMode.MOSS_GREEN_LIGHT -> MossGreenLightExtendedColors
+        ThemeMode.MOSS_GREEN_DARK -> MossGreenDarkExtendedColors
     }
 
     val view = LocalView.current

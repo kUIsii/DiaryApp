@@ -13,6 +13,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.diary.app.ui.theme.MossGreenDarkCardBackground
+import com.diary.app.ui.theme.MossGreenDarkCardBorder
+import com.diary.app.ui.theme.MossGreenLightCardBackground
+import com.diary.app.ui.theme.MossGreenLightCardBorder
 import com.diary.app.ui.theme.PureDarkCardBackground
 import com.diary.app.ui.theme.PureDarkCardBorder
 import com.diary.app.ui.theme.PureLightCardBackground
@@ -36,6 +40,8 @@ fun GlassCard(
     val (backgroundColor, borderColor) = when (mode) {
         ThemeMode.PURE_LIGHT -> PureLightCardBackground to PureLightCardBorder
         ThemeMode.PURE_DARK -> PureDarkCardBackground to PureDarkCardBorder
+        ThemeMode.MOSS_GREEN_LIGHT -> MossGreenLightCardBackground to MossGreenLightCardBorder
+        ThemeMode.MOSS_GREEN_DARK -> MossGreenDarkCardBackground to MossGreenDarkCardBorder
     }
 
     // Dark mode: 1.5dp border for more visibility; light mode: 1dp

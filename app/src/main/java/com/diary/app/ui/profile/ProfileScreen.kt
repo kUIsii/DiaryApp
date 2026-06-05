@@ -112,6 +112,7 @@ import com.diary.app.ui.components.SettingDivider
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ThemeMode
+import com.diary.app.ui.theme.isDarkStatic
 import com.diary.app.data.BackupManager
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
@@ -888,17 +889,49 @@ private fun ThemeCardSelector(
     textTertiary: Color,
     onSelectMode: (ThemeMode) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ThemeMode.entries.forEach { mode ->
-            ThemeCard(
-                mode = mode, isSelected = currentMode == mode,
-                textColor = textColor, textSecondary = textSecondary,
-                onClick = { onSelectMode(mode) },
-                modifier = Modifier.weight(1f)
+    val blueModes = listOf(ThemeMode.PURE_LIGHT, ThemeMode.PURE_DARK)
+    val greenModes = listOf(ThemeMode.MOSS_GREEN_LIGHT, ThemeMode.MOSS_GREEN_DARK)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Blue scheme row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "蓝色",
+                fontSize = 11.sp,
+                color = textTertiary,
+                modifier = Modifier.align(Alignment.CenterVertically).width(32.dp)
             )
+            blueModes.forEach { mode ->
+                ThemeCard(
+                    mode = mode, isSelected = currentMode == mode,
+                    textColor = textColor, textSecondary = textSecondary,
+                    onClick = { onSelectMode(mode) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        // Green scheme row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "苔绿",
+                fontSize = 11.sp,
+                color = textTertiary,
+                modifier = Modifier.align(Alignment.CenterVertically).width(32.dp)
+            )
+            greenModes.forEach { mode ->
+                ThemeCard(
+                    mode = mode, isSelected = currentMode == mode,
+                    textColor = textColor, textSecondary = textSecondary,
+                    onClick = { onSelectMode(mode) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -915,10 +948,22 @@ private fun ThemeCard(
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "cardScale"
     )
-    val borderColor by animateColorAsState(targetValue = if (isSelected) DarkAccentStart else Color.Transparent, animationSpec = tween(300), label = "borderColor")
-    val glowAlpha by animateFloatAsState(targetValue = if (isSelected) 0.25f else 0f, animationSpec = tween(400), label = "glowAlpha")
-    val icon = when (mode) { ThemeMode.PURE_LIGHT -> Icons.Default.LightMode; ThemeMode.PURE_DARK -> Icons.Default.DarkMode }
-    val (previewStart, previewEnd) = when (mode) { ThemeMode.PURE_LIGHT -> Color(0xFFF8FBFF) to Color(0xFF4A90D9); ThemeMode.PURE_DARK -> Color(0xFF0A1520) to Color(0xFF70B8D8) }
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) DarkAccentStart else Color.Transparent,
+        animationSpec = tween(300), label = "borderColor"
+    )
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 0.25f else 0f,
+        animationSpec = tween(400), label = "glowAlpha"
+    )
+    val icon = if (mode.isDarkStatic()) Icons.Default.DarkMode else Icons.Default.LightMode
+    val (previewStart, previewEnd) = when (mode.category) {
+        "blue" -> if (mode.isDarkStatic()) Color(0xFF0A1520) to Color(0xFF70B8D8)
+                 else Color(0xFFF8FBFF) to Color(0xFF4A90D9)
+        "green" -> if (mode.isDarkStatic()) Color(0xFF161A14) to Color(0xFF8BC07A)
+                  else Color(0xFFF6F7F4) to Color(0xFF7BA06E)
+        else -> Color(0xFFF8FBFF) to Color(0xFF4A90D9)
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -927,14 +972,14 @@ private fun ThemeCard(
             .drawBehind {
                 if (glowAlpha > 0f) {
                     drawRect(brush = Brush.radialGradient(
-                        colors = listOf(DarkAccentStart.copy(alpha = glowAlpha), Color.Transparent),
+                        colors = listOf(previewEnd.copy(alpha = glowAlpha), Color.Transparent),
                         center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
                         radius = size.width * 0.8f
                     ), size = size)
                 }
             }
             .clip(RoundedCornerShape(16.dp))
-            .border(width = if (isSelected) 2.dp else 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
+            .border(width = if (isSelected) 2.dp else 1.dp, color = if (isSelected) previewEnd else borderColor, shape = RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
             .padding(vertical = 10.dp, horizontal = 4.dp)
@@ -947,10 +992,10 @@ private fun ThemeCard(
             }
             Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Brush.linearGradient(listOf(previewStart, previewEnd))))
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Icon(icon, contentDescription = mode.label, tint = if (isSelected) DarkAccentStart else textSecondary.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(mode.label, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+        Spacer(modifier = Modifier.height(6.dp))
+        Icon(icon, contentDescription = mode.label, tint = if (isSelected) previewEnd else textSecondary.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(mode.label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = if (isSelected) textColor else textSecondary, textAlign = TextAlign.Center, maxLines = 1)
     }
 }

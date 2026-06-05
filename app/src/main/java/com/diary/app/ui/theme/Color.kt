@@ -58,6 +58,42 @@ val ErrorColor = Color(0xFFE07070)            // soft coral-red
 val InfoColor = Color(0xFF7BA7E0)             // muted sky blue
 
 // ============================================================
+//  Moss Green Theme — Light mode
+//  Warm paper-white with soft sage green undertones
+// ============================================================
+
+val MossGreenLightBackgroundStart = Color(0xFFF6F7F4)   // Warm paper
+val MossGreenLightBackgroundMid = Color(0xFFEFF2EB)     // Soft sage mist
+val MossGreenLightBackgroundEnd = Color(0xFFF6F7F4)     // Warm paper
+val MossGreenLightSurface = Color(0xE6FCFDFB)           // rgba(252,253,251,0.9)
+val MossGreenLightSurfaceBorder = Color(0xBFF0F4ED)     // rgba(240,244,237,0.75)
+val MossGreenLightTextPrimary = Color(0xFF2E3328)       // Deep forest
+val MossGreenLightTextSecondary = Color(0xFF6B7560)     // Muted sage
+val MossGreenLightTextTertiary = Color(0xFFA0AA95)      // Soft moss
+val MossGreenLightAccentStart = Color(0xFF7BA06E)       // Sage green
+val MossGreenLightAccentEnd = Color(0xFFA8C898)         // Light sage
+val MossGreenLightCardBackground = Color(0xCCFCFDFB)    // rgba(252,253,251,0.8)
+val MossGreenLightCardBorder = Color(0xBFE0E8D8)        // rgba(224,232,216,0.75)
+
+// ============================================================
+//  Moss Green Theme — Dark mode
+//  Deep forest night with muted green warmth
+// ============================================================
+
+val MossGreenDarkBackgroundStart = Color(0xFF161A14)    // Deep forest
+val MossGreenDarkBackgroundMid = Color(0xFF1C211A)      // Dark moss
+val MossGreenDarkBackgroundEnd = Color(0xFF161A14)      // Deep forest
+val MossGreenDarkSurface = Color(0x18FFFFFF)            // rgba(255,255,255,0.09)
+val MossGreenDarkSurfaceBorder = Color(0x1DFFFFFF)      // rgba(255,255,255,0.11)
+val MossGreenDarkTextPrimary = Color(0xF0D8E4D0)        // Pale sage
+val MossGreenDarkTextSecondary = Color(0x998A9A80)      // Muted green-gray
+val MossGreenDarkTextTertiary = Color(0x665A6A50)       // Deep muted
+val MossGreenDarkAccentStart = Color(0xFF8BC07A)        // Fresh sage
+val MossGreenDarkAccentEnd = Color(0xFFA8D498)          // Soft green
+val MossGreenDarkCardBackground = Color(0x14FFFFFF)     // rgba(255,255,255,0.08)
+val MossGreenDarkCardBorder = Color(0x1DFFFFFF)         // rgba(255,255,255,0.11)
+
+// ============================================================
 //  Mood colors — Nuanced, desaturated gradient pairs
 //  6 levels: 1=depressed ... 6=excited
 // ============================================================

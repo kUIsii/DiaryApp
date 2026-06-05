@@ -33,6 +33,8 @@ object ThemePreferences {
             oldName == null -> ThemeMode.PURE_LIGHT
             oldName == "PURE_LIGHT" -> ThemeMode.PURE_LIGHT
             oldName == "PURE_DARK" -> ThemeMode.PURE_DARK
+            oldName == "MOSS_GREEN_LIGHT" -> ThemeMode.MOSS_GREEN_LIGHT
+            oldName == "MOSS_GREEN_DARK" -> ThemeMode.MOSS_GREEN_DARK
             // SYSTEM/GRADIENT/WARM_ROSE/OCEAN_BLUE -> default to PURE_LIGHT
             else -> ThemeMode.PURE_LIGHT
         }
