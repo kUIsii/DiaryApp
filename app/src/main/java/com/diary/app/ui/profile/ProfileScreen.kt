@@ -123,18 +123,45 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 
-// Section icon colors derived from theme
+// Section icon colors — 5 distinct colors per theme
 @Composable
 private fun sectionIconBg(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
     val s = MaterialTheme.colorScheme.secondary
-    return when (index) { 0 -> p.copy(alpha = 0.12f); 1 -> s.copy(alpha = 0.12f); 2 -> p.copy(alpha = 0.10f); 3 -> s.copy(alpha = 0.10f); 4 -> p.copy(alpha = 0.10f); else -> p.copy(alpha = 0.10f) }
+    val t = MaterialTheme.colorScheme.tertiary
+    return when (index) {
+        0 -> p.copy(alpha = 0.12f)
+        1 -> p.copy(alpha = 0.08f)
+        2 -> s.copy(alpha = 0.13f)
+        3 -> t.copy(alpha = 0.12f)
+        4 -> p.copy(alpha = 0.10f)
+        else -> p.copy(alpha = 0.10f)
+    }
 }
 @Composable
 private fun sectionIconTint(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
     val s = MaterialTheme.colorScheme.secondary
-    return when (index) { 0 -> p; 1 -> s; 2 -> p.copy(alpha = 0.8f); 3 -> s.copy(alpha = 0.8f); 4 -> p.copy(alpha = 0.7f); else -> p }
+    val t = MaterialTheme.colorScheme.tertiary
+    val gray = MaterialTheme.colorScheme.onSurfaceVariant
+    return when (index) {
+        0 -> p
+        1 -> Color(
+            (p.red * 0.6f + gray.red * 0.4f),
+            (p.green * 0.6f + gray.green * 0.4f),
+            (p.blue * 0.6f + gray.blue * 0.4f),
+            1f
+        )
+        2 -> s
+        3 -> t
+        4 -> Color(
+            (p.red * 0.4f + s.red * 0.6f),
+            (p.green * 0.4f + s.green * 0.6f),
+            (p.blue * 0.4f + s.blue * 0.6f),
+            1f
+        )
+        else -> p
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

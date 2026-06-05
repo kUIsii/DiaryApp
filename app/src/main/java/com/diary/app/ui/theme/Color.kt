@@ -20,17 +20,21 @@ val FogBlueLightAccent2 = Color(0xFFB5926B)
 val FogBlueLightCardBg = Color(0xFFFFFFFF)
 val FogBlueLightCardBorder = Color(0x1E8296B4)
 
+// Tertiary accent
+val FogBlueLightAccent3 = Color(0xFF9B8EBA)
+
 // Dark mode
-val FogBlueDarkBg1 = Color(0xFF151820)
-val FogBlueDarkBg2 = Color(0xFF1A1E28)
-val FogBlueDarkBg3 = Color(0xFF1F2430)
-val FogBlueDarkSurface = Color(0xFF22283A)
+val FogBlueDarkBg1 = Color(0xFF0B0D12)
+val FogBlueDarkBg2 = Color(0xFF0E1018)
+val FogBlueDarkBg3 = Color(0xFF11131C)
+val FogBlueDarkSurface = Color(0xFF161822)
 val FogBlueDarkTextPrimary = Color(0xFFD8E0F0)
 val FogBlueDarkTextSecondary = Color(0xFF8898B0)
 val FogBlueDarkTextTertiary = Color(0xFF586880)
 val FogBlueDarkAccent = Color(0xFF88B0D4)
 val FogBlueDarkAccent2 = Color(0xFFD4A878)
-val FogBlueDarkCardBg = Color(0xFF22283A)
+val FogBlueDarkAccent3 = Color(0xFFA89AC8)
+val FogBlueDarkCardBg = Color(0xFF181A26)
 val FogBlueDarkCardBorder = Color(0x1D8296B4)
 
 // ============================================================
@@ -51,17 +55,21 @@ val MossGreenLightAccent2 = Color(0xFFC4A06B)
 val MossGreenLightCardBg = Color(0xFFFCFDFB)
 val MossGreenLightCardBorder = Color(0x1E647A5A)
 
+// Tertiary accent
+val MossGreenLightAccent3 = Color(0xFFA088B0)
+
 // Dark mode
-val MossGreenDarkBg1 = Color(0xFF161A14)
-val MossGreenDarkBg2 = Color(0xFF1C211A)
-val MossGreenDarkBg3 = Color(0xFF222920)
-val MossGreenDarkSurface = Color(0xFF242B22)
+val MossGreenDarkBg1 = Color(0xFF0B0D0A)
+val MossGreenDarkBg2 = Color(0xFF0E110D)
+val MossGreenDarkBg3 = Color(0xFF111410)
+val MossGreenDarkSurface = Color(0xFF161A14)
 val MossGreenDarkTextPrimary = Color(0xFFD8E4D0)
 val MossGreenDarkTextSecondary = Color(0xFF8A9A80)
 val MossGreenDarkTextTertiary = Color(0xFF5A6A50)
 val MossGreenDarkAccent = Color(0xFF8BC07A)
 val MossGreenDarkAccent2 = Color(0xFFD4B078)
-val MossGreenDarkCardBg = Color(0xFF242B22)
+val MossGreenDarkAccent3 = Color(0xFFB098C4)
+val MossGreenDarkCardBg = Color(0xFF181C16)
 val MossGreenDarkCardBorder = Color(0x14A0B890)
 
 // ============================================================
