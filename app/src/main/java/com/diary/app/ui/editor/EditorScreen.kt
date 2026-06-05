@@ -671,7 +671,7 @@ fun EditorScreen(
                                     Text(
                                         text = timeAgo,
                                         fontSize = 11.sp,
-                                        color = textSecondary.copy(alpha = 0.5f)
+                                        color = textSecondary.copy(alpha = 0.6f)
                                     )
                                 }
                                 IconButton(
@@ -685,7 +685,7 @@ fun EditorScreen(
                                     Icon(
                                         Icons.Default.Close,
                                         contentDescription = "删除",
-                                        tint = textSecondary.copy(alpha = 0.5f),
+                                        tint = textSecondary.copy(alpha = 0.6f),
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }

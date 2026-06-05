@@ -405,7 +405,7 @@ private fun DetailHeader(
                     Text(
                         text = "·",
                         fontSize = 12.sp,
-                        color = textSecondary.copy(alpha = 0.4f)
+                        color = textSecondary.copy(alpha = 0.55f)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                 }
@@ -491,13 +491,13 @@ private fun DetailTimestamps(
             Text(
                 text = "创建于 $createdText",
                 fontSize = 11.sp,
-                color = textSecondary.copy(alpha = 0.4f)
+                color = textSecondary.copy(alpha = 0.55f)
             )
             if (readingTimeMinutes > 0) {
                 Text(
                     text = "约${readingTimeMinutes}分钟阅读",
                     fontSize = 11.sp,
-                    color = textSecondary.copy(alpha = 0.3f)
+                    color = textSecondary.copy(alpha = 0.5f)
                 )
             }
         }
@@ -506,7 +506,7 @@ private fun DetailTimestamps(
             Text(
                 text = "修改于 $updatedText",
                 fontSize = 11.sp,
-                color = textSecondary.copy(alpha = 0.4f)
+                color = textSecondary.copy(alpha = 0.55f)
             )
         }
     }

@@ -268,7 +268,7 @@ fun ProfileScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
     val accentColor = MaterialTheme.colorScheme.primary
 
     if (showUpdateDialog) {
