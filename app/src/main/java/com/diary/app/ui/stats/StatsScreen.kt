@@ -168,14 +168,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_total_diaries),
                                 value = state.totalEntries,
                                 icon = Icons.Default.Edit,
-                                gradientColors = listOf(Color(0xFFB3D4FC), Color(0xFF81B4F8)),
+                                gradientColors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = stringResource(R.string.stat_streak),
                                 value = state.currentStreak,
                                 icon = Icons.Default.LocalFireDepartment,
-                                gradientColors = listOf(Color(0xFFFFCCBC), Color(0xFFFFAB91)),
+                                gradientColors = listOf(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), MaterialTheme.colorScheme.secondary.copy(alpha = 0.30f)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -187,14 +187,14 @@ fun StatsScreen(
                                 label = stringResource(R.string.stat_this_month),
                                 value = state.thisMonthEntries,
                                 icon = Icons.Default.CalendarMonth,
-                                gradientColors = listOf(Color(0xFFC8E6C9), Color(0xFFA5D6A7)),
+                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
                                 modifier = Modifier.weight(1f)
                             )
                             OverviewCard(
                                 label = "总字数",
                                 value = state.wordStats?.totalWords ?: 0,
                                 icon = Icons.Default.TextSnippet,
-                                gradientColors = listOf(Color(0xFFE1BEE7), Color(0xFFCE93D8)),
+                                gradientColors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -355,7 +355,7 @@ private fun OverviewCard(
     gradientColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
-    val contentColor = Color(0xFF37474F)
+    val contentColor = MaterialTheme.colorScheme.onSurface
 
     Box(
         modifier = modifier

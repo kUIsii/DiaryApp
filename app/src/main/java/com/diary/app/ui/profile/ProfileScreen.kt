@@ -873,7 +873,7 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text(stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = textColor, letterSpacing = 1.sp)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, color = textColor, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         Text(stringResource(R.string.app_subtitle), fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
     }
@@ -889,114 +889,129 @@ private fun ThemeCardSelector(
     textTertiary: Color,
     onSelectMode: (ThemeMode) -> Unit
 ) {
-    val blueModes = listOf(ThemeMode.PURE_LIGHT, ThemeMode.PURE_DARK)
-    val greenModes = listOf(ThemeMode.MOSS_GREEN_LIGHT, ThemeMode.MOSS_GREEN_DARK)
+    val isCurrentGreen = currentMode.category == "green"
+    val isDark = currentMode.isDarkStatic()
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Blue scheme row
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("配色方案", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor)
+        // Two scheme cards: fog blue-gray + moss green
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = "蓝色",
-                fontSize = 11.sp,
-                color = textTertiary,
-                modifier = Modifier.align(Alignment.CenterVertically).width(32.dp)
+            SchemeCard(
+                label = "雾蓝灰",
+                previewStart = Color(0xFFF5F7FA),
+                previewEnd = Color(0xFF6B8DB5),
+                isSelected = !isCurrentGreen,
+                onClick = {
+                    val newMode = if (isDark) ThemeMode.PURE_DARK else ThemeMode.PURE_LIGHT
+                    onSelectMode(newMode)
+                },
+                modifier = Modifier.weight(1f)
             )
-            blueModes.forEach { mode ->
-                ThemeCard(
-                    mode = mode, isSelected = currentMode == mode,
-                    textColor = textColor, textSecondary = textSecondary,
-                    onClick = { onSelectMode(mode) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            SchemeCard(
+                label = "苔藓绿",
+                previewStart = Color(0xFFF6F7F4),
+                previewEnd = Color(0xFF7BA06E),
+                isSelected = isCurrentGreen,
+                onClick = {
+                    val newMode = if (isDark) ThemeMode.MOSS_GREEN_DARK else ThemeMode.MOSS_GREEN_LIGHT
+                    onSelectMode(newMode)
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
-        // Green scheme row
+
+        // Light/Dark toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = "苔绿",
-                fontSize = 11.sp,
-                color = textTertiary,
-                modifier = Modifier.align(Alignment.CenterVertically).width(32.dp)
-            )
-            greenModes.forEach { mode ->
-                ThemeCard(
-                    mode = mode, isSelected = currentMode == mode,
-                    textColor = textColor, textSecondary = textSecondary,
-                    onClick = { onSelectMode(mode) },
-                    modifier = Modifier.weight(1f)
-                )
+            Column {
+                Text("深色模式", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
+                Text(if (isDark) "已开启" else "已关闭", fontSize = 12.sp, color = textTertiary)
             }
+            Switch(
+                checked = isDark,
+                onCheckedChange = { dark ->
+                    val newMode = when {
+                        dark && !isCurrentGreen -> ThemeMode.PURE_DARK
+                        dark && isCurrentGreen -> ThemeMode.MOSS_GREEN_DARK
+                        !dark && !isCurrentGreen -> ThemeMode.PURE_LIGHT
+                        else -> ThemeMode.MOSS_GREEN_LIGHT
+                    }
+                    onSelectMode(newMode)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                )
+            )
         }
     }
 }
 
 @Composable
-private fun ThemeCard(
-    mode: ThemeMode, isSelected: Boolean, textColor: Color, textSecondary: Color,
-    onClick: () -> Unit, modifier: Modifier = Modifier
+private fun SchemeCard(
+    label: String,
+    previewStart: Color,
+    previewEnd: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = when { isPressed -> 0.93f; isSelected -> 1.02f; else -> 1f },
+        targetValue = when { isPressed -> 0.94f; isSelected -> 1.02f; else -> 1f },
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
-        label = "cardScale"
+        label = "schemeScale"
     )
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) DarkAccentStart else Color.Transparent,
-        animationSpec = tween(300), label = "borderColor"
-    )
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 0.25f else 0f,
-        animationSpec = tween(400), label = "glowAlpha"
-    )
-    val icon = if (mode.isDarkStatic()) Icons.Default.DarkMode else Icons.Default.LightMode
-    val (previewStart, previewEnd) = when (mode.category) {
-        "blue" -> if (mode.isDarkStatic()) Color(0xFF0A1520) to Color(0xFF70B8D8)
-                 else Color(0xFFF8FBFF) to Color(0xFF4A90D9)
-        "green" -> if (mode.isDarkStatic()) Color(0xFF161A14) to Color(0xFF8BC07A)
-                  else Color(0xFFF6F7F4) to Color(0xFF7BA06E)
-        else -> Color(0xFFF8FBFF) to Color(0xFF4A90D9)
-    }
+
+    val accentColor = MaterialTheme.colorScheme.primary
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .drawBehind {
-                if (glowAlpha > 0f) {
-                    drawRect(brush = Brush.radialGradient(
-                        colors = listOf(previewEnd.copy(alpha = glowAlpha), Color.Transparent),
-                        center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
-                        radius = size.width * 0.8f
-                    ), size = size)
-                }
-            }
             .clip(RoundedCornerShape(16.dp))
-            .border(width = if (isSelected) 2.dp else 1.dp, color = if (isSelected) previewEnd else borderColor, shape = RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
-            .padding(vertical = 10.dp, horizontal = 4.dp)
+            .padding(vertical = 14.dp, horizontal = 8.dp)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(32.dp)) {
-            if (isSelected) {
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(
-                    Brush.sweepGradient(listOf(previewStart.copy(alpha = 0.4f), previewEnd.copy(alpha = 0.4f), previewStart.copy(alpha = 0.2f), previewStart.copy(alpha = 0.4f)))
-                ))
-            }
-            Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Brush.linearGradient(listOf(previewStart, previewEnd))))
+        // Color preview balls
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(previewStart)
+                    .border(0.5.dp, Color.Black.copy(alpha = 0.08f), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(previewEnd)
+            )
         }
-        Spacer(modifier = Modifier.height(6.dp))
-        Icon(icon, contentDescription = mode.label, tint = if (isSelected) previewEnd else textSecondary.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(mode.label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) textColor else textSecondary, textAlign = TextAlign.Center, maxLines = 1)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

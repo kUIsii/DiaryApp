@@ -104,20 +104,6 @@ fun HomeScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Function menu overlay
-            FunctionMenu(
-                expanded = showFunctionMenu,
-                onDismiss = { showFunctionMenu = false },
-                items = listOf(
-                    FunctionMenuItem(
-                        id = "countdown",
-                        title = "倒数日",
-                        icon = Icons.Default.Timer,
-                        onClick = onNavigateToCountDown
-                    )
-                )
-            )
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -133,8 +119,7 @@ fun HomeScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "首页",
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -233,6 +218,20 @@ fun HomeScreen(
 
             // FAB
             FAB(onClick = { onNavigateToEditor(null) })
+
+            // Function menu overlay (MUST be after LazyColumn for proper z-order)
+            FunctionMenu(
+                expanded = showFunctionMenu,
+                onDismiss = { showFunctionMenu = false },
+                items = listOf(
+                    FunctionMenuItem(
+                        id = "countdown",
+                        title = "倒数日",
+                        icon = Icons.Default.Timer,
+                        onClick = onNavigateToCountDown
+                    )
+                )
+            )
         }
     }
 }

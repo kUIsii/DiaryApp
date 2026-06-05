@@ -344,8 +344,7 @@ private fun DetailHeader(
         // Date - centered
         Text(
             text = dateText,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.headlineSmall,
             color = textColor,
             textAlign = TextAlign.Center
         )

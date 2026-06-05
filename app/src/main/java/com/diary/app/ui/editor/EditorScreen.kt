@@ -796,7 +796,7 @@ fun EditorScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(text = dateTitle, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text(text = dateTitle, style = MaterialTheme.typography.headlineSmall, color = textColor)
                 Text(text = timeText, fontSize = 11.sp, color = textSecondary)
             }
 

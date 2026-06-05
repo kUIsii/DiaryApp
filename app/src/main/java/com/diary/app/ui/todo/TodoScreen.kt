@@ -177,8 +177,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                             Text(
                                 text = stringResource(R.string.todo_title),
                                 color = textPrimary,
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.headlineLarge
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(

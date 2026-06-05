@@ -144,8 +144,7 @@ fun TimelineScreen(
                         Column {
                             Text(
                                 text = "时间线",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(

@@ -112,8 +112,7 @@ fun FavoritesScreen(
                         Column {
                             Text(
                                 text = "收藏夹",
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(4.dp))

@@ -54,7 +54,7 @@ fun GradientBackground(
     content: @Composable () -> Unit
 ) {
     val mode = themeMode()
-    val showGrid = mode.category == "green"
+    val showGrid = true  // dot grid for all themes
 
     val (start, mid, end) = when (mode) {
         ThemeMode.PURE_LIGHT -> Triple(LightBackgroundStart, LightBackgroundMid, LightBackgroundEnd)

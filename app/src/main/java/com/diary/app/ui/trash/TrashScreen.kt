@@ -171,8 +171,7 @@ fun TrashScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "回收站",
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(4.dp))
