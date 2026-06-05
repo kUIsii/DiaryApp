@@ -1,5 +1,10 @@
 package com.diary.app.ui.todo
 
+import androidx.compose.ui.graphics.Color
+import com.diary.app.ui.theme.PrimaryBlue
+import com.diary.app.ui.theme.SuccessColor
+import com.diary.app.ui.theme.WarningColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -40,6 +45,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+internal val CategoryColors = mapOf(
+    TodoItem.CATEGORY_TASK to PrimaryBlue,
+    TodoItem.CATEGORY_REMINDER to WarningColor,
+    TodoItem.CATEGORY_GOAL to SuccessColor
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

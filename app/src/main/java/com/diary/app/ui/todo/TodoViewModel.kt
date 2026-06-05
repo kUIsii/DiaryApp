@@ -244,6 +244,64 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
+    // ── New: Three-in-one methods ──
+
+    fun addHabit(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+            val weekNum = LocalDate.now().get(weekField.weekOfYear())
+            dao.insertTodo(
+                TodoItem(
+                    title = name.trim(),
+                    category = TodoItem.CATEGORY_GOAL,
+                    description = "0,0,0,0,0,0,0",
+                    tags = weekNum.toString(),
+                    recurringType = TodoItem.RECURRING_WEEKLY
+                )
+            )
+            refreshWidget()
+        }
+    }
+
+    fun addMemo(content: String) {
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            dao.insertTodo(TodoItem(title = content.trim()))
+            refreshWidget()
+        }
+    }
+
+    fun addDeadline(content: String, deadlineMillis: Long) {
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            val id = dao.insertTodo(
+                TodoItem(title = content.trim(), dueDate = deadlineMillis)
+            )
+            TodoReminderManager.scheduleReminder(context, id, content.trim(), deadlineMillis)
+            refreshWidget()
+        }
+    }
+
+    fun toggleHabitDay(habit: TodoItem, dayIndex: Int) {
+        viewModelScope.launch {
+            val data = habit.description.split(",").map { it.trim() == "1" }.toMutableList()
+            while (data.size < 7) data.add(false)
+            if (dayIndex in 0..6) {
+                data[dayIndex] = !data[dayIndex]
+            }
+            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+            val weekNum = LocalDate.now().get(weekField.weekOfYear())
+            dao.updateTodo(
+                habit.copy(
+                    description = data.joinToString(",") { if (it) "1" else "0" },
+                    tags = weekNum.toString()
+                )
+            )
+            refreshWidget()
+        }
+    }
+
     // For widget - get top pending todos
     suspend fun getTopTodosForWidget(limit: Int = 10): List<TodoItem> {
         return dao.getTopPendingTodos(limit)
