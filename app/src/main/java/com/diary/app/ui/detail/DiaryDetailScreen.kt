@@ -243,10 +243,8 @@ fun DiaryDetailScreen(
                                             evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
                                             if (currentEntry.content.isNotBlank()) {
                                                 try {
-                                                    // Content was already sanitized in ViewModel
                                                     val safeContent = currentEntry.content
                                                     if (safeContent.length > maxContentSize) {
-                                                        // Content too large - show plain text fallback
                                                         val fallback = currentEntry.plainText.take(5000)
                                                         evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                     } else {
@@ -258,20 +256,40 @@ fun DiaryDetailScreen(
                                                     }
                                                 } catch (e: Exception) {
                                                     e.printStackTrace()
-                                                    // Fallback to plain text
                                                     val fallback = currentEntry.plainText.take(5000)
                                                     evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                 }
                                             }
                                             evaluateJavascript("setFontSize($fontSizePx)", null)
                                         }
+                                        override fun shouldInterceptRequest(
+                                            view: WebView?,
+                                            request: android.webkit.WebResourceRequest?
+                                        ): android.webkit.WebResourceResponse? {
+                                            val reqUrl = request?.url?.toString() ?: return null
+                                            if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                                try {
+                                                    val path = reqUrl.removePrefix("file://")
+                                                    val file = java.io.File(path)
+                                                    if (file.exists() && file.canRead()) {
+                                                        val mime = when {
+                                                            path.endsWith(".mp4") -> "video/mp4"
+                                                            path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                            path.endsWith(".png") -> "image/png"
+                                                            path.endsWith(".webp") -> "image/webp"
+                                                            else -> "image/jpeg"
+                                                        }
+                                                        return android.webkit.WebResourceResponse(mime, null, file.inputStream())
+                                                    }
+                                                } catch (_: Exception) {}
+                                            }
+                                            return null
+                                        }
                                     }
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.allowFileAccess = true
                                     settings.allowContentAccess = true
-                                    @Suppress("DEPRECATION")
-                                    settings.allowFileAccessFromFileURLs = true
                                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                                     settings.setSupportZoom(true)
                                     settings.builtInZoomControls = true

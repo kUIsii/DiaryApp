@@ -287,8 +287,8 @@ fun EditorScreen(
                 val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
                 if (bitmap != null) {
-                    // Scale down if larger than 1200px on longest side
-                    val maxDim = 1200
+                    // Scale down if larger than 800px on longest side
+                    val maxDim = 800
                     val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
                         val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
                         android.graphics.Bitmap.createScaledBitmap(
@@ -304,7 +304,7 @@ fun EditorScreen(
                     val fileName = "img_${System.currentTimeMillis()}.jpg"
                     val outputFile = java.io.File(mediaDir, fileName)
                     java.io.FileOutputStream(outputFile).use { fos ->
-                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, fos)
+                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, fos)
                     }
                     if (scaled !== bitmap) scaled.recycle()
                     bitmap.recycle()
@@ -968,6 +968,7 @@ fun EditorScreen(
             }
 
             // WebView (fills remaining space)
+            val mediaDir = java.io.File(context.filesDir, "diary_media")
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -976,13 +977,36 @@ fun EditorScreen(
                                 super.onPageFinished(view, url)
                                 isWebViewReady = true
                             }
+                            override fun shouldInterceptRequest(
+                                view: WebView?,
+                                request: android.webkit.WebResourceRequest?
+                            ): android.webkit.WebResourceResponse? {
+                                val reqUrl = request?.url?.toString() ?: return null
+                                if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                    try {
+                                        val path = reqUrl.removePrefix("file://")
+                                        val file = java.io.File(path)
+                                        if (file.exists() && file.canRead()) {
+                                            val mime = when {
+                                                path.endsWith(".mp4") -> "video/mp4"
+                                                path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                path.endsWith(".png") -> "image/png"
+                                                path.endsWith(".webp") -> "image/webp"
+                                                else -> "image/jpeg"
+                                            }
+                                            return android.webkit.WebResourceResponse(
+                                                mime, null, file.inputStream()
+                                            )
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                                return null
+                            }
                         }
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
                         settings.allowFileAccess = true
                         settings.allowContentAccess = true
-                        @Suppress("DEPRECATION")
-                        settings.allowFileAccessFromFileURLs = true
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                         setBackgroundColor(0)
                         addJavascriptInterface(jsBridge, "DiaryBridge")
