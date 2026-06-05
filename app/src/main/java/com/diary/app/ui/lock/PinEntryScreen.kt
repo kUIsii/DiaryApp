@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,17 +60,19 @@ fun PinEntryScreen(
     lockoutSeconds: Int = 0
 ) {
     val isDark = themeMode().isDark()
-    // 根据主题模式动态调整颜色
-    val textColor = if (isDark) Color.White else Color(0xFF1A1A1A)
-    val textColorSecondary = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF666666)
-    val iconBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
-    val iconColor = if (isDark) Color.White else Color(0xFF1A1A1A)
-    val dotFilledColor = if (isDark) Color.White else Color(0xFF1A1A1A)
-    val dotEmptyColor = if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
-    val keyBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
-    val keyBgPressedColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f)
-    val keyTextColor = if (isDark) Color.White else Color(0xFF1A1A1A)
-    val hintBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+    val onBg = MaterialTheme.colorScheme.onBackground
+    val onSv = MaterialTheme.colorScheme.onSurfaceVariant
+    // Colors derived from theme
+    val textColor = onBg
+    val textColorSecondary = onSv
+    val iconBgColor = onBg.copy(alpha = 0.08f)
+    val iconColor = onBg
+    val dotFilledColor = onBg
+    val dotEmptyColor = onBg.copy(alpha = 0.2f)
+    val keyBgColor = onBg.copy(alpha = 0.08f)
+    val keyBgPressedColor = onBg.copy(alpha = 0.15f)
+    val keyTextColor = onBg
+    val hintBgColor = onBg.copy(alpha = 0.08f)
 
     var pin by remember { mutableStateOf("") }
     var errorShake by remember { mutableIntStateOf(0) }
@@ -318,10 +321,10 @@ private fun PinKey(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    val isDark = themeMode().isDark()
-    val keyBgColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
-    val keyBgPressedColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f)
-    val keyTextColor = if (isDark) Color.White else Color(0xFF1A1A1A)
+    val onBg = MaterialTheme.colorScheme.onBackground
+    val keyBgColor = onBg.copy(alpha = 0.08f)
+    val keyBgPressedColor = onBg.copy(alpha = 0.15f)
+    val keyTextColor = onBg
 
     val interactionSource = remember { MutableInteractionSource() }
     var pressed by remember { mutableStateOf(false) }

@@ -43,17 +43,17 @@ val Typography = Typography(
         letterSpacing = 0.3.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 27.sp,
+        lineHeight = 28.sp,
         letterSpacing = 0.4.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 22.sp,
+        lineHeight = 23.sp,
         letterSpacing = 0.4.sp
     ),
     labelLarge = TextStyle(

@@ -123,17 +123,19 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 
-// Semantic icon colors per section
-private val AppearanceIconBg = Color(0x1A9C27B0)
-private val AppearanceIconTint = Color(0xFF9C27B0)
-private val DataIconBg = Color(0x1A2196F3)
-private val DataIconTint = Color(0xFF2196F3)
-private val ReminderIconBg = Color(0x1AFF9800)
-private val ReminderIconTint = Color(0xFFFF9800)
-private val PrivacyIconBg = Color(0x1AF44336)
-private val PrivacyIconTint = Color(0xFFF44336)
-private val AboutIconBg = Color(0x1A4CAF50)
-private val AboutIconTint = Color(0xFF4CAF50)
+// Section icon colors derived from theme
+@Composable
+private fun sectionIconBg(index: Int): Color {
+    val p = MaterialTheme.colorScheme.primary
+    val s = MaterialTheme.colorScheme.secondary
+    return when (index) { 0 -> p.copy(alpha = 0.12f); 1 -> s.copy(alpha = 0.12f); 2 -> p.copy(alpha = 0.10f); 3 -> s.copy(alpha = 0.10f); 4 -> p.copy(alpha = 0.10f); else -> p.copy(alpha = 0.10f) }
+}
+@Composable
+private fun sectionIconTint(index: Int): Color {
+    val p = MaterialTheme.colorScheme.primary
+    val s = MaterialTheme.colorScheme.secondary
+    return when (index) { 0 -> p; 1 -> s; 2 -> p.copy(alpha = 0.8f); 3 -> s.copy(alpha = 0.8f); 4 -> p.copy(alpha = 0.7f); else -> p }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -338,8 +340,8 @@ fun ProfileScreen(
                 // Appearance section
                 CollapsibleSection(
                     icon = Icons.Default.Palette,
-                    iconBg = AppearanceIconBg,
-                    iconTint = AppearanceIconTint,
+                    iconBg = sectionIconBg(0),
+                    iconTint = sectionIconTint(0),
                     title = stringResource(R.string.profile_appearance),
                     subtitle = "主题模式和字体大小",
                     isExpanded = expandedSection == "appearance",
@@ -374,8 +376,8 @@ fun ProfileScreen(
                 // Data management section
                 CollapsibleSection(
                     icon = Icons.Default.Backup,
-                    iconBg = DataIconBg,
-                    iconTint = DataIconTint,
+                    iconBg = sectionIconBg(1),
+                    iconTint = sectionIconTint(1),
                     title = stringResource(R.string.profile_data_management),
                     subtitle = "分类管理、备份和回收站",
                     isExpanded = expandedSection == "data",
@@ -386,8 +388,8 @@ fun ProfileScreen(
                 ) {
                     ClickableSettingRow(
                         icon = Icons.Default.Label,
-                        iconBg = DataIconBg,
-                        iconTint = DataIconTint,
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
                         title = stringResource(R.string.profile_tag_management),
                         subtitle = stringResource(R.string.profile_tag_management_desc),
                         textColor = textColor,
@@ -397,8 +399,8 @@ fun ProfileScreen(
                     SettingDivider()
                     ClickableSettingRow(
                         icon = Icons.Default.Favorite,
-                        iconBg = DataIconBg,
-                        iconTint = DataIconTint,
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
                         title = "收藏夹",
                         subtitle = "查看收藏的日记",
                         textColor = textColor,
@@ -408,8 +410,8 @@ fun ProfileScreen(
                     SettingDivider()
                     ClickableSettingRow(
                         icon = Icons.Default.Delete,
-                        iconBg = DataIconBg,
-                        iconTint = DataIconTint,
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
                         title = "回收站",
                         subtitle = "恢复已删除的日记",
                         textColor = textColor,
@@ -419,8 +421,8 @@ fun ProfileScreen(
                     SettingDivider()
                     ClickableSettingRow(
                         icon = Icons.Default.Backup,
-                        iconBg = DataIconBg,
-                        iconTint = DataIconTint,
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
                         title = stringResource(R.string.profile_export_backup),
                         subtitle = if (isExporting) stringResource(R.string.profile_exporting) else stringResource(R.string.profile_export_backup_desc),
                         textColor = textColor,
@@ -442,8 +444,8 @@ fun ProfileScreen(
                     SettingDivider()
                     ClickableSettingRow(
                         icon = Icons.Default.GetApp,
-                        iconBg = DataIconBg,
-                        iconTint = DataIconTint,
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
                         title = stringResource(R.string.profile_import_backup),
                         subtitle = if (isImporting) stringResource(R.string.profile_importing) else stringResource(R.string.profile_import_backup_desc),
                         textColor = textColor,
@@ -459,8 +461,8 @@ fun ProfileScreen(
                 // Reminders section
                 CollapsibleSection(
                     icon = Icons.Default.Notifications,
-                    iconBg = ReminderIconBg,
-                    iconTint = ReminderIconTint,
+                    iconBg = sectionIconBg(2),
+                    iconTint = sectionIconTint(2),
                     title = stringResource(R.string.profile_reminder_settings),
                     subtitle = "每日写作提醒",
                     isExpanded = expandedSection == "reminder",
@@ -471,8 +473,8 @@ fun ProfileScreen(
                 ) {
                     SwitchSettingRow(
                         icon = Icons.Default.Notifications,
-                        iconBg = ReminderIconBg,
-                        iconTint = ReminderIconTint,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
                         title = stringResource(R.string.profile_daily_reminder),
                         subtitle = if (reminderEnabled) stringResource(R.string.profile_reminder_time, reminderHour, reminderMinute) else stringResource(R.string.profile_reminder_off),
                         textColor = textColor,
@@ -495,8 +497,8 @@ fun ProfileScreen(
                 // Privacy & Security section
                 CollapsibleSection(
                     icon = Icons.Default.Security,
-                    iconBg = PrivacyIconBg,
-                    iconTint = PrivacyIconTint,
+                    iconBg = sectionIconBg(3),
+                    iconTint = sectionIconTint(3),
                     title = stringResource(R.string.profile_privacy_security),
                     subtitle = "应用锁和隐私保护",
                     isExpanded = expandedSection == "privacy",
@@ -507,8 +509,8 @@ fun ProfileScreen(
                 ) {
                     SwitchSettingRow(
                         icon = Icons.Default.Lock,
-                        iconBg = PrivacyIconBg,
-                        iconTint = PrivacyIconTint,
+                        iconBg = sectionIconBg(3),
+                        iconTint = sectionIconTint(3),
                         title = stringResource(R.string.profile_app_lock),
                         subtitle = if (canUseBiometric) stringResource(R.string.profile_biometric_desc) else stringResource(R.string.profile_no_biometric),
                         textColor = textColor,
@@ -527,7 +529,7 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            IconCircle(icon = Icons.Default.Lock, bg = PrivacyIconBg, tint = PrivacyIconTint)
+                            IconCircle(icon = Icons.Default.Lock, bg = sectionIconBg(3), tint = sectionIconTint(3))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(stringResource(R.string.profile_pin_lock), fontSize = 15.sp, color = textColor)
@@ -550,8 +552,8 @@ fun ProfileScreen(
                 // About section
                 CollapsibleSection(
                     icon = Icons.Default.Info,
-                    iconBg = AboutIconBg,
-                    iconTint = AboutIconTint,
+                    iconBg = sectionIconBg(4),
+                    iconTint = sectionIconTint(4),
                     title = stringResource(R.string.profile_about),
                     subtitle = "版本信息和更新",
                     isExpanded = expandedSection == "about",
@@ -562,8 +564,8 @@ fun ProfileScreen(
                 ) {
                     ClickableSettingRow(
                         icon = Icons.Default.SystemUpdate,
-                        iconBg = AboutIconBg,
-                        iconTint = AboutIconTint,
+                        iconBg = sectionIconBg(4),
+                        iconTint = sectionIconTint(4),
                         title = stringResource(R.string.profile_check_update),
                         subtitle = if (isChecking) stringResource(R.string.profile_checking) else stringResource(R.string.profile_check_update_desc),
                         textColor = textColor,
@@ -588,8 +590,8 @@ fun ProfileScreen(
                     SettingDivider()
                     ClickableSettingRow(
                         icon = Icons.Default.History,
-                        iconBg = AboutIconBg,
-                        iconTint = AboutIconTint,
+                        iconBg = sectionIconBg(4),
+                        iconTint = sectionIconTint(4),
                         title = stringResource(R.string.profile_changelog),
                         subtitle = stringResource(R.string.profile_changelog_desc),
                         textColor = textColor,
@@ -622,7 +624,7 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.made_with_love), fontSize = 11.sp, color = textTertiary)
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFE91E63), modifier = Modifier.size(12.dp))
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), modifier = Modifier.size(12.dp))
                 Text(stringResource(R.string.made_by), fontSize = 11.sp, color = textTertiary)
             }
 
@@ -854,19 +856,21 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val ringColor1 = MaterialTheme.colorScheme.primary
+        val ringColor2 = MaterialTheme.colorScheme.secondary
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp)) {
             Box(
                 modifier = Modifier
                     .size(108.dp)
                     .graphicsLayer { rotationZ = ringRotation; scaleX = ringPulse; scaleY = ringPulse }
                     .clip(CircleShape)
-                    .background(Brush.sweepGradient(colors = listOf(DarkAccentStart, DarkAccentEnd, DarkAccentStart.copy(alpha = 0.3f), DarkAccentStart)))
+                    .background(Brush.sweepGradient(colors = listOf(ringColor1, ringColor2, ringColor1.copy(alpha = 0.3f), ringColor1)))
             )
             Box(
                 modifier = Modifier
                     .size(98.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(colors = listOf(DarkAccentStart, DarkAccentEnd))),
+                    .background(Brush.linearGradient(colors = listOf(ringColor1, ringColor2))),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Palette, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
@@ -1028,7 +1032,7 @@ private fun FontSizeSliderItem(
 
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconCircle(icon = Icons.Default.FormatSize, bg = AppearanceIconBg, tint = AppearanceIconTint)
+            IconCircle(icon = Icons.Default.FormatSize, bg = sectionIconBg(0), tint = sectionIconTint(0))
             Spacer(modifier = Modifier.width(12.dp))
             Text(stringResource(R.string.profile_font_size), fontSize = 15.sp, color = textColor)
         }
