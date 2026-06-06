@@ -3,24 +3,26 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 书本主体 - 苔藓绿 -->
+    <!-- 简约日记本 - 居中小巧 -->
     <path
         android:fillColor="#7BA06E"
-        android:pathData="M13.5,18 h81 c4.5,0 8,3.6 8,8 v64 c0,4.5 -3.6,8 -8,8 h-81 c-4.5,0 -8,-3.6 -8,-8 V26 c0,-4.5 3.6,-8 8,-8 z" />
-    <!-- 书本内页 - 白色 -->
+        android:pathData="M38,32 h32 c2,0 3.5,1.5 3.5,3.5 v37 c0,2 -1.5,3.5 -3.5,3.5 h-32 c-2,0 -3.5,-1.5 -3.5,-3.5 V35.5 c0,-2 1.5,-3.5 3.5,-3.5 z" />
+    <!-- 内页 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M22.5,27 h63 v54 h-63 z" />
-    <!-- 书脊线 - 苔藓绿 -->
+        android:pathData="M41,36 h26 v30 H41 z" />
+    <!-- 横线 -->
     <path
-        android:strokeColor="#7BA06E"
-        android:strokeWidth="6"
-        android:pathData="M54,18 v72" />
-    <!-- 装饰圆点 - 金色 -->
+        android:fillColor="#D4DDD0"
+        android:pathData="M44,44 h20 v1 H44 z" />
+    <path
+        android:fillColor="#D4DDD0"
+        android:pathData="M44,49 h20 v1 H44 z" />
+    <path
+        android:fillColor="#D4DDD0"
+        android:pathData="M44,54 h14 v1 H44 z" />
+    <!-- 书签 -->
     <path
         android:fillColor="#C4A06B"
-        android:pathData="M36,45 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
-    <path
-        android:fillColor="#C4A06B"
-        android:pathData="M36,63 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
+        android:pathData="M41,32 v8 l3,-2.5 l3,2.5 V32 z" />
 </vector>
