@@ -283,7 +283,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleHabitDay(habit: TodoItem, dayIndex: Int) {
+    fun toggleHabitDay(habit: TodoItem, dayIndex: Int, weekStart: LocalDate? = null) {
         viewModelScope.launch {
             val data = habit.description.split(",").map { it.trim() == "1" }.toMutableList()
             while (data.size < 7) data.add(false)
@@ -291,7 +291,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 data[dayIndex] = !data[dayIndex]
             }
             val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
-            val weekNum = LocalDate.now().get(weekField.weekOfYear())
+            val weekNum = (weekStart ?: LocalDate.now()).get(weekField.weekOfYear())
             dao.updateTodo(
                 habit.copy(
                     description = data.joinToString(",") { if (it) "1" else "0" },

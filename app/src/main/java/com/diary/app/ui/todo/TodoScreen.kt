@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,11 +26,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Repeat
@@ -39,6 +44,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,12 +52,14 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,16 +87,24 @@ import java.util.Locale
 
 private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"), DEADLINE("待办") }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val haptic = rememberHapticFeedback()
     val allTodos by viewModel.allTodos.collectAsState()
-    var currentTab by remember { mutableStateOf(TodoTab.HABIT) }
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
+    var habitWeekOffset by remember { mutableIntStateOf(0) }
 
+    val currentTab = TodoTab.entries[pagerState.currentPage]
     val today = remember { LocalDate.now() }
+    val habitWeekStart = remember(habitWeekOffset, today) {
+        val weekField = WeekFields.of(Locale.getDefault())
+        val base = today.with(weekField.dayOfWeek(), 1)
+        base.plusWeeks(habitWeekOffset.toLong())
+    }
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -235,14 +251,15 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top tabs
+            // Top tabs with border
+            val tabBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                TodoTab.entries.forEach { tab ->
+                TodoTab.entries.forEachIndexed { idx, tab ->
                     val isActive = currentTab == tab
                     val count = when (tab) {
                         TodoTab.HABIT -> habitItems.size
@@ -253,8 +270,12 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
+                            .then(
+                                if (!isActive) Modifier.border(1.dp, tabBorderColor, RoundedCornerShape(12.dp))
+                                else Modifier
+                            )
                             .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
-                            .clickable { currentTab = tab }
+                            .clickable { scope.launch { pagerState.animateScrollToPage(idx) } }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -277,32 +298,40 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             }
 
-            // Content
-            when (currentTab) {
-                TodoTab.HABIT -> HabitTab(
-                    habits = habitItems,
-                    viewModel = viewModel,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onAdd = { showAddDialog = true },
-                    onDeleteRequest = { deletingTodo = it }
-                )
-                TodoTab.MEMO -> MemoTab(
-                    items = memoItems,
-                    viewModel = viewModel,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onAdd = { showAddDialog = true },
-                    onDeleteRequest = { deletingTodo = it }
-                )
-                TodoTab.DEADLINE -> DeadlineTab(
-                    items = deadlineItems,
-                    viewModel = viewModel,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onAdd = { showAddDialog = true },
-                    onDeleteRequest = { deletingTodo = it }
-                )
+            // Swipeable content
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) { page ->
+                when (TodoTab.entries[page]) {
+                    TodoTab.HABIT -> HabitTab(
+                        habits = habitItems,
+                        viewModel = viewModel,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        weekStart = habitWeekStart,
+                        weekOffset = habitWeekOffset,
+                        onWeekOffsetChange = { habitWeekOffset = it },
+                        onAdd = { showAddDialog = true },
+                        onDeleteRequest = { deletingTodo = it }
+                    )
+                    TodoTab.MEMO -> MemoTab(
+                        items = memoItems,
+                        viewModel = viewModel,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        onAdd = { showAddDialog = true },
+                        onDeleteRequest = { deletingTodo = it }
+                    )
+                    TodoTab.DEADLINE -> DeadlineTab(
+                        items = deadlineItems,
+                        viewModel = viewModel,
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        onAdd = { showAddDialog = true },
+                        onDeleteRequest = { deletingTodo = it }
+                    )
+                }
             }
         }
     }
@@ -316,10 +345,14 @@ private fun HabitTab(
     viewModel: TodoViewModel,
     textColor: Color,
     textSecondary: Color,
+    weekStart: LocalDate,
+    weekOffset: Int,
+    onWeekOffsetChange: (Int) -> Unit,
     onAdd: () -> Unit,
     onDeleteRequest: (TodoItem) -> Unit
 ) {
     val today = remember { LocalDate.now() }
+    val isCurrentWeek = weekOffset == 0
 
     if (habits.isEmpty()) {
         EmptyState(
@@ -337,16 +370,45 @@ private fun HabitTab(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
+            // Week navigation
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { onWeekOffsetChange(weekOffset - 1) }) {
+                        Icon(Icons.Default.KeyboardArrowLeft, "上一周", tint = textSecondary)
+                    }
+                    Text(
+                        text = if (isCurrentWeek) "本周" else "${weekStart.monthValue}月${weekStart.dayOfMonth}日 起",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = textSecondary
+                    )
+                    IconButton(
+                        onClick = { if (!isCurrentWeek) onWeekOffsetChange(weekOffset + 1) },
+                        enabled = !isCurrentWeek
+                    ) {
+                        Icon(
+                            Icons.Default.KeyboardArrowRight, "下一周",
+                            tint = if (isCurrentWeek) textSecondary.copy(alpha = 0.3f) else textSecondary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
             items(habits, key = { it.id }) { habit ->
                 HabitCard(
                     habit = habit,
                     today = today,
+                    weekStart = weekStart,
                     textColor = textColor,
                     textSecondary = textSecondary,
                     onToggleDay = { dayIndex ->
-                        viewModel.toggleHabitDay(habit, dayIndex)
+                        viewModel.toggleHabitDay(habit, dayIndex, weekStart)
                     },
                     onLongPress = { onDeleteRequest(habit) }
                 )
@@ -366,6 +428,7 @@ private fun HabitTab(
 private fun HabitCard(
     habit: TodoItem,
     today: LocalDate,
+    weekStart: LocalDate,
     textColor: Color,
     textSecondary: Color,
     onToggleDay: (Int) -> Unit,
@@ -373,13 +436,12 @@ private fun HabitCard(
 ) {
     val weekField = WeekFields.of(Locale.getDefault())
     val currentWeek = today.get(weekField.weekOfYear())
-    val startOfWeek = today.with(weekField.dayOfWeek(), 1)
+    val targetWeek = weekStart.get(weekField.weekOfYear())
 
     val habitData = parseHabitData(habit.description)
     val habitWeek = habit.tags.toIntOrNull() ?: currentWeek
 
-    // If the stored week doesn't match current week, reset
-    val isCurrentWeek = habitWeek == currentWeek
+    val isCurrentWeek = habitWeek == targetWeek
     val weekData = if (isCurrentWeek) habitData else listOf(false, false, false, false, false, false, false)
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
@@ -417,7 +479,7 @@ private fun HabitCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 for (i in 0..6) {
-                    val date = startOfWeek.plusDays(i.toLong())
+                    val date = weekStart.plusDays(i.toLong())
                     val isChecked = weekData.getOrElse(i) { false }
                     val isToday = date == today
                     val isPast = date.isBefore(today) || date == today
