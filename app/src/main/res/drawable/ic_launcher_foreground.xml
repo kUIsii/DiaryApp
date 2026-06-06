@@ -3,41 +3,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 日记本主体 - 柔和的雾蓝灰色 -->
+    <!-- 书本主体 - 苔藓绿 -->
     <path
-        android:fillColor="#8BA5C0"
-        android:pathData="M34,30 h40 c2.2,0 4,1.8 4,4 v44 c0,2.2 -1.8,4 -4,4 H34 c-2.2,0 -4,-1.8 -4,-4 V34 c0,-2.2 1.8,-4 4,-4 z" />
-    <!-- 日记本内页 - 柔和的白色 -->
+        android:fillColor="#7BA06E"
+        android:pathData="M13.5,18 h81 c4.5,0 8,3.6 8,8 v64 c0,4.5 -3.6,8 -8,8 h-81 c-4.5,0 -8,-3.6 -8,-8 V26 c0,-4.5 3.6,-8 8,-8 z" />
+    <!-- 书本内页 - 白色 -->
     <path
-        android:fillColor="#F8F9FC"
-        android:pathData="M38,36 h32 v36 H38 z" />
-    <!-- 内页横线 - 柔和的蓝灰色 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M22.5,27 h63 v54 h-63 z" />
+    <!-- 书脊线 - 苔藓绿 -->
     <path
-        android:fillColor="#B8C8D8"
-        android:pathData="M42,46 h24 v1.5 H42 z" />
-    <path
-        android:fillColor="#B8C8D8"
-        android:pathData="M42,52 h24 v1.5 H42 z" />
-    <path
-        android:fillColor="#B8C8D8"
-        android:pathData="M42,58 h24 v1.5 H42 z" />
-    <path
-        android:fillColor="#B8C8D8"
-        android:pathData="M42,64 h16 v1.5 H42 z" />
-    <!-- 书签 - 柔和的金色 -->
+        android:strokeColor="#7BA06E"
+        android:strokeWidth="6"
+        android:pathData="M54,18 v72" />
+    <!-- 装饰圆点 - 金色 -->
     <path
         android:fillColor="#C4A06B"
-        android:pathData="M42,30 v12 l4,-3 l4,3 V30 z" />
-    <!-- 钢笔 - 柔和的金色，斜放在书本上 -->
+        android:pathData="M36,45 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
     <path
         android:fillColor="#C4A06B"
-        android:pathData="M72,22 l-8,8 l-24,24 l8,8 l24,-24 z" />
-    <!-- 钢笔尖 -->
-    <path
-        android:fillColor="#C4A06B"
-        android:pathData="M72,22 l6,6 l-2,2 l-6,-6 z" />
-    <!-- 钢笔装饰线 -->
-    <path
-        android:fillColor="#B8945A"
-        android:pathData="M62,32 l-2,2" />
+        android:pathData="M36,63 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
 </vector>
