@@ -3,39 +3,41 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 书本轮廓 - 墨色 stroke -->
+    <!-- 日记本主体 - 柔和的雾蓝灰色 -->
     <path
-        android:strokeColor="#2D3748"
-        android:strokeWidth="9"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M27,36 h54 v58.5 h-54 z" />
-    <!-- 书本上的横线 - 墨色 stroke -->
+        android:fillColor="#8BA5C0"
+        android:pathData="M34,30 h40 c2.2,0 4,1.8 4,4 v44 c0,2.2 -1.8,4 -4,4 H34 c-2.2,0 -4,-1.8 -4,-4 V34 c0,-2.2 1.8,-4 4,-4 z" />
+    <!-- 日记本内页 - 柔和的白色 -->
     <path
-        android:strokeColor="#2D3748"
-        android:strokeWidth="9"
-        android:strokeLineCap="round"
-        android:pathData="M40.5,54 h27" />
+        android:fillColor="#F8F9FC"
+        android:pathData="M38,36 h32 v36 H38 z" />
+    <!-- 内页横线 - 柔和的蓝灰色 -->
     <path
-        android:strokeColor="#2D3748"
-        android:strokeWidth="9"
-        android:strokeLineCap="round"
-        android:pathData="M40.5,67.5 h27" />
-    <!-- 金色钢笔线 - 从右上到左下 -->
+        android:fillColor="#B8C8D8"
+        android:pathData="M42,46 h24 v1.5 H42 z" />
     <path
-        android:strokeColor="#B8860B"
-        android:strokeWidth="9"
-        android:strokeLineCap="round"
-        android:pathData="M76.5,13.5 l-36,36" />
-    <!-- 金色钢笔尖 - 填充 -->
+        android:fillColor="#B8C8D8"
+        android:pathData="M42,52 h24 v1.5 H42 z" />
     <path
-        android:fillColor="#B8860B"
-        android:pathData="M76.5,13.5 l9,9 l-27,27 l-9,-9 z" />
-    <!-- 金色握位装饰 -->
+        android:fillColor="#B8C8D8"
+        android:pathData="M42,58 h24 v1.5 H42 z" />
     <path
-        android:strokeColor="#B8860B"
-        android:strokeWidth="9"
-        android:strokeLineCap="round"
-        android:pathData="M40.5,49.5 l-9,9" />
+        android:fillColor="#B8C8D8"
+        android:pathData="M42,64 h16 v1.5 H42 z" />
+    <!-- 书签 - 柔和的金色 -->
+    <path
+        android:fillColor="#C4A06B"
+        android:pathData="M42,30 v12 l4,-3 l4,3 V30 z" />
+    <!-- 钢笔 - 柔和的金色，斜放在书本上 -->
+    <path
+        android:fillColor="#C4A06B"
+        android:pathData="M72,22 l-8,8 l-24,24 l8,8 l24,-24 z" />
+    <!-- 钢笔尖 -->
+    <path
+        android:fillColor="#C4A06B"
+        android:pathData="M72,22 l6,6 l-2,2 l-6,-6 z" />
+    <!-- 钢笔装饰线 -->
+    <path
+        android:fillColor="#B8945A"
+        android:pathData="M62,32 l-2,2" />
 </vector>
