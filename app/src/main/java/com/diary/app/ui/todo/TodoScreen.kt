@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -301,7 +302,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             // Swipeable content
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f)
+                modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds()
             ) { page ->
                 when (TodoTab.entries[page]) {
                     TodoTab.HABIT -> HabitTab(

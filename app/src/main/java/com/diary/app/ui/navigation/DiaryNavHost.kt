@@ -262,25 +262,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 exitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 popExitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeOut(animationSpec = tween(200))
                 }
             ) { backStackEntry ->
@@ -298,25 +298,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 exitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeIn(animationSpec = tween(200))
                 },
                 popExitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
                     ) + fadeOut(animationSpec = tween(200))
                 }
             ) { backStackEntry ->

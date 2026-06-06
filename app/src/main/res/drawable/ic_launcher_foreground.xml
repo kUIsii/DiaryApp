@@ -3,10 +3,28 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 日记本主体 -->
     <path
-        android:fillColor="#A8D8B9"
-        android:pathData="M0,0h108v108H0z" />
+        android:fillColor="#2D3748"
+        android:pathData="M38,28h32c2.2,0 4,1.8 4,4v44c0,2.2 -1.8,4 -4,4H38c-2.2,0 -4,-1.8 -4,-4V32c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 金色书签 -->
+    <path
+        android:fillColor="#B8860B"
+        android:pathData="M42,28v8l4,-4z" />
+    <!-- 内页横线 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M38,28h32c2.2,0 4,1.8 4,4v44c0,2.2 -1.8,4 -4,4H38c-2.2,0 -4,-1.8 -4,-4V32c0,-2.2 1.8,-4 4,-4zM40,36h28v4H40zM40,44h28v2H40zM40,50h20v2H40zM40,58h24v2H40z" />
+        android:pathData="M40,42h28v2H40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,48h28v2H40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,54h28v2H40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,60h28v2H40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,66h20v2H40z" />
 </vector>
