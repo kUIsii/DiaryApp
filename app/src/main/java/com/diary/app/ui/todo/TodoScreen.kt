@@ -638,11 +638,15 @@ private fun HabitSummaryCard(
                     fontWeight = FontWeight.SemiBold,
                     color = textColor
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    HabitMiniStat(label = "日记", value = summary.diaryToday, textSecondary = textSecondary)
-                    HabitMiniStat(label = "一句", value = summary.manualToday, textSecondary = textSecondary)
-                    HabitMiniStat(label = "详细", value = summary.detailToday, textSecondary = textSecondary)
-                }
+                Text(
+                    text = when {
+                        summary.recordedToday == 0 -> "今天还没有打卡"
+                        summary.recordedToday == summary.total -> "今天已经全部完成"
+                        else -> "还差 ${summary.total - summary.recordedToday} 项"
+                    },
+                    fontSize = 11.sp,
+                    color = textSecondary
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -660,26 +664,6 @@ private fun HabitSummaryCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun HabitMiniStat(
-    label: String,
-    value: Int,
-    textSecondary: Color
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = "$label $value",
-            fontSize = 10.sp,
-            color = textSecondary
-        )
     }
 }
 
@@ -706,22 +690,23 @@ private fun HabitCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
-        cornerRadius = 18.dp
+        cornerRadius = 16.dp,
+        innerPadding = 14.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = item.habit.title,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = textColor
                         )
@@ -737,23 +722,23 @@ private fun HabitCard(
                                     color = if (item.todayRecord != null) statusColor.copy(alpha = 0.35f) else Color.Transparent,
                                     shape = RoundedCornerShape(999.dp)
                                 )
-                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
                                 if (item.todayRecord != null) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
                                         tint = statusColor,
-                                        modifier = Modifier.size(11.dp)
+                                        modifier = Modifier.size(10.dp)
                                     )
                                 }
                                 Text(
                                     text = if (item.todayRecord != null) "已打卡" else statusText,
-                                    fontSize = 10.sp,
+                                    fontSize = 9.sp,
                                     fontWeight = if (item.todayRecord != null) FontWeight.SemiBold else FontWeight.Normal,
                                     color = if (item.todayRecord != null) statusColor else textSecondary
                                 )
@@ -762,9 +747,12 @@ private fun HabitCard(
                     }
                 }
 
-                TextButton(onClick = onQuickCheckIn) {
-                    Text(if (item.todayRecord == null) "记录" else "详情")
-                }
+                Text(
+                    text = if (item.streak > 0) "${item.streak} 天" else "未开始",
+                    fontSize = 9.sp,
+                    color = textSecondary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
 
             Row(
@@ -774,18 +762,16 @@ private fun HabitCard(
             ) {
                 Text(
                     text = summaryText,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.8f) else textColor.copy(alpha = 0.88f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = if (item.streak > 0) "${item.streak} 天" else "未开始",
-                    fontSize = 9.sp,
-                    color = textSecondary
-                )
+                Spacer(modifier = Modifier.width(10.dp))
+                TextButton(onClick = onQuickCheckIn) {
+                    Text(if (item.todayRecord == null) "记录" else "详情", fontSize = 11.sp)
+                }
             }
 
             HabitRecentStrip(days = item.recentDays, textSecondary = textSecondary)
@@ -800,7 +786,7 @@ private fun HabitRecentStrip(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         days.forEach { day ->
@@ -810,27 +796,41 @@ private fun HabitRecentStrip(
                 HabitRecord.SOURCE_MANUAL -> MaterialTheme.colorScheme.secondary
                 else -> textSecondary.copy(alpha = 0.36f)
             }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(if (day.isToday) 16.dp else 8.dp)
-                    .clip(RoundedCornerShape(if (day.isToday) 10.dp else 999.dp))
-                    .background(
-                        if (day.record != null) tint.copy(alpha = if (day.isToday) 0.9f else 0.65f)
-                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-                    )
-                    .border(
-                        width = if (day.isToday) 1.dp else 0.dp,
-                        color = if (day.isToday) tint.copy(alpha = 0.35f) else Color.Transparent,
-                        shape = RoundedCornerShape(if (day.isToday) 10.dp else 999.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(if (day.isToday) 12.dp else 10.dp))
+                        .background(
+                            when {
+                                day.record != null -> tint.copy(alpha = if (day.isToday) 0.2f else 0.12f)
+                                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+                            }
+                        )
+                        .border(
+                            width = if (day.isToday) 1.dp else 0.dp,
+                            color = if (day.isToday) tint.copy(alpha = 0.35f) else Color.Transparent,
+                            shape = RoundedCornerShape(if (day.isToday) 12.dp else 10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = day.date.dayOfMonth.toString(),
+                        fontSize = 11.sp,
+                        fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.78f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = if (day.isToday) "今" else "",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (day.record != null) Color.White else textSecondary.copy(alpha = 0.75f)
+                    text = if (day.isToday) "今" else day.date.format(DateTimeFormatter.ofPattern("E")),
+                    fontSize = 8.sp,
+                    color = textSecondary.copy(alpha = 0.6f),
+                    maxLines = 1
                 )
             }
         }
@@ -860,14 +860,15 @@ private fun HabitDetailDialog(
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            cornerRadius = 28.dp
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            cornerRadius = 24.dp,
+            innerPadding = 14.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -877,13 +878,13 @@ private fun HabitDetailDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = habit.title,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "查看这一项过去的打卡情况",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -902,19 +903,19 @@ private fun HabitDetailDialog(
 
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 20.dp,
-                    innerPadding = 14.dp
+                    cornerRadius = 18.dp,
+                    innerPadding = 12.dp
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = selectedDate.format(DateTimeFormatter.ofPattern("M月d日")),
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = selectedRecord?.summary?.takeIf { it.isNotBlank() } ?: "这一天还没有留下内容",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -923,21 +924,23 @@ private fun HabitDetailDialog(
                 TextField(
                     value = quickText,
                     onValueChange = { quickText = it },
-                    minLines = 2,
-                    placeholder = { Text("写一句今天的打卡记录") },
+                    minLines = 1,
+                    maxLines = 3,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    placeholder = { Text("写一句今天的打卡记录", fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(onClick = {
                         if (quickText.isNotBlank()) onQuickRecord(quickText.trim())
-                    }) { Text("保存一句话") }
-                    TextButton(onClick = onOpenMore) { Text("写更多内容") }
+                    }) { Text("保存一句话", fontSize = 12.sp) }
+                    TextButton(onClick = onOpenMore) { Text("写更多内容", fontSize = 12.sp) }
                     if (selectedRecord != null && selectedRecord.source != HabitRecord.SOURCE_DIARY) {
-                        TextButton(onClick = onClear) { Text("清除记录", color = ErrorColor) }
+                        TextButton(onClick = onClear) { Text("清除记录", fontSize = 12.sp, color = ErrorColor) }
                     }
                 }
             }
@@ -963,10 +966,10 @@ private fun HabitCalendar(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        innerPadding = 14.dp
+        cornerRadius = 20.dp,
+        innerPadding = 12.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -977,7 +980,7 @@ private fun HabitCalendar(
                 }
                 Text(
                     text = selectedMonth.format(DateTimeFormatter.ofPattern("yyyy年M月")),
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -994,7 +997,7 @@ private fun HabitCalendar(
                     Text(
                         text = it,
                         modifier = Modifier.weight(1f),
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
@@ -1004,11 +1007,11 @@ private fun HabitCalendar(
             cells.chunked(7).forEach { week ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     week.forEach { date ->
                         if (date == null) {
-                            Spacer(modifier = Modifier.weight(1f).aspectRatio(0.9f))
+                            Spacer(modifier = Modifier.weight(1f).aspectRatio(0.82f))
                         } else {
                             val record = records.firstOrNull { it.recordDate == date.toEpochDay() }
                             val tint = when (record?.source) {
@@ -1021,8 +1024,8 @@ private fun HabitCalendar(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .aspectRatio(0.9f)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .aspectRatio(0.82f)
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         if (isSelected) tint.copy(alpha = 0.18f)
                                         else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
@@ -1030,7 +1033,7 @@ private fun HabitCalendar(
                                     .border(
                                         width = if (isSelected) 1.dp else 0.dp,
                                         color = if (isSelected) tint.copy(alpha = 0.4f) else Color.Transparent,
-                                        shape = RoundedCornerShape(16.dp)
+                                        shape = RoundedCornerShape(14.dp)
                                     )
                                     .clickable { onDateSelect(date) },
                                 contentAlignment = Alignment.Center
@@ -1038,14 +1041,14 @@ private fun HabitCalendar(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = date.dayOfMonth.toString(),
-                                        fontSize = 13.sp,
+                                        fontSize = 12.sp,
                                         color = if (record != null) tint else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     if (record != null) {
                                         Box(
                                             modifier = Modifier
-                                                .size(6.dp)
+                                                .size(5.dp)
                                                 .clip(CircleShape)
                                                 .background(tint)
                                         )
@@ -1055,7 +1058,7 @@ private fun HabitCalendar(
                         }
                     }
                     repeat(7 - week.size) {
-                        Spacer(modifier = Modifier.weight(1f).aspectRatio(0.9f))
+                        Spacer(modifier = Modifier.weight(1f).aspectRatio(0.82f))
                     }
                 }
             }
@@ -1078,13 +1081,15 @@ private fun HabitRecordDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("${habit.title} · ${selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))}") },
+        title = { Text("${habit.title} · ${selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))}", fontSize = 16.sp) },
         text = {
             TextField(
                 value = content,
                 onValueChange = { content = it },
-                minLines = 4,
-                placeholder = { Text("可以只写一句，也可以多写一点") },
+                minLines = 2,
+                maxLines = 5,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                placeholder = { Text("可以只写一句，也可以多写一点", fontSize = 12.sp) },
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -1092,9 +1097,9 @@ private fun HabitRecordDialog(
             TextButton(
                 onClick = { if (content.isNotBlank()) onSave(content.trim()) },
                 enabled = content.isNotBlank()
-            ) { Text("保存") }
+            ) { Text("保存", fontSize = 12.sp) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", fontSize = 12.sp) } }
     )
 }
 
