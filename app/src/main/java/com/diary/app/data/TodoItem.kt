@@ -32,7 +32,8 @@ data class TodoItem(
     val parentId: Long? = null,  // 父任务ID，用于子任务
     val recurringType: String = "none",  // none, daily, weekly, monthly, yearly
     val progress: Int = 0,  // 0-100 进度百分比，用于目标追踪
-    val isPinned: Boolean = false  // 是否置顶
+    val isPinned: Boolean = false,  // 是否置顶
+    val linkedTagIds: String = ""  // 关联的日记标签ID，逗号分隔
 ) {
     companion object {
         const val CATEGORY_TASK = "task"
@@ -74,6 +75,15 @@ data class TodoItem(
 
         fun setTagList(tags: List<String>): String {
             return tags.joinToString(", ")
+        }
+
+        fun getLinkedTagIds(linkedTagIds: String): List<Long> {
+            if (linkedTagIds.isBlank()) return emptyList()
+            return linkedTagIds.split(",").mapNotNull { it.trim().toLongOrNull() }
+        }
+
+        fun setLinkedTagIds(ids: List<Long>): String {
+            return ids.joinToString(", ")
         }
     }
 }

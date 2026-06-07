@@ -89,6 +89,7 @@ import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.isDark
+import com.diary.app.ui.todo.TodoViewModel
 import kotlinx.coroutines.launch
 import android.util.Base64
 import java.time.LocalDate
@@ -118,6 +119,7 @@ fun EditorScreen(
     var isWebViewReady by remember { mutableStateOf(false) }
     val jsBridge = remember { DiaryJsBridge() }
     val viewModel: EditorViewModel = viewModel()
+    val todoViewModel: TodoViewModel = viewModel()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -168,6 +170,9 @@ fun EditorScreen(
     var wordCount by remember { mutableIntStateOf(0) }
     var latestPlainText by remember { mutableStateOf("") }
     var contentVersion by remember { mutableIntStateOf(0) }
+
+    // Title state
+    var entryTitle by remember { mutableStateOf("") }
 
     // Auto-save and unsaved changes
     val autoSaveVisible by viewModel.autoSaveVisible.collectAsState()
@@ -224,6 +229,10 @@ fun EditorScreen(
             selectedLocation = entry.location
             locationLat = entry.latitude
             locationLng = entry.longitude
+            // Load existing title
+            if (diaryId != null) {
+                entryTitle = entry.title
+            }
             // Inject saved content into WebView when editing existing entry
             if (diaryId != null && entry.content.isNotBlank()) {
                 // Strip inline Base64 data URLs to prevent memory crash
@@ -396,7 +405,8 @@ fun EditorScreen(
             kotlinx.coroutines.delay(5000)
             webView?.evaluateJavascript("getContent()") { json ->
                 val cleanJson = unescapeEvaluateJsResult(json)
-                viewModel.updateLatestContent(cleanJson, latestPlainText, dateTitle)
+                val saveTitle = entryTitle.ifBlank { dateTitle }
+                viewModel.updateLatestContent(cleanJson, latestPlainText, saveTitle)
                 viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
             }
         }
@@ -420,7 +430,8 @@ fun EditorScreen(
                         val cleanJson = unescapeEvaluateJsResult(json)
                         val cleanPlain = unescapeEvaluateJsResult(plain)
                         if (cleanPlain.isNotBlank()) {
-                            viewModel.updateLatestContent(cleanJson, cleanPlain, dateTitle)
+                            val saveTitle = entryTitle.ifBlank { dateTitle }
+                            viewModel.updateLatestContent(cleanJson, cleanPlain, saveTitle)
                             viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
                         }
                     }
@@ -506,7 +517,7 @@ fun EditorScreen(
                                     webView?.evaluateJavascript("getPlainText()") { plain ->
                                         val cleanJson = unescapeEvaluateJsResult(json)
                                         val cleanPlain = unescapeEvaluateJsResult(plain)
-                                        viewModel.saveDraftToList(cleanJson, cleanPlain, dateTitle, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng, currentDraftId)
+                                        viewModel.saveDraftToList(cleanJson, cleanPlain, entryTitle.ifBlank { dateTitle }, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng, currentDraftId)
                                         showUnsavedDialog = false
                                         onNavigateBack()
                                     }
@@ -759,14 +770,15 @@ fun EditorScreen(
                         webView?.evaluateJavascript("getPlainText()") { plain ->
                             val cleanJson = unescapeEvaluateJsResult(json)
                             val cleanPlain = unescapeEvaluateJsResult(plain)
+                            val saveTitle = entryTitle.ifBlank { dateTitle }
                             // Don't save empty entries
-                            if (cleanPlain.isBlank() && dateTitle.isBlank()) {
+                            if (cleanPlain.isBlank() && saveTitle.isBlank()) {
                                 onNavigateBack()
                                 return@evaluateJavascript
                             }
                             scope.launch {
                                 viewModel.saveEntry(
-                                    title = dateTitle,
+                                    title = saveTitle,
                                     content = cleanJson,
                                     plainText = cleanPlain,
                                     diaryId = diaryId,
@@ -776,6 +788,8 @@ fun EditorScreen(
                                     latitude = locationLat,
                                     longitude = locationLng
                                 )
+                                // Auto-complete habits with matching tags
+                                todoViewModel.autoCompleteHabitsForDiary(selectedTagIds.toList())
                                 haptic.success()
                                 snackbarHostState.showSnackbar(
                                     message = "日记已保存",
@@ -796,9 +810,37 @@ fun EditorScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(text = dateTitle, style = MaterialTheme.typography.headlineSmall, color = textColor)
+                Text(text = dateTitle, fontSize = 12.sp, color = textSecondary)
                 Text(text = timeText, fontSize = 11.sp, color = textSecondary)
             }
+
+            // Title input
+            OutlinedTextField(
+                value = entryTitle,
+                onValueChange = { entryTitle = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                placeholder = {
+                    Text(
+                        text = "标题（可选）",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textSecondary.copy(alpha = 0.4f)
+                    )
+                },
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                ),
+                singleLine = true,
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
+                )
+            )
 
             // Writing prompt (only for new entries, hide after 50 chars)
             if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {

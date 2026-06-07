@@ -12,9 +12,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.diary.app.data.Tag
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -67,6 +69,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     // Pending todo count for widget
     val pendingTodoCount: StateFlow<Int> = dao.getPendingTodoCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // All tags for linking habits
+    val allTags: StateFlow<List<Tag>> = dao.getAllTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         TodoReminderManager.createNotificationChannel(context)
@@ -246,7 +252,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── New: Three-in-one methods ──
 
-    fun addHabit(name: String) {
+    fun addHabit(name: String, linkedTagIds: List<Long> = emptyList()) {
         if (name.isBlank()) return
         viewModelScope.launch {
             val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
@@ -257,7 +263,8 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     category = TodoItem.CATEGORY_GOAL,
                     description = "0,0,0,0,0,0,0",
                     tags = weekNum.toString(),
-                    recurringType = TodoItem.RECURRING_WEEKLY
+                    recurringType = TodoItem.RECURRING_WEEKLY,
+                    linkedTagIds = TodoItem.setLinkedTagIds(linkedTagIds)
                 )
             )
             refreshWidget()
@@ -305,5 +312,40 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     // For widget - get top pending todos
     suspend fun getTopTodosForWidget(limit: Int = 10): List<TodoItem> {
         return dao.getTopPendingTodos(limit)
+    }
+
+    // Auto-complete habits when saving a diary with matching tags
+    fun autoCompleteHabitsForDiary(diaryTagIds: List<Long>) {
+        if (diaryTagIds.isEmpty()) return
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+            val currentWeek = today.get(weekField.weekOfYear())
+            val dayOfWeek = today.dayOfWeek.value - 1 // 0=Monday, 6=Sunday
+
+            // Get all habits
+            val allHabits = dao.getAllTodos().first().filter { it.category == TodoItem.CATEGORY_GOAL }
+
+            allHabits.forEach { habit ->
+                val habitLinkedTagIds = TodoItem.getLinkedTagIds(habit.linkedTagIds)
+                if (habitLinkedTagIds.isNotEmpty() && habitLinkedTagIds.any { it in diaryTagIds }) {
+                    // Check if this habit is for the current week
+                    val habitWeek = habit.tags.toIntOrNull() ?: 0
+                    if (habitWeek == currentWeek) {
+                        // Toggle the day if not already checked
+                        val data = habit.description.split(",").map { it.trim() == "1" }.toMutableList()
+                        while (data.size < 7) data.add(false)
+                        if (dayOfWeek in 0..6 && !data[dayOfWeek]) {
+                            data[dayOfWeek] = true
+                            dao.updateTodo(
+                                habit.copy(
+                                    description = data.joinToString(",") { if (it) "1" else "0" }
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -228,15 +228,6 @@ fun HomeScreen(
                 onDismiss = { showFunctionMenu = false },
                 items = listOf(
                     FunctionMenuItem(
-                        id = "timeline",
-                        title = "时间线",
-                        icon = Icons.Default.CalendarMonth,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToTimeline()
-                        }
-                    ),
-                    FunctionMenuItem(
                         id = "stats",
                         title = "统计",
                         icon = Icons.Default.BarChart,
@@ -391,9 +382,22 @@ private fun EntryCard(
                 )
             }
 
+            // Title (if exists)
+            if (entry.title.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = entry.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
             // Text preview (replace literal \n with line breaks)
             if (entry.plainText.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = entry.plainText
                         .replace("\\n", "\n")

@@ -120,8 +120,9 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home),
+    BottomNavItem(Screen.Timeline),
     BottomNavItem(Screen.Todo),
-    BottomNavItem(Screen.Profile)
+    BottomNavItem(Screen.Settings)
 )
 
 // endregion

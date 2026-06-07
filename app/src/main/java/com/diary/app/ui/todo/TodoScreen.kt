@@ -37,7 +37,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -65,7 +68,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.absoluteValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -88,11 +93,12 @@ import java.util.Locale
 
 private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"), DEADLINE("待办") }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val haptic = rememberHapticFeedback()
     val allTodos by viewModel.allTodos.collectAsState()
+    val allTags by viewModel.allTags.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
@@ -113,6 +119,13 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val memoItems = allTodos.filter { it.category != TodoItem.CATEGORY_GOAL && it.dueDate == null }
     val deadlineItems = allTodos.filter { it.dueDate != null }.sortedBy { it.dueDate ?: Long.MAX_VALUE }
 
+    // Multi-select state
+    var isMultiSelectMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+
+    // Edit dialog state
+    var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
+
     // Delete confirmation
     var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
     deletingTodo?.let { target ->
@@ -132,25 +145,118 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
         )
     }
 
+    // Multi-select delete confirmation
+    if (isMultiSelectMode && selectedIds.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { isMultiSelectMode = false; selectedIds = emptySet() },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("批量删除") },
+            text = { Text("确定要删除选中的 ${selectedIds.size} 项吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    haptic.warning()
+                    selectedIds.forEach { id ->
+                        allTodos.find { it.id == id }?.let { viewModel.deleteTodo(it) }
+                    }
+                    isMultiSelectMode = false
+                    selectedIds = emptySet()
+                }) { Text("删除", color = ErrorColor) }
+            },
+            dismissButton = {
+                TextButton(onClick = { isMultiSelectMode = false; selectedIds = emptySet() }) { Text("取消") }
+            }
+        )
+    }
+
+    // Edit dialog
+    editingTodo?.let { todo ->
+        var editTitle by remember(todo) { mutableStateOf(todo.title) }
+        AlertDialog(
+            onDismissRequest = { editingTodo = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("编辑") },
+            text = {
+                TextField(
+                    value = editTitle,
+                    onValueChange = { editTitle = it },
+                    placeholder = { Text("标题") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (editTitle.isNotBlank()) {
+                        viewModel.updateTodo(todo.copy(title = editTitle.trim()))
+                        editingTodo = null
+                    }
+                }) { Text("保存") }
+            },
+            dismissButton = { TextButton(onClick = { editingTodo = null }) { Text("取消") } }
+        )
+    }
+
     if (showAddDialog) {
         when (currentTab) {
             TodoTab.HABIT -> {
                 var name by remember { mutableStateOf("") }
+                var selectedLinkedTagIds by remember { mutableStateOf(setOf<Long>()) }
                 AlertDialog(
                     onDismissRequest = { showAddDialog = false },
                     containerColor = MaterialTheme.colorScheme.surface,
                     title = { Text("新建习惯") },
                     text = {
-                        TextField(
-                            value = name, onValueChange = { name = it },
-                            placeholder = { Text("习惯名称，如：运动、阅读...") },
-                            singleLine = true, modifier = Modifier.fillMaxWidth()
-                        )
+                        Column {
+                            TextField(
+                                value = name, onValueChange = { name = it },
+                                placeholder = { Text("习惯名称，如：运动、阅读...") },
+                                singleLine = true, modifier = Modifier.fillMaxWidth()
+                            )
+                            if (allTags.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "关联日记标签（可选）",
+                                    fontSize = 12.sp,
+                                    color = textSecondary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    allTags.forEach { tag ->
+                                        val isSelected = tag.id in selectedLinkedTagIds
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                .clickable {
+                                                    selectedLinkedTagIds = if (isSelected) {
+                                                        selectedLinkedTagIds - tag.id
+                                                    } else {
+                                                        selectedLinkedTagIds + tag.id
+                                                    }
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = tag.name,
+                                                fontSize = 12.sp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     confirmButton = {
                         TextButton(onClick = {
                             if (name.isNotBlank()) {
-                                viewModel.addHabit(name.trim())
+                                viewModel.addHabit(name.trim(), selectedLinkedTagIds.toList())
                                 showAddDialog = false
                             }
                         }) { Text("创建") }
@@ -299,39 +405,70 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             }
 
-            // Swipeable content
+            // Swipeable content with fast fade transition
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds()
             ) { page ->
-                when (TodoTab.entries[page]) {
-                    TodoTab.HABIT -> HabitTab(
-                        habits = habitItems,
-                        viewModel = viewModel,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        weekStart = habitWeekStart,
-                        weekOffset = habitWeekOffset,
-                        onWeekOffsetChange = { habitWeekOffset = it },
-                        onAdd = { showAddDialog = true },
-                        onDeleteRequest = { deletingTodo = it }
-                    )
-                    TodoTab.MEMO -> MemoTab(
-                        items = memoItems,
-                        viewModel = viewModel,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        onAdd = { showAddDialog = true },
-                        onDeleteRequest = { deletingTodo = it }
-                    )
-                    TodoTab.DEADLINE -> DeadlineTab(
-                        items = deadlineItems,
-                        viewModel = viewModel,
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        onAdd = { showAddDialog = true },
-                        onDeleteRequest = { deletingTodo = it }
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val pageOffset = pagerState.getOffsetFractionForPage(page)
+                            // Fast fade: quickly fade out old page, fade in new page
+                            alpha = 1f - pageOffset.absoluteValue * 0.3f
+                            translationX = pageOffset * size.width * 0.1f
+                        }
+                ) {
+                    when (TodoTab.entries[page]) {
+                        TodoTab.HABIT -> HabitTab(
+                            habits = habitItems,
+                            viewModel = viewModel,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            weekStart = habitWeekStart,
+                            weekOffset = habitWeekOffset,
+                            onWeekOffsetChange = { habitWeekOffset = it },
+                            onAdd = { showAddDialog = true },
+                            onDeleteRequest = { deletingTodo = it }
+                        )
+                        TodoTab.MEMO -> MemoTab(
+                            items = memoItems,
+                            viewModel = viewModel,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onAdd = { showAddDialog = true },
+                            onDeleteRequest = { deletingTodo = it },
+                            onEdit = { editingTodo = it },
+                            isMultiSelectMode = isMultiSelectMode,
+                            selectedIds = selectedIds,
+                            onToggleSelection = { id ->
+                                selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+                            },
+                            onMultiSelectModeChange = { mode ->
+                                isMultiSelectMode = mode
+                                if (!mode) selectedIds = emptySet()
+                            }
+                        )
+                        TodoTab.DEADLINE -> DeadlineTab(
+                            items = deadlineItems,
+                            viewModel = viewModel,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onAdd = { showAddDialog = true },
+                            onDeleteRequest = { deletingTodo = it },
+                            onEdit = { editingTodo = it },
+                            isMultiSelectMode = isMultiSelectMode,
+                            selectedIds = selectedIds,
+                            onToggleSelection = { id ->
+                                selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+                            },
+                            onMultiSelectModeChange = { mode ->
+                                isMultiSelectMode = mode
+                                if (!mode) selectedIds = emptySet()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -485,6 +622,13 @@ private fun HabitCard(
                     val isToday = date == today
                     val isPast = date.isBefore(today) || date == today
 
+                    // Animation for check effect
+                    val animatedScale by animateFloatAsState(
+                        targetValue = if (isChecked) 1f else 0.8f,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "checkScale"
+                    )
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable(enabled = isPast) { onToggleDay(i) }
@@ -493,6 +637,10 @@ private fun HabitCard(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(RoundedCornerShape(10.dp))
+                                .graphicsLayer {
+                                    scaleX = animatedScale
+                                    scaleY = animatedScale
+                                }
                                 .background(
                                     when {
                                         isChecked -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -548,7 +696,12 @@ private fun MemoTab(
     textColor: Color,
     textSecondary: Color,
     onAdd: () -> Unit,
-    onDeleteRequest: (TodoItem) -> Unit
+    onDeleteRequest: (TodoItem) -> Unit,
+    onEdit: (TodoItem) -> Unit,
+    isMultiSelectMode: Boolean,
+    selectedIds: Set<Long>,
+    onToggleSelection: (Long) -> Unit,
+    onMultiSelectModeChange: (Boolean) -> Unit
 ) {
     val activeItems = items.filter { !it.isCompleted }
     val completedItems = items.filter { it.isCompleted }
@@ -577,7 +730,17 @@ private fun MemoTab(
                     textColor = textColor,
                     textSecondary = textSecondary,
                     onToggle = { viewModel.toggleTodo(item) },
-                    onDelete = { onDeleteRequest(item) }
+                    onDelete = { onDeleteRequest(item) },
+                    onEdit = { onEdit(item) },
+                    isMultiSelectMode = isMultiSelectMode,
+                    isSelected = item.id in selectedIds,
+                    onToggleSelection = { onToggleSelection(item.id) },
+                    onLongPress = {
+                        if (!isMultiSelectMode) {
+                            onMultiSelectModeChange(true)
+                            onToggleSelection(item.id)
+                        }
+                    }
                 )
             }
 
@@ -597,22 +760,69 @@ private fun MemoItem(
     textColor: Color,
     textSecondary: Color,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    isMultiSelectMode: Boolean,
+    isSelected: Boolean,
+    onToggleSelection: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(onClick = onToggle, onLongClick = onDelete)
+            .combinedClickable(
+                onClick = {
+                    if (isMultiSelectMode) {
+                        onToggleSelection()
+                    } else {
+                        // 点击直接编辑
+                        onEdit()
+                    }
+                },
+                onLongClick = onLongPress
+            )
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                else Color.Transparent
+            )
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = if (item.isCompleted) Icons.Default.Check else Icons.Default.Add,
-            contentDescription = null,
-            tint = if (item.isCompleted) SuccessColor.copy(alpha = 0.6f) else textSecondary.copy(alpha = 0.4f),
-            modifier = Modifier.size(18.dp)
-        )
+        // 左侧图标：点击切换完成状态
+        if (isMultiSelectMode) {
+            Icon(
+                imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
+                contentDescription = null,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(18.dp)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .clickable { onToggle() }
+                    .background(
+                        if (item.isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else Color.Transparent
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        color = if (item.isCompleted) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (item.isCompleted) {
+                    Icon(
+                        Icons.Default.Check, null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = item.title,
@@ -623,8 +833,13 @@ private fun MemoItem(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        if (item.isCompleted) {
-            Spacer(modifier = Modifier.width(4.dp))
+        if (!isMultiSelectMode) {
+            Icon(
+                Icons.Default.Edit, "编辑",
+                tint = textSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp).clickable(onClick = onEdit)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 Icons.Default.Close, "删除",
                 tint = textSecondary.copy(alpha = 0.3f),
@@ -643,7 +858,12 @@ private fun DeadlineTab(
     textColor: Color,
     textSecondary: Color,
     onAdd: () -> Unit,
-    onDeleteRequest: (TodoItem) -> Unit
+    onDeleteRequest: (TodoItem) -> Unit,
+    onEdit: (TodoItem) -> Unit,
+    isMultiSelectMode: Boolean,
+    selectedIds: Set<Long>,
+    onToggleSelection: (Long) -> Unit,
+    onMultiSelectModeChange: (Boolean) -> Unit
 ) {
     val today = remember { LocalDate.now() }
     val activeItems = items.filter { !it.isCompleted }
@@ -674,7 +894,17 @@ private fun DeadlineTab(
                     textColor = textColor,
                     textSecondary = textSecondary,
                     onToggle = { viewModel.toggleTodo(item) },
-                    onDelete = { onDeleteRequest(item) }
+                    onDelete = { onDeleteRequest(item) },
+                    onEdit = { onEdit(item) },
+                    isMultiSelectMode = isMultiSelectMode,
+                    isSelected = item.id in selectedIds,
+                    onToggleSelection = { onToggleSelection(item.id) },
+                    onLongPress = {
+                        if (!isMultiSelectMode) {
+                            onMultiSelectModeChange(true)
+                            onToggleSelection(item.id)
+                        }
+                    }
                 )
             }
 
@@ -695,7 +925,12 @@ private fun DeadlineItem(
     textColor: Color,
     textSecondary: Color,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    isMultiSelectMode: Boolean,
+    isSelected: Boolean,
+    onToggleSelection: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     val dueDate = item.dueDate?.let {
         Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -707,13 +942,39 @@ private fun DeadlineItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .combinedClickable(onClick = onToggle, onLongClick = onDelete)
-            .background(if (isOverdue) ErrorColor.copy(alpha = 0.06f) else Color.Transparent)
+            .combinedClickable(
+                onClick = {
+                    if (isMultiSelectMode) {
+                        onToggleSelection()
+                    } else {
+                        onToggle()
+                    }
+                },
+                onLongClick = onLongPress
+            )
+            .background(
+                when {
+                    isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    isOverdue -> ErrorColor.copy(alpha = 0.06f)
+                    else -> Color.Transparent
+                }
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Multi-select checkbox
+        if (isMultiSelectMode) {
+            Icon(
+                imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
+                contentDescription = null,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
         // Days badge
-        if (!item.isCompleted && dueDate != null) {
+        if (!item.isCompleted && dueDate != null && !isMultiSelectMode) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -756,7 +1017,7 @@ private fun DeadlineItem(
             overflow = TextOverflow.Ellipsis
         )
 
-        if (dueDate != null) {
+        if (dueDate != null && !isMultiSelectMode) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "${dueDate.monthValue}/${dueDate.dayOfMonth}",
@@ -765,8 +1026,13 @@ private fun DeadlineItem(
             )
         }
 
-        if (item.isCompleted) {
-            Spacer(modifier = Modifier.width(4.dp))
+        if (!isMultiSelectMode) {
+            Icon(
+                Icons.Default.Edit, "编辑",
+                tint = textSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp).clickable(onClick = onEdit)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 Icons.Default.Close, "删除",
                 tint = textSecondary.copy(alpha = 0.3f),
