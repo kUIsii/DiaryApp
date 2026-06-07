@@ -555,7 +555,8 @@ fun EditorScreen(
     }
 
     // Draft restoration dialog
-    if (showDraftDialog && pendingDraft != null) {
+    val currentPendingDraft = pendingDraft
+    if (showDraftDialog && currentPendingDraft != null) {
         AlertDialog(
             onDismissRequest = {
                 viewModel.clearDraft(null)
@@ -565,7 +566,7 @@ fun EditorScreen(
             text = { Text(stringResource(R.string.draft_found_message)) },
             confirmButton = {
                 TextButton(onClick = {
-                    val draft = pendingDraft!!
+                    val draft = currentPendingDraft
                     val encoded = android.util.Base64.encodeToString(
                         draft.content.toByteArray(Charsets.UTF_8),
                         android.util.Base64.NO_WRAP
@@ -928,10 +929,11 @@ fun EditorScreen(
                 ) {
                     // Mood chip
                     val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+                    val currentSelectedMood = selectedMood
                     MetadataChip(
-                        label = if (selectedMood != null) moodLabelForLevel(selectedMood!!) else "心情",
-                        icon = moodIconForLevel(selectedMood ?: 3).icon,
-                        isSelected = selectedMood != null,
+                        label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
+                        icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
+                        isSelected = currentSelectedMood != null,
                         isActive = activePanel == "mood",
                         onClick = { activePanel = if (activePanel == "mood") null else "mood" },
                         accentColor = moodColor

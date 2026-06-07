@@ -154,7 +154,8 @@ fun TagManagementScreen(
         )
     }
 
-    if (showRestoreDialog && pendingRestoreBackup != null) {
+    val currentPendingRestoreBackup = pendingRestoreBackup
+    if (showRestoreDialog && currentPendingRestoreBackup != null) {
         AlertDialog(
             onDismissRequest = { showRestoreDialog = false; pendingRestoreBackup = null },
             title = { Text("恢复确认") },
@@ -163,7 +164,7 @@ fun TagManagementScreen(
                 TextButton(onClick = {
                     scope.launch {
                         allTags.forEach { dao.deleteTag(it) }
-                        pendingRestoreBackup!!.tags.forEach { dao.insertTag(it.copy(id = 0)) }
+                        currentPendingRestoreBackup.tags.forEach { dao.insertTag(it.copy(id = 0)) }
                     }
                     showRestoreDialog = false
                     pendingRestoreBackup = null
@@ -757,12 +758,13 @@ private fun BackupListDialog(
 ) {
     var renamingBackup by remember { mutableStateOf<TagBackup?>(null) }
 
-    if (renamingBackup != null) {
+    val currentRenamingBackup = renamingBackup
+    if (currentRenamingBackup != null) {
         RenameDialog(
-            initialName = renamingBackup!!.name,
+            initialName = currentRenamingBackup.name,
             onDismiss = { renamingBackup = null },
             onConfirm = { newName ->
-                onRename(renamingBackup!!, newName)
+                onRename(currentRenamingBackup, newName)
                 renamingBackup = null
             }
         )
