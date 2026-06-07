@@ -216,7 +216,7 @@
     <!-- Profile Screen -->
     <string name="profile_appearance">外观设置</string>
     <string name="profile_theme_mode">主题模式</string>
-    <string name="profile_font_size">编辑器字体大小</string>
+    <string name="profile_font_size">显示文本大小</string>
     <string name="profile_data_management">数据管理</string>
     <string name="profile_tag_management">分类管理</string>
     <string name="profile_tag_management_desc">管理日记分类标签</string>
