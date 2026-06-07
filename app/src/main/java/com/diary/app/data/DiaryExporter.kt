@@ -51,7 +51,17 @@ object DiaryExporter {
     )
 
     suspend fun export(context: Context, dao: DiaryDao): String {
-        val entries = dao.getAllEntriesOnce()
+        // 分批查询避免 CursorWindow 溢出
+        val entries = mutableListOf<DiaryEntry>()
+        var offset = 0
+        val batchSize = 50
+        while (true) {
+            val batch = dao.getEntriesBatch(offset, batchSize)
+            if (batch.isEmpty()) break
+            entries.addAll(batch)
+            offset += batchSize
+        }
+
         val tags = dao.getAllTagsOnce()
         val allDiaryTags = dao.getAllDiaryTags()
 

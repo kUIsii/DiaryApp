@@ -111,6 +111,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC")
     suspend fun getAllEntriesOnce(): List<DiaryEntry>
 
+    @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
+    suspend fun getEntriesBatch(offset: Int, limit: Int): List<DiaryEntry>
+
     @Query("SELECT * FROM tags ORDER BY name ASC")
     suspend fun getAllTagsOnce(): List<Tag>
 
