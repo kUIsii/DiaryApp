@@ -614,18 +614,18 @@ private fun HabitSummaryCard(
                         .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), CircleShape)
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "${summary.recordedToday}/${summary.total}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = textColor
-                    )
-                    Text(
-                        text = "今日打卡",
-                        fontSize = 11.sp,
-                        color = textSecondary
-                    )
-                }
+                Text(
+                    text = "${summary.recordedToday}/${summary.total}",
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textColor
+                )
+                Text(
+                    text = "今日打卡",
+                    fontSize = 10.sp,
+                    color = textSecondary
+                )
+            }
             }
 
             Column(
@@ -633,16 +633,16 @@ private fun HabitSummaryCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "今天已经完成了 ${summary.recordedToday} 项",
-                    fontSize = 17.sp,
+                    text = "今天完成 ${summary.recordedToday} 项",
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = textColor
                 )
-                Text(
-                    text = "日记自动 ${summary.diaryToday} 项  一句记录 ${summary.manualToday} 项  更多内容 ${summary.detailToday} 项",
-                    fontSize = 12.sp,
-                    color = textSecondary
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    HabitMiniStat(label = "日记", value = summary.diaryToday, textSecondary = textSecondary)
+                    HabitMiniStat(label = "一句", value = summary.manualToday, textSecondary = textSecondary)
+                    HabitMiniStat(label = "详细", value = summary.detailToday, textSecondary = textSecondary)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -663,6 +663,26 @@ private fun HabitSummaryCard(
     }
 }
 
+@Composable
+private fun HabitMiniStat(
+    label: String,
+    value: Int,
+    textSecondary: Color
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = "$label $value",
+            fontSize = 10.sp,
+            color = textSecondary
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HabitCard(
@@ -673,8 +693,8 @@ private fun HabitCard(
     onQuickCheckIn: () -> Unit,
     onLongPress: () -> Unit = {}
 ) {
-    val statusText = item.todayRecord?.let { HabitRecord.sourceLabel(it.source) } ?: "今日未记录"
-    val summaryText = item.todayRecord?.summary?.takeIf { it.isNotBlank() } ?: "今天还没有留下内容"
+    val statusText = item.todayRecord?.let { HabitRecord.sourceLabel(it.source) } ?: "未打卡"
+    val summaryText = item.todayRecord?.summary?.takeIf { it.isNotBlank() } ?: "今天还没有记录"
     val statusColor = when (item.todayRecord?.source) {
         HabitRecord.SOURCE_DIARY -> MaterialTheme.colorScheme.primary
         HabitRecord.SOURCE_DETAIL -> SuccessColor
@@ -686,54 +706,87 @@ private fun HabitCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
-        cornerRadius = 20.dp
+        cornerRadius = 18.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.habit.title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = textColor
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(statusColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = statusText,
-                            fontSize = 11.sp,
-                            color = statusColor
+                            text = item.habit.title,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor
                         )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(
+                                    if (item.todayRecord != null) statusColor.copy(alpha = 0.18f)
+                                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                )
+                                .border(
+                                    width = if (item.todayRecord != null) 1.dp else 0.dp,
+                                    color = if (item.todayRecord != null) statusColor.copy(alpha = 0.35f) else Color.Transparent,
+                                    shape = RoundedCornerShape(999.dp)
+                                )
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (item.todayRecord != null) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = statusColor,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (item.todayRecord != null) "已打卡" else statusText,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (item.todayRecord != null) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (item.todayRecord != null) statusColor else textSecondary
+                                )
+                            }
+                        }
                     }
                 }
 
                 TextButton(onClick = onQuickCheckIn) {
-                    Text(if (item.todayRecord == null) "记录今天" else "查看")
+                    Text(if (item.todayRecord == null) "记录" else "详情")
                 }
             }
 
-            Text(
-                text = summaryText,
-                fontSize = 14.sp,
-                color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.72f) else textColor.copy(alpha = 0.92f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Text(
-                text = if (item.streak > 0) "连续 ${item.streak} 天" else "今天开始也可以",
-                fontSize = 12.sp,
-                color = textSecondary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = summaryText,
+                    fontSize = 11.sp,
+                    color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.8f) else textColor.copy(alpha = 0.88f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = if (item.streak > 0) "${item.streak} 天" else "未开始",
+                    fontSize = 9.sp,
+                    color = textSecondary
+                )
+            }
 
             HabitRecentStrip(days = item.recentDays, textSecondary = textSecondary)
         }
@@ -747,7 +800,8 @@ private fun HabitRecentStrip(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         days.forEach { day ->
             val tint = when (day.record?.source) {
@@ -756,40 +810,27 @@ private fun HabitRecentStrip(
                 HabitRecord.SOURCE_MANUAL -> MaterialTheme.colorScheme.secondary
                 else -> textSecondary.copy(alpha = 0.36f)
             }
-            val shape = RoundedCornerShape(if (day.isToday) 14.dp else 12.dp)
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
-                        .background(
-                            if (day.isToday) tint.copy(alpha = 0.18f)
-                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
-                        )
-                        .border(
-                            width = if (day.isToday) 1.dp else 0.dp,
-                            color = if (day.isToday) tint.copy(alpha = 0.4f) else Color.Transparent,
-                            shape = shape
-                        )
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = day.date.dayOfMonth.toString(),
-                        fontSize = 13.sp,
-                        fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.72f)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(if (day.isToday) 16.dp else 8.dp)
+                    .clip(RoundedCornerShape(if (day.isToday) 10.dp else 999.dp))
+                    .background(
+                        if (day.record != null) tint.copy(alpha = if (day.isToday) 0.9f else 0.65f)
+                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
                     )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+                    .border(
+                        width = if (day.isToday) 1.dp else 0.dp,
+                        color = if (day.isToday) tint.copy(alpha = 0.35f) else Color.Transparent,
+                        shape = RoundedCornerShape(if (day.isToday) 10.dp else 999.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = day.date.format(DateTimeFormatter.ofPattern("E")),
-                    fontSize = 10.sp,
-                    color = textSecondary.copy(alpha = 0.58f),
-                    maxLines = 1
+                    text = if (day.isToday) "今" else "",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (day.record != null) Color.White else textSecondary.copy(alpha = 0.75f)
                 )
             }
         }

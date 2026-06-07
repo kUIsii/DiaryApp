@@ -457,20 +457,16 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun buildHabitUiStatesFlow(habits: List<TodoItem>): Flow<List<HabitItemUiState>> = flow {
-        if (habits.isEmpty()) {
-            emit(emptyList())
-            return@flow
-        }
+    private fun buildHabitUiStatesFlow(habits: List<TodoItem>): Flow<List<HabitItemUiState>> {
+        if (habits.isEmpty()) return flowOf(emptyList())
 
         val today = LocalDate.now()
-        val records = dao.getHabitRecordsInRange(
+        return dao.getHabitRecordsInRangeFlow(
             todoIds = habits.map { it.id },
             startDate = today.minusDays(45).toEpochDay(),
             endDate = today.toEpochDay()
-        )
-        val grouped = records.groupBy { it.todoId }
-        emit(
+        ).map { records ->
+            val grouped = records.groupBy { it.todoId }
             habits.map { habit ->
                 buildHabitItemUiState(
                     habit = habit,
@@ -478,6 +474,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     today = today
                 )
             }
-        )
+        }
     }
 }

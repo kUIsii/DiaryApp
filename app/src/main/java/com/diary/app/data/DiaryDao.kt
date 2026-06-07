@@ -219,6 +219,9 @@ interface DiaryDao {
     @Query("SELECT * FROM habit_records WHERE todoId IN (:todoIds) AND recordDate BETWEEN :startDate AND :endDate")
     suspend fun getHabitRecordsInRange(todoIds: List<Long>, startDate: Long, endDate: Long): List<HabitRecord>
 
+    @Query("SELECT * FROM habit_records WHERE todoId IN (:todoIds) AND recordDate BETWEEN :startDate AND :endDate")
+    fun getHabitRecordsInRangeFlow(todoIds: List<Long>, startDate: Long, endDate: Long): Flow<List<HabitRecord>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHabitRecord(record: HabitRecord): Long
 
