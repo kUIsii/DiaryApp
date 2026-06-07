@@ -209,6 +209,31 @@ interface DiaryDao {
     @Query("SELECT * FROM todo_items WHERE recurringType != 'none' AND isCompleted = 1 AND parentId IS NULL")
     suspend fun getCompletedRecurringTodos(): List<TodoItem>
 
+    // Habit record queries
+    @Query("SELECT * FROM habit_records WHERE todoId = :todoId ORDER BY recordDate DESC")
+    fun getHabitRecords(todoId: Long): Flow<List<HabitRecord>>
+
+    @Query("SELECT * FROM habit_records WHERE todoId = :todoId AND recordDate = :recordDate LIMIT 1")
+    suspend fun getHabitRecordForDay(todoId: Long, recordDate: Long): HabitRecord?
+
+    @Query("SELECT * FROM habit_records WHERE todoId IN (:todoIds) AND recordDate BETWEEN :startDate AND :endDate")
+    suspend fun getHabitRecordsInRange(todoIds: List<Long>, startDate: Long, endDate: Long): List<HabitRecord>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHabitRecord(record: HabitRecord): Long
+
+    @Update
+    suspend fun updateHabitRecord(record: HabitRecord)
+
+    @Query("DELETE FROM habit_records WHERE id = :id")
+    suspend fun deleteHabitRecordById(id: Long)
+
+    @Query("DELETE FROM habit_records WHERE todoId = :todoId")
+    suspend fun deleteHabitRecordsForTodo(todoId: Long)
+
+    @Query("DELETE FROM habit_records WHERE todoId = :todoId AND recordDate = :recordDate")
+    suspend fun deleteHabitRecordForDay(todoId: Long, recordDate: Long)
+
     // "On This Day" - get entries from the same month+day in previous years
     // We use SQLite strftime to extract month and day from the epoch timestamp
     @Query("""

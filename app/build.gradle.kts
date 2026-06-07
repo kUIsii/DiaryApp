@@ -55,8 +55,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 47
-            versionName = "2.61.0-experimental"
+            versionCode = 48
+            versionName = "2.61.2-experimental"
         }
     }
 
@@ -115,6 +115,8 @@ dependencies {
 
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")
+
+    testImplementation("junit:junit:4.13.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

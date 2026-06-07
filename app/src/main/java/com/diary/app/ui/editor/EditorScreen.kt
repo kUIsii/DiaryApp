@@ -777,7 +777,7 @@ fun EditorScreen(
                                 return@evaluateJavascript
                             }
                             scope.launch {
-                                viewModel.saveEntry(
+                                val savedEntryId = viewModel.saveEntry(
                                     title = saveTitle,
                                     content = cleanJson,
                                     plainText = cleanPlain,
@@ -789,7 +789,10 @@ fun EditorScreen(
                                     longitude = locationLng
                                 )
                                 // Auto-complete habits with matching tags
-                                todoViewModel.autoCompleteHabitsForDiary(selectedTagIds.toList())
+                                todoViewModel.autoCompleteHabitsForDiary(
+                                    diaryTagIds = selectedTagIds.toList(),
+                                    diaryEntryId = savedEntryId
+                                )
                                 haptic.success()
                                 snackbarHostState.showSnackbar(
                                     message = "日记已保存",

@@ -4,29 +4,56 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.data.HabitRecord
+import com.diary.app.data.Tag
 import com.diary.app.data.TodoItem
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.widget.TodoWidgetProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.diary.app.data.Tag
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
+
+data class HabitDayState(
+    val date: LocalDate,
+    val record: HabitRecord? = null,
+    val isToday: Boolean = false
+)
+
+data class HabitItemUiState(
+    val habit: TodoItem,
+    val todayRecord: HabitRecord?,
+    val streak: Int,
+    val recentDays: List<HabitDayState>
+)
+
+data class HabitSummaryUiState(
+    val total: Int = 0,
+    val recordedToday: Int = 0,
+    val diaryToday: Int = 0,
+    val manualToday: Int = 0,
+    val detailToday: Int = 0
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
     private val context = application.applicationContext
 
-    // Search and filter state
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -36,7 +63,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedTag = MutableStateFlow<String?>(null)
     val selectedTag: StateFlow<String?> = _selectedTag.asStateFlow()
 
-    // Main todo list - switches between search, category filter, tag filter, or all
     val allTodos: StateFlow<List<TodoItem>> = _searchQuery.flatMapLatest { query ->
         if (query.isNotBlank()) {
             dao.searchTodos(query)
@@ -46,18 +72,13 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     dao.getTodosByCategory(category)
                 } else {
                     _selectedTag.flatMapLatest { tag ->
-                        if (tag != null) {
-                            dao.getTodosByTag(tag)
-                        } else {
-                            dao.getAllTodos()
-                        }
+                        if (tag != null) dao.getTodosByTag(tag) else dao.getAllTodos()
                     }
                 }
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Today's todos for widget
     val todayTodos: StateFlow<List<TodoItem>> = run {
         val today = LocalDate.now()
         val dayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -66,18 +87,50 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
-    // Pending todo count for widget
     val pendingTodoCount: StateFlow<Int> = dao.getPendingTodoCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    // All tags for linking habits
     val allTags: StateFlow<List<Tag>> = dao.getAllTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _selectedHabitId = MutableStateFlow<Long?>(null)
+    val selectedHabitId: StateFlow<Long?> = _selectedHabitId.asStateFlow()
+
+    private val _selectedHabitMonth = MutableStateFlow(YearMonth.now())
+    val selectedHabitMonth: StateFlow<YearMonth> = _selectedHabitMonth.asStateFlow()
+
+    private val _selectedHabitDate = MutableStateFlow(LocalDate.now())
+    val selectedHabitDate: StateFlow<LocalDate> = _selectedHabitDate.asStateFlow()
+
+    private val _showHabitDetail = MutableStateFlow(false)
+    val showHabitDetail: StateFlow<Boolean> = _showHabitDetail.asStateFlow()
+
+    private val _showHabitRecordDialog = MutableStateFlow(false)
+    val showHabitRecordDialog: StateFlow<Boolean> = _showHabitRecordDialog.asStateFlow()
+
+    val habitUiState: StateFlow<List<HabitItemUiState>> = allTodos
+        .flatMapLatest { todos ->
+            buildHabitUiStatesFlow(todos.filter { it.category == TodoItem.CATEGORY_GOAL })
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val habitSummary: StateFlow<HabitSummaryUiState> = habitUiState
+        .map(::buildHabitSummaryUiState)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSummaryUiState())
+
+    val selectedHabit: StateFlow<TodoItem?> = combine(allTodos, _selectedHabitId) { todos, habitId ->
+        todos.firstOrNull { it.id == habitId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val selectedHabitRecords: StateFlow<List<HabitRecord>> = selectedHabit
+        .flatMapLatest { habit ->
+            if (habit == null) flowOf(emptyList()) else dao.getHabitRecords(habit.id)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         TodoReminderManager.createNotificationChannel(context)
         TodoReminderManager.rescheduleAllPendingReminders(context)
-        // Schedule daily summary at 8:00 AM
         TodoReminderManager.scheduleDailySummary(context, 8, 0)
     }
 
@@ -158,7 +211,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun updateTodo(todo: TodoItem) {
         viewModelScope.launch {
             dao.updateTodo(todo)
-            // Update reminder
             if (todo.reminderTime != null && todo.reminderTime > System.currentTimeMillis() && !todo.isCompleted) {
                 TodoReminderManager.scheduleReminder(context, todo.id, todo.title, todo.reminderTime)
             } else {
@@ -178,7 +230,6 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             )
             if (nowCompleted) {
                 TodoReminderManager.cancelReminder(context, todo.id)
-                // Handle recurring tasks
                 if (todo.recurringType != TodoItem.RECURRING_NONE) {
                     createRecurringCopy(todo)
                 }
@@ -232,6 +283,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dao.deleteTodo(todo)
             dao.deleteSubTodos(todo.id)
+            dao.deleteHabitRecordsForTodo(todo.id)
             TodoReminderManager.cancelReminder(context, todo.id)
             refreshWidget()
         }
@@ -250,20 +302,14 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
 
-    // ── New: Three-in-one methods ──
-
     fun addHabit(name: String, linkedTagIds: List<Long> = emptyList()) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
-            val weekNum = LocalDate.now().get(weekField.weekOfYear())
             dao.insertTodo(
                 TodoItem(
                     title = name.trim(),
                     category = TodoItem.CATEGORY_GOAL,
-                    description = "0,0,0,0,0,0,0",
-                    tags = weekNum.toString(),
-                    recurringType = TodoItem.RECURRING_WEEKLY,
+                    recurringType = TodoItem.RECURRING_DAILY,
                     linkedTagIds = TodoItem.setLinkedTagIds(linkedTagIds)
                 )
             )
@@ -282,9 +328,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun addDeadline(content: String, deadlineMillis: Long) {
         if (content.isBlank()) return
         viewModelScope.launch {
-            val id = dao.insertTodo(
-                TodoItem(title = content.trim(), dueDate = deadlineMillis)
-            )
+            val id = dao.insertTodo(TodoItem(title = content.trim(), dueDate = deadlineMillis))
             TodoReminderManager.scheduleReminder(context, id, content.trim(), deadlineMillis)
             refreshWidget()
         }
@@ -292,60 +336,148 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleHabitDay(habit: TodoItem, dayIndex: Int, weekStart: LocalDate? = null) {
         viewModelScope.launch {
-            val data = habit.description.split(",").map { it.trim() == "1" }.toMutableList()
-            while (data.size < 7) data.add(false)
-            if (dayIndex in 0..6) {
-                data[dayIndex] = !data[dayIndex]
-            }
-            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
-            val weekNum = (weekStart ?: LocalDate.now()).get(weekField.weekOfYear())
-            dao.updateTodo(
-                habit.copy(
-                    description = data.joinToString(",") { if (it) "1" else "0" },
-                    tags = weekNum.toString()
+            val baseDate = weekStart ?: LocalDate.now().minusDays(LocalDate.now().dayOfWeek.value.toLong() - 1)
+            val targetDate = baseDate.plusDays(dayIndex.toLong())
+            val recordDate = targetDate.toEpochDay()
+            val existing = dao.getHabitRecordForDay(habit.id, recordDate)
+            if (existing == null) {
+                dao.insertHabitRecord(
+                    HabitRecord(
+                        todoId = habit.id,
+                        recordDate = recordDate,
+                        source = HabitRecord.SOURCE_MANUAL,
+                        summary = ""
+                    )
                 )
-            )
+            } else if (existing.source != HabitRecord.SOURCE_DIARY) {
+                dao.deleteHabitRecordForDay(habit.id, recordDate)
+            }
             refreshWidget()
         }
     }
 
-    // For widget - get top pending todos
+    fun openHabitDetail(habitId: Long, initialDate: LocalDate = LocalDate.now()) {
+        _selectedHabitId.value = habitId
+        _selectedHabitDate.value = initialDate
+        _selectedHabitMonth.value = YearMonth.from(initialDate)
+        _showHabitDetail.value = true
+    }
+
+    fun closeHabitDetail() {
+        _showHabitDetail.value = false
+    }
+
+    fun showHabitRecordDialog(habitId: Long, date: LocalDate = LocalDate.now()) {
+        _selectedHabitId.value = habitId
+        _selectedHabitDate.value = date
+        _selectedHabitMonth.value = YearMonth.from(date)
+        _showHabitRecordDialog.value = true
+    }
+
+    fun hideHabitRecordDialog() {
+        _showHabitRecordDialog.value = false
+    }
+
+    fun selectHabitDate(date: LocalDate) {
+        _selectedHabitDate.value = date
+        _selectedHabitMonth.value = YearMonth.from(date)
+    }
+
+    fun moveSelectedHabitMonth(delta: Long) {
+        _selectedHabitMonth.value = _selectedHabitMonth.value.plusMonths(delta)
+    }
+
+    fun saveHabitQuickRecord(habitId: Long, date: LocalDate, summary: String, source: String) {
+        if (summary.isBlank()) return
+        viewModelScope.launch {
+            val existing = dao.getHabitRecordForDay(habitId, date.toEpochDay())
+            val now = System.currentTimeMillis()
+            val target = if (existing == null) {
+                HabitRecord(
+                    todoId = habitId,
+                    recordDate = date.toEpochDay(),
+                    source = source,
+                    summary = summary.trim(),
+                    createdAt = now,
+                    updatedAt = now
+                )
+            } else {
+                existing.copy(
+                    source = if (existing.source == HabitRecord.SOURCE_DIARY) existing.source else source,
+                    summary = summary.trim(),
+                    updatedAt = now
+                )
+            }
+            dao.insertHabitRecord(target)
+            refreshWidget()
+        }
+    }
+
+    fun clearHabitRecordForDay(habitId: Long, date: LocalDate) {
+        viewModelScope.launch {
+            val existing = dao.getHabitRecordForDay(habitId, date.toEpochDay()) ?: return@launch
+            if (existing.source != HabitRecord.SOURCE_DIARY) {
+                dao.deleteHabitRecordForDay(habitId, date.toEpochDay())
+                refreshWidget()
+            }
+        }
+    }
+
     suspend fun getTopTodosForWidget(limit: Int = 10): List<TodoItem> {
         return dao.getTopPendingTodos(limit)
     }
 
-    // Auto-complete habits when saving a diary with matching tags
-    fun autoCompleteHabitsForDiary(diaryTagIds: List<Long>) {
+    fun autoCompleteHabitsForDiary(diaryTagIds: List<Long>, diaryEntryId: Long? = null) {
         if (diaryTagIds.isEmpty()) return
         viewModelScope.launch {
             val today = LocalDate.now()
-            val weekField = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
-            val currentWeek = today.get(weekField.weekOfYear())
-            val dayOfWeek = today.dayOfWeek.value - 1 // 0=Monday, 6=Sunday
-
-            // Get all habits
             val allHabits = dao.getAllTodos().first().filter { it.category == TodoItem.CATEGORY_GOAL }
+            val todayPreview = diaryEntryId?.let { dao.getPreviewById(it) }
 
             allHabits.forEach { habit ->
                 val habitLinkedTagIds = TodoItem.getLinkedTagIds(habit.linkedTagIds)
                 if (habitLinkedTagIds.isNotEmpty() && habitLinkedTagIds.any { it in diaryTagIds }) {
-                    // Check if this habit is for the current week
-                    val habitWeek = habit.tags.toIntOrNull() ?: 0
-                    if (habitWeek == currentWeek) {
-                        // Toggle the day if not already checked
-                        val data = habit.description.split(",").map { it.trim() == "1" }.toMutableList()
-                        while (data.size < 7) data.add(false)
-                        if (dayOfWeek in 0..6 && !data[dayOfWeek]) {
-                            data[dayOfWeek] = true
-                            dao.updateTodo(
-                                habit.copy(
-                                    description = data.joinToString(",") { if (it) "1" else "0" }
-                                )
-                            )
-                        }
-                    }
+                    val existing = dao.getHabitRecordForDay(habit.id, today.toEpochDay())
+                    val now = System.currentTimeMillis()
+                    val record = (existing ?: HabitRecord(
+                        todoId = habit.id,
+                        recordDate = today.toEpochDay(),
+                        createdAt = now,
+                        updatedAt = now
+                    )).copy(
+                        source = HabitRecord.SOURCE_DIARY,
+                        summary = buildDiaryHabitSummary(todayPreview),
+                        diaryEntryId = diaryEntryId,
+                        updatedAt = now
+                    )
+                    dao.insertHabitRecord(record)
                 }
             }
+            refreshWidget()
         }
+    }
+
+    private fun buildHabitUiStatesFlow(habits: List<TodoItem>): Flow<List<HabitItemUiState>> = flow {
+        if (habits.isEmpty()) {
+            emit(emptyList())
+            return@flow
+        }
+
+        val today = LocalDate.now()
+        val records = dao.getHabitRecordsInRange(
+            todoIds = habits.map { it.id },
+            startDate = today.minusDays(45).toEpochDay(),
+            endDate = today.toEpochDay()
+        )
+        val grouped = records.groupBy { it.todoId }
+        emit(
+            habits.map { habit ->
+                buildHabitItemUiState(
+                    habit = habit,
+                    records = grouped[habit.id].orEmpty(),
+                    today = today
+                )
+            }
+        )
     }
 }

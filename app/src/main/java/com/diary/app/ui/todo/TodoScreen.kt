@@ -1,16 +1,12 @@
 package com.diary.app.ui.todo
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +14,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,19 +25,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -52,17 +49,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,12 +64,15 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import kotlin.math.absoluteValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.data.HabitRecord
 import com.diary.app.data.TodoItem
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
@@ -86,10 +83,12 @@ import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.WarningColor
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.WeekFields
-import java.util.Locale
+import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlinx.coroutines.launch
 
 private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"), DEADLINE("待办") }
 
@@ -99,19 +98,20 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val haptic = rememberHapticFeedback()
     val allTodos by viewModel.allTodos.collectAsState()
     val allTags by viewModel.allTags.collectAsState()
+    val habitUiState by viewModel.habitUiState.collectAsState()
+    val habitSummary by viewModel.habitSummary.collectAsState()
+    val selectedHabit by viewModel.selectedHabit.collectAsState()
+    val selectedHabitRecords by viewModel.selectedHabitRecords.collectAsState()
+    val selectedHabitMonth by viewModel.selectedHabitMonth.collectAsState()
+    val selectedHabitDate by viewModel.selectedHabitDate.collectAsState()
+    val showHabitDetail by viewModel.showHabitDetail.collectAsState()
+    val showHabitRecordDialog by viewModel.showHabitRecordDialog.collectAsState()
+
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
-    var inputText by remember { mutableStateOf("") }
-    var habitWeekOffset by remember { mutableIntStateOf(0) }
 
     val currentTab = TodoTab.entries[pagerState.currentPage]
-    val today = remember { LocalDate.now() }
-    val habitWeekStart = remember(habitWeekOffset, today) {
-        val weekField = WeekFields.of(Locale.getDefault())
-        val base = today.with(weekField.dayOfWeek(), 1)
-        base.plusWeeks(habitWeekOffset.toLong())
-    }
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -119,15 +119,11 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val memoItems = allTodos.filter { it.category != TodoItem.CATEGORY_GOAL && it.dueDate == null }
     val deadlineItems = allTodos.filter { it.dueDate != null }.sortedBy { it.dueDate ?: Long.MAX_VALUE }
 
-    // Multi-select state
     var isMultiSelectMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
-
-    // Edit dialog state
     var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
-
-    // Delete confirmation
     var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
+
     deletingTodo?.let { target ->
         AlertDialog(
             onDismissRequest = { deletingTodo = null },
@@ -145,7 +141,6 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
         )
     }
 
-    // Multi-select delete confirmation
     if (isMultiSelectMode && selectedIds.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { isMultiSelectMode = false; selectedIds = emptySet() },
@@ -168,7 +163,6 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
         )
     }
 
-    // Edit dialog
     editingTodo?.let { todo ->
         var editTitle by remember(todo) { mutableStateOf(todo.title) }
         AlertDialog(
@@ -204,18 +198,20 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 AlertDialog(
                     onDismissRequest = { showAddDialog = false },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    title = { Text("新建习惯") },
+                    title = { Text("新建打卡项") },
                     text = {
                         Column {
                             TextField(
-                                value = name, onValueChange = { name = it },
-                                placeholder = { Text("习惯名称，如：运动、阅读...") },
-                                singleLine = true, modifier = Modifier.fillMaxWidth()
+                                value = name,
+                                onValueChange = { name = it },
+                                placeholder = { Text("例如：运动、早睡、背单词") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if (allTags.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "关联日记标签（可选）",
+                                    text = "关联日记分类（可选）",
                                     fontSize = 12.sp,
                                     color = textSecondary
                                 )
@@ -272,9 +268,11 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     title = { Text("新建备忘") },
                     text = {
                         TextField(
-                            value = content, onValueChange = { content = it },
-                            placeholder = { Text("要记住的事情...") },
-                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                            value = content,
+                            onValueChange = { content = it },
+                            placeholder = { Text("要记住的事情") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     },
                     confirmButton = {
@@ -300,9 +298,11 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             TextField(
-                                value = content, onValueChange = { content = it },
-                                placeholder = { Text("要做什么事...") },
-                                singleLine = true, modifier = Modifier.fillMaxWidth()
+                                value = content,
+                                onValueChange = { content = it },
+                                placeholder = { Text("要做什么事") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Row(
                                 modifier = Modifier
@@ -332,9 +332,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                 onDismissRequest = { showDatePicker = false },
                                 confirmButton = {
                                     TextButton(onClick = {
-                                        datePickerState.selectedDateMillis?.let { millis ->
-                                            selectedDate = millis
-                                        }
+                                        datePickerState.selectedDateMillis?.let { millis -> selectedDate = millis }
                                         showDatePicker = false
                                     }) { Text("确定") }
                                 },
@@ -343,12 +341,15 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = {
-                            if (content.isNotBlank() && selectedDate != null) {
-                                viewModel.addDeadline(content.trim(), selectedDate!!)
-                                showAddDialog = false
-                            }
-                        }, enabled = content.isNotBlank() && selectedDate != null) { Text("创建") }
+                        TextButton(
+                            onClick = {
+                                if (content.isNotBlank() && selectedDate != null) {
+                                    viewModel.addDeadline(content.trim(), selectedDate!!)
+                                    showAddDialog = false
+                                }
+                            },
+                            enabled = content.isNotBlank() && selectedDate != null
+                        ) { Text("创建") }
                     },
                     dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("取消") } }
                 )
@@ -358,7 +359,6 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top tabs with border
             val tabBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
             Row(
                 modifier = Modifier
@@ -382,7 +382,14 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                 else Modifier
                             )
                             .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
-                            .clickable { scope.launch { pagerState.animateScrollToPage(idx) } }
+                            .clickable {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = idx,
+                                        animationSpec = tween(durationMillis = 180, easing = FastOutLinearInEasing)
+                                    )
+                                }
+                            }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -397,7 +404,8 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                 Text(
                                     text = "$count 项",
                                     fontSize = 11.sp,
-                                    color = if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else textSecondary.copy(alpha = 0.6f)
+                                    color = if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    else textSecondary.copy(alpha = 0.6f)
                                 )
                             }
                         }
@@ -405,30 +413,33 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             }
 
-            // Swipeable content with fast fade transition
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clipToBounds()
             ) { page ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            val pageOffset = pagerState.getOffsetFractionForPage(page)
-                            // Fast fade: quickly fade out old page, fade in new page
-                            alpha = 1f - pageOffset.absoluteValue * 0.3f
-                            translationX = pageOffset * size.width * 0.1f
+                            val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                                .absoluteValue
+                            val clampedOffset = pageOffset.coerceIn(0f, 1f)
+                            alpha = max(0.35f, 1f - clampedOffset * 1.15f)
+                            val scale = 1f - clampedOffset * 0.035f
+                            scaleX = scale
+                            scaleY = scale
                         }
                 ) {
                     when (TodoTab.entries[page]) {
                         TodoTab.HABIT -> HabitTab(
-                            habits = habitItems,
+                            habits = habitUiState,
+                            summary = habitSummary,
                             viewModel = viewModel,
                             textColor = textColor,
                             textSecondary = textSecondary,
-                            weekStart = habitWeekStart,
-                            weekOffset = habitWeekOffset,
-                            onWeekOffsetChange = { habitWeekOffset = it },
                             onAdd = { showAddDialog = true },
                             onDeleteRequest = { deletingTodo = it }
                         )
@@ -473,89 +484,180 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             }
         }
     }
-}
 
-// ── Habit Tab ──
+    if (showHabitDetail && selectedHabit != null) {
+        HabitDetailDialog(
+            habit = selectedHabit!!,
+            records = selectedHabitRecords,
+            selectedMonth = selectedHabitMonth,
+            selectedDate = selectedHabitDate,
+            onDismiss = { viewModel.closeHabitDetail() },
+            onMonthChange = { delta -> viewModel.moveSelectedHabitMonth(delta) },
+            onDateSelect = { date -> viewModel.selectHabitDate(date) },
+            onQuickRecord = { summaryText ->
+                viewModel.saveHabitQuickRecord(
+                    habitId = selectedHabit!!.id,
+                    date = selectedHabitDate,
+                    summary = summaryText,
+                    source = HabitRecord.SOURCE_MANUAL
+                )
+            },
+            onOpenMore = { viewModel.showHabitRecordDialog(selectedHabit!!.id, selectedHabitDate) },
+            onClear = { viewModel.clearHabitRecordForDay(selectedHabit!!.id, selectedHabitDate) }
+        )
+    }
+
+    if (showHabitRecordDialog && selectedHabit != null) {
+        HabitRecordDialog(
+            habit = selectedHabit!!,
+            selectedDate = selectedHabitDate,
+            existingRecord = selectedHabitRecords.firstOrNull { it.recordDate == selectedHabitDate.toEpochDay() },
+            onDismiss = { viewModel.hideHabitRecordDialog() },
+            onSave = { summaryText ->
+                viewModel.saveHabitQuickRecord(
+                    habitId = selectedHabit!!.id,
+                    date = selectedHabitDate,
+                    summary = summaryText,
+                    source = HabitRecord.SOURCE_DETAIL
+                )
+                viewModel.hideHabitRecordDialog()
+            }
+        )
+    }
+}
 
 @Composable
 private fun HabitTab(
-    habits: List<TodoItem>,
+    habits: List<HabitItemUiState>,
+    summary: HabitSummaryUiState,
     viewModel: TodoViewModel,
     textColor: Color,
     textSecondary: Color,
-    weekStart: LocalDate,
-    weekOffset: Int,
-    onWeekOffsetChange: (Int) -> Unit,
     onAdd: () -> Unit,
     onDeleteRequest: (TodoItem) -> Unit
 ) {
-    val today = remember { LocalDate.now() }
-    val isCurrentWeek = weekOffset == 0
-
     if (habits.isEmpty()) {
         EmptyState(
             icon = Icons.Default.Repeat,
-            title = "还没有习惯",
-            subtitle = "添加每日习惯，追踪你的坚持",
+            title = "还没有打卡项",
+            subtitle = "添加一个简单的每日项目，之后写一句话或用日记自动打卡",
             modifier = Modifier.fillMaxSize()
         ) {
             AddButton(onClick = onAdd)
         }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Week navigation
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { onWeekOffsetChange(weekOffset - 1) }) {
-                        Icon(Icons.Default.KeyboardArrowLeft, "上一周", tint = textSecondary)
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+            HabitSummaryCard(summary = summary, textColor = textColor, textSecondary = textSecondary)
+        }
+
+        items(habits, key = { it.habit.id }) { item ->
+            HabitCard(
+                item = item,
+                textColor = textColor,
+                textSecondary = textSecondary,
+                onOpen = { viewModel.openHabitDetail(item.habit.id) },
+                onQuickCheckIn = {
+                    if (item.todayRecord == null) {
+                        viewModel.showHabitRecordDialog(item.habit.id)
+                    } else {
+                        viewModel.openHabitDetail(item.habit.id)
                     }
+                },
+                onLongPress = { onDeleteRequest(item.habit) }
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            AddButton(onClick = onAdd)
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+@Composable
+private fun HabitSummaryCard(
+    summary: HabitSummaryUiState,
+    textColor: Color,
+    textSecondary: Color
+) {
+    val progress = if (summary.total == 0) 0f else summary.recordedToday.toFloat() / summary.total.toFloat()
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp,
+        gradientColors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(92.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), CircleShape)
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = if (isCurrentWeek) "本周" else "${weekStart.monthValue}月${weekStart.dayOfMonth}日 起",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
+                        text = "${summary.recordedToday}/${summary.total}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = textColor
+                    )
+                    Text(
+                        text = "今日打卡",
+                        fontSize = 11.sp,
                         color = textSecondary
                     )
-                    IconButton(
-                        onClick = { if (!isCurrentWeek) onWeekOffsetChange(weekOffset + 1) },
-                        enabled = !isCurrentWeek
-                    ) {
-                        Icon(
-                            Icons.Default.KeyboardArrowRight, "下一周",
-                            tint = if (isCurrentWeek) textSecondary.copy(alpha = 0.3f) else textSecondary
-                        )
-                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
             }
 
-            items(habits, key = { it.id }) { habit ->
-                HabitCard(
-                    habit = habit,
-                    today = today,
-                    weekStart = weekStart,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onToggleDay = { dayIndex ->
-                        viewModel.toggleHabitDay(habit, dayIndex, weekStart)
-                    },
-                    onLongPress = { onDeleteRequest(habit) }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "今天已经完成了 ${summary.recordedToday} 项",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textColor
                 )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-                AddButton(onClick = onAdd)
-                Spacer(modifier = Modifier.height(80.dp))
+                Text(
+                    text = "日记自动 ${summary.diaryToday} 项  一句记录 ${summary.manualToday} 项  更多内容 ${summary.detailToday} 项",
+                    fontSize = 12.sp,
+                    color = textSecondary
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.72f))
+                    )
+                }
             }
         }
     }
@@ -564,113 +666,237 @@ private fun HabitTab(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HabitCard(
-    habit: TodoItem,
-    today: LocalDate,
-    weekStart: LocalDate,
+    item: HabitItemUiState,
     textColor: Color,
     textSecondary: Color,
-    onToggleDay: (Int) -> Unit,
+    onOpen: () -> Unit,
+    onQuickCheckIn: () -> Unit,
     onLongPress: () -> Unit = {}
 ) {
-    val weekField = WeekFields.of(Locale.getDefault())
-    val currentWeek = today.get(weekField.weekOfYear())
-    val targetWeek = weekStart.get(weekField.weekOfYear())
+    val statusText = item.todayRecord?.let { HabitRecord.sourceLabel(it.source) } ?: "今日未记录"
+    val summaryText = item.todayRecord?.summary?.takeIf { it.isNotBlank() } ?: "今天还没有留下内容"
+    val statusColor = when (item.todayRecord?.source) {
+        HabitRecord.SOURCE_DIARY -> MaterialTheme.colorScheme.primary
+        HabitRecord.SOURCE_DETAIL -> SuccessColor
+        HabitRecord.SOURCE_MANUAL -> MaterialTheme.colorScheme.secondary
+        else -> textSecondary
+    }
 
-    val habitData = parseHabitData(habit.description)
-    val habitWeek = habit.tags.toIntOrNull() ?: currentWeek
-
-    val isCurrentWeek = habitWeek == targetWeek
-    val weekData = if (isCurrentWeek) habitData else listOf(false, false, false, false, false, false, false)
-
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
-        Column {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
+        cornerRadius = 20.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth()
-                    .combinedClickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                        onLongClick = onLongPress
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = habit.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = textColor
-                )
-                Text(
-                    text = "${weekData.count { it }} / 7",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (weekData.count { it } >= 4) MaterialTheme.colorScheme.primary else textSecondary
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.habit.title,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = textColor
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(statusColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = statusText,
+                            fontSize = 11.sp,
+                            color = statusColor
+                        )
+                    }
+                }
+
+                TextButton(onClick = onQuickCheckIn) {
+                    Text(if (item.todayRecord == null) "记录今天" else "查看")
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = summaryText,
+                fontSize = 14.sp,
+                color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.72f) else textColor.copy(alpha = 0.92f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            // 7-day grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Text(
+                text = if (item.streak > 0) "连续 ${item.streak} 天" else "今天开始也可以",
+                fontSize = 12.sp,
+                color = textSecondary
+            )
+
+            HabitRecentStrip(days = item.recentDays, textSecondary = textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun HabitRecentStrip(
+    days: List<HabitDayState>,
+    textSecondary: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        days.forEach { day ->
+            val tint = when (day.record?.source) {
+                HabitRecord.SOURCE_DIARY -> MaterialTheme.colorScheme.primary
+                HabitRecord.SOURCE_DETAIL -> SuccessColor
+                HabitRecord.SOURCE_MANUAL -> MaterialTheme.colorScheme.secondary
+                else -> textSecondary.copy(alpha = 0.36f)
+            }
+            val shape = RoundedCornerShape(if (day.isToday) 14.dp else 12.dp)
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                for (i in 0..6) {
-                    val date = weekStart.plusDays(i.toLong())
-                    val isChecked = weekData.getOrElse(i) { false }
-                    val isToday = date == today
-                    val isPast = date.isBefore(today) || date == today
-
-                    // Animation for check effect
-                    val animatedScale by animateFloatAsState(
-                        targetValue = if (isChecked) 1f else 0.8f,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "checkScale"
-                    )
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable(enabled = isPast) { onToggleDay(i) }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .graphicsLayer {
-                                    scaleX = animatedScale
-                                    scaleY = animatedScale
-                                }
-                                .background(
-                                    when {
-                                        isChecked -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        isPast -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        else -> Color.Transparent
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isChecked) {
-                                Icon(
-                                    Icons.Default.Check, null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            } else {
-                                Text(
-                                    text = "${date.dayOfMonth}",
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isToday) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                        Text(
-                            text = listOf("一", "二", "三", "四", "五", "六", "日")[i],
-                            fontSize = 9.sp,
-                            color = textSecondary.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(top = 2.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .background(
+                            if (day.isToday) tint.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
                         )
+                        .border(
+                            width = if (day.isToday) 1.dp else 0.dp,
+                            color = if (day.isToday) tint.copy(alpha = 0.4f) else Color.Transparent,
+                            shape = shape
+                        )
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = day.date.dayOfMonth.toString(),
+                        fontSize = 13.sp,
+                        fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.72f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = day.date.format(DateTimeFormatter.ofPattern("E")),
+                    fontSize = 10.sp,
+                    color = textSecondary.copy(alpha = 0.58f),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitDetailDialog(
+    habit: TodoItem,
+    records: List<HabitRecord>,
+    selectedMonth: YearMonth,
+    selectedDate: LocalDate,
+    onDismiss: () -> Unit,
+    onMonthChange: (Long) -> Unit,
+    onDateSelect: (LocalDate) -> Unit,
+    onQuickRecord: (String) -> Unit,
+    onOpenMore: () -> Unit,
+    onClear: () -> Unit
+) {
+    val selectedRecord = records.firstOrNull { it.recordDate == selectedDate.toEpochDay() }
+    var quickText by remember(selectedDate, selectedRecord?.summary) { mutableStateOf(selectedRecord?.summary.orEmpty()) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            cornerRadius = 28.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = habit.title,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "查看这一项过去的打卡情况",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = null)
+                    }
+                }
+
+                HabitCalendar(
+                    selectedMonth = selectedMonth,
+                    selectedDate = selectedDate,
+                    records = records,
+                    onMonthChange = onMonthChange,
+                    onDateSelect = onDateSelect
+                )
+
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 20.dp,
+                    innerPadding = 14.dp
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = selectedDate.format(DateTimeFormatter.ofPattern("M月d日")),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = selectedRecord?.summary?.takeIf { it.isNotBlank() } ?: "这一天还没有留下内容",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                TextField(
+                    value = quickText,
+                    onValueChange = { quickText = it },
+                    minLines = 2,
+                    placeholder = { Text("写一句今天的打卡记录") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    TextButton(onClick = {
+                        if (quickText.isNotBlank()) onQuickRecord(quickText.trim())
+                    }) { Text("保存一句话") }
+                    TextButton(onClick = onOpenMore) { Text("写更多内容") }
+                    if (selectedRecord != null && selectedRecord.source != HabitRecord.SOURCE_DIARY) {
+                        TextButton(onClick = onClear) { Text("清除记录", color = ErrorColor) }
                     }
                 }
             }
@@ -678,16 +904,158 @@ private fun HabitCard(
     }
 }
 
-private fun parseHabitData(data: String): List<Boolean> {
-    if (data.isBlank()) return listOf(false, false, false, false, false, false, false)
-    return try {
-        data.split(",").map { it.trim() == "1" }
-    } catch (_: Exception) {
-        listOf(false, false, false, false, false, false, false)
+@Composable
+private fun HabitCalendar(
+    selectedMonth: YearMonth,
+    selectedDate: LocalDate,
+    records: List<HabitRecord>,
+    onMonthChange: (Long) -> Unit,
+    onDateSelect: (LocalDate) -> Unit
+) {
+    val firstDay = selectedMonth.atDay(1)
+    val leading = firstDay.dayOfWeek.value % 7
+    val daysInMonth = selectedMonth.lengthOfMonth()
+    val cells = buildList {
+        repeat(leading) { add(null) }
+        repeat(daysInMonth) { add(selectedMonth.atDay(it + 1)) }
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 14.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { onMonthChange(-1) }) {
+                    Icon(Icons.Default.KeyboardArrowLeft, contentDescription = null)
+                }
+                Text(
+                    text = selectedMonth.format(DateTimeFormatter.ofPattern("yyyy年M月")),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                IconButton(onClick = { onMonthChange(1) }) {
+                    Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                listOf("日", "一", "二", "三", "四", "五", "六").forEach {
+                    Text(
+                        text = it,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            cells.chunked(7).forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    week.forEach { date ->
+                        if (date == null) {
+                            Spacer(modifier = Modifier.weight(1f).aspectRatio(0.9f))
+                        } else {
+                            val record = records.firstOrNull { it.recordDate == date.toEpochDay() }
+                            val tint = when (record?.source) {
+                                HabitRecord.SOURCE_DIARY -> MaterialTheme.colorScheme.primary
+                                HabitRecord.SOURCE_DETAIL -> SuccessColor
+                                HabitRecord.SOURCE_MANUAL -> MaterialTheme.colorScheme.secondary
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
+                            }
+                            val isSelected = date == selectedDate
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(0.9f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (isSelected) tint.copy(alpha = 0.18f)
+                                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                    )
+                                    .border(
+                                        width = if (isSelected) 1.dp else 0.dp,
+                                        color = if (isSelected) tint.copy(alpha = 0.4f) else Color.Transparent,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { onDateSelect(date) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = date.dayOfMonth.toString(),
+                                        fontSize = 13.sp,
+                                        color = if (record != null) tint else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    if (record != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(tint)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    repeat(7 - week.size) {
+                        Spacer(modifier = Modifier.weight(1f).aspectRatio(0.9f))
+                    }
+                }
+            }
+        }
     }
 }
 
-// ── Memo Tab ──
+@Composable
+private fun HabitRecordDialog(
+    habit: TodoItem,
+    selectedDate: LocalDate,
+    existingRecord: HabitRecord?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var content by remember(existingRecord?.summary, selectedDate) {
+        mutableStateOf(existingRecord?.summary.orEmpty())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("${habit.title} · ${selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))}") },
+        text = {
+            TextField(
+                value = content,
+                onValueChange = { content = it },
+                minLines = 4,
+                placeholder = { Text("可以只写一句，也可以多写一点") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (content.isNotBlank()) onSave(content.trim()) },
+                enabled = content.isNotBlank()
+            ) { Text("保存") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
 
 @Composable
 private fun MemoTab(
@@ -773,34 +1141,21 @@ private fun MemoItem(
             .clip(RoundedCornerShape(12.dp))
             .combinedClickable(
                 onClick = {
-                    if (isMultiSelectMode) {
-                        onToggleSelection()
-                    } else {
-                        // 点击直接编辑
-                        onEdit()
-                    }
+                    if (isMultiSelectMode) onToggleSelection() else onEdit()
                 },
                 onLongClick = onLongPress
             )
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                else Color.Transparent
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
             )
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧图标：点击切换完成状态
         Box(
             modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape)
-                .clickable {
-                    if (isMultiSelectMode) {
-                        onToggleSelection()
-                    } else {
-                        onToggle()
-                    }
-                }
+                .clickable { if (isMultiSelectMode) onToggleSelection() else onToggle() }
                 .background(
                     when {
                         isMultiSelectMode && isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -819,9 +1174,10 @@ private fun MemoItem(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            if (isMultiSelectMode && isSelected || item.isCompleted) {
+            if ((isMultiSelectMode && isSelected) || item.isCompleted) {
                 Icon(
-                    Icons.Default.Check, null,
+                    Icons.Default.Check,
+                    null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(12.dp)
                 )
@@ -839,21 +1195,21 @@ private fun MemoItem(
         )
         if (!isMultiSelectMode) {
             Icon(
-                Icons.Default.Edit, "编辑",
+                Icons.Default.Edit,
+                "编辑",
                 tint = textSecondary.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp).clickable(onClick = onEdit)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
-                Icons.Default.Close, "删除",
+                Icons.Default.Close,
+                "删除",
                 tint = textSecondary.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp).clickable(onClick = onDelete)
             )
         }
     }
 }
-
-// ── Deadline Tab ──
 
 @Composable
 private fun DeadlineTab(
@@ -947,13 +1303,7 @@ private fun DeadlineItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .combinedClickable(
-                onClick = {
-                    if (isMultiSelectMode) {
-                        onToggleSelection()
-                    } else {
-                        onToggle()
-                    }
-                },
+                onClick = { if (isMultiSelectMode) onToggleSelection() else onToggle() },
                 onLongClick = onLongPress
             )
             .background(
@@ -966,7 +1316,6 @@ private fun DeadlineItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Multi-select checkbox
         if (isMultiSelectMode) {
             Icon(
                 imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
@@ -977,7 +1326,6 @@ private fun DeadlineItem(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // Days badge
         if (!item.isCompleted && dueDate != null && !isMultiSelectMode) {
             Box(
                 modifier = Modifier
@@ -1032,21 +1380,21 @@ private fun DeadlineItem(
 
         if (!isMultiSelectMode) {
             Icon(
-                Icons.Default.Edit, "编辑",
+                Icons.Default.Edit,
+                "编辑",
                 tint = textSecondary.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp).clickable(onClick = onEdit)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
-                Icons.Default.Close, "删除",
+                Icons.Default.Close,
+                "删除",
                 tint = textSecondary.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp).clickable(onClick = onDelete)
             )
         }
     }
 }
-
-// ── Shared Add Button ──
 
 @Composable
 private fun AddButton(onClick: () -> Unit) {
@@ -1061,7 +1409,8 @@ private fun AddButton(onClick: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Add, null,
+                Icons.Default.Add,
+                null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
