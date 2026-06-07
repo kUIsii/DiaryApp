@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Redo
@@ -75,6 +77,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -469,7 +472,6 @@ fun EditorScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val accentColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
@@ -767,14 +769,14 @@ fun EditorScreen(
                 }
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
-                        webView?.evaluateJavascript("getPlainText()") { plain ->
+                        webView?.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
                             val cleanJson = unescapeEvaluateJsResult(json)
                             val cleanPlain = unescapeEvaluateJsResult(plain)
                             val saveTitle = entryTitle.ifBlank { dateTitle }
                             // Don't save empty entries
                             if (cleanPlain.isBlank() && saveTitle.isBlank()) {
                                 onNavigateBack()
-                                return@evaluateJavascript
+                                return@plainCallback
                             }
                             scope.launch {
                                 val savedEntryId = viewModel.saveEntry(
@@ -815,6 +817,32 @@ fun EditorScreen(
             ) {
                 Text(text = dateTitle, fontSize = 12.sp, color = textSecondary)
                 Text(text = timeText, fontSize = 11.sp, color = textSecondary)
+                Spacer(modifier = Modifier.weight(1f))
+                if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { viewModel.refreshPrompt() }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lightbulb,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "灵感",
+                            fontSize = 12.sp,
+                            color = textSecondary.copy(alpha = 0.86f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             // Title input
@@ -823,13 +851,13 @@ fun EditorScreen(
                 onValueChange = { entryTitle = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
                 placeholder = {
                     Text(
                         text = "标题（可选）",
-                        fontSize = 18.sp,
+                        fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
-                        color = textSecondary.copy(alpha = 0.4f)
+                        color = textSecondary.copy(alpha = 0.42f)
                     )
                 },
                 textStyle = MaterialTheme.typography.headlineSmall.copy(
@@ -846,7 +874,7 @@ fun EditorScreen(
             )
 
             // Writing prompt (only for new entries, hide after 50 chars)
-            if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
+            if (false && diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
                 var promptVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(writingPrompt) {
                     promptVisible = false
@@ -919,16 +947,17 @@ fun EditorScreen(
                         accentColor = weatherColor
                     )
                     // Tags chip - show full tag names
-                    val tagLabel = if (selectedTagIds.isNotEmpty()) {
-                        val names = allTags.filter { it.id in selectedTagIds }.map { it.name }
-                        names.joinToString(" ")
-                    } else "标签"
+                    val tagLabel = summarizeSelectedNames(
+                        names = allTags.filter { it.id in selectedTagIds }.map { it.name },
+                        emptyLabel = "标签"
+                    )
                     MetadataChip(
                         label = tagLabel,
                         icon = Icons.Default.Sell,
                         isSelected = selectedTagIds.isNotEmpty(),
                         isActive = activePanel == "tags",
-                        onClick = { activePanel = if (activePanel == "tags") null else "tags" }
+                        onClick = { activePanel = if (activePanel == "tags") null else "tags" },
+                        modifier = Modifier.weight(1f)
                     )
                 }
                 // Row 2: location (auto-wrap)
@@ -941,7 +970,8 @@ fun EditorScreen(
                         icon = Icons.Default.LocationOn,
                         isSelected = selectedLocation != null,
                         isActive = activePanel == "location",
-                        onClick = { activePanel = if (activePanel == "location") null else "location" }
+                        onClick = { activePanel = if (activePanel == "location") null else "location" },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -956,11 +986,15 @@ fun EditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(surfaceVariant.copy(alpha = 0.5f))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(surfaceVariant.copy(alpha = 0.52f))
                         .animateContentSize()
                 ) {
-                    Box(modifier = Modifier.padding(12.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp, vertical = 14.dp)
+                            .heightIn(min = 94.dp)
+                    ) {
                         when (activePanel) {
                             "mood" -> Column {
                                 MoodSlider(
@@ -1013,7 +1047,6 @@ fun EditorScreen(
             }
 
             // WebView (fills remaining space)
-            val mediaDir = java.io.File(context.filesDir, "diary_media")
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {

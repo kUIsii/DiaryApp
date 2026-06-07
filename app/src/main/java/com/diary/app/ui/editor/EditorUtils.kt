@@ -73,6 +73,25 @@ internal fun countWords(text: String): Int {
     return count
 }
 
+internal fun summarizeSelectedNames(
+    names: List<String>,
+    emptyLabel: String,
+    maxVisible: Int = 2
+): String {
+    val cleaned = names.map { it.trim() }.filter { it.isNotEmpty() }
+    if (cleaned.isEmpty()) return emptyLabel
+
+    val visibleNames = cleaned.take(maxVisible)
+    val hiddenCount = cleaned.size - visibleNames.size
+    val summary = visibleNames.joinToString(" · ")
+
+    return if (hiddenCount > 0) {
+        "$summary +$hiddenCount"
+    } else {
+        summary
+    }
+}
+
 internal fun iconForTemplate(iconName: String): ImageVector {
     return when (iconName) {
         "today" -> Icons.Default.Today

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -82,14 +83,14 @@ fun MoodSlider(
                 )
                 Text(
                     text = " ${moodLabels[currentLevel - 1]}",
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = currentColor
                 )
             } else {
                 Text(
                     text = "点击选择心情",
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -98,7 +99,8 @@ fun MoodSlider(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                .padding(top = 14.dp)
+                .heightIn(min = 86.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             for (i in 0 until 6) {
@@ -225,7 +227,7 @@ private fun MoodItem(
 
         Text(
             text = moodLabels[index],
-            fontSize = if (isSelected) 16.sp else 12.sp,
+            fontSize = if (isSelected) 15.sp else 13.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -82,7 +83,8 @@ fun WeatherSelector(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         weatherOptions.forEach { option ->
@@ -124,7 +126,8 @@ private fun WeatherItem(
 
     Box(
         modifier = Modifier
-            .width(60.dp)
+            .width(68.dp)
+            .height(82.dp)
             .scale(scale * selectedScale)
             .clip(shape)
             .background(
@@ -175,11 +178,11 @@ private fun WeatherItem(
                 imageVector = option.icon,
                 contentDescription = option.name,
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else iconColor,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(26.dp)
             )
             Text(
                 text = option.name,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onBackground

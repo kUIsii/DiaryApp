@@ -51,7 +51,8 @@ fun TagEditor(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -143,7 +144,7 @@ private fun TagChip(
             )
             Text(
                 text = tagName,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                 color = if (isSelected) MaterialTheme.colorScheme.onBackground
                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -233,7 +234,7 @@ private fun AddTagButton(onClick: () -> Unit) {
             )
             Text(
                 text = "新建标签",
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.primary
             )

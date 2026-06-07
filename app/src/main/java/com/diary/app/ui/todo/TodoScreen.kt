@@ -464,10 +464,10 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
-                                .absoluteValue
-                            val clampedOffset = pageOffset.coerceIn(0f, 1f)
-                            alpha = 1f - clampedOffset * 0.22f
+                            val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                            val clampedOffset = rawOffset.coerceIn(-1f, 1f)
+                            translationX = size.width * clampedOffset * 0.92f
+                            alpha = 1f - clampedOffset.absoluteValue * 0.08f
                         }
                 ) {
                     when (TodoTab.entries[page]) {
