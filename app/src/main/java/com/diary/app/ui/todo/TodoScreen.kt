@@ -73,6 +73,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.HabitRecord
+import com.diary.app.data.Tag
 import com.diary.app.data.TodoItem
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
@@ -87,7 +88,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.absoluteValue
-import kotlin.math.max
 import kotlinx.coroutines.launch
 
 private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"), DEADLINE("待办") }
@@ -122,6 +122,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     var isMultiSelectMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
+    var editingHabit by remember { mutableStateOf<TodoItem?>(null) }
     var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
 
     deletingTodo?.let { target ->
@@ -190,6 +191,63 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
         )
     }
 
+    editingHabit?.let { habit ->
+        var editName by remember(habit) { mutableStateOf(habit.title) }
+        var selectedLinkedTagIds by remember(habit) {
+            mutableStateOf(TodoItem.getLinkedTagIds(habit.linkedTagIds).toSet())
+        }
+        AlertDialog(
+            onDismissRequest = { editingHabit = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("编辑打卡项") },
+            text = {
+                Column {
+                    TextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        placeholder = { Text("例如：运动、早睡、背单词") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (allTags.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "关联日记分类（可选）",
+                            fontSize = 12.sp,
+                            color = textSecondary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HabitTagSelector(
+                            tags = allTags,
+                            selectedTagIds = selectedLinkedTagIds,
+                            onToggle = { tagId ->
+                                selectedLinkedTagIds = if (tagId in selectedLinkedTagIds) {
+                                    selectedLinkedTagIds - tagId
+                                } else {
+                                    selectedLinkedTagIds + tagId
+                                }
+                            },
+                            textSecondary = textSecondary
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (editName.isNotBlank()) {
+                        viewModel.updateHabit(
+                            habitId = habit.id,
+                            name = editName.trim(),
+                            linkedTagIds = selectedLinkedTagIds.toList()
+                        )
+                        editingHabit = null
+                    }
+                }) { Text("保存") }
+            },
+            dismissButton = { TextButton(onClick = { editingHabit = null }) { Text("取消") } }
+        )
+    }
+
     if (showAddDialog) {
         when (currentTab) {
             TodoTab.HABIT -> {
@@ -216,36 +274,18 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     color = textSecondary
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    allTags.forEach { tag ->
-                                        val isSelected = tag.id in selectedLinkedTagIds
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                                .clickable {
-                                                    selectedLinkedTagIds = if (isSelected) {
-                                                        selectedLinkedTagIds - tag.id
-                                                    } else {
-                                                        selectedLinkedTagIds + tag.id
-                                                    }
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Text(
-                                                text = tag.name,
-                                                fontSize = 12.sp,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary
-                                            )
+                                HabitTagSelector(
+                                    tags = allTags,
+                                    selectedTagIds = selectedLinkedTagIds,
+                                    onToggle = { tagId ->
+                                        selectedLinkedTagIds = if (tagId in selectedLinkedTagIds) {
+                                            selectedLinkedTagIds - tagId
+                                        } else {
+                                            selectedLinkedTagIds + tagId
                                         }
-                                    }
-                                }
+                                    },
+                                    textSecondary = textSecondary
+                                )
                             }
                         }
                     },
@@ -386,7 +426,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                 scope.launch {
                                     pagerState.animateScrollToPage(
                                         page = idx,
-                                        animationSpec = tween(durationMillis = 180, easing = FastOutLinearInEasing)
+                                        animationSpec = tween(durationMillis = 130, easing = FastOutLinearInEasing)
                                     )
                                 }
                             }
@@ -427,10 +467,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                             val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
                                 .absoluteValue
                             val clampedOffset = pageOffset.coerceIn(0f, 1f)
-                            alpha = max(0.35f, 1f - clampedOffset * 1.15f)
-                            val scale = 1f - clampedOffset * 0.035f
-                            scaleX = scale
-                            scaleY = scale
+                            alpha = 1f - clampedOffset * 0.22f
                         }
                 ) {
                     when (TodoTab.entries[page]) {
@@ -492,6 +529,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             selectedMonth = selectedHabitMonth,
             selectedDate = selectedHabitDate,
             onDismiss = { viewModel.closeHabitDetail() },
+            onEdit = { editingHabit = selectedHabit },
             onMonthChange = { delta -> viewModel.moveSelectedHabitMonth(delta) },
             onDateSelect = { date -> viewModel.selectHabitDate(date) },
             onQuickRecord = { summaryText ->
@@ -622,8 +660,8 @@ private fun HabitSummaryCard(
                 )
                 Text(
                     text = "今日打卡",
-                    fontSize = 10.sp,
-                    color = textSecondary
+                    fontSize = 11.sp,
+                    color = textSecondary.copy(alpha = 0.9f)
                 )
             }
             }
@@ -644,8 +682,8 @@ private fun HabitSummaryCard(
                         summary.recordedToday == summary.total -> "今天已经全部完成"
                         else -> "还差 ${summary.total - summary.recordedToday} 项"
                     },
-                    fontSize = 11.sp,
-                    color = textSecondary
+                    fontSize = 12.sp,
+                    color = textSecondary.copy(alpha = 0.88f)
                 )
                 Box(
                     modifier = Modifier
@@ -738,9 +776,9 @@ private fun HabitCard(
                                 }
                                 Text(
                                     text = if (item.todayRecord != null) "已打卡" else statusText,
-                                    fontSize = 9.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = if (item.todayRecord != null) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (item.todayRecord != null) statusColor else textSecondary
+                                    color = if (item.todayRecord != null) statusColor else textSecondary.copy(alpha = 0.88f)
                                 )
                             }
                         }
@@ -749,8 +787,8 @@ private fun HabitCard(
 
                 Text(
                     text = if (item.streak > 0) "${item.streak} 天" else "未开始",
-                    fontSize = 9.sp,
-                    color = textSecondary,
+                    fontSize = 10.sp,
+                    color = textSecondary.copy(alpha = 0.86f),
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
@@ -762,15 +800,15 @@ private fun HabitCard(
             ) {
                 Text(
                     text = summaryText,
-                    fontSize = 10.sp,
-                    color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.8f) else textColor.copy(alpha = 0.88f),
+                    fontSize = 11.sp,
+                    color = if (item.todayRecord == null) textSecondary.copy(alpha = 0.9f) else textColor.copy(alpha = 0.92f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 TextButton(onClick = onQuickCheckIn) {
-                    Text(if (item.todayRecord == null) "记录" else "详情", fontSize = 11.sp)
+                    Text(if (item.todayRecord == null) "记录" else "详情", fontSize = 12.sp)
                 }
             }
 
@@ -820,17 +858,51 @@ private fun HabitRecentStrip(
                 ) {
                     Text(
                         text = day.date.dayOfMonth.toString(),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.78f)
+                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.86f)
                     )
                 }
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = if (day.isToday) "今" else day.date.format(DateTimeFormatter.ofPattern("E")),
-                    fontSize = 8.sp,
-                    color = textSecondary.copy(alpha = 0.6f),
+                    fontSize = 9.sp,
+                    color = textSecondary.copy(alpha = 0.72f),
                     maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HabitTagSelector(
+    tags: List<Tag>,
+    selectedTagIds: Set<Long>,
+    onToggle: (Long) -> Unit,
+    textSecondary: Color
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        tags.forEach { tag ->
+            val isSelected = tag.id in selectedTagIds
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                    .clickable { onToggle(tag.id) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = tag.name,
+                    fontSize = 12.sp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary
                 )
             }
         }
@@ -844,6 +916,7 @@ private fun HabitDetailDialog(
     selectedMonth: YearMonth,
     selectedDate: LocalDate,
     onDismiss: () -> Unit,
+    onEdit: () -> Unit,
     onMonthChange: (Long) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onQuickRecord: (String) -> Unit,
@@ -852,6 +925,25 @@ private fun HabitDetailDialog(
 ) {
     val selectedRecord = records.firstOrNull { it.recordDate == selectedDate.toEpochDay() }
     var quickText by remember(selectedDate, selectedRecord?.summary) { mutableStateOf(selectedRecord?.summary.orEmpty()) }
+    var showDeleteConfirm by remember(selectedDate, selectedRecord?.id) { mutableStateOf(false) }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("清除记录") },
+            text = { Text("确定要清除这一天的打卡记录吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onClear()
+                    showDeleteConfirm = false
+                }) { Text("清除", color = ErrorColor) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") }
+            }
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -884,12 +976,15 @@ private fun HabitDetailDialog(
                         )
                         Text(
                             text = "查看这一项过去的打卡情况",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f)
                         )
                     }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = null)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onEdit) { Text("编辑", fontSize = 12.sp) }
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                        }
                     }
                 }
 
@@ -898,36 +993,17 @@ private fun HabitDetailDialog(
                     selectedDate = selectedDate,
                     records = records,
                     onMonthChange = onMonthChange,
-                    onDateSelect = onDateSelect
+                    onDateSelect = onDateSelect,
+                    onJumpToToday = { onDateSelect(LocalDate.now()) }
                 )
-
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 18.dp,
-                    innerPadding = 12.dp
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = selectedDate.format(DateTimeFormatter.ofPattern("M月d日")),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = selectedRecord?.summary?.takeIf { it.isNotBlank() } ?: "这一天还没有留下内容",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
 
                 TextField(
                     value = quickText,
                     onValueChange = { quickText = it },
                     minLines = 1,
                     maxLines = 3,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    placeholder = { Text("写一句今天的打卡记录", fontSize = 12.sp) },
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    placeholder = { Text("写一句今天的打卡记录", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -937,10 +1013,10 @@ private fun HabitDetailDialog(
                 ) {
                     TextButton(onClick = {
                         if (quickText.isNotBlank()) onQuickRecord(quickText.trim())
-                    }) { Text("保存一句话", fontSize = 12.sp) }
-                    TextButton(onClick = onOpenMore) { Text("写更多内容", fontSize = 12.sp) }
+                    }) { Text("保存", fontSize = 13.sp) }
+                    TextButton(onClick = onOpenMore) { Text("详细", fontSize = 13.sp) }
                     if (selectedRecord != null && selectedRecord.source != HabitRecord.SOURCE_DIARY) {
-                        TextButton(onClick = onClear) { Text("清除记录", fontSize = 12.sp, color = ErrorColor) }
+                        TextButton(onClick = { showDeleteConfirm = true }) { Text("删除", fontSize = 13.sp, color = ErrorColor) }
                     }
                 }
             }
@@ -954,7 +1030,8 @@ private fun HabitCalendar(
     selectedDate: LocalDate,
     records: List<HabitRecord>,
     onMonthChange: (Long) -> Unit,
-    onDateSelect: (LocalDate) -> Unit
+    onDateSelect: (LocalDate) -> Unit,
+    onJumpToToday: () -> Unit
 ) {
     val firstDay = selectedMonth.atDay(1)
     val leading = firstDay.dayOfWeek.value % 7
@@ -975,17 +1052,22 @@ private fun HabitCalendar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { onMonthChange(-1) }) {
-                    Icon(Icons.Default.KeyboardArrowLeft, contentDescription = null)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onMonthChange(-1) }) {
+                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = null)
+                    }
+                    Text(
+                        text = selectedMonth.format(DateTimeFormatter.ofPattern("yyyy年M月")),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    IconButton(onClick = { onMonthChange(1) }) {
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+                    }
                 }
-                Text(
-                    text = selectedMonth.format(DateTimeFormatter.ofPattern("yyyy年M月")),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                IconButton(onClick = { onMonthChange(1) }) {
-                    Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+                TextButton(onClick = onJumpToToday) {
+                    Text("今天", fontSize = 12.sp)
                 }
             }
 
@@ -997,8 +1079,8 @@ private fun HabitCalendar(
                     Text(
                         text = it,
                         modifier = Modifier.weight(1f),
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -1041,8 +1123,8 @@ private fun HabitCalendar(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = date.dayOfMonth.toString(),
-                                        fontSize = 12.sp,
-                                        color = if (record != null) tint else MaterialTheme.colorScheme.onSurfaceVariant
+                                        fontSize = 13.sp,
+                                        color = if (record != null) tint else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f)
                                     )
                                     Spacer(modifier = Modifier.height(3.dp))
                                     if (record != null) {
@@ -1081,15 +1163,15 @@ private fun HabitRecordDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("${habit.title} · ${selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))}", fontSize = 16.sp) },
+        title = { Text("${habit.title} · ${selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))}", fontSize = 17.sp) },
         text = {
             TextField(
                 value = content,
                 onValueChange = { content = it },
                 minLines = 2,
                 maxLines = 5,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                placeholder = { Text("可以只写一句，也可以多写一点", fontSize = 12.sp) },
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                placeholder = { Text("可以只写一句，也可以多写一点", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)) },
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -1097,9 +1179,9 @@ private fun HabitRecordDialog(
             TextButton(
                 onClick = { if (content.isNotBlank()) onSave(content.trim()) },
                 enabled = content.isNotBlank()
-            ) { Text("保存", fontSize = 12.sp) }
+            ) { Text("保存", fontSize = 13.sp) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", fontSize = 12.sp) } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消", fontSize = 13.sp) } }
     )
 }
 

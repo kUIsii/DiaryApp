@@ -210,13 +210,22 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateTodo(todo: TodoItem) {
         viewModelScope.launch {
-            dao.updateTodo(todo)
-            if (todo.reminderTime != null && todo.reminderTime > System.currentTimeMillis() && !todo.isCompleted) {
-                TodoReminderManager.scheduleReminder(context, todo.id, todo.title, todo.reminderTime)
-            } else {
-                TodoReminderManager.cancelReminder(context, todo.id)
-            }
-            refreshWidget()
+            applyTodoUpdate(todo)
+        }
+    }
+
+    fun updateHabit(habitId: Long, name: String, linkedTagIds: List<Long> = emptyList()) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val existing = dao.getTodoById(habitId) ?: return@launch
+            if (existing.category != TodoItem.CATEGORY_GOAL) return@launch
+
+            applyTodoUpdate(
+                existing.copy(
+                    title = name.trim(),
+                    linkedTagIds = TodoItem.setLinkedTagIds(linkedTagIds)
+                )
+            )
         }
     }
 
@@ -236,6 +245,16 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             }
             refreshWidget()
         }
+    }
+
+    private suspend fun applyTodoUpdate(todo: TodoItem) {
+        dao.updateTodo(todo)
+        if (todo.reminderTime != null && todo.reminderTime > System.currentTimeMillis() && !todo.isCompleted) {
+            TodoReminderManager.scheduleReminder(context, todo.id, todo.title, todo.reminderTime)
+        } else {
+            TodoReminderManager.cancelReminder(context, todo.id)
+        }
+        refreshWidget()
     }
 
     private suspend fun createRecurringCopy(original: TodoItem) {
