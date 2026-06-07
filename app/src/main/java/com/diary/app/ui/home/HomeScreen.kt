@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
@@ -77,6 +78,8 @@ fun HomeScreen(
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onNavigateToCountDown: () -> Unit = {},
+    onNavigateToTimeline: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -225,10 +228,31 @@ fun HomeScreen(
                 onDismiss = { showFunctionMenu = false },
                 items = listOf(
                     FunctionMenuItem(
+                        id = "timeline",
+                        title = "时间线",
+                        icon = Icons.Default.CalendarMonth,
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToTimeline()
+                        }
+                    ),
+                    FunctionMenuItem(
+                        id = "stats",
+                        title = "统计",
+                        icon = Icons.Default.BarChart,
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToStats()
+                        }
+                    ),
+                    FunctionMenuItem(
                         id = "countdown",
                         title = "倒数日",
                         icon = Icons.Default.Timer,
-                        onClick = onNavigateToCountDown
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToCountDown()
+                        }
                     )
                 )
             )

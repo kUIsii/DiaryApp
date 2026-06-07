@@ -120,9 +120,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home),
-    BottomNavItem(Screen.Timeline),
     BottomNavItem(Screen.Todo),
-    BottomNavItem(Screen.Stats),
     BottomNavItem(Screen.Profile)
 )
 
@@ -183,7 +181,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToReview = { navController.navigate(Screen.Review.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
-                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) }
+                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
+                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
+                    onNavigateToStats = { navController.navigate(Screen.Stats.route) }
                 )
             }
             composable(Screen.Timeline.route) {
