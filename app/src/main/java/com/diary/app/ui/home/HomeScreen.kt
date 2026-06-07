@@ -170,10 +170,11 @@ fun HomeScreen(
                 }
 
                 // Selected date header
-                if (selectedDate != null) {
+                val currentSelectedDate = selectedDate
+                if (currentSelectedDate != null) {
                     item {
                         SelectedDateHeader(
-                            date = selectedDate!!,
+                            date = currentSelectedDate,
                             entryCount = selectedEntries.size
                         )
                         Spacer(modifier = Modifier.height(12.dp))

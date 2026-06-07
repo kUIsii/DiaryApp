@@ -111,8 +111,8 @@ internal fun TemplateDialog(
 ) {
     var selectedCategory by remember { mutableStateOf<TemplateCategory?>(null) }
     val templates = remember(selectedCategory) {
-        if (selectedCategory == null) TemplateManager.getAllTemplates()
-        else TemplateManager.getTemplatesByCategory(selectedCategory!!)
+        selectedCategory?.let(TemplateManager::getTemplatesByCategory)
+            ?: TemplateManager.getAllTemplates()
     }
 
     AlertDialog(

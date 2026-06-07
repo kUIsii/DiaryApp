@@ -97,7 +97,7 @@ fun TodoFormContent(
                     datePickerState.selectedDateMillis?.let { dateMillis ->
                         val date = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
                         val time = if (reminderTime != null) {
-                            Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalTime()
+                            Instant.ofEpochMilli(reminderTime).atZone(ZoneId.systemDefault()).toLocalTime()
                         } else LocalTime.of(9, 0)
                         onDueDateChange(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
                         onReminderTimeChange(date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
@@ -121,9 +121,9 @@ fun TodoFormContent(
             confirmButton = {
                 TextButton(onClick = {
                     val date = if (reminderTime != null) {
-                        Instant.ofEpochMilli(reminderTime!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                        Instant.ofEpochMilli(reminderTime).atZone(ZoneId.systemDefault()).toLocalDate()
                     } else if (dueDate != null) {
-                        Instant.ofEpochMilli(dueDate!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                        Instant.ofEpochMilli(dueDate).atZone(ZoneId.systemDefault()).toLocalDate()
                     } else LocalDate.now()
                     onReminderTimeChange(
                         date.atTime(LocalTime.of(timePickerState.hour, timePickerState.minute))

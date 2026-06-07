@@ -221,21 +221,34 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WeeklySummary())
 
+    private data class EntryFilterSnapshot(
+        val entries: List<DiaryPreview>,
+        val date: LocalDate?,
+        val query: String,
+        val tagFilter: Long?,
+        val tags: Map<Long, List<TagInfo>>
+    )
+
     private val filteredEntries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
         _selectedDate,
         _searchQuery,
         _selectedTagFilter,
-        tagsMap,
-        _searchFilters
-    ) { args ->
-        @Suppress("UNCHECKED_CAST")
-        val entries = args[0] as List<DiaryPreview>
-        val date = args[1] as LocalDate?
-        val query = args[2] as String
-        val tagFilter = args[3] as Long?
-        val tags = args[4] as Map<Long, List<TagInfo>>
-        val filters = args[5] as SearchFilters
+        tagsMap
+    ) { entries, date, query, tagFilter, tags ->
+        EntryFilterSnapshot(
+            entries = entries,
+            date = date,
+            query = query,
+            tagFilter = tagFilter,
+            tags = tags
+        )
+    }.combine(_searchFilters) { snapshot, filters ->
+        val entries = snapshot.entries
+        val date = snapshot.date
+        val query = snapshot.query
+        val tagFilter = snapshot.tagFilter
+        val tags = snapshot.tags
 
         entries.filter { entry ->
             val matchesDate = date == null || run {
