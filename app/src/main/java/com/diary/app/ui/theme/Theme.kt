@@ -10,8 +10,94 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+
+// Font scale for global text size adjustment
+val LocalFontScale = staticCompositionLocalOf { 1.0f }
+
+fun scaledTypography(scale: Float) = androidx.compose.material3.Typography(
+    headlineLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Bold,
+        fontSize = (28 * scale).sp,
+        lineHeight = (37 * scale).sp,
+        letterSpacing = 0.3.sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Bold,
+        fontSize = (22 * scale).sp,
+        lineHeight = (29 * scale).sp,
+        letterSpacing = 0.3.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = (18 * scale).sp,
+        lineHeight = (25 * scale).sp,
+        letterSpacing = 0.3.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = (20 * scale).sp,
+        lineHeight = (27 * scale).sp,
+        letterSpacing = 0.3.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = (16 * scale).sp,
+        lineHeight = (22 * scale).sp,
+        letterSpacing = 0.3.sp
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = (16 * scale).sp,
+        lineHeight = (28 * scale).sp,
+        letterSpacing = 0.4.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Normal,
+        fontSize = (14 * scale).sp,
+        lineHeight = (23 * scale).sp,
+        letterSpacing = 0.4.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = (12 * scale).sp,
+        lineHeight = (16 * scale).sp,
+        letterSpacing = 0.5.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = (12 * scale).sp,
+        lineHeight = (15 * scale).sp,
+        letterSpacing = 0.5.sp
+    )
+)
+
+fun getFontScale(context: android.content.Context): Float {
+    val prefs = context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
+    return when (prefs.getString("editor_font_size", "small")) {
+        "tiny" -> 0.85f
+        "small" -> 1.0f
+        "medium" -> 1.15f
+        "large" -> 1.3f
+        "extra_large" -> 1.5f
+        else -> 1.0f
+    }
+}
 
 // Extended colors for semantic & gradient access via CompositionLocal
 data class ExtendedColors(
@@ -166,6 +252,9 @@ fun DiaryAppTheme(
         ThemeMode.MOSS_GREEN_DARK -> MossGreenDarkExtendedColors
     }
 
+    val context = LocalContext.current
+    val fontScale = getFontScale(context)
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -177,11 +266,12 @@ fun DiaryAppTheme(
 
     CompositionLocalProvider(
         LocalThemeMode provides themeMode,
-        LocalExtendedColors provides extendedColors
+        LocalExtendedColors provides extendedColors,
+        LocalFontScale provides fontScale
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography
+            typography = scaledTypography(fontScale)
         ) {
             content()
         }
