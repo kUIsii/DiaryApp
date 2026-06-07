@@ -90,15 +90,16 @@ fun CountDownScreen(
         )
     }
 
-    if (showDeleteDialog && itemToDelete != null) {
+    val currentItemToDelete = itemToDelete
+    if (showDeleteDialog && currentItemToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${itemToDelete!!.title}」吗？") },
+            text = { Text("确定要删除「${currentItemToDelete.title}」吗？") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteItem(itemToDelete!!.id)
+                        viewModel.deleteItem(currentItemToDelete.id)
                         showDeleteDialog = false
                     }
                 ) {

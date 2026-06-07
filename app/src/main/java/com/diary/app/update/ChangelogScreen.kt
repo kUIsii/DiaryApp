@@ -177,9 +177,10 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val currentError = error
             when {
                 isLoading -> ChangelogLoadingState(textSecondary)
-                error != null -> ChangelogErrorState(error!!, textSecondary)
+                currentError != null -> ChangelogErrorState(currentError, textSecondary)
                 releases.isEmpty() -> ChangelogEmptyState(textColor, textSecondary)
                 else -> {
                     LazyColumn(

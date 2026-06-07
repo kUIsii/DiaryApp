@@ -121,8 +121,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        val weatherDistribution = entries.filter { !it.weather.isNullOrBlank() }
-            .groupBy { it.weather!! }
+        val weatherDistribution = entries.mapNotNull { entry ->
+            entry.weather?.takeIf { it.isNotBlank() }?.let { weather -> weather to entry }
+        }
+            .groupBy({ it.first }, { it.second })
             .map { (type, list) -> WeatherStat(type, list.size) }
             .sortedByDescending { it.count }
 
@@ -239,9 +241,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
         if (recentEntries.isEmpty()) return null
 
-        val recentAvg = recentEntries.map { it.moodLevel!! }.average()
+        val recentAvg = recentEntries.mapNotNull { it.moodLevel }.average()
         val previousAvg = if (previousEntries.isNotEmpty())
-            previousEntries.map { it.moodLevel!! }.average()
+            previousEntries.mapNotNull { it.moodLevel }.average()
         else null
 
         val direction = if (previousAvg != null) {

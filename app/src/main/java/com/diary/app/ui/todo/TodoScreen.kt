@@ -383,8 +383,9 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                if (content.isNotBlank() && selectedDate != null) {
-                                    viewModel.addDeadline(content.trim(), selectedDate!!)
+                                val currentSelectedDate = selectedDate
+                                if (content.isNotBlank() && currentSelectedDate != null) {
+                                    viewModel.addDeadline(content.trim(), currentSelectedDate)
                                     showAddDialog = false
                                 }
                             },
@@ -522,9 +523,10 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
         }
     }
 
-    if (showHabitDetail && selectedHabit != null) {
+    val currentSelectedHabit = selectedHabit
+    if (showHabitDetail && currentSelectedHabit != null) {
         HabitDetailDialog(
-            habit = selectedHabit!!,
+            habit = currentSelectedHabit,
             records = selectedHabitRecords,
             selectedMonth = selectedHabitMonth,
             selectedDate = selectedHabitDate,
@@ -534,26 +536,26 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
             onDateSelect = { date -> viewModel.selectHabitDate(date) },
             onQuickRecord = { summaryText ->
                 viewModel.saveHabitQuickRecord(
-                    habitId = selectedHabit!!.id,
+                    habitId = currentSelectedHabit.id,
                     date = selectedHabitDate,
                     summary = summaryText,
                     source = HabitRecord.SOURCE_MANUAL
                 )
             },
-            onOpenMore = { viewModel.showHabitRecordDialog(selectedHabit!!.id, selectedHabitDate) },
-            onClear = { viewModel.clearHabitRecordForDay(selectedHabit!!.id, selectedHabitDate) }
+            onOpenMore = { viewModel.showHabitRecordDialog(currentSelectedHabit.id, selectedHabitDate) },
+            onClear = { viewModel.clearHabitRecordForDay(currentSelectedHabit.id, selectedHabitDate) }
         )
     }
 
-    if (showHabitRecordDialog && selectedHabit != null) {
+    if (showHabitRecordDialog && currentSelectedHabit != null) {
         HabitRecordDialog(
-            habit = selectedHabit!!,
+            habit = currentSelectedHabit,
             selectedDate = selectedHabitDate,
             existingRecord = selectedHabitRecords.firstOrNull { it.recordDate == selectedHabitDate.toEpochDay() },
             onDismiss = { viewModel.hideHabitRecordDialog() },
             onSave = { summaryText ->
                 viewModel.saveHabitQuickRecord(
-                    habitId = selectedHabit!!.id,
+                    habitId = currentSelectedHabit.id,
                     date = selectedHabitDate,
                     summary = summaryText,
                     source = HabitRecord.SOURCE_DETAIL
