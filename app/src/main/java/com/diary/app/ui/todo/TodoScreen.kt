@@ -790,37 +790,41 @@ private fun MemoItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 左侧图标：点击切换完成状态
-        if (isMultiSelectMode) {
-            Icon(
-                imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
-                contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.4f),
-                modifier = Modifier.size(18.dp)
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .clickable { onToggle() }
-                    .background(
-                        if (item.isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                        else Color.Transparent
-                    )
-                    .border(
-                        width = 1.5.dp,
-                        color = if (item.isCompleted) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.3f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (item.isCompleted) {
-                    Icon(
-                        Icons.Default.Check, null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(12.dp)
-                    )
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .clickable {
+                    if (isMultiSelectMode) {
+                        onToggleSelection()
+                    } else {
+                        onToggle()
+                    }
                 }
+                .background(
+                    when {
+                        isMultiSelectMode && isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        item.isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else -> Color.Transparent
+                    }
+                )
+                .border(
+                    width = 1.5.dp,
+                    color = when {
+                        isMultiSelectMode && isSelected -> MaterialTheme.colorScheme.primary
+                        item.isCompleted -> MaterialTheme.colorScheme.primary
+                        else -> textSecondary.copy(alpha = 0.3f)
+                    },
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isMultiSelectMode && isSelected || item.isCompleted) {
+                Icon(
+                    Icons.Default.Check, null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(12.dp)
+                )
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
