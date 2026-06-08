@@ -77,6 +77,7 @@ internal fun EditorToolbar(
     onHideKeyboard: () -> Unit = {},
     onShowKeyboard: () -> Unit = {},
     onClose: () -> Unit = {},
+    onHideToolbar: () -> Unit = {},
     isFocusWritingMode: Boolean = false,
     onWritingModeChange: (Boolean) -> Unit = {},
     fontSize: Int = 14,
@@ -109,6 +110,16 @@ internal fun EditorToolbar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Hide toolbar button
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "收起工具栏",
+                tint = textColor.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onHideToolbar() }
+            )
+
             TextButton(
                 onClick = {
                     val nextMode = !isFocusWritingMode

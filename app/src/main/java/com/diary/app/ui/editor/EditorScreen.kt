@@ -41,11 +41,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -143,16 +147,20 @@ fun EditorScreen(
     // Which metadata panel is open: null = none, "mood", "weather", "tags"
     var activePanel by remember { mutableStateOf<String?>(null) }
 
+    // Metadata collapse state
+    var isMetadataExpanded by remember { mutableStateOf(true) }
+
     // Toolbar state - initially hidden, shown when keyboard appears
     var showToolbar by remember { mutableStateOf(false) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
     var isFullEditorVisible by remember { mutableStateOf(false) }
+    var isToolbarManuallyHidden by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
     LaunchedEffect(isKeyboardVisible) {
-        if (isKeyboardVisible) {
+        if (isKeyboardVisible && !isToolbarManuallyHidden) {
             showToolbar = true
             // When keyboard reappears, close any open sub-panel
             if (activeCategory >= 0) {
@@ -781,8 +789,19 @@ fun EditorScreen(
                 IconButton(onClick = { showDraftsDialog = true }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Description, contentDescription = "草稿箱", tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
-                IconButton(onClick = { showTemplateDialog = true }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.MenuBook, contentDescription = stringResource(R.string.select_template), tint = textSecondary, modifier = Modifier.size(20.dp))
+                IconButton(
+                    onClick = {
+                        isToolbarManuallyHidden = !isToolbarManuallyHidden
+                        showToolbar = !isToolbarManuallyHidden
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isToolbarManuallyHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (isToolbarManuallyHidden) "显示编辑器" else "隐藏编辑器",
+                        tint = textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 IconButton(onClick = {
                     webView?.evaluateJavascript("getContent()") { json ->
@@ -951,55 +970,125 @@ fun EditorScreen(
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Row 1: mood + weather + category
+                    // Collapse/expand button
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        // Mood chip
-                        val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
-                        val currentSelectedMood = selectedMood
-                        MetadataChip(
-                            label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
-                            icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
-                            isSelected = currentSelectedMood != null,
-                            isActive = activePanel == "mood",
-                            onClick = { activePanel = if (activePanel == "mood") null else "mood" },
-                            accentColor = moodColor,
-                            modifier = Modifier.weight(1f)
-                        )
-                        // Weather chip
-                        val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
-                        MetadataChip(
-                            label = selectedWeather ?: "天气",
-                            icon = weatherIconFor(selectedWeather).icon,
-                            isSelected = selectedWeather != null,
-                            isActive = activePanel == "weather",
-                            onClick = { activePanel = if (activePanel == "weather") null else "weather" },
-                            accentColor = weatherColor,
-                            modifier = Modifier.weight(1f)
-                        )
-                        val rowTagLabel = summarizeSelectedNames(
-                            names = allTags.filter { it.id in selectedTagIds }.map { it.name },
-                            emptyLabel = "标签"
-                        )
-                        MetadataChip(
-                            label = rowTagLabel,
-                            icon = Icons.Default.Sell,
-                            isSelected = selectedTagIds.isNotEmpty(),
-                            isActive = activePanel == "tags",
-                            onClick = { activePanel = if (activePanel == "tags") null else "tags" },
-                            modifier = Modifier.weight(1f)
+                        Icon(
+                            imageVector = if (isMetadataExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isMetadataExpanded) "收起" else "展开",
+                            tint = textSecondary.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { isMetadataExpanded = !isMetadataExpanded }
                         )
                     }
-                    // Row 2: location (left-aligned)
-                    MetadataChip(
-                        label = resolveCenteredLocationLabel(selectedLocation),
-                        icon = Icons.Default.LocationOn,
-                        isSelected = selectedLocation != null,
-                        isActive = activePanel == "location",
-                        onClick = { activePanel = if (activePanel == "location") null else "location" }
-                    )
+
+                    if (isMetadataExpanded) {
+                        // Row 1: mood + weather + category
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Mood chip
+                            val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+                            val currentSelectedMood = selectedMood
+                            MetadataChip(
+                                label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
+                                icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
+                                isSelected = currentSelectedMood != null,
+                                isActive = activePanel == "mood",
+                                onClick = { activePanel = if (activePanel == "mood") null else "mood" },
+                                accentColor = moodColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            // Weather chip
+                            val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
+                            MetadataChip(
+                                label = selectedWeather ?: "天气",
+                                icon = weatherIconFor(selectedWeather).icon,
+                                isSelected = selectedWeather != null,
+                                isActive = activePanel == "weather",
+                                onClick = { activePanel = if (activePanel == "weather") null else "weather" },
+                                accentColor = weatherColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            val rowTagLabel = summarizeSelectedNames(
+                                names = allTags.filter { it.id in selectedTagIds }.map { it.name },
+                                emptyLabel = "标签"
+                            )
+                            MetadataChip(
+                                label = rowTagLabel,
+                                icon = Icons.Default.Sell,
+                                isSelected = selectedTagIds.isNotEmpty(),
+                                isActive = activePanel == "tags",
+                                onClick = { activePanel = if (activePanel == "tags") null else "tags" },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // Row 2: location (left-aligned)
+                        MetadataChip(
+                            label = resolveCenteredLocationLabel(selectedLocation),
+                            icon = Icons.Default.LocationOn,
+                            isSelected = selectedLocation != null,
+                            isActive = activePanel == "location",
+                            onClick = { activePanel = if (activePanel == "location") null else "location" }
+                        )
+                    } else {
+                        // Collapsed: show small icons only
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val currentSelectedMood = selectedMood
+                            Icon(
+                                imageVector = moodIconForLevel(currentSelectedMood ?: 3).icon,
+                                contentDescription = "心情",
+                                tint = if (currentSelectedMood != null) moodIconForLevel(currentSelectedMood).tint else textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable {
+                                        isMetadataExpanded = true
+                                        activePanel = "mood"
+                                    }
+                            )
+                            Icon(
+                                imageVector = weatherIconFor(selectedWeather).icon,
+                                contentDescription = "天气",
+                                tint = if (selectedWeather != null) weatherIconFor(selectedWeather).tint else textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable {
+                                        isMetadataExpanded = true
+                                        activePanel = "weather"
+                                    }
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Sell,
+                                contentDescription = "标签",
+                                tint = if (selectedTagIds.isNotEmpty()) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable {
+                                        isMetadataExpanded = true
+                                        activePanel = "tags"
+                                    }
+                            )
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "位置",
+                                tint = if (selectedLocation != null) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable {
+                                        isMetadataExpanded = true
+                                        activePanel = "location"
+                                    }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1217,6 +1306,10 @@ fun EditorScreen(
                 onShowKeyboard = {
                     webView?.requestFocus()
                     webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                },
+                onHideToolbar = {
+                    isToolbarManuallyHidden = true
+                    showToolbar = false
                 },
                 onClose = {
                     if (hasUnsavedChanges) showUnsavedDialog = true

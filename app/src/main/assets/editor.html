@@ -12,6 +12,8 @@
             --accent-light: rgba(74, 144, 217, 0.1);
             --blockquote-bg: rgba(74, 144, 217, 0.05);
             --code-bg: rgba(0,0,0,0.03);
+            --line-height: 19.6px;
+            --line-color: rgba(0,0,0,0.06);
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -20,6 +22,7 @@
             --accent-light: rgba(107, 168, 232, 0.15);
             --blockquote-bg: rgba(107, 168, 232, 0.08);
             --code-bg: rgba(255,255,255,0.05);
+            --line-color: rgba(255,255,255,0.06);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
@@ -49,12 +52,28 @@
             padding: 0 16px calc(var(--editor-bottom-gap, 180px));
             color: var(--text);
             background: transparent;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent calc(var(--line-height) - 1px),
+                var(--line-color) calc(var(--line-height) - 1px),
+                var(--line-color) var(--line-height)
+            );
+            background-attachment: local;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
         .theme-dark .ql-editor {
             background: transparent;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent calc(var(--line-height) - 1px),
+                var(--line-color) calc(var(--line-height) - 1px),
+                var(--line-color) var(--line-height)
+            );
+            background-attachment: local;
         }
         .ql-editor.ql-blank::before {
             color: var(--placeholder);
@@ -475,7 +494,11 @@
             quill.setText(text);
             resetEditorContext();
         }
-        function setFontSize(size) { document.querySelector('.ql-editor').style.fontSize = size + 'px'; }
+        function setFontSize(size) {
+            var editor = document.querySelector('.ql-editor');
+            editor.style.fontSize = size + 'px';
+            document.documentElement.style.setProperty('--line-height', (size * 1.4) + 'px');
+        }
         function focusEditor() { quill.focus(); }
         function focusEditorWithRestore() {
             quill.focus();
