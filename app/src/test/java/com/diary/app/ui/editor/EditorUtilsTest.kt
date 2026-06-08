@@ -24,4 +24,44 @@ class EditorUtilsTest {
 
         assertEquals("工作 · 阅读 +1", summary)
     }
+    @Test
+    fun `normalize editor color converts rgb values to hex`() {
+        val normalized = normalizeEditorColor("rgb(231, 76, 60)")
+
+        assertEquals("#e74c3c", normalized)
+    }
+
+    @Test
+    fun `normalize editor color handles uppercase hex and alpha channels`() {
+        val normalized = normalizeEditorColor("RGBA(74, 144, 217, 0.9)")
+
+        assertEquals("#4a90d9", normalized)
+    }
+
+    @Test
+    fun `draft keys to clear removes both new and current entry drafts`() {
+        val keys = draftKeysToClear(42L)
+
+        assertEquals(setOf("draft_new", "draft_42"), keys)
+    }
+
+    @Test
+    fun `draft keys to clear without entry only removes new draft`() {
+        val keys = draftKeysToClear(null)
+
+        assertEquals(setOf("draft_new"), keys)
+    }
+
+    @Test
+    fun `should restore draft only for new entries with non blank content`() {
+        assertEquals(true, shouldRestoreDraft(diaryId = null, plainText = "hello"))
+        assertEquals(false, shouldRestoreDraft(diaryId = 7L, plainText = "hello"))
+        assertEquals(false, shouldRestoreDraft(diaryId = null, plainText = "   "))
+    }
+
+    @Test
+    fun `normalize editor color returns null for transparent like values`() {
+        assertEquals(null, normalizeEditorColor("transparent"))
+        assertEquals(null, normalizeEditorColor("false"))
+    }
 }

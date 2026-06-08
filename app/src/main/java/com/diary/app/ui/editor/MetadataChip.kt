@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.defaultMinSize
@@ -41,14 +42,16 @@ internal fun MetadataChip(
 
     Box(
         modifier = modifier
+            .fillMaxWidth()
             .defaultMinSize(minHeight = 38.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -60,8 +63,9 @@ internal fun MetadataChip(
             )
             Text(
                 text = label,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = contentColor,
+                modifier = Modifier.weight(1f, fill = false),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

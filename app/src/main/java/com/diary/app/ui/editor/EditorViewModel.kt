@@ -119,7 +119,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun onManualSaveCompleted(diaryId: Long?) {
-        clearDraft(diaryId)
+        clearDraftsForSavedEntry(diaryId)
         _hasUnsavedChanges.value = false
     }
 
@@ -144,6 +144,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearDraft(diaryId: Long?) {
         prefs.edit().remove(draftKey(diaryId)).apply()
+    }
+
+    fun clearDraftsForSavedEntry(diaryId: Long?) {
+        val editor = prefs.edit()
+        draftKeysToClear(diaryId).forEach(editor::remove)
+        editor.apply()
     }
 
     // Draft list management
@@ -298,7 +304,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
         }
 
-        clearDraft(diaryId)
+        clearDraftsForSavedEntry(diaryId)
         _hasUnsavedChanges.value = false
 
         return entryId

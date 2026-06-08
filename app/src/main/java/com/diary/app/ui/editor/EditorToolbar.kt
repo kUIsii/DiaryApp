@@ -540,13 +540,13 @@ private fun ColorSubPanel(
             val colors = if (isTextColorMode) textColors else bgColors
             val command = if (isTextColorMode) "setTextColor" else "setBackgroundColor"
             val activeColorKey = if (isTextColorMode) "color" else "background"
-            val currentColorHex = activeFormats[activeColorKey]?.toString()?.lowercase()
+            val currentColorHex = normalizeEditorColor(activeFormats[activeColorKey]?.toString())
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 colors.forEach { color ->
-                    val hex = "#${Integer.toHexString(color.toInt()).substring(2).lowercase()}"
+                    val hex = normalizeEditorColor("#${Integer.toHexString(color.toInt()).substring(2)}")
                     val isSelected = currentColorHex == hex
 
                     Box(

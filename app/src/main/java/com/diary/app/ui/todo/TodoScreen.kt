@@ -1,12 +1,20 @@
 package com.diary.app.ui.todo
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,16 +59,16 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -87,8 +93,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.absoluteValue
-import kotlinx.coroutines.launch
 
 private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"), DEADLINE("待办") }
 
@@ -107,11 +111,10 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val showHabitDetail by viewModel.showHabitDetail.collectAsState()
     val showHabitRecordDialog by viewModel.showHabitRecordDialog.collectAsState()
 
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    val scope = rememberCoroutineScope()
+    var currentPageIndex by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val currentTab = TodoTab.entries[pagerState.currentPage]
+    val currentTab = TodoTab.entries[currentPageIndex]
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -424,12 +427,7 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                             )
                             .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
                             .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(
-                                        page = idx,
-                                        animationSpec = tween(durationMillis = 130, easing = FastOutLinearInEasing)
-                                    )
-                                }
+                                currentPageIndex = idx
                             }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -454,69 +452,105 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                 }
             }
 
-            HorizontalPager(
-                state = pagerState,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .clipToBounds()
-            ) { page ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                            val clampedOffset = rawOffset.coerceIn(-1f, 1f)
-                            translationX = size.width * clampedOffset * 0.92f
-                            alpha = 1f - clampedOffset.absoluteValue * 0.08f
+                    .pointerInput(currentPageIndex) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDrag += dragAmount
+                            },
+                            onDragEnd = {
+                                when {
+                                    totalDrag <= -48f && currentPageIndex < TodoTab.entries.lastIndex -> {
+                                        currentPageIndex += 1
+                                    }
+                                    totalDrag >= 48f && currentPageIndex > 0 -> {
+                                        currentPageIndex -= 1
+                                    }
+                                }
+                            }
+                        )
+                    }
+            ) {
+                AnimatedContent(
+                    targetState = currentPageIndex,
+                    transitionSpec = {
+                        val forward = targetState > initialState
+                        val enter = slideInHorizontally(
+                            animationSpec = tween(durationMillis = 210, easing = LinearOutSlowInEasing),
+                            initialOffsetX = { fullWidth ->
+                                if (forward) fullWidth / 10 else -fullWidth / 10
+                            }
+                        ) + fadeIn(
+                            animationSpec = tween(durationMillis = 190, easing = LinearOutSlowInEasing),
+                            initialAlpha = 0.78f
+                        )
+                        val exit = slideOutHorizontally(
+                            animationSpec = tween(durationMillis = 110, easing = FastOutLinearInEasing),
+                            targetOffsetX = { fullWidth ->
+                                if (forward) -fullWidth / 24 else fullWidth / 24
+                            }
+                        ) + fadeOut(
+                            animationSpec = tween(durationMillis = 90, easing = FastOutLinearInEasing)
+                        )
+                        enter togetherWith exit
+                    },
+                    label = "todo_tab_cutover"
+                ) { page ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (TodoTab.entries[page]) {
+                            TodoTab.HABIT -> HabitTab(
+                                habits = habitUiState,
+                                summary = habitSummary,
+                                viewModel = viewModel,
+                                textColor = textColor,
+                                textSecondary = textSecondary,
+                                onAdd = { showAddDialog = true },
+                                onDeleteRequest = { deletingTodo = it }
+                            )
+                            TodoTab.MEMO -> MemoTab(
+                                items = memoItems,
+                                viewModel = viewModel,
+                                textColor = textColor,
+                                textSecondary = textSecondary,
+                                onAdd = { showAddDialog = true },
+                                onDeleteRequest = { deletingTodo = it },
+                                onEdit = { editingTodo = it },
+                                isMultiSelectMode = isMultiSelectMode,
+                                selectedIds = selectedIds,
+                                onToggleSelection = { id ->
+                                    selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+                                },
+                                onMultiSelectModeChange = { mode ->
+                                    isMultiSelectMode = mode
+                                    if (!mode) selectedIds = emptySet()
+                                }
+                            )
+                            TodoTab.DEADLINE -> DeadlineTab(
+                                items = deadlineItems,
+                                viewModel = viewModel,
+                                textColor = textColor,
+                                textSecondary = textSecondary,
+                                onAdd = { showAddDialog = true },
+                                onDeleteRequest = { deletingTodo = it },
+                                onEdit = { editingTodo = it },
+                                isMultiSelectMode = isMultiSelectMode,
+                                selectedIds = selectedIds,
+                                onToggleSelection = { id ->
+                                    selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+                                },
+                                onMultiSelectModeChange = { mode ->
+                                    isMultiSelectMode = mode
+                                    if (!mode) selectedIds = emptySet()
+                                }
+                            )
                         }
-                ) {
-                    when (TodoTab.entries[page]) {
-                        TodoTab.HABIT -> HabitTab(
-                            habits = habitUiState,
-                            summary = habitSummary,
-                            viewModel = viewModel,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onAdd = { showAddDialog = true },
-                            onDeleteRequest = { deletingTodo = it }
-                        )
-                        TodoTab.MEMO -> MemoTab(
-                            items = memoItems,
-                            viewModel = viewModel,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onAdd = { showAddDialog = true },
-                            onDeleteRequest = { deletingTodo = it },
-                            onEdit = { editingTodo = it },
-                            isMultiSelectMode = isMultiSelectMode,
-                            selectedIds = selectedIds,
-                            onToggleSelection = { id ->
-                                selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
-                            },
-                            onMultiSelectModeChange = { mode ->
-                                isMultiSelectMode = mode
-                                if (!mode) selectedIds = emptySet()
-                            }
-                        )
-                        TodoTab.DEADLINE -> DeadlineTab(
-                            items = deadlineItems,
-                            viewModel = viewModel,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onAdd = { showAddDialog = true },
-                            onDeleteRequest = { deletingTodo = it },
-                            onEdit = { editingTodo = it },
-                            isMultiSelectMode = isMultiSelectMode,
-                            selectedIds = selectedIds,
-                            onToggleSelection = { id ->
-                                selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
-                            },
-                            onMultiSelectModeChange = { mode ->
-                                isMultiSelectMode = mode
-                                if (!mode) selectedIds = emptySet()
-                            }
-                        )
                     }
                 }
             }

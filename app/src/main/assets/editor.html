@@ -22,22 +22,33 @@
             --code-bg: rgba(255,255,255,0.05);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
             background: transparent;
             color: var(--text);
+            overflow: hidden;
         }
         .ql-toolbar.ql-snow { display: none !important; }
+        #editor {
+            height: 100vh;
+        }
         .ql-container.ql-snow {
             border: none !important;
             font-size: 14px;
             line-height: 1.4;
+            height: 100% !important;
         }
         .ql-editor {
-            min-height: 300px;
-            padding: 0 16px 200px;
+            min-height: 100%;
+            padding: 0 16px calc(var(--editor-bottom-gap, 220px));
             color: var(--text);
             background: transparent;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         .theme-dark .ql-editor {
             background: transparent;
@@ -72,72 +83,79 @@
             margin-bottom: 2px;
         }
 
-        /* Bullet list - override Quill defaults */
-        .ql-editor ul {
+        /* Bullet list */
+        .ql-editor ul:not([data-checked]) {
             padding-left: 0 !important;
             margin: 0 0 8px 0 !important;
         }
-        .ql-editor ul li {
+        .ql-editor ul:not([data-checked]) > li {
             list-style: none !important;
             position: relative !important;
             padding-left: 20px !important;
-            margin-bottom: 2px !important;
+            margin-bottom: 4px !important;
         }
-        .ql-editor ul li::before {
+        .ql-editor ul:not([data-checked]) > li::before {
             content: "\25CF" !important;
             position: absolute !important;
             left: 2px !important;
-            top: 1px !important;
+            top: 2px !important;
             color: var(--text) !important;
             font-size: 8px !important;
-            line-height: inherit;
+            line-height: inherit !important;
         }
 
-        /* Checkbox items */
-        .ql-editor ul li[data-list="checked"],
-        .ql-editor ul li[data-list="unchecked"] {
+        /* Checkbox list */
+        .ql-editor ul[data-checked="true"],
+        .ql-editor ul[data-checked="false"] {
+            padding-left: 0 !important;
+            margin: 0 0 8px 0 !important;
+            pointer-events: auto !important;
+        }
+        .ql-editor ul[data-checked="true"] > li,
+        .ql-editor ul[data-checked="false"] > li {
             list-style: none !important;
-            padding-left: 28px !important;
-            cursor: pointer;
             position: relative !important;
+            padding-left: 28px !important;
+            margin-bottom: 4px !important;
+            cursor: pointer !important;
         }
-        .ql-editor ul li[data-list="unchecked"]::before {
+        .ql-editor ul[data-checked="false"] > li::before {
             content: "" !important;
             position: absolute !important;
             left: 2px !important;
             top: 3px !important;
-            width: 16px !important;
-            height: 16px !important;
-            border: 2px solid var(--text) !important;
-            border-radius: 3px !important;
+            width: 15px !important;
+            height: 15px !important;
+            border: 1.5px solid var(--text) !important;
+            border-radius: 4px !important;
             background: transparent !important;
-            opacity: 0.5;
+            opacity: 0.55 !important;
         }
-        .ql-editor ul li[data-list="checked"]::before {
+        .ql-editor ul[data-checked="true"] > li::before {
             content: "" !important;
             position: absolute !important;
             left: 2px !important;
             top: 3px !important;
-            width: 16px !important;
-            height: 16px !important;
-            border: 2px solid var(--accent) !important;
-            border-radius: 3px !important;
+            width: 15px !important;
+            height: 15px !important;
+            border: 1.5px solid var(--accent) !important;
+            border-radius: 4px !important;
             background: var(--accent) !important;
         }
-        .ql-editor ul li[data-list="checked"]::after {
+        .ql-editor ul[data-checked="true"] > li::after {
             content: "" !important;
             position: absolute !important;
             left: 7px !important;
             top: 5px !important;
-            width: 5px !important;
-            height: 9px !important;
+            width: 4px !important;
+            height: 8px !important;
             border: solid #fff !important;
             border-width: 0 2px 2px 0 !important;
             transform: rotate(45deg) !important;
         }
-        .ql-editor ul li[data-list="checked"] {
+        .ql-editor ul[data-checked="true"] > li {
             text-decoration: line-through;
-            opacity: 0.6;
+            opacity: 0.68;
         }
 
         /* Divider */
@@ -280,8 +298,16 @@
             quill.insertEmbed(lineEnd, 'divider', true);
             quill.setSelection(lineEnd + 1);
         }
-        function setTextColor(color) { quill.format('color', color || false); reportFormat(); }
-        function setBackgroundColor(color) { quill.format('background', color || false); reportFormat(); }
+        function setTextColor(color) {
+            var normalized = color === false ? false : (color || false);
+            quill.format('color', normalized);
+            reportFormat();
+        }
+        function setBackgroundColor(color) {
+            var normalized = color === false ? false : (color || false);
+            quill.format('background', normalized);
+            reportFormat();
+        }
         function clearFormatting() {
             var r = quill.getSelection();
             if (r) {
@@ -372,6 +398,25 @@
         function setTemplate(text) { quill.setText(text); }
         function setFontSize(size) { document.querySelector('.ql-editor').style.fontSize = size + 'px'; }
         function focusEditor() { quill.focus(); }
+        function setEditorBottomGap(pixels) {
+            var safePixels = Math.max(Number(pixels) || 0, 96);
+            document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
+        }
+        function syncViewportSize() {
+            var viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            var safeHeight = Math.max(Math.floor(viewportHeight || window.innerHeight || 0), 240);
+            var editorRoot = document.getElementById('editor');
+            if (editorRoot) {
+                editorRoot.style.height = safeHeight + 'px';
+            }
+        }
+        syncViewportSize();
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncViewportSize);
+            window.visualViewport.addEventListener('scroll', syncViewportSize);
+        } else {
+            window.addEventListener('resize', syncViewportSize);
+        }
 
         // Content change callback for word count and auto-save
         quill.on('text-change', function() {
@@ -393,7 +438,7 @@
                 if (window.DiaryBridge) {
                     clearTimeout(formatChangeTimer);
                     formatChangeTimer = setTimeout(function() {
-                        var formats = quill.getFormat(range);
+                        var formats = quill.getFormat(range.index, Math.max(range.length, 1));
                         DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
                     }, 120);
                 }
@@ -475,7 +520,7 @@
 
         // Click on checkbox item to toggle checked/unchecked
         document.querySelector('.ql-editor').addEventListener('click', function(e) {
-            var li = e.target.closest ? e.target.closest('li[data-list="checked"], li[data-list="unchecked"]') : null;
+            var li = e.target.closest ? e.target.closest('ul[data-checked] > li') : null;
             if (!li) return;
             // Only toggle if click is on the checkbox area (left 30px)
             var rect = li.getBoundingClientRect();
@@ -486,9 +531,9 @@
             var index = quill.getIndex(blot);
             var length = blot.length();
             var format = quill.getFormat(index, length);
-            if (format.list === 'checked') {
+            if (format.list === 'checked' || li.parentElement.getAttribute('data-checked') === 'true') {
                 quill.formatLine(index, length, 'list', 'unchecked');
-            } else if (format.list === 'unchecked') {
+            } else if (format.list === 'unchecked' || li.parentElement.getAttribute('data-checked') === 'false') {
                 quill.formatLine(index, length, 'list', 'checked');
             }
             reportFormat();
@@ -500,12 +545,15 @@
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
+                        syncViewportSize();
+                        var cursorTop = bounds.top;
                         var cursorBottom = bounds.top + bounds.height;
-                        var editorVisibleBottom = editor.scrollTop + editor.clientHeight;
-                        // Always scroll if cursor is in the bottom third or above visible area
-                        var threshold = editor.clientHeight * 0.6;
-                        if (cursorBottom > editor.scrollTop + threshold || bounds.top < editor.scrollTop + 30) {
-                            editor.scrollTo({ top: bounds.top - editor.clientHeight / 3, behavior: 'smooth' });
+                        var visibleTop = editor.scrollTop + 16;
+                        var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 220;
+                        var visibleBottom = editor.scrollTop + editor.clientHeight - Math.max(bottomGap * 0.45, 96);
+                        if (cursorBottom > visibleBottom || cursorTop < visibleTop) {
+                            var targetTop = Math.max(bounds.top - editor.clientHeight / 3, 0);
+                            editor.scrollTo({ top: targetTop, behavior: 'smooth' });
                         }
                     }
                 } catch(e) {}

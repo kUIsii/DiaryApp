@@ -99,8 +99,8 @@ fun MoodSlider(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 14.dp)
-                .heightIn(min = 86.dp),
+                .padding(top = 10.dp)
+                .heightIn(min = 74.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             for (i in 0 until 6) {
@@ -172,21 +172,22 @@ private fun MoodItem(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(56.dp)
-                .scale(pulseScale)
+                modifier = Modifier
+                    .size(48.dp)
+                    .scale(pulseScale)
         ) {
             // 外圈光环效果（仅选中）
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(color.copy(alpha = 0.15f))
                 )
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(42.dp)
                         .clip(CircleShape)
                         .background(color.copy(alpha = 0.1f))
                 )
@@ -197,6 +198,7 @@ private fun MoodItem(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(
                         if (isSelected) {
@@ -220,17 +222,17 @@ private fun MoodItem(
                     moodIcons[index],
                     contentDescription = moodLabels[index],
                     tint = if (isSelected) color else color.copy(alpha = 0.5f),
-                    modifier = Modifier.size(if (isSelected) 32.dp else 24.dp)
+                    modifier = Modifier.size(if (isSelected) 28.dp else 22.dp)
                 )
             }
         }
 
         Text(
             text = moodLabels[index],
-            fontSize = if (isSelected) 15.sp else 13.sp,
+            fontSize = if (isSelected) 14.sp else 12.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 3.dp)
         )
     }
 

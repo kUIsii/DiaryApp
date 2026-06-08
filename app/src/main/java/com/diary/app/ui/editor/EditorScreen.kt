@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,7 +41,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Redo
@@ -186,32 +184,40 @@ fun EditorScreen(
     var showDraftDialog by remember { mutableStateOf(false) }
     var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
 
-    // Writing duration and prompt
+    // Writing duration
     val writingDuration by viewModel.writingDuration.collectAsState()
-    val writingPrompt by viewModel.writingPrompt.collectAsState()
+
+    val applyDraftToEditor: (DraftData, String?) -> Unit = { draft, sourceDraftId ->
+        val base64Content = Base64.encodeToString(
+            draft.content.toByteArray(Charsets.UTF_8),
+            Base64.NO_WRAP
+        )
+        if (isWebViewReady) {
+            webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
+        }
+        entryTitle = draft.title.takeUnless { it == dateTitle } ?: ""
+        selectedMood = draft.moodLevel
+        selectedWeather = draft.weather
+        selectedLocation = draft.location
+        locationLat = draft.latitude
+        locationLng = draft.longitude
+        viewModel.setSelectedTagIds(draft.tagIds)
+        currentDraftId = sourceDraftId
+        pendingDraft = null
+        showDraftDialog = false
+    }
 
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
         viewModel.startWritingTimer()
-        viewModel.loadWritingPrompt()
     }
 
     // Load draft when opened with draftId
-    LaunchedEffect(draftId) {
-        if (draftId != null && diaryId == null) {
+    LaunchedEffect(draftId, diaryId, isWebViewReady) {
+        if (draftId != null && diaryId == null && isWebViewReady) {
             val draft = viewModel.loadDraftById(draftId)
             if (draft != null) {
-                val base64Content = android.util.Base64.encodeToString(
-                    draft.content.toByteArray(Charsets.UTF_8),
-                    android.util.Base64.NO_WRAP
-                )
-                webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
-                selectedMood = draft.moodLevel
-                selectedWeather = draft.weather
-                selectedLocation = draft.location
-                locationLat = draft.latitude
-                locationLng = draft.longitude
-                currentDraftId = draftId
+                applyDraftToEditor(draft, draftId)
             }
         }
     }
@@ -253,13 +259,6 @@ fun EditorScreen(
         }
     }
 
-    // Refresh prompt when mood changes
-    LaunchedEffect(selectedMood) {
-        if (diaryId == null && charCount == 0) {
-            viewModel.loadWritingPrompt(selectedMood)
-        }
-    }
-
     // Cleanup WebView on dispose to prevent memory leak
     DisposableEffect(Unit) {
         onDispose {
@@ -288,6 +287,17 @@ fun EditorScreen(
     LaunchedEffect(editorFontSize, isWebViewReady) {
         if (isWebViewReady) {
             webView?.evaluateJavascript("setFontSize($editorFontSize)", null)
+        }
+    }
+
+    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isWebViewReady) {
+        if (isWebViewReady) {
+            val bottomGap = when {
+                showToolbar && activeCategory >= 0 -> 360
+                showToolbar || isKeyboardVisible -> 300
+                else -> 180
+            }
+            webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
         }
     }
 
@@ -428,6 +438,7 @@ fun EditorScreen(
     DisposableEffect(lifecycleOwner, webView) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
+                if (!hasUnsavedChanges) return@LifecycleEventObserver
                 webView?.evaluateJavascript("getContent()") { json ->
                     webView?.evaluateJavascript("getPlainText()") { plain ->
                         val cleanJson = unescapeEvaluateJsResult(json)
@@ -448,10 +459,10 @@ fun EditorScreen(
     }
 
     // Check for draft on new entry
-    LaunchedEffect(Unit) {
+    LaunchedEffect(diaryId) {
         if (diaryId == null) {
             val draft = viewModel.loadDraft(null)
-            if (draft != null && draft.plainText.isNotBlank()) {
+            if (draft != null && shouldRestoreDraft(diaryId = diaryId, plainText = draft.plainText)) {
                 pendingDraft = draft
                 showDraftDialog = true
             }
@@ -519,7 +530,19 @@ fun EditorScreen(
                                     webView?.evaluateJavascript("getPlainText()") { plain ->
                                         val cleanJson = unescapeEvaluateJsResult(json)
                                         val cleanPlain = unescapeEvaluateJsResult(plain)
-                                        viewModel.saveDraftToList(cleanJson, cleanPlain, entryTitle.ifBlank { dateTitle }, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng, currentDraftId)
+                                        currentDraftId = viewModel.saveDraftToList(
+                                            cleanJson,
+                                            cleanPlain,
+                                            entryTitle.ifBlank { dateTitle },
+                                            selectedMood,
+                                            selectedWeather,
+                                            selectedLocation,
+                                            locationLat,
+                                            locationLng,
+                                            currentDraftId
+                                        )
+                                        viewModel.clearDraft(diaryId)
+                                        pendingDraft = null
                                         showUnsavedDialog = false
                                         onNavigateBack()
                                     }
@@ -539,6 +562,7 @@ fun EditorScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
                                 viewModel.clearDraft(diaryId)
+                                pendingDraft = null
                                 showUnsavedDialog = false
                                 onNavigateBack()
                             }
@@ -560,26 +584,22 @@ fun EditorScreen(
         AlertDialog(
             onDismissRequest = {
                 viewModel.clearDraft(null)
+                pendingDraft = null
+                currentDraftId = null
                 showDraftDialog = false
             },
             title = { Text(stringResource(R.string.draft_found)) },
             text = { Text(stringResource(R.string.draft_found_message)) },
             confirmButton = {
                 TextButton(onClick = {
-                    val draft = currentPendingDraft
-                    val encoded = android.util.Base64.encodeToString(
-                        draft.content.toByteArray(Charsets.UTF_8),
-                        android.util.Base64.NO_WRAP
-                    )
-                    webView?.evaluateJavascript("setContentBase64('$encoded')", null)
-                    selectedMood = draft.moodLevel
-                    selectedWeather = draft.weather
-                    showDraftDialog = false
+                    applyDraftToEditor(currentPendingDraft, null)
                 }) { Text(stringResource(R.string.restore)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     viewModel.clearDraft(null)
+                    pendingDraft = null
+                    currentDraftId = null
                     showDraftDialog = false
                 }) { Text(stringResource(R.string.discard)) }
             }
@@ -649,19 +669,7 @@ fun EditorScreen(
                                     .background(surfaceVariant.copy(alpha = 0.5f))
                                     .clickable {
                                         showDraftsDialog = false
-                                        // Load the draft directly into current editor
-                                        val base64Content = android.util.Base64.encodeToString(
-                                            draft.content.toByteArray(Charsets.UTF_8),
-                                            android.util.Base64.NO_WRAP
-                                        )
-                                        webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
-                                        selectedMood = draft.moodLevel
-                                        selectedWeather = draft.weather
-                                        selectedLocation = draft.location
-                                        locationLat = draft.latitude
-                                        locationLng = draft.longitude
-                                        currentDraftId = draft.id
-                                        viewModel.setSelectedTagIds(draft.tagIds)
+                                        applyDraftToEditor(draft, draft.id)
                                     }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -796,6 +804,10 @@ fun EditorScreen(
                                     diaryTagIds = selectedTagIds.toList(),
                                     diaryEntryId = savedEntryId
                                 )
+                                currentDraftId?.let(viewModel::deleteDraft)
+                                currentDraftId = null
+                                pendingDraft = null
+                                viewModel.onManualSaveCompleted(diaryId)
                                 haptic.success()
                                 snackbarHostState.showSnackbar(
                                     message = "日记已保存",
@@ -816,21 +828,30 @@ fun EditorScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(text = dateTitle, fontSize = 12.sp, color = textSecondary)
-                Text(text = timeText, fontSize = 11.sp, color = textSecondary)
+                Text(
+                    text = dateTitle,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textSecondary.copy(alpha = 0.94f)
+                )
+                Text(
+                    text = timeText,
+                    fontSize = 14.sp,
+                    color = textSecondary.copy(alpha = 0.82f)
+                )
                 Spacer(modifier = Modifier.weight(1f))
-                if (diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
+                if (false) {
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable { viewModel.refreshPrompt() }
+                            .clickable {}
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Lightbulb,
+                            imageVector = Icons.Default.MenuBook,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
                             modifier = Modifier.size(14.dp)
@@ -875,9 +896,9 @@ fun EditorScreen(
             )
 
             // Writing prompt (only for new entries, hide after 50 chars)
-            if (false && diaryId == null && writingPrompt.isNotBlank() && charCount < 50) {
+            if (false) {
                 var promptVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(writingPrompt) {
+                LaunchedEffect(Unit) {
                     promptVisible = false
                     kotlinx.coroutines.delay(100)
                     promptVisible = true
@@ -891,7 +912,7 @@ fun EditorScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 4.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable { viewModel.refreshPrompt() }
+                            .clickable {}
                             .background(textSecondary.copy(alpha = 0.04f))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -905,7 +926,7 @@ fun EditorScreen(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                         )
                         Text(
-                            text = writingPrompt,
+                            text = "",
                             fontSize = 12.sp,
                             color = textSecondary.copy(alpha = 0.55f),
                             modifier = Modifier.weight(1f),
@@ -919,10 +940,10 @@ fun EditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Row 1: mood + weather + tags
+                // Row 1: mood + weather + location
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -936,7 +957,8 @@ fun EditorScreen(
                         isSelected = currentSelectedMood != null,
                         isActive = activePanel == "mood",
                         onClick = { activePanel = if (activePanel == "mood") null else "mood" },
-                        accentColor = moodColor
+                        accentColor = moodColor,
+                        modifier = Modifier.weight(1f)
                     )
                     // Weather chip
                     val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
@@ -946,34 +968,34 @@ fun EditorScreen(
                         isSelected = selectedWeather != null,
                         isActive = activePanel == "weather",
                         onClick = { activePanel = if (activePanel == "weather") null else "weather" },
-                        accentColor = weatherColor
-                    )
-                    // Tags chip - show full tag names
-                    val tagLabel = summarizeSelectedNames(
-                        names = allTags.filter { it.id in selectedTagIds }.map { it.name },
-                        emptyLabel = "标签"
-                    )
-                    MetadataChip(
-                        label = tagLabel,
-                        icon = Icons.Default.Sell,
-                        isSelected = selectedTagIds.isNotEmpty(),
-                        isActive = activePanel == "tags",
-                        onClick = { activePanel = if (activePanel == "tags") null else "tags" },
+                        accentColor = weatherColor,
                         modifier = Modifier.weight(1f)
                     )
-                }
-                // Row 2: location (auto-wrap)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
                     MetadataChip(
                         label = selectedLocation ?: "位置",
                         icon = Icons.Default.LocationOn,
                         isSelected = selectedLocation != null,
                         isActive = activePanel == "location",
                         onClick = { activePanel = if (activePanel == "location") null else "location" },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Row 2: tags take the full width because names vary the most
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val rowTagLabel = summarizeSelectedNames(
+                        names = allTags.filter { it.id in selectedTagIds }.map { it.name },
+                        emptyLabel = "标签"
+                    )
+                    MetadataChip(
+                        label = rowTagLabel,
+                        icon = Icons.Default.Sell,
+                        isSelected = selectedTagIds.isNotEmpty(),
+                        isActive = activePanel == "tags",
+                        onClick = { activePanel = if (activePanel == "tags") null else "tags" },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -994,8 +1016,8 @@ fun EditorScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 14.dp, vertical = 14.dp)
-                            .heightIn(min = 94.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .heightIn(min = 82.dp)
                     ) {
                         when (activePanel) {
                             "mood" -> Column {

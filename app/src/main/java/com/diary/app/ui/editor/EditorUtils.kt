@@ -92,6 +92,36 @@ internal fun summarizeSelectedNames(
     }
 }
 
+internal fun normalizeEditorColor(raw: String?): String? {
+    val value = raw?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+    if (value == "false" || value == "transparent") return null
+    if (value.startsWith("#")) {
+        return when (value.length) {
+            4 -> "#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}"
+            7 -> value
+            9 -> "#${value.substring(3)}"
+            else -> value
+        }
+    }
+    if (value.startsWith("rgb")) {
+        val match = Regex("""rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)""").find(value) ?: return value
+        val (r, g, b) = match.destructured
+        return "#%02x%02x%02x".format(r.toInt(), g.toInt(), b.toInt())
+    }
+    return value
+}
+
+internal fun draftKeysToClear(diaryId: Long?): Set<String> {
+    return buildSet {
+        add("draft_new")
+        diaryId?.let { add("draft_$it") }
+    }
+}
+
+internal fun shouldRestoreDraft(diaryId: Long?, plainText: String): Boolean {
+    return diaryId == null && plainText.isNotBlank()
+}
+
 internal fun iconForTemplate(iconName: String): ImageVector {
     return when (iconName) {
         "today" -> Icons.Default.Today

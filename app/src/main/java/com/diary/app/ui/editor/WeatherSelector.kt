@@ -85,7 +85,7 @@ fun WeatherSelector(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         weatherOptions.forEach { option ->
             WeatherItem(
@@ -126,8 +126,8 @@ private fun WeatherItem(
 
     Box(
         modifier = Modifier
-            .width(68.dp)
-            .height(82.dp)
+            .width(62.dp)
+            .height(72.dp)
             .scale(scale * selectedScale)
             .clip(shape)
             .background(
@@ -167,7 +167,7 @@ private fun WeatherItem(
                 pressed = true
                 onClick()
             }
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(horizontal = 6.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -178,11 +178,11 @@ private fun WeatherItem(
                 imageVector = option.icon,
                 contentDescription = option.name,
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else iconColor,
-                modifier = Modifier.size(26.dp)
+                modifier = Modifier.size(22.dp)
             )
             Text(
                 text = option.name,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onBackground
