@@ -24,6 +24,60 @@ class EditorUtilsTest {
 
         assertEquals("工作 · 阅读 +1", summary)
     }
+
+    @Test
+    fun `editor mode toggle label reflects current mode`() {
+        assertEquals("显示编辑器", editorModeToggleLabel(isFullEditorVisible = false))
+        assertEquals("专注书写", editorModeToggleLabel(isFullEditorVisible = true))
+    }
+
+    @Test
+    fun `editor bottom gap preset matches mode and keyboard state`() {
+        assertEquals(
+            180,
+            resolveEditorBottomGap(
+                showToolbar = false,
+                isKeyboardVisible = false,
+                isFullEditorVisible = false,
+                activeCategory = -1
+            )
+        )
+        assertEquals(
+            220,
+            resolveEditorBottomGap(
+                showToolbar = true,
+                isKeyboardVisible = true,
+                isFullEditorVisible = false,
+                activeCategory = -1
+            )
+        )
+        assertEquals(
+            300,
+            resolveEditorBottomGap(
+                showToolbar = true,
+                isKeyboardVisible = true,
+                isFullEditorVisible = true,
+                activeCategory = -1
+            )
+        )
+        assertEquals(
+            360,
+            resolveEditorBottomGap(
+                showToolbar = true,
+                isKeyboardVisible = true,
+                isFullEditorVisible = true,
+                activeCategory = 2
+            )
+        )
+    }
+
+    @Test
+    fun `location row label keeps selected value and falls back when blank`() {
+        assertEquals("上海 · 徐汇", resolveCenteredLocationLabel("上海 · 徐汇"))
+        assertEquals("位置", resolveCenteredLocationLabel(null))
+        assertEquals("位置", resolveCenteredLocationLabel("   "))
+    }
+
     @Test
     fun `normalize editor color converts rgb values to hex`() {
         val normalized = normalizeEditorColor("rgb(231, 76, 60)")

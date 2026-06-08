@@ -27,8 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.FormatClear
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -77,6 +77,8 @@ internal fun EditorToolbar(
     onHideKeyboard: () -> Unit = {},
     onShowKeyboard: () -> Unit = {},
     onClose: () -> Unit = {},
+    isFocusWritingMode: Boolean = false,
+    onWritingModeChange: (Boolean) -> Unit = {},
     fontSize: Int = 14,
     onFontSizeChange: (Int) -> Unit = {}
 ) {
@@ -85,41 +87,96 @@ internal fun EditorToolbar(
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val activeColor = MaterialTheme.colorScheme.primary
 
-    // Category definitions
     data class Category(val icon: ImageVector, val label: String, val index: Int)
     val categories = listOf(
-        Category(Icons.Default.FormatSize, "格式", 0),
-        Category(Icons.Default.FormatListBulleted, "列表", 1),
-        Category(Icons.Default.Image, "插入", 2),
-        Category(Icons.Default.Palette, "颜色", 3)
+        Category(Icons.Default.FormatSize, "\u683c\u5f0f", 0),
+        Category(Icons.Default.FormatListBulleted, "\u5217\u8868", 1),
+        Category(Icons.Default.Image, "\u63d2\u5165", 2),
+        Category(Icons.Default.Palette, "\u989c\u8272", 3)
     )
+
+    if (!showToolbar) return
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(surfaceColor)
     ) {
-        // Category buttons row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            categories.forEach { category ->
+            TextButton(
+                onClick = {
+                    val nextMode = !isFocusWritingMode
+                    onWritingModeChange(nextMode)
+                    if (nextMode) {
+                        onCategoryChange(-1)
+                        onShowKeyboard()
+                    }
+                }
+            ) {
+                Text(
+                    text = if (isFocusWritingMode) {
+                        "\u663e\u793a\u7f16\u8f91\u5668"
+                    } else {
+                        "\u4e13\u6ce8\u4e66\u5199"
+                    },
+                    color = activeColor
+                )
+            }
+
+            Text(
+                text = if (isFocusWritingMode) {
+                    "\u5f53\u524d\uff1a\u4e13\u6ce8\u4e66\u5199"
+                } else {
+                    "\u5f53\u524d\uff1a\u5b8c\u6574\u7f16\u8f91"
+                },
+                fontSize = 12.sp,
+                color = textColor.copy(alpha = 0.7f)
+            )
+        }
+
+        if (!isFocusWritingMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                categories.forEach { category ->
+                    CategoryButton(
+                        icon = category.icon,
+                        label = category.label,
+                        isActive = activeCategory == category.index,
+                        onClick = {
+                            if (activeCategory == category.index) {
+                                onCategoryChange(-1)
+                                onShowKeyboard()
+                            } else {
+                                onCategoryChange(category.index)
+                                onHideKeyboard()
+                            }
+                        },
+                        textColor = textColor,
+                        activeColor = activeColor
+                    )
+                }
+
                 CategoryButton(
-                    icon = category.icon,
-                    label = category.label,
-                    isActive = activeCategory == category.index,
+                    icon = if (activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    label = if (activeCategory >= 0) "\u6536\u8d77" else "\u5c55\u5f00",
+                    isActive = false,
                     onClick = {
-                        if (activeCategory == category.index) {
-                            // Same category - close it and show keyboard
+                        if (activeCategory >= 0) {
                             onCategoryChange(-1)
                             onShowKeyboard()
                         } else {
-                            // New category - open it and hide keyboard
-                            onCategoryChange(category.index)
+                            onCategoryChange(0)
                             onHideKeyboard()
                         }
                     },
@@ -127,28 +184,8 @@ internal fun EditorToolbar(
                     activeColor = activeColor
                 )
             }
-            // Expand/collapse arrow button
-            CategoryButton(
-                icon = if (activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                label = if (activeCategory >= 0) "收起" else "展开",
-                isActive = false,
-                onClick = {
-                    if (activeCategory >= 0) {
-                        // Collapse - close sub-panel, show keyboard
-                        onCategoryChange(-1)
-                        onShowKeyboard()
-                    } else {
-                        // Expand - open format panel, hide keyboard
-                        onCategoryChange(0)
-                        onHideKeyboard()
-                    }
-                },
-                textColor = textColor,
-                activeColor = activeColor
-            )
         }
 
-        // Font size control row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -157,12 +194,11 @@ internal fun EditorToolbar(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "字号",
+                text = "\u5b57\u53f7",
                 fontSize = 11.sp,
                 color = textColor.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            // Decrease button
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -182,15 +218,13 @@ internal fun EditorToolbar(
                     color = textColor
                 )
             }
-            // Current size display
             Text(
-                text = "${fontSize}",
+                text = "$fontSize",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
+                color = activeColor,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
-            // Increase button
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -212,9 +246,8 @@ internal fun EditorToolbar(
             }
         }
 
-        // Expandable sub-function panel
         AnimatedVisibility(
-            visible = activeCategory >= 0,
+            visible = !isFocusWritingMode && activeCategory >= 0,
             enter = expandVertically(tween(200)) + fadeIn(),
             exit = shrinkVertically(tween(150)) + fadeOut()
         ) {
@@ -232,10 +265,35 @@ internal fun EditorToolbar(
                 )
 
                 when (activeCategory) {
-                    0 -> FormatSubPanel(onFormat = onFormat, onHeading = onHeading, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
-                    1 -> ListSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
-                    2 -> InsertSubPanel(onFormat = onFormat, onInsert = onInsert, onImageInsert = onImageInsert, textColor = textColor, activeColor = activeColor)
-                    3 -> ColorSubPanel(onFormat = onFormat, textColor = textColor, activeColor = activeColor, activeFormats = activeFormats)
+                    0 -> FormatSubPanel(
+                        onFormat = onFormat,
+                        onHeading = onHeading,
+                        textColor = textColor,
+                        activeColor = activeColor,
+                        activeFormats = activeFormats
+                    )
+
+                    1 -> ListSubPanel(
+                        onFormat = onFormat,
+                        textColor = textColor,
+                        activeColor = activeColor,
+                        activeFormats = activeFormats
+                    )
+
+                    2 -> InsertSubPanel(
+                        onFormat = onFormat,
+                        onInsert = onInsert,
+                        onImageInsert = onImageInsert,
+                        textColor = textColor,
+                        activeColor = activeColor
+                    )
+
+                    3 -> ColorSubPanel(
+                        onFormat = onFormat,
+                        textColor = textColor,
+                        activeColor = activeColor,
+                        activeFormats = activeFormats
+                    )
                 }
             }
         }
@@ -296,29 +354,36 @@ private fun FormatSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Row 1: H1 | H2 | H3 - heading preview with corresponding font size
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                Triple(1, "一级标题", 22.sp),
-                Triple(2, "二级标题", 18.sp),
-                Triple(3, "三级标题", 16.sp)
+                Triple(1, "\u4e00\u7ea7\u6807\u9898", 22.sp),
+                Triple(2, "\u4e8c\u7ea7\u6807\u9898", 18.sp),
+                Triple(3, "\u4e09\u7ea7\u6807\u9898", 16.sp)
             ).forEach { (level, desc, fontSize) ->
                 val isActive = currentHeader == level
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
                 val scale by animateFloatAsState(
                     targetValue = if (isPressed) 0.97f else 1f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    ),
                     label = "h$level"
                 )
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(44.dp)
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (isActive) selectedBg else btnBg)
-                        .clickable(interactionSource = interactionSource, indication = null) { onHeading(level) }
+                        .clickable(interactionSource = interactionSource, indication = null) {
+                            onHeading(level)
+                        }
                         .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -331,16 +396,64 @@ private fun FormatSubPanel(
                 }
             }
         }
-        // Row 2: Bold | Italic | Underline - with light blue selected state
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FormatToggleButton(label = "B", description = "加粗", isActive = isBold, textStyle = TextStyle(fontWeight = FontWeight.Bold), onClick = { onFormat("toggleBold()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
-            FormatToggleButton(label = "I", description = "斜体", isActive = isItalic, textStyle = TextStyle(fontStyle = FontStyle.Italic), onClick = { onFormat("toggleItalic()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
-            FormatToggleButton(label = "U", description = "下划线", isActive = isUnderline, textStyle = TextStyle(textDecoration = TextDecoration.Underline), onClick = { onFormat("toggleUnderline()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
+            FormatToggleButton(
+                label = "B",
+                description = "\u52a0\u7c97",
+                isActive = isBold,
+                textStyle = TextStyle(fontWeight = FontWeight.Bold),
+                onClick = { onFormat("toggleBold()") },
+                textColor = textColor,
+                selectedBg = selectedBg,
+                normalBg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            FormatToggleButton(
+                label = "I",
+                description = "\u659c\u4f53",
+                isActive = isItalic,
+                textStyle = TextStyle(fontStyle = FontStyle.Italic),
+                onClick = { onFormat("toggleItalic()") },
+                textColor = textColor,
+                selectedBg = selectedBg,
+                normalBg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            FormatToggleButton(
+                label = "U",
+                description = "\u4e0b\u5212\u7ebf",
+                isActive = isUnderline,
+                textStyle = TextStyle(textDecoration = TextDecoration.Underline),
+                onClick = { onFormat("toggleUnderline()") },
+                textColor = textColor,
+                selectedBg = selectedBg,
+                normalBg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
         }
-        // Row 3: Strikethrough | Clear
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FormatToggleButton(label = "S", description = "删除线", isActive = isStrike, textStyle = TextStyle(textDecoration = TextDecoration.LineThrough), onClick = { onFormat("toggleStrike()") }, textColor = textColor, selectedBg = selectedBg, normalBg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "清除", icon = Icons.Default.FormatClear, description = "清除格式", onClick = { onFormat("clearFormatting()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            FormatToggleButton(
+                label = "S",
+                description = "\u5220\u9664\u7ebf",
+                isActive = isStrike,
+                textStyle = TextStyle(textDecoration = TextDecoration.LineThrough),
+                onClick = { onFormat("toggleStrike()") },
+                textColor = textColor,
+                selectedBg = selectedBg,
+                normalBg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            SubFunctionButton(
+                label = "\u6e05\u9664",
+                icon = Icons.Default.FormatClear,
+                description = "\u6e05\u9664\u683c\u5f0f",
+                onClick = { onFormat("clearFormatting()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
             Spacer(modifier = Modifier.weight(1f))
         }
     }
@@ -362,7 +475,10 @@ private fun FormatToggleButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
         label = "fmt_$label"
     )
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -370,7 +486,10 @@ private fun FormatToggleButton(
     Box(
         modifier = modifier
             .height(44.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(12.dp))
             .background(if (isActive) selectedBg else normalBg)
             .border(
@@ -420,15 +539,49 @@ private fun ListSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Row 1: Bullet | Ordered | Checkbox
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "无序列表", icon = Icons.Default.FormatListBulleted, onClick = { onFormat("setBulletList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "bullet", activeColor = activeColor)
-            SubFunctionButton(label = "有序列表", icon = Icons.Default.FormatListNumbered, onClick = { onFormat("setOrderedList()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "ordered", activeColor = activeColor)
-            SubFunctionButton(label = "复选框", icon = Icons.Default.CheckBox, onClick = { onFormat("toggleCheckbox()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = currentList == "checked" || currentList == "unchecked", activeColor = activeColor)
+            SubFunctionButton(
+                label = "\u65e0\u5e8f\u5217\u8868",
+                icon = Icons.Default.FormatListBulleted,
+                onClick = { onFormat("setBulletList()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f),
+                isActive = currentList == "bullet",
+                activeColor = activeColor
+            )
+            SubFunctionButton(
+                label = "\u6709\u5e8f\u5217\u8868",
+                icon = Icons.Default.FormatListNumbered,
+                onClick = { onFormat("setOrderedList()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f),
+                isActive = currentList == "ordered",
+                activeColor = activeColor
+            )
+            SubFunctionButton(
+                label = "\u590d\u9009\u6846",
+                icon = Icons.Default.CheckBox,
+                onClick = { onFormat("toggleCheckbox()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f),
+                isActive = currentList == "checked" || currentList == "unchecked",
+                activeColor = activeColor
+            )
         }
-        // Row 2: Quote
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "引文", icon = Icons.Default.FormatQuote, onClick = { onFormat("toggleBlockquote()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f), isActive = isBlockquote, activeColor = activeColor)
+            SubFunctionButton(
+                label = "\u5f15\u7528",
+                icon = Icons.Default.FormatQuote,
+                onClick = { onFormat("toggleBlockquote()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f),
+                isActive = isBlockquote,
+                activeColor = activeColor
+            )
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -451,11 +604,31 @@ private fun InsertSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Row 1: Image | Divider | Link
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubFunctionButton(label = "图片", icon = Icons.Default.Image, onClick = onImageInsert, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "分割线", icon = Icons.Default.HorizontalRule, onClick = { onInsert("divider") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
-            SubFunctionButton(label = "链接", icon = Icons.Default.Link, onClick = { onFormat("insertLink()") }, textColor = textColor, bg = btnBg, modifier = Modifier.weight(1f))
+            SubFunctionButton(
+                label = "\u56fe\u7247",
+                icon = Icons.Default.Image,
+                onClick = onImageInsert,
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            SubFunctionButton(
+                label = "\u5206\u5272\u7ebf",
+                icon = Icons.Default.HorizontalRule,
+                onClick = { onInsert("divider") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            SubFunctionButton(
+                label = "\u94fe\u63a5",
+                icon = Icons.Default.Link,
+                onClick = { onFormat("insertLink()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -469,10 +642,24 @@ private fun ColorSubPanel(
 ) {
     var isTextColorMode by remember { mutableStateOf(true) }
     val textColors = listOf(
-        0xFFE74C3C, 0xFFE67E22, 0xFFF1C40F, 0xFF2ECC71, 0xFF3498DB, 0xFF9B59B6, 0xFF1A1A1A, 0xFFFFFFFF
+        0xFFE74C3C,
+        0xFFE67E22,
+        0xFFF1C40F,
+        0xFF2ECC71,
+        0xFF3498DB,
+        0xFF9B59B6,
+        0xFF1A1A1A,
+        0xFFFFFFFF
     )
     val bgColors = listOf(
-        0xFFFFF9C4, 0xFFFFE0B2, 0xFFC8E6C9, 0xFFBBDEFB, 0xFFD1C4E9, 0xFFF8BBD0, 0xFFB3E5FC, 0xFFFFF3E0
+        0xFFFFF9C4,
+        0xFFFFE0B2,
+        0xFFC8E6C9,
+        0xFFBBDEFB,
+        0xFFD1C4E9,
+        0xFFF8BBD0,
+        0xFFB3E5FC,
+        0xFFFFF3E0
     )
 
     Column(
@@ -481,7 +668,6 @@ private fun ColorSubPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Toggle buttons: 字体颜色 / 背景颜色
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -502,7 +688,7 @@ private fun ColorSubPanel(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "字体颜色",
+                    text = "\u5b57\u4f53\u989c\u8272",
                     fontSize = 13.sp,
                     fontWeight = if (isTextColorMode) FontWeight.Bold else FontWeight.Normal,
                     color = if (isTextColorMode) activeColor else textColor
@@ -523,7 +709,7 @@ private fun ColorSubPanel(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "背景颜色",
+                    text = "\u80cc\u666f\u989c\u8272",
                     fontSize = 13.sp,
                     fontWeight = if (!isTextColorMode) FontWeight.Bold else FontWeight.Normal,
                     color = if (!isTextColorMode) activeColor else textColor
@@ -531,7 +717,6 @@ private fun ColorSubPanel(
             }
         }
 
-        // Color swatches with animated transition
         AnimatedVisibility(
             visible = true,
             enter = fadeIn(tween(150)),
@@ -542,9 +727,7 @@ private fun ColorSubPanel(
             val activeColorKey = if (isTextColorMode) "color" else "background"
             val currentColorHex = normalizeEditorColor(activeFormats[activeColorKey]?.toString())
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 colors.forEach { color ->
                     val hex = normalizeEditorColor("#${Integer.toHexString(color.toInt()).substring(2)}")
                     val isSelected = currentColorHex == hex
@@ -561,8 +744,11 @@ private fun ColorSubPanel(
                             )
                             .clickable {
                                 if (isSelected) {
-                                    // Clicking selected color again clears it
-                                    val clearCmd = if (isTextColorMode) "setTextColor(false)" else "setBackgroundColor(false)"
+                                    val clearCmd = if (isTextColorMode) {
+                                        "setTextColor(false)"
+                                    } else {
+                                        "setBackgroundColor(false)"
+                                    }
                                     onFormat(clearCmd)
                                 } else {
                                     onFormat("$command('#${Integer.toHexString(color.toInt()).substring(2)}')")
@@ -574,8 +760,20 @@ private fun ColorSubPanel(
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = if (color == 0xFFFFFFFFL || color == 0xFFFFF9C4L || color == 0xFFFFE0B2L || color == 0xFFF8BBD0L || color == 0xFFFFF3E0L || color == 0xFFB3E5FCL || color == 0xFFBBDEFBL || color == 0xFFC8E6C9L)
-                                    Color(0xFF37474F) else Color.White,
+                                tint = if (
+                                    color == 0xFFFFFFFFL ||
+                                    color == 0xFFFFF9C4L ||
+                                    color == 0xFFFFE0B2L ||
+                                    color == 0xFFF8BBD0L ||
+                                    color == 0xFFFFF3E0L ||
+                                    color == 0xFFB3E5FCL ||
+                                    color == 0xFFBBDEFBL ||
+                                    color == 0xFFC8E6C9L
+                                ) {
+                                    Color(0xFF37474F)
+                                } else {
+                                    Color.White
+                                },
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -584,7 +782,6 @@ private fun ColorSubPanel(
             }
         }
 
-        // Clear formatting button
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -598,7 +795,7 @@ private fun ColorSubPanel(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "清除格式",
+                    text = "\u6e05\u9664\u683c\u5f0f",
                     fontSize = 12.sp,
                     color = textColor
                 )
@@ -634,7 +831,10 @@ private fun SubFunctionButton(
     Box(
         modifier = modifier
             .height(44.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(12.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.15f) else bg)
             .border(
@@ -682,7 +882,6 @@ private fun SubFunctionButton(
     }
 }
 
-
 @Composable
 private fun GridItem(
     label: String,
@@ -707,7 +906,10 @@ private fun GridItem(
     Box(
         modifier = modifier
             .height(48.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)

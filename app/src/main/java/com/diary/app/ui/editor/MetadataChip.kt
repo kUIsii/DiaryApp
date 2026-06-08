@@ -31,6 +31,7 @@ internal fun MetadataChip(
     isActive: Boolean,
     onClick: () -> Unit,
     accentColor: Color? = null,
+    centerContent: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
@@ -53,7 +54,11 @@ internal fun MetadataChip(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = if (centerContent) {
+                Arrangement.Center
+            } else {
+                Arrangement.spacedBy(6.dp)
+            }
         ) {
             Icon(
                 imageVector = icon,
@@ -65,7 +70,7 @@ internal fun MetadataChip(
                 text = label,
                 fontSize = 14.sp,
                 color = contentColor,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = if (centerContent) Modifier else Modifier.weight(1f, fill = false),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

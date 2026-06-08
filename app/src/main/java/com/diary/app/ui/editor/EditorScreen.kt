@@ -147,6 +147,7 @@ fun EditorScreen(
     var showToolbar by remember { mutableStateOf(false) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
+    var isFullEditorVisible by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
@@ -222,6 +223,12 @@ fun EditorScreen(
         }
     }
 
+    LaunchedEffect(isKeyboardVisible, isFullEditorVisible) {
+        if (isKeyboardVisible && !isFullEditorVisible) {
+            activePanel = null
+        }
+    }
+
     // Update writing duration periodically
     LaunchedEffect(Unit) {
         while (true) {
@@ -290,13 +297,14 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isWebViewReady) {
+    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isFullEditorVisible, isWebViewReady) {
         if (isWebViewReady) {
-            val bottomGap = when {
-                showToolbar && activeCategory >= 0 -> 360
-                showToolbar || isKeyboardVisible -> 300
-                else -> 180
-            }
+            val bottomGap = resolveEditorBottomGap(
+                showToolbar = showToolbar,
+                isKeyboardVisible = isKeyboardVisible,
+                isFullEditorVisible = isFullEditorVisible,
+                activeCategory = activeCategory
+            )
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
         }
     }
@@ -475,7 +483,7 @@ fun EditorScreen(
             kotlinx.coroutines.delay(500)
             it.requestFocus()
             it.evaluateJavascript(
-                "document.querySelector('.ql-editor').focus()",
+                "focusEditorWithRestore()",
                 null
             )
         }
@@ -936,73 +944,75 @@ fun EditorScreen(
                 }
             }
 
-            // Metadata buttons - two rows
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Row 1: mood + weather + location
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            AnimatedVisibility(visible = !isKeyboardVisible || isFullEditorVisible) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Mood chip
-                    val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
-                    val currentSelectedMood = selectedMood
-                    MetadataChip(
-                        label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
-                        icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
-                        isSelected = currentSelectedMood != null,
-                        isActive = activePanel == "mood",
-                        onClick = { activePanel = if (activePanel == "mood") null else "mood" },
-                        accentColor = moodColor,
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Weather chip
-                    val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
-                    MetadataChip(
-                        label = selectedWeather ?: "天气",
-                        icon = weatherIconFor(selectedWeather).icon,
-                        isSelected = selectedWeather != null,
-                        isActive = activePanel == "weather",
-                        onClick = { activePanel = if (activePanel == "weather") null else "weather" },
-                        accentColor = weatherColor,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetadataChip(
-                        label = selectedLocation ?: "位置",
-                        icon = Icons.Default.LocationOn,
-                        isSelected = selectedLocation != null,
-                        isActive = activePanel == "location",
-                        onClick = { activePanel = if (activePanel == "location") null else "location" },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                // Row 2: tags take the full width because names vary the most
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val rowTagLabel = summarizeSelectedNames(
-                        names = allTags.filter { it.id in selectedTagIds }.map { it.name },
-                        emptyLabel = "标签"
-                    )
-                    MetadataChip(
-                        label = rowTagLabel,
-                        icon = Icons.Default.Sell,
-                        isSelected = selectedTagIds.isNotEmpty(),
-                        isActive = activePanel == "tags",
-                        onClick = { activePanel = if (activePanel == "tags") null else "tags" },
-                        modifier = Modifier.weight(1f)
-                    )
+                    // Row 1: mood + weather + category
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Mood chip
+                        val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+                        val currentSelectedMood = selectedMood
+                        MetadataChip(
+                            label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
+                            icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
+                            isSelected = currentSelectedMood != null,
+                            isActive = activePanel == "mood",
+                            onClick = { activePanel = if (activePanel == "mood") null else "mood" },
+                            accentColor = moodColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Weather chip
+                        val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
+                        MetadataChip(
+                            label = selectedWeather ?: "天气",
+                            icon = weatherIconFor(selectedWeather).icon,
+                            isSelected = selectedWeather != null,
+                            isActive = activePanel == "weather",
+                            onClick = { activePanel = if (activePanel == "weather") null else "weather" },
+                            accentColor = weatherColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        val rowTagLabel = summarizeSelectedNames(
+                            names = allTags.filter { it.id in selectedTagIds }.map { it.name },
+                            emptyLabel = "标签"
+                        )
+                        MetadataChip(
+                            label = rowTagLabel,
+                            icon = Icons.Default.Sell,
+                            isSelected = selectedTagIds.isNotEmpty(),
+                            isActive = activePanel == "tags",
+                            onClick = { activePanel = if (activePanel == "tags") null else "tags" },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Row 2: centered location
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        MetadataChip(
+                            label = resolveCenteredLocationLabel(selectedLocation),
+                            icon = Icons.Default.LocationOn,
+                            isSelected = selectedLocation != null,
+                            isActive = activePanel == "location",
+                            onClick = { activePanel = if (activePanel == "location") null else "location" },
+                            centerContent = true,
+                            modifier = Modifier.fillMaxWidth(0.62f)
+                        )
+                    }
                 }
             }
 
             // Expandable panels - simple background
             AnimatedVisibility(
-                visible = activePanel != null,
+                visible = activePanel != null && (!isKeyboardVisible || isFullEditorVisible),
                 enter = expandVertically(tween(250)) + fadeIn(tween(200)),
                 exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
             ) {
@@ -1175,12 +1185,22 @@ fun EditorScreen(
                 EditorToolbar(
                     showToolbar = showToolbar,
                     activeCategory = activeCategory,
+                    isFocusWritingMode = !isFullEditorVisible,
+                    onWritingModeChange = { isFocusWritingMode ->
+                        isFullEditorVisible = !isFocusWritingMode
+                        if (isFocusWritingMode) {
+                            activePanel = null
+                            activeCategory = -1
+                            webView?.requestFocus()
+                            webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                        }
+                    },
                     onCategoryChange = { cat ->
                         if (activeCategory == cat) {
                             // Same category clicked - close it and show keyboard
                             activeCategory = -1
                             webView?.requestFocus()
-                            webView?.evaluateJavascript("focusEditor()", null)
+                            webView?.evaluateJavascript("focusEditorWithRestore()", null)
                         } else {
                             // New category - open it and hide keyboard
                             activeCategory = cat
@@ -1203,7 +1223,7 @@ fun EditorScreen(
                 },
                 onShowKeyboard = {
                     webView?.requestFocus()
-                    webView?.evaluateJavascript("focusEditor()", null)
+                    webView?.evaluateJavascript("focusEditorWithRestore()", null)
                 },
                 onClose = {
                     if (hasUnsavedChanges) showUnsavedDialog = true

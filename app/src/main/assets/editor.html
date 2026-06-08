@@ -43,7 +43,7 @@
         }
         .ql-editor {
             min-height: 100%;
-            padding: 0 16px calc(var(--editor-bottom-gap, 220px));
+            padding: 0 16px calc(var(--editor-bottom-gap, 180px));
             color: var(--text);
             background: transparent;
             overflow-y: auto;
@@ -75,9 +75,12 @@
         }
 
         /* Ordered list */
-        .ql-editor ol {
-            padding-left: 4px;
-            margin: 0 0 8px 0;
+        .ql-editor ol,
+        .ql-editor ul:not([data-checked]),
+        .ql-editor ul[data-checked="true"],
+        .ql-editor ul[data-checked="false"] {
+            margin: 0 0 8px 0 !important;
+            padding-left: 1.5em !important;
         }
         .ql-editor ol li {
             margin-bottom: 2px;
@@ -85,20 +88,20 @@
 
         /* Bullet list */
         .ql-editor ul:not([data-checked]) {
-            padding-left: 0 !important;
+            padding-left: 1.5em !important;
             margin: 0 0 8px 0 !important;
         }
         .ql-editor ul:not([data-checked]) > li {
             list-style: none !important;
             position: relative !important;
-            padding-left: 20px !important;
+            padding-left: 0 !important;
             margin-bottom: 4px !important;
         }
         .ql-editor ul:not([data-checked]) > li::before {
             content: "\25CF" !important;
             position: absolute !important;
-            left: 2px !important;
-            top: 2px !important;
+            left: -1.05em !important;
+            top: 0.35em !important;
             color: var(--text) !important;
             font-size: 8px !important;
             line-height: inherit !important;
@@ -107,7 +110,7 @@
         /* Checkbox list */
         .ql-editor ul[data-checked="true"],
         .ql-editor ul[data-checked="false"] {
-            padding-left: 0 !important;
+            padding-left: 1.5em !important;
             margin: 0 0 8px 0 !important;
             pointer-events: auto !important;
         }
@@ -115,15 +118,15 @@
         .ql-editor ul[data-checked="false"] > li {
             list-style: none !important;
             position: relative !important;
-            padding-left: 28px !important;
+            padding-left: 0 !important;
             margin-bottom: 4px !important;
             cursor: pointer !important;
         }
         .ql-editor ul[data-checked="false"] > li::before {
             content: "" !important;
             position: absolute !important;
-            left: 2px !important;
-            top: 3px !important;
+            left: -1.25em !important;
+            top: 0.2em !important;
             width: 15px !important;
             height: 15px !important;
             border: 1.5px solid var(--text) !important;
@@ -134,8 +137,8 @@
         .ql-editor ul[data-checked="true"] > li::before {
             content: "" !important;
             position: absolute !important;
-            left: 2px !important;
-            top: 3px !important;
+            left: -1.25em !important;
+            top: 0.2em !important;
             width: 15px !important;
             height: 15px !important;
             border: 1.5px solid var(--accent) !important;
@@ -145,8 +148,8 @@
         .ql-editor ul[data-checked="true"] > li::after {
             content: "" !important;
             position: absolute !important;
-            left: 7px !important;
-            top: 5px !important;
+            left: -0.92em !important;
+            top: 0.34em !important;
             width: 4px !important;
             height: 8px !important;
             border: solid #fff !important;
@@ -225,6 +228,13 @@
                 }
             }
         });
+
+        var editorContext = {
+            selectionIndex: 0,
+            selectionLength: 0,
+            scrollTop: 0,
+            restoreLockUntil: 0
+        };
 
         function setTheme(mode) {
             if (mode === 'dark') {
@@ -325,19 +335,76 @@
             }
             reportFormat();
         }
+        function saveEditorContext(range) {
+            if (!range) return;
+            var editor = document.querySelector('.ql-editor');
+            editorContext.selectionIndex = Math.max(range.index || 0, 0);
+            editorContext.selectionLength = Math.max(range.length || 0, 0);
+            editorContext.scrollTop = editor ? editor.scrollTop : 0;
+        }
+        function setRestoreLock(durationMs) {
+            editorContext.restoreLockUntil = Date.now() + durationMs;
+        }
+        function resetEditorContext(targetIndex) {
+            var docLength = Math.max(quill.getLength() - 1, 0);
+            var nextIndex = typeof targetIndex === 'number'
+                ? Math.max(Math.min(targetIndex, docLength), 0)
+                : docLength;
+            editorContext.selectionIndex = nextIndex;
+            editorContext.selectionLength = 0;
+            editorContext.scrollTop = 0;
+            editorContext.restoreLockUntil = 0;
+            quill.setSelection(nextIndex, 0, 'silent');
+        }
+        function finalizeMediaInsert(nextIndex) {
+            var safeIndex = Math.max(nextIndex || 0, 0);
+            quill.setSelection(safeIndex, 0, 'silent');
+            saveEditorContext({ index: safeIndex, length: 0 });
+            setRestoreLock(180);
+            scrollToCursor(safeIndex, 0, true);
+        }
+        function restoreEditorContext() {
+            var docLength = Math.max(quill.getLength() - 1, 0);
+            var index = Math.min(editorContext.selectionIndex || 0, docLength);
+            var length = Math.min(editorContext.selectionLength || 0, Math.max(docLength - index, 0));
+            quill.setSelection(index, length, 'silent');
+            setRestoreLock(180);
+            scrollToCursor(index, length, true);
+        }
         function insertMedia(type, url) {
             try {
                 var r = quill.getSelection(true);
                 if (type === 'image') {
-                    quill.insertEmbed(r.index, 'image', url);
-                    quill.setSelection(r.index + 1);
+                    quill.insertEmbed(r.index, 'image', url, 'user');
+                    var insertedLeaf = quill.getLeaf(r.index);
+                    var insertedImage = insertedLeaf && insertedLeaf[0] && insertedLeaf[0].domNode
+                        ? insertedLeaf[0].domNode
+                        : null;
+                    quill.insertText(r.index + 1, '\n', 'user');
+                    var nextIndex = r.index + 2;
+                    if (insertedImage) {
+                        insertedImage.setAttribute('data-loading', 'true');
+                        var finish = function() {
+                            insertedImage.removeAttribute('data-loading');
+                            insertedImage.onload = null;
+                            insertedImage.onerror = null;
+                            finalizeMediaInsert(nextIndex);
+                        };
+                        insertedImage.onload = finish;
+                        insertedImage.onerror = finish;
+                        if (insertedImage.complete) {
+                            finish();
+                        }
+                    } else {
+                        finalizeMediaInsert(nextIndex);
+                    }
                 } else if (type === 'video') {
                     quill.insertEmbed(r.index, 'video', url);
-                    quill.setSelection(r.index + 1);
+                    finalizeMediaInsert(r.index + 1);
                 } else if (type === 'audio') {
                     quill.insertText(r.index, ' ');
                     quill.insertText(r.index + 1, '音频文件', 'link', url);
-                    quill.setSelection(r.index + 2);
+                    finalizeMediaInsert(r.index + 2);
                 }
             } catch(e) {
                 console.error('insertMedia error:', e);
@@ -361,12 +428,15 @@
                 var parsed = JSON.parse(deltaJSON);
                 if (parsed && parsed.ops) {
                     quill.setContents(parsed);
+                    resetEditorContext();
                 } else {
                     quill.setText(deltaJSON);
+                    resetEditorContext();
                 }
             } catch(e) {
                 // If JSON parse fails, try as plain text
                 quill.setText(deltaJSON);
+                resetEditorContext();
             }
         }
         function setContentBase64(base64) {
@@ -377,6 +447,7 @@
                     var parsed = JSON.parse(decoded);
                     if (parsed && parsed.ops) {
                         quill.setContents(parsed);
+                        resetEditorContext();
                         return;
                     }
                 } catch(e1) {}
@@ -386,18 +457,27 @@
                     var parsed2 = JSON.parse(fixed);
                     if (parsed2 && parsed2.ops) {
                         quill.setContents(parsed2);
+                        resetEditorContext();
                         return;
                     }
                 } catch(e2) {}
                 // Fallback: set as plain text
                 quill.setText(decoded);
+                resetEditorContext();
             } catch(e) {
                 console.error('setContentBase64 error:', e);
             }
         }
-        function setTemplate(text) { quill.setText(text); }
+        function setTemplate(text) {
+            quill.setText(text);
+            resetEditorContext();
+        }
         function setFontSize(size) { document.querySelector('.ql-editor').style.fontSize = size + 'px'; }
         function focusEditor() { quill.focus(); }
+        function focusEditorWithRestore() {
+            quill.focus();
+            restoreEditorContext();
+        }
         function setEditorBottomGap(pixels) {
             var safePixels = Math.max(Number(pixels) || 0, 96);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
@@ -419,14 +499,16 @@
         }
 
         // Content change callback for word count and auto-save
-        quill.on('text-change', function() {
+        quill.on('text-change', function(delta, oldDelta, source) {
             if (window.DiaryBridge) {
                 DiaryBridge.onContentChange(quill.getText());
             }
-            // Auto-scroll on text change to keep cursor visible
             setTimeout(function() {
                 var sel = quill.getSelection();
-                if (sel) scrollToCursor(sel.index, sel.length);
+                if (sel) {
+                    saveEditorContext(sel);
+                    scrollToCursor(sel.index, sel.length, source === 'api');
+                }
             }, 30);
         });
 
@@ -434,6 +516,7 @@
         var formatChangeTimer = null;
         quill.on('selection-change', function(range) {
             if (range) {
+                saveEditorContext(range);
                 // Debounce format change reporting to reduce lag
                 if (window.DiaryBridge) {
                     clearTimeout(formatChangeTimer);
@@ -443,7 +526,7 @@
                     }, 120);
                 }
                 // Auto-scroll cursor into view
-                scrollToCursor(range.index, range.length);
+                scrollToCursor(range.index, range.length, false);
             }
         });
 
@@ -539,25 +622,29 @@
             reportFormat();
         });
 
-        function scrollToCursor(index, length) {
+        function scrollToCursor(index, length, forceRestore) {
             setTimeout(function() {
                 try {
+                    if (!forceRestore && Date.now() < editorContext.restoreLockUntil) return;
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
                         syncViewportSize();
                         var cursorTop = bounds.top;
-                        var cursorBottom = bounds.top + bounds.height;
-                        var visibleTop = editor.scrollTop + 16;
-                        var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 220;
-                        var visibleBottom = editor.scrollTop + editor.clientHeight - Math.max(bottomGap * 0.45, 96);
-                        if (cursorBottom > visibleBottom || cursorTop < visibleTop) {
-                            var targetTop = Math.max(bounds.top - editor.clientHeight / 3, 0);
-                            editor.scrollTo({ top: targetTop, behavior: 'smooth' });
+                        var cursorBottom = bounds.top + Math.max(bounds.height, 24);
+                        var visibleTop = editor.scrollTop + 20;
+                        var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 180;
+                        var visibleBottom = editor.scrollTop + editor.clientHeight - Math.max(bottomGap * 0.55, 110);
+                        if (cursorBottom > visibleBottom) {
+                            var targetBottomTop = Math.max(cursorBottom - editor.clientHeight * 0.6, 0);
+                            editor.scrollTo({ top: targetBottomTop, behavior: 'auto' });
+                        } else if (cursorTop < visibleTop) {
+                            var targetTop = Math.max(cursorTop - 36, 0);
+                            editor.scrollTo({ top: targetTop, behavior: 'auto' });
                         }
                     }
                 } catch(e) {}
-            }, 50);
+            }, forceRestore ? 0 : 30);
         }
     </script>
 </body>

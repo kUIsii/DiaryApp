@@ -92,6 +92,28 @@ internal fun summarizeSelectedNames(
     }
 }
 
+internal fun editorModeToggleLabel(isFullEditorVisible: Boolean): String {
+    return if (isFullEditorVisible) "专注书写" else "显示编辑器"
+}
+
+internal fun resolveEditorBottomGap(
+    showToolbar: Boolean,
+    isKeyboardVisible: Boolean,
+    isFullEditorVisible: Boolean,
+    activeCategory: Int
+): Int {
+    return when {
+        showToolbar && isFullEditorVisible && activeCategory >= 0 -> 360
+        showToolbar && isKeyboardVisible && isFullEditorVisible -> 300
+        showToolbar || isKeyboardVisible -> 220
+        else -> 180
+    }
+}
+
+internal fun resolveCenteredLocationLabel(selectedLocation: String?): String {
+    return selectedLocation?.trim().takeUnless { it.isNullOrEmpty() } ?: "位置"
+}
+
 internal fun normalizeEditorColor(raw: String?): String? {
     val value = raw?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
     if (value == "false" || value == "transparent") return null
