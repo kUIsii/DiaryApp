@@ -992,20 +992,14 @@ fun EditorScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    // Row 2: centered location
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        MetadataChip(
-                            label = resolveCenteredLocationLabel(selectedLocation),
-                            icon = Icons.Default.LocationOn,
-                            isSelected = selectedLocation != null,
-                            isActive = activePanel == "location",
-                            onClick = { activePanel = if (activePanel == "location") null else "location" },
-                            modifier = Modifier.fillMaxWidth(0.62f)
-                        )
-                    }
+                    // Row 2: location (left-aligned)
+                    MetadataChip(
+                        label = resolveCenteredLocationLabel(selectedLocation),
+                        icon = Icons.Default.LocationOn,
+                        isSelected = selectedLocation != null,
+                        isActive = activePanel == "location",
+                        onClick = { activePanel = if (activePanel == "location") null else "location" }
+                    )
                 }
             }
 
@@ -1025,8 +1019,8 @@ fun EditorScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
-                            .heightIn(min = 82.dp)
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .heightIn(min = 60.dp)
                     ) {
                         when (activePanel) {
                             "mood" -> Column {

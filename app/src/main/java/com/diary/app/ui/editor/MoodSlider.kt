@@ -66,58 +66,27 @@ fun MoodSlider(
     modifier: Modifier = Modifier
 ) {
     val currentLevel = selectedLevel ?: 0
-    val currentColor = if (currentLevel > 0) moodColorForLevel(currentLevel) else MaterialTheme.colorScheme.onSurfaceVariant
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (currentLevel > 0) {
-                Icon(
-                    moodIcons[currentLevel - 1],
-                    null,
-                    tint = currentColor,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = " ${moodLabels[currentLevel - 1]}",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = currentColor
-                )
-            } else {
-                Text(
-                    text = "点击选择心情",
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp)
-                .heightIn(min = 74.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            for (i in 0 until 6) {
-                MoodItem(
-                    index = i,
-                    isSelected = currentLevel == (i + 1),
-                    color = moodColorForLevel(i + 1),
-                    onClick = {
-                        // Toggle: click same mood to deselect
-                        if (selectedLevel == i + 1) {
-                            onLevelChange(null)
-                        } else {
-                            onLevelChange(i + 1)
-                        }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 74.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        for (i in 0 until 6) {
+            MoodItem(
+                index = i,
+                isSelected = currentLevel == (i + 1),
+                color = moodColorForLevel(i + 1),
+                onClick = {
+                    // Toggle: click same mood to deselect
+                    if (selectedLevel == i + 1) {
+                        onLevelChange(null)
+                    } else {
+                        onLevelChange(i + 1)
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
