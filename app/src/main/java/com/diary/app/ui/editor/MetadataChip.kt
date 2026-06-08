@@ -1,6 +1,7 @@
 package com.diary.app.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,28 +38,29 @@ internal fun MetadataChip(
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val primary = accentColor ?: MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
 
     val bgColor = if (isActive) primary.copy(alpha = 0.1f) else surfaceVariant.copy(alpha = 0.5f)
     val contentColor = if (isSelected || isActive) primary else onSurfaceVariant.copy(alpha = 0.7f)
+    val borderColor = if (isSelected || isActive) primary.copy(alpha = 0.3f) else outlineVariant.copy(alpha = 0.5f)
+
+    val shape = RoundedCornerShape(14.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 38.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(shape)
             .background(bgColor)
+            .border(0.5.dp, borderColor, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 9.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.CenterStart
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (centerContent) {
-                Arrangement.Center
-            } else {
-                Arrangement.spacedBy(6.dp)
-            }
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Icon(
                 imageVector = icon,
@@ -70,7 +72,7 @@ internal fun MetadataChip(
                 text = label,
                 fontSize = 14.sp,
                 color = contentColor,
-                modifier = if (centerContent) Modifier else Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f, fill = false),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

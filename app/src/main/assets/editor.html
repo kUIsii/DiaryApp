@@ -30,10 +30,13 @@
             background: transparent;
             color: var(--text);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         .ql-toolbar.ql-snow { display: none !important; }
         #editor {
-            height: 100vh;
+            flex: 1;
+            min-height: 0;
         }
         .ql-container.ql-snow {
             border: none !important;
@@ -482,21 +485,6 @@
             var safePixels = Math.max(Number(pixels) || 0, 96);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
         }
-        function syncViewportSize() {
-            var viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            var safeHeight = Math.max(Math.floor(viewportHeight || window.innerHeight || 0), 240);
-            var editorRoot = document.getElementById('editor');
-            if (editorRoot) {
-                editorRoot.style.height = safeHeight + 'px';
-            }
-        }
-        syncViewportSize();
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', syncViewportSize);
-            window.visualViewport.addEventListener('scroll', syncViewportSize);
-        } else {
-            window.addEventListener('resize', syncViewportSize);
-        }
 
         // Content change callback for word count and auto-save
         quill.on('text-change', function(delta, oldDelta, source) {
@@ -629,7 +617,6 @@
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
-                        syncViewportSize();
                         var cursorTop = bounds.top;
                         var cursorBottom = bounds.top + Math.max(bounds.height, 24);
                         var visibleTop = editor.scrollTop + 20;

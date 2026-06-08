@@ -1003,7 +1003,6 @@ fun EditorScreen(
                             isSelected = selectedLocation != null,
                             isActive = activePanel == "location",
                             onClick = { activePanel = if (activePanel == "location") null else "location" },
-                            centerContent = true,
                             modifier = Modifier.fillMaxWidth(0.62f)
                         )
                     }
