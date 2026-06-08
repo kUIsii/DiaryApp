@@ -78,9 +78,37 @@ fun LocationSelector(
     var isGettingLocation by remember { mutableStateOf(false) }
     var manualInput by remember { mutableStateOf("") }
     var showManualInput by remember { mutableStateOf(false) }
-    var isEditing by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var showMapPicker by remember { mutableStateOf(false) }
+
+    // Edit location dialog
+    if (showEditDialog && selectedLocation != null) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("编辑位置名称") },
+            text = {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("输入位置名称") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (editName.isNotBlank()) {
+                        onLocationSelected(editName.trim(), latitude, longitude)
+                    }
+                    showEditDialog = false
+                }) { Text("确认") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("取消") }
+            }
+        )
+    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -99,76 +127,48 @@ fun LocationSelector(
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (selectedLocation != null) {
-            if (isEditing) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = editName,
-                        onValueChange = { editName = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    IconButton(onClick = {
-                        if (editName.isNotBlank()) {
-                            onLocationSelected(editName.trim(), latitude, longitude)
-                        }
-                        isEditing = false
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "确认",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .clickable {
+                        editName = selectedLocation
+                        showEditDialog = true
                     }
-                }
-            } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                        .clickable {
-                            editName = selectedLocation
-                            isEditing = true
-                        }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = selectedLocation,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "编辑",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = { onLocationSelected(null, null, null) },
+                    modifier = Modifier.size(24.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = selectedLocation,
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "清除",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = "编辑",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(
-                        onClick = { onLocationSelected(null, null, null) },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Text(
-                            text = "清除",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
         } else {

@@ -49,28 +49,28 @@ internal fun MetadataChip(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 38.dp)
+            .defaultMinSize(minHeight = 34.dp)
             .clip(shape)
             .background(bgColor)
             .border(0.5.dp, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier.size(15.dp)
+                modifier = Modifier.size(13.dp)
             )
             Text(
                 text = label,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 color = contentColor,
                 modifier = Modifier.weight(1f, fill = false),
                 maxLines = 1,
