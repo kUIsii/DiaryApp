@@ -1,7 +1,7 @@
 # v2.61.13-experimental
 
-## UI Refinements
+## 界面优化
 
-- **Mood panel**: Removed label text, showing only mood options
-- **Expandable panels**: Reduced height for more compact appearance
-- **Location chip**: Moved to left-aligned position
+- **心情面板**: 移除上方文字提示，只显示选项
+- **展开面板**: 缩小高度，更加紧凑
+- **位置标签**: 移动到左对齐位置

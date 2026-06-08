@@ -1,14 +1,19 @@
-## Experimental update
-- refine todo page swipe transition to a lighter horizontal slide with subtle fade
-- tighten diary editor metadata chips, weather/mood/tag/location panels, and text sizing
-- move writing prompt entry to a compact "灵感" action for a cleaner header
-- fix transparent editor background layering in light and dark themes
-- add low-risk utility/test coverage for selected-name summaries
-- normalize Room migration parameter naming for cleaner maintenance
+# v2.61.6-experimental
 
-## Verification
-- `:app:compileExperimentalDebugKotlin` passed
-- `:app:assembleExperimentalRelease` passed
+## 实验性更新
 
-## Known issue
-- `testExperimentalDebugUnitTest --tests com.diary.app.ui.editor.EditorUtilsTest` is still blocked by a local Gradle Test Executor / worker bootstrap issue on this Windows + JDK 21 environment (`ClassNotFoundException: worker.org.gradle.process.internal.worker.GradleWorkerMain`), not by a failing business assertion in the new test itself.
+- 优化待办页面滑动切换为更轻量的水平滑动带淡入淡出效果
+- 收紧日记编辑器的元数据标签、天气/心情/标签/位置面板和文字尺寸
+- 将写作提示入口移至紧凑的"灵感"操作，使头部更简洁
+- 修复浅色和深色主题下编辑器透明背景层叠问题
+- 增加低风险的工具/测试覆盖用于选中名称摘要
+- 规范 Room 迁移参数命名便于维护
+
+## 验证
+
+- `:app:compileExperimentalDebugKotlin` 通过
+- `:app:assembleExperimentalRelease` 通过
+
+## 已知问题
+
+- `testExperimentalDebugUnitTest` 在 Windows + JDK 21 环境下被本地 Gradle Test Executor / worker 启动问题阻塞，非业务断言失败

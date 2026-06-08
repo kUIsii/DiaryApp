@@ -1,14 +1,19 @@
-## Experimental update
-- keep the lighter todo swipe transition and tighter diary editor metadata layout from `2.61.6-experimental`
-- add another round of low-risk stability hardening without changing user-facing flows
-- replace a fragile unchecked cast path in home filtering with typed snapshot composition
-- remove a few unnecessary non-null assertions in todo and editor-related flows
-- add `docs/build-notes.md` to document the recommended Gradle/JDK setup and the current local unit-test worker issue
+# v2.61.7-experimental
 
-## Verification
-- `:app:compileExperimentalDebugKotlin` passed
-- `:app:assembleExperimentalRelease` passed
+## 实验性更新
 
-## Known issue
-- local unit-test execution is still unstable when Gradle runs on `Java 21` in this Windows environment
-- recommended mitigation: run this project with `JDK 17` for Gradle tasks, especially unit tests
+- 保留来自 `2.61.6-experimental` 的轻量待办滑动切换和收紧的日记编辑器元数据布局
+- 新增一轮低风险稳定性加固，不改变用户界面流程
+- 将首页过滤中脆弱的未检查类型转换替换为类型化快照组合
+- 移除待办和编辑器相关流程中一些不必要的非空断言
+- 增加 `docs/build-notes.md` 文档记录推荐的 Gradle/JDK 配置和当前本地单元测试 worker 问题
+
+## 验证
+
+- `:app:compileExperimentalDebugKotlin` 通过
+- `:app:assembleExperimentalRelease` 通过
+
+## 已知问题
+
+- 在 Windows 环境下 Gradle 运行在 Java 21 时本地单元测试执行仍不稳定
+- 建议：使用 JDK 17 运行 Gradle 任务，特别是单元测试

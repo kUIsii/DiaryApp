@@ -1,13 +1,13 @@
 # v2.61.12-experimental
 
-## UI Improvements
+## 界面优化
 
-- **Tag chips**: Added subtle border in light mode, text aligned to left
-- **Weather selector**: Redesigned with circular icon style, matching mood selector
-- **Editor**: Fixed content area not filling full screen after keyboard dismissal
+- **标签样式**: 浅色模式下增加浅色边框，文字改为左对齐
+- **天气选择器**: 重新设计为圆形图标风格，与心情选择器保持一致
+- **编辑器**: 修复键盘关闭后内容区域未填满屏幕的问题
 
-## Details
+## 详细说明
 
-- MetadataChip: Added 0.5dp border for better visual separation
-- WeatherSelector: Changed from square cards to circular icons with glow effect
-- Editor HTML: Replaced JavaScript viewport sync with CSS flex layout for reliable sizing
+- MetadataChip: 增加 0.5dp 边框，提升视觉区分度
+- WeatherSelector: 从方形卡片改为圆形图标，带选中光晕效果
+- Editor HTML: 移除 JavaScript 视口同步，改用 CSS flex 布局确保尺寸稳定
