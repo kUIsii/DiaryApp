@@ -697,7 +697,7 @@ private fun HabitSummaryCard(
                 Text(
                     text = "今日打卡",
                     fontSize = 11.sp,
-                    color = textSecondary.copy(alpha = 0.9f)
+                    color = textSecondary
                 )
             }
             }
@@ -719,7 +719,7 @@ private fun HabitSummaryCard(
                         else -> "还差 ${summary.total - summary.recordedToday} 项"
                     },
                     fontSize = 12.sp,
-                    color = textSecondary.copy(alpha = 0.88f)
+                    color = textSecondary
                 )
                 Box(
                     modifier = Modifier
@@ -814,7 +814,7 @@ private fun HabitCard(
                                     text = if (item.todayRecord != null) "已打卡" else statusText,
                                     fontSize = 10.sp,
                                     fontWeight = if (item.todayRecord != null) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (item.todayRecord != null) statusColor else textSecondary.copy(alpha = 0.88f)
+                                    color = if (item.todayRecord != null) statusColor else textSecondary
                                 )
                             }
                         }
@@ -824,7 +824,7 @@ private fun HabitCard(
                 Text(
                     text = if (item.streak > 0) "${item.streak} 天" else "未开始",
                     fontSize = 10.sp,
-                    color = textSecondary.copy(alpha = 0.86f),
+                    color = textSecondary,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
@@ -896,14 +896,14 @@ private fun HabitRecentStrip(
                         text = day.date.dayOfMonth.toString(),
                         fontSize = 12.sp,
                         fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (day.record != null) tint else textSecondary.copy(alpha = 0.86f)
+                        color = if (day.record != null) tint else textSecondary
                     )
                 }
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = if (day.isToday) "今" else day.date.format(DateTimeFormatter.ofPattern("E")),
                     fontSize = 9.sp,
-                    color = textSecondary.copy(alpha = 0.72f),
+                    color = textSecondary.copy(alpha = 0.88f),
                     maxLines = 1
                 )
             }
