@@ -55,8 +55,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 57
-            versionName = "2.61.14-experimental"
+            versionCode = 58
+            versionName = "2.61.15-experimental"
         }
     }
 

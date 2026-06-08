@@ -474,10 +474,10 @@ fun EditorScreen(
         }
     }
 
-    // Check for draft on new entry
-    LaunchedEffect(diaryId) {
-        if (diaryId == null) {
-            val draft = viewModel.loadDraft(null)
+    // Check for auto draft on new entries and unsaved edits to existing entries.
+    LaunchedEffect(diaryId, draftId) {
+        if (draftId == null) {
+            val draft = viewModel.loadDraft(diaryId)
             if (draft != null && shouldRestoreDraft(diaryId = diaryId, plainText = draft.plainText)) {
                 pendingDraft = draft
                 showDraftDialog = true
@@ -578,6 +578,8 @@ fun EditorScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
                                 viewModel.clearDraft(diaryId)
+                                currentDraftId?.let(viewModel::deleteDraft)
+                                currentDraftId = null
                                 pendingDraft = null
                                 showUnsavedDialog = false
                                 onNavigateBack()
@@ -599,9 +601,7 @@ fun EditorScreen(
     if (showDraftDialog && currentPendingDraft != null) {
         AlertDialog(
             onDismissRequest = {
-                viewModel.clearDraft(null)
                 pendingDraft = null
-                currentDraftId = null
                 showDraftDialog = false
             },
             title = { Text(stringResource(R.string.draft_found)) },
@@ -613,7 +613,7 @@ fun EditorScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    viewModel.clearDraft(null)
+                    viewModel.clearDraft(diaryId)
                     pendingDraft = null
                     currentDraftId = null
                     showDraftDialog = false
@@ -780,10 +780,10 @@ fun EditorScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
-                IconButton(onClick = { webView?.evaluateJavascript("quill.undo()", null) }, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = { webView?.evaluateJavascript("quill.history.undo()", null) }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Undo, contentDescription = stringResource(R.string.undo), tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
-                IconButton(onClick = { webView?.evaluateJavascript("quill.redo()", null) }, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = { webView?.evaluateJavascript("quill.history.redo()", null) }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Redo, contentDescription = stringResource(R.string.redo), tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = { showDraftsDialog = true }, modifier = Modifier.size(36.dp)) {
@@ -897,7 +897,10 @@ fun EditorScreen(
             // Title input
             OutlinedTextField(
                 value = entryTitle,
-                onValueChange = { entryTitle = it },
+                onValueChange = {
+                    entryTitle = it
+                    viewModel.markContentChanged()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 2.dp),
@@ -967,8 +970,8 @@ fun EditorScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 18.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Collapse/expand button
                     Row(
@@ -980,7 +983,7 @@ fun EditorScreen(
                             contentDescription = if (isMetadataExpanded) "收起" else "展开",
                             tint = textSecondary.copy(alpha = 0.5f),
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(18.dp)
                                 .clickable { isMetadataExpanded = !isMetadataExpanded }
                         )
                     }
@@ -1033,7 +1036,8 @@ fun EditorScreen(
                             icon = Icons.Default.LocationOn,
                             isSelected = selectedLocation != null,
                             isActive = activePanel == "location",
-                            onClick = { activePanel = if (activePanel == "location") null else "location" }
+                            onClick = { activePanel = if (activePanel == "location") null else "location" },
+                            centerContent = true
                         )
                     } else {
                         // Collapsed: show small icons only
@@ -1101,25 +1105,31 @@ fun EditorScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(surfaceVariant.copy(alpha = 0.52f))
+                        .padding(horizontal = 18.dp, vertical = 1.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(surfaceVariant.copy(alpha = 0.34f))
                         .animateContentSize()
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .heightIn(min = 60.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .heightIn(min = 46.dp)
                     ) {
                         when (activePanel) {
                             "mood" -> Column {
                                 MoodSlider(
                                     selectedLevel = selectedMood,
-                                    onLevelChange = { selectedMood = it }
+                                    onLevelChange = {
+                                        selectedMood = it
+                                        viewModel.markContentChanged()
+                                    }
                                 )
                                 if (selectedMood != null) {
                                     TextButton(
-                                        onClick = { selectedMood = null },
+                                        onClick = {
+                                            selectedMood = null
+                                            viewModel.markContentChanged()
+                                        },
                                         modifier = Modifier.align(Alignment.CenterHorizontally)
                                     ) {
                                         Text("清除心情", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1129,11 +1139,17 @@ fun EditorScreen(
                             "weather" -> Column {
                                 WeatherSelector(
                                     selectedWeather = selectedWeather,
-                                    onWeatherSelected = { selectedWeather = it }
+                                    onWeatherSelected = {
+                                        selectedWeather = it
+                                        viewModel.markContentChanged()
+                                    }
                                 )
                                 if (selectedWeather != null) {
                                     TextButton(
-                                        onClick = { selectedWeather = null },
+                                        onClick = {
+                                            selectedWeather = null
+                                            viewModel.markContentChanged()
+                                        },
                                         modifier = Modifier.align(Alignment.CenterHorizontally)
                                     ) {
                                         Text("清除天气", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1143,7 +1159,10 @@ fun EditorScreen(
                             "tags" -> TagEditor(
                                 allTags = allTags,
                                 selectedTagIds = selectedTagIds,
-                                onTagToggle = { viewModel.toggleTag(it) },
+                                onTagToggle = {
+                                    viewModel.toggleTag(it)
+                                    viewModel.markContentChanged()
+                                },
                                 onAddTag = { showTagDialog = true }
                             )
                             "location" -> LocationSelector(
@@ -1154,6 +1173,7 @@ fun EditorScreen(
                                     selectedLocation = name
                                     locationLat = lat
                                     locationLng = lng
+                                    viewModel.markContentChanged()
                                 },
                                 recentLocations = recentLocations
                             )

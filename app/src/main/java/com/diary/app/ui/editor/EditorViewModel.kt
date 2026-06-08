@@ -111,7 +111,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         if (latestContent.isEmpty() && latestPlainText.isEmpty()) return
         saveDraft(latestContent, latestPlainText, diaryId, latestTitle, moodLevel, weather, location, latitude, longitude)
         _autoSaveVisible.value = true
-        _hasUnsavedChanges.value = false
     }
 
     fun hideAutoSaveIndicator() {

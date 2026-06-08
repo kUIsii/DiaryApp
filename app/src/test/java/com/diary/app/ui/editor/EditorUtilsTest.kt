@@ -34,7 +34,7 @@ class EditorUtilsTest {
     @Test
     fun `editor bottom gap preset matches mode and keyboard state`() {
         assertEquals(
-            180,
+            120,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
@@ -43,7 +43,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            220,
+            128,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -52,7 +52,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            300,
+            176,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -61,7 +61,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            360,
+            236,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -109,7 +109,7 @@ class EditorUtilsTest {
     @Test
     fun `should restore draft only for new entries with non blank content`() {
         assertEquals(true, shouldRestoreDraft(diaryId = null, plainText = "hello"))
-        assertEquals(false, shouldRestoreDraft(diaryId = 7L, plainText = "hello"))
+        assertEquals(true, shouldRestoreDraft(diaryId = 7L, plainText = "hello"))
         assertEquals(false, shouldRestoreDraft(diaryId = null, plainText = "   "))
     }
 
@@ -117,5 +117,44 @@ class EditorUtilsTest {
     fun `normalize editor color returns null for transparent like values`() {
         assertEquals(null, normalizeEditorColor("transparent"))
         assertEquals(null, normalizeEditorColor("false"))
+    }
+
+    @Test
+    fun `editor content dirty detects title metadata and body changes`() {
+        val base = EditorSnapshot(
+            title = "title",
+            plainText = "body",
+            moodLevel = 3,
+            weather = "rain",
+            tagIds = setOf(1L),
+            location = "home"
+        )
+
+        assertEquals(false, isEditorDirty(base, base))
+        assertEquals(true, isEditorDirty(base, base.copy(title = "new title")))
+        assertEquals(true, isEditorDirty(base, base.copy(plainText = "new body")))
+        assertEquals(true, isEditorDirty(base, base.copy(moodLevel = 4)))
+        assertEquals(true, isEditorDirty(base, base.copy(tagIds = setOf(1L, 2L))))
+        assertEquals(true, isEditorDirty(base, base.copy(location = "office")))
+    }
+
+    @Test
+    fun `editor content dirty ignores trailing whitespace and blank default title`() {
+        assertEquals(
+            false,
+            isEditorDirty(
+                EditorSnapshot(title = "2026年6月8日", plainText = "hello\n"),
+                EditorSnapshot(title = "", plainText = "hello", defaultTitle = "2026年6月8日")
+            )
+        )
+    }
+
+    @Test
+    fun `draft is meaningful when it has text title or metadata`() {
+        assertEquals(false, isMeaningfulDraft(EditorSnapshot()))
+        assertEquals(true, isMeaningfulDraft(EditorSnapshot(plainText = "hello")))
+        assertEquals(true, isMeaningfulDraft(EditorSnapshot(title = "A thought")))
+        assertEquals(true, isMeaningfulDraft(EditorSnapshot(moodLevel = 2)))
+        assertEquals(true, isMeaningfulDraft(EditorSnapshot(tagIds = setOf(7L))))
     }
 }

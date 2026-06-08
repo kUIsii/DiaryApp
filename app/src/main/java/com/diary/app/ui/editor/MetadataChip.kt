@@ -40,27 +40,27 @@ internal fun MetadataChip(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
 
-    val bgColor = if (isActive) primary.copy(alpha = 0.1f) else surfaceVariant.copy(alpha = 0.5f)
+    val bgColor = if (isActive) primary.copy(alpha = 0.1f) else surfaceVariant.copy(alpha = 0.36f)
     val contentColor = if (isSelected || isActive) primary else onSurfaceVariant.copy(alpha = 0.7f)
-    val borderColor = if (isSelected || isActive) primary.copy(alpha = 0.3f) else outlineVariant.copy(alpha = 0.5f)
+    val borderColor = if (isSelected || isActive) primary.copy(alpha = 0.26f) else outlineVariant.copy(alpha = 0.38f)
 
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(16.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 34.dp)
+            .defaultMinSize(minHeight = 32.dp)
             .clip(shape)
             .background(bgColor)
             .border(0.5.dp, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        contentAlignment = Alignment.CenterStart
+            .padding(horizontal = 9.dp, vertical = 6.dp),
+        contentAlignment = if (centerContent) Alignment.Center else Alignment.CenterStart
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = if (centerContent) Arrangement.Center else Arrangement.spacedBy(5.dp)
         ) {
             Icon(
                 imageVector = icon,
@@ -70,9 +70,9 @@ internal fun MetadataChip(
             )
             Text(
                 text = label,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 color = contentColor,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = if (centerContent) Modifier else Modifier.weight(1f, fill = false),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

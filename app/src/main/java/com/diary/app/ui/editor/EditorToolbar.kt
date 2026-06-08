@@ -106,7 +106,7 @@ internal fun EditorToolbar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -116,100 +116,11 @@ internal fun EditorToolbar(
                 contentDescription = "收起工具栏",
                 tint = textColor.copy(alpha = 0.6f),
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(22.dp)
                     .clickable { onHideToolbar() }
             )
 
-            TextButton(
-                onClick = {
-                    val nextMode = !isFocusWritingMode
-                    onWritingModeChange(nextMode)
-                    if (nextMode) {
-                        onCategoryChange(-1)
-                        onShowKeyboard()
-                    }
-                }
-            ) {
-                Text(
-                    text = if (isFocusWritingMode) {
-                        "\u663e\u793a\u7f16\u8f91\u5668"
-                    } else {
-                        "\u4e13\u6ce8\u4e66\u5199"
-                    },
-                    color = activeColor
-                )
-            }
-
-            Text(
-                text = if (isFocusWritingMode) {
-                    "\u5f53\u524d\uff1a\u4e13\u6ce8\u4e66\u5199"
-                } else {
-                    "\u5f53\u524d\uff1a\u5b8c\u6574\u7f16\u8f91"
-                },
-                fontSize = 12.sp,
-                color = textColor.copy(alpha = 0.7f)
-            )
-        }
-
-        if (!isFocusWritingMode) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                categories.forEach { category ->
-                    CategoryButton(
-                        icon = category.icon,
-                        label = category.label,
-                        isActive = activeCategory == category.index,
-                        onClick = {
-                            if (activeCategory == category.index) {
-                                onCategoryChange(-1)
-                                onShowKeyboard()
-                            } else {
-                                onCategoryChange(category.index)
-                                onHideKeyboard()
-                            }
-                        },
-                        textColor = textColor,
-                        activeColor = activeColor
-                    )
-                }
-
-                CategoryButton(
-                    icon = if (activeCategory >= 0) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                    label = if (activeCategory >= 0) "\u6536\u8d77" else "\u5c55\u5f00",
-                    isActive = false,
-                    onClick = {
-                        if (activeCategory >= 0) {
-                            onCategoryChange(-1)
-                            onShowKeyboard()
-                        } else {
-                            onCategoryChange(0)
-                            onHideKeyboard()
-                        }
-                    },
-                    textColor = textColor,
-                    activeColor = activeColor
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "\u5b57\u53f7",
-                fontSize = 11.sp,
-                color = textColor.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.weight(1f))
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -254,6 +165,57 @@ internal fun EditorToolbar(
                     fontWeight = FontWeight.Medium,
                     color = textColor
                 )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            TextButton(
+                onClick = {
+                    val nextMode = !isFocusWritingMode
+                    onWritingModeChange(nextMode)
+                    if (nextMode) {
+                        onCategoryChange(-1)
+                        onShowKeyboard()
+                    }
+                }
+            ) {
+                Text(
+                    text = if (isFocusWritingMode) {
+                        "\u7f16\u8f91"
+                    } else {
+                        "\u4e13\u6ce8"
+                    },
+                    color = activeColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        if (!isFocusWritingMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                categories.forEach { category ->
+                    CategoryButton(
+                        icon = category.icon,
+                        label = category.label,
+                        isActive = activeCategory == category.index,
+                        onClick = {
+                            if (activeCategory == category.index) {
+                                onCategoryChange(-1)
+                                onShowKeyboard()
+                            } else {
+                                onCategoryChange(category.index)
+                                onHideKeyboard()
+                            }
+                        },
+                        textColor = textColor,
+                        activeColor = activeColor
+                    )
+                }
             }
         }
 

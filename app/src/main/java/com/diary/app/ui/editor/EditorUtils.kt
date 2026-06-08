@@ -103,10 +103,10 @@ internal fun resolveEditorBottomGap(
     activeCategory: Int
 ): Int {
     return when {
-        showToolbar && isFullEditorVisible && activeCategory >= 0 -> 360
-        showToolbar && isKeyboardVisible && isFullEditorVisible -> 300
-        showToolbar || isKeyboardVisible -> 220
-        else -> 180
+        showToolbar && isFullEditorVisible && activeCategory >= 0 -> 236
+        showToolbar && isKeyboardVisible && isFullEditorVisible -> 176
+        showToolbar || isKeyboardVisible -> 128
+        else -> 120
     }
 }
 
@@ -141,7 +141,7 @@ internal fun draftKeysToClear(diaryId: Long?): Set<String> {
 }
 
 internal fun shouldRestoreDraft(diaryId: Long?, plainText: String): Boolean {
-    return diaryId == null && plainText.isNotBlank()
+    return plainText.isNotBlank()
 }
 
 internal fun iconForTemplate(iconName: String): ImageVector {
@@ -181,4 +181,42 @@ internal fun getTimeAgo(timestamp: Long): String {
             java.text.SimpleDateFormat("MM/dd", java.util.Locale.getDefault()).format(date)
         }
     }
+}
+
+internal data class EditorSnapshot(
+    val title: String = "",
+    val plainText: String = "",
+    val moodLevel: Int? = null,
+    val weather: String? = null,
+    val tagIds: Set<Long> = emptySet(),
+    val location: String? = null,
+    val defaultTitle: String = ""
+)
+
+private fun normalizedTitle(title: String, defaultTitle: String): String {
+    val trimmed = title.trim()
+    return if (trimmed == defaultTitle.trim()) "" else trimmed
+}
+
+private fun normalizedPlainText(text: String): String {
+    return text.trim()
+}
+
+internal fun isMeaningfulDraft(snapshot: EditorSnapshot): Boolean {
+    return normalizedTitle(snapshot.title, snapshot.defaultTitle).isNotBlank() ||
+        normalizedPlainText(snapshot.plainText).isNotBlank() ||
+        snapshot.moodLevel != null ||
+        !snapshot.weather?.trim().isNullOrEmpty() ||
+        snapshot.tagIds.isNotEmpty() ||
+        !snapshot.location?.trim().isNullOrEmpty()
+}
+
+internal fun isEditorDirty(base: EditorSnapshot, current: EditorSnapshot): Boolean {
+    val defaultTitle = current.defaultTitle.ifBlank { base.defaultTitle }
+    return normalizedTitle(base.title, defaultTitle) != normalizedTitle(current.title, defaultTitle) ||
+        normalizedPlainText(base.plainText) != normalizedPlainText(current.plainText) ||
+        base.moodLevel != current.moodLevel ||
+        base.weather?.trim() != current.weather?.trim() ||
+        base.tagIds != current.tagIds ||
+        base.location?.trim() != current.location?.trim()
 }

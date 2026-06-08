@@ -13,7 +13,10 @@
             --blockquote-bg: rgba(74, 144, 217, 0.05);
             --code-bg: rgba(0,0,0,0.03);
             --line-height: 19.6px;
-            --line-color: rgba(0,0,0,0.06);
+            --line-offset: -3px;
+            --line-color: rgba(42, 70, 59, 0.09);
+            --margin-line-color: rgba(199, 126, 75, 0.16);
+            --paper-bg: rgba(251, 253, 251, 0.94);
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -22,7 +25,9 @@
             --accent-light: rgba(107, 168, 232, 0.15);
             --blockquote-bg: rgba(107, 168, 232, 0.08);
             --code-bg: rgba(255,255,255,0.05);
-            --line-color: rgba(255,255,255,0.06);
+            --line-color: rgba(255,255,255,0.055);
+            --margin-line-color: rgba(199, 126, 75, 0.18);
+            --paper-bg: #101820;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
@@ -44,47 +49,62 @@
         .ql-container.ql-snow {
             border: none !important;
             font-size: 14px;
-            line-height: 1.4;
+            line-height: var(--line-height);
             height: 100% !important;
+            min-height: 100% !important;
         }
         .ql-editor {
+            height: 100% !important;
             min-height: 100%;
-            padding: 0 16px calc(var(--editor-bottom-gap, 180px));
+            padding: 6px 16px calc(var(--editor-bottom-gap, 120px)) 28px;
             color: var(--text);
-            background: transparent;
-            background-image: repeating-linear-gradient(
-                to bottom,
-                transparent,
-                transparent calc(var(--line-height) - 1px),
-                var(--line-color) calc(var(--line-height) - 1px),
-                var(--line-color) var(--line-height)
-            );
-            background-attachment: local;
+            line-height: var(--line-height) !important;
+            background:
+                linear-gradient(90deg, transparent 0 21px, var(--margin-line-color) 21px 22px, transparent 22px),
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0,
+                    transparent calc(var(--line-height) - 1px),
+                    var(--line-color) calc(var(--line-height) - 1px),
+                    var(--line-color) var(--line-height)
+                ),
+                var(--paper-bg);
+            background-size: 100% var(--line-height), 100% var(--line-height), auto;
+            background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
+            background-attachment: local, local, local;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
         .theme-dark .ql-editor {
-            background: transparent;
-            background-image: repeating-linear-gradient(
-                to bottom,
-                transparent,
-                transparent calc(var(--line-height) - 1px),
-                var(--line-color) calc(var(--line-height) - 1px),
-                var(--line-color) var(--line-height)
-            );
-            background-attachment: local;
+            background:
+                linear-gradient(90deg, transparent 0 21px, var(--margin-line-color) 21px 22px, transparent 22px),
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0,
+                    transparent calc(var(--line-height) - 1px),
+                    var(--line-color) calc(var(--line-height) - 1px),
+                    var(--line-color) var(--line-height)
+                ),
+                var(--paper-bg);
+            background-size: 100% var(--line-height), 100% var(--line-height), auto;
+            background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
+            background-attachment: local, local, local;
         }
         .ql-editor.ql-blank::before {
             color: var(--placeholder);
             font-style: normal;
         }
-        .ql-editor p { margin-bottom: 8px; }
+        .ql-editor p {
+            margin: 0;
+            min-height: var(--line-height);
+            line-height: var(--line-height);
+        }
 
         /* Headings */
-        .ql-editor h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; line-height: 1.4; }
-        .ql-editor h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
-        .ql-editor h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+        .ql-editor h1 { font-size: 28px; font-weight: 700; margin: 0 0 var(--line-height); line-height: calc(var(--line-height) * 1.35); }
+        .ql-editor h2 { font-size: 22px; font-weight: 700; margin: 0 0 var(--line-height); line-height: calc(var(--line-height) * 1.25); }
+        .ql-editor h3 { font-size: 18px; font-weight: 700; margin: 0; line-height: var(--line-height); }
 
         /* Blockquote */
         blockquote {
