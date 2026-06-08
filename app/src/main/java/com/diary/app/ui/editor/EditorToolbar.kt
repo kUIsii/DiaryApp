@@ -101,12 +101,18 @@ internal fun EditorToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(surfaceColor)
+            .background(surfaceColor.copy(alpha = 0.92f))
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(borderColor.copy(alpha = 0.7f))
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -123,9 +129,10 @@ internal fun EditorToolbar(
             Spacer(modifier = Modifier.weight(1f))
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .height(36.dp)
+                    .width(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Transparent)
                     .clickable {
                         val sizes = listOf(10, 12, 14, 16, 18, 20)
                         val currentIndex = sizes.indexOf(fontSize).coerceAtLeast(0)
@@ -145,13 +152,18 @@ internal fun EditorToolbar(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = activeColor,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(activeColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
             )
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .height(36.dp)
+                    .width(42.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(Color.Transparent)
                     .clickable {
                         val sizes = listOf(10, 12, 14, 16, 18, 20)
                         val currentIndex = sizes.indexOf(fontSize).coerceIn(0, sizes.lastIndex)

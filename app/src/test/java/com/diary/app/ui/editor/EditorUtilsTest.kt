@@ -34,7 +34,7 @@ class EditorUtilsTest {
     @Test
     fun `editor bottom gap preset matches mode and keyboard state`() {
         assertEquals(
-            120,
+            72,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
@@ -43,7 +43,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            128,
+            88,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -52,7 +52,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            176,
+            104,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -61,7 +61,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            236,
+            120,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,

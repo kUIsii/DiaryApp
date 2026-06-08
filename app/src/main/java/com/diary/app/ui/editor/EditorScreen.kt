@@ -18,7 +18,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,10 +43,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Undo
@@ -77,7 +77,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -148,10 +150,10 @@ fun EditorScreen(
     var activePanel by remember { mutableStateOf<String?>(null) }
 
     // Metadata collapse state
-    var isMetadataExpanded by remember { mutableStateOf(true) }
+    var isMetadataExpanded by remember { mutableStateOf(false) }
 
     // Toolbar state - initially hidden, shown when keyboard appears
-    var showToolbar by remember { mutableStateOf(false) }
+    var showToolbar by remember { mutableStateOf(true) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
     var isFullEditorVisible by remember { mutableStateOf(false) }
@@ -499,8 +501,63 @@ fun EditorScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val accentColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val paperColor = if (isDark) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+    }
+    val editorBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.22f else 0.46f)
+    val metaSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.16f else 0.48f)
+    val metaBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.18f else 0.42f)
+    val titleTextStyle = MaterialTheme.typography.headlineSmall.copy(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Bold,
+        color = textColor,
+        lineHeight = 31.sp,
+        fontSize = 24.sp
+    )
+
+    fun saveCurrentEntry() {
+        webView?.evaluateJavascript("getContent()") { json ->
+            webView?.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
+                val cleanJson = unescapeEvaluateJsResult(json)
+                val cleanPlain = unescapeEvaluateJsResult(plain)
+                val saveTitle = entryTitle.ifBlank { dateTitle }
+                if (cleanPlain.isBlank() && saveTitle.isBlank()) {
+                    onNavigateBack()
+                    return@plainCallback
+                }
+                scope.launch {
+                    val savedEntryId = viewModel.saveEntry(
+                        title = saveTitle,
+                        content = cleanJson,
+                        plainText = cleanPlain,
+                        diaryId = diaryId,
+                        moodLevel = selectedMood,
+                        weather = selectedWeather,
+                        location = selectedLocation,
+                        latitude = locationLat,
+                        longitude = locationLng
+                    )
+                    todoViewModel.autoCompleteHabitsForDiary(
+                        diaryTagIds = selectedTagIds.toList(),
+                        diaryEntryId = savedEntryId
+                    )
+                    currentDraftId?.let(viewModel::deleteDraft)
+                    currentDraftId = null
+                    pendingDraft = null
+                    viewModel.onManualSaveCompleted(diaryId)
+                    haptic.success()
+                    snackbarHostState.showSnackbar(
+                        message = "日记已保存",
+                        duration = SnackbarDuration.Short
+                    )
+                    onNavigateBack()
+                }
+            }
+        }
+    }
 
     if (showTagDialog) {
         AddTagDialog(
@@ -758,12 +815,20 @@ fun EditorScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    if (hasUnsavedChanges) showUnsavedDialog = true
-                    else onNavigateBack()
-                }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.navigate_back), tint = textSecondary)
+                ) {
+                IconButton(
+                    onClick = {
+                        if (hasUnsavedChanges) showUnsavedDialog = true
+                        else onNavigateBack()
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = stringResource(R.string.navigate_back),
+                        tint = textSecondary.copy(alpha = 0.82f),
+                        modifier = Modifier.size(21.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 // Auto-save indicator dot
@@ -780,73 +845,30 @@ fun EditorScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
-                IconButton(onClick = { webView?.evaluateJavascript("quill.history.undo()", null) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Undo, contentDescription = stringResource(R.string.undo), tint = textSecondary, modifier = Modifier.size(20.dp))
-                }
-                IconButton(onClick = { webView?.evaluateJavascript("quill.history.redo()", null) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Redo, contentDescription = stringResource(R.string.redo), tint = textSecondary, modifier = Modifier.size(20.dp))
-                }
-                IconButton(onClick = { showDraftsDialog = true }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Description, contentDescription = "草稿箱", tint = textSecondary, modifier = Modifier.size(20.dp))
-                }
-                IconButton(
+                EditorTopIconButton(
+                    icon = Icons.Default.Undo,
+                    contentDescription = stringResource(R.string.undo),
+                    onClick = { webView?.evaluateJavascript("quill.history.undo()", null) }
+                )
+                EditorTopIconButton(
+                    icon = Icons.Default.Redo,
+                    contentDescription = stringResource(R.string.redo),
+                    onClick = { webView?.evaluateJavascript("quill.history.redo()", null) }
+                )
+                EditorTopIconButton(
+                    icon = Icons.Default.Description,
+                    contentDescription = "草稿箱",
+                    onClick = { showDraftsDialog = true }
+                )
+                EditorTopIconButton(
+                    icon = if (isToolbarManuallyHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = if (isToolbarManuallyHidden) "显示编辑器" else "隐藏编辑器",
                     onClick = {
                         isToolbarManuallyHidden = !isToolbarManuallyHidden
                         showToolbar = !isToolbarManuallyHidden
-                    },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isToolbarManuallyHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (isToolbarManuallyHidden) "显示编辑器" else "隐藏编辑器",
-                        tint = textSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(onClick = {
-                    webView?.evaluateJavascript("getContent()") { json ->
-                        webView?.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
-                            val cleanJson = unescapeEvaluateJsResult(json)
-                            val cleanPlain = unescapeEvaluateJsResult(plain)
-                            val saveTitle = entryTitle.ifBlank { dateTitle }
-                            // Don't save empty entries
-                            if (cleanPlain.isBlank() && saveTitle.isBlank()) {
-                                onNavigateBack()
-                                return@plainCallback
-                            }
-                            scope.launch {
-                                val savedEntryId = viewModel.saveEntry(
-                                    title = saveTitle,
-                                    content = cleanJson,
-                                    plainText = cleanPlain,
-                                    diaryId = diaryId,
-                                    moodLevel = selectedMood,
-                                    weather = selectedWeather,
-                                    location = selectedLocation,
-                                    latitude = locationLat,
-                                    longitude = locationLng
-                                )
-                                // Auto-complete habits with matching tags
-                                todoViewModel.autoCompleteHabitsForDiary(
-                                    diaryTagIds = selectedTagIds.toList(),
-                                    diaryEntryId = savedEntryId
-                                )
-                                currentDraftId?.let(viewModel::deleteDraft)
-                                currentDraftId = null
-                                pendingDraft = null
-                                viewModel.onManualSaveCompleted(diaryId)
-                                haptic.success()
-                                snackbarHostState.showSnackbar(
-                                    message = "日记已保存",
-                                    duration = SnackbarDuration.Short
-                                )
-                                onNavigateBack()
-                            }
-                        }
                     }
-                }) {
-                    Text(stringResource(R.string.save), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = accentColor)
-                }
+                )
+                EditorSaveButton(onClick = { saveCurrentEntry() })
             }
 
             // Date + time (compact single line)
@@ -866,128 +888,41 @@ fun EditorScreen(
                     fontSize = 14.sp,
                     color = textSecondary.copy(alpha = 0.82f)
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                if (false) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable {}
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "灵感",
-                            fontSize = 12.sp,
-                            color = textSecondary.copy(alpha = 0.86f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
             }
 
-            // Title input
-            OutlinedTextField(
-                value = entryTitle,
-                onValueChange = {
-                    entryTitle = it
-                    viewModel.markContentChanged()
-                },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                placeholder = {
-                    Text(
-                        text = "标题（可选）",
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textSecondary.copy(alpha = 0.42f)
-                    )
-                },
-                textStyle = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                ),
-                singleLine = true,
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent
-                )
-            )
-
-            // Writing prompt (only for new entries, hide after 50 chars)
-            if (false) {
-                var promptVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    promptVisible = false
-                    kotlinx.coroutines.delay(100)
-                    promptVisible = true
-                }
-                AnimatedVisibility(
-                    visible = promptVisible,
-                    enter = fadeIn(tween(400))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 4.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable {}
-                            .background(textSecondary.copy(alpha = 0.04f))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(2.dp)
-                                .height(18.dp)
-                                .clip(RoundedCornerShape(1.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-                        )
-                        Text(
-                            text = "",
-                            fontSize = 12.sp,
-                            color = textSecondary.copy(alpha = 0.55f),
-                            modifier = Modifier.weight(1f),
-                            lineHeight = 18.sp
-                        )
+                    .padding(horizontal = 18.dp, vertical = 2.dp)
+            ) {
+                BasicTextField(
+                    value = entryTitle,
+                    onValueChange = {
+                        entryTitle = it
+                        viewModel.markContentChanged()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = titleTextStyle,
+                    singleLine = true,
+                    decorationBox = { innerTextField ->
+                        if (entryTitle.isBlank()) {
+                            Text(
+                                text = "标题（可选）",
+                                style = titleTextStyle.copy(color = textSecondary.copy(alpha = 0.42f))
+                            )
+                        }
+                        innerTextField()
                     }
-                }
+                )
             }
 
-            AnimatedVisibility(visible = !isKeyboardVisible || isFullEditorVisible) {
+            AnimatedVisibility(visible = !isKeyboardVisible || isFullEditorVisible || !isMetadataExpanded) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 18.dp, vertical = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Collapse/expand button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Icon(
-                            imageVector = if (isMetadataExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isMetadataExpanded) "收起" else "展开",
-                            tint = textSecondary.copy(alpha = 0.5f),
-                            modifier = Modifier
-                                .size(18.dp)
-                                .clickable { isMetadataExpanded = !isMetadataExpanded }
-                        )
-                    }
-
                     if (isMetadataExpanded) {
                         // Row 1: mood + weather + category
                         Row(
@@ -1039,57 +974,78 @@ fun EditorScreen(
                             onClick = { activePanel = if (activePanel == "location") null else "location" },
                             centerContent = true
                         )
-                    } else {
-                        // Collapsed: show small icons only
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            EditorMetaPill(
+                                label = "收起",
+                                isSelected = false,
+                                onClick = {
+                                    isMetadataExpanded = false
+                                    activePanel = null
+                                }
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(metaSurfaceColor)
+                                .border(0.5.dp, metaBorderColor, RoundedCornerShape(18.dp))
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val currentSelectedMood = selectedMood
-                            Icon(
-                                imageVector = moodIconForLevel(currentSelectedMood ?: 3).icon,
-                                contentDescription = "心情",
-                                tint = if (currentSelectedMood != null) moodIconForLevel(currentSelectedMood).tint else textSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable {
-                                        isMetadataExpanded = true
-                                        activePanel = "mood"
-                                    }
+                            EditorMetaPill(
+                                label = currentSelectedMood?.let { "心情 ${moodLabelForLevel(it)}" } ?: "心情",
+                                isSelected = currentSelectedMood != null,
+                                onClick = {
+                                    isMetadataExpanded = true
+                                    activePanel = "mood"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            EditorMetaPill(
+                                label = selectedWeather ?: "天气",
+                                isSelected = selectedWeather != null,
+                                onClick = {
+                                    isMetadataExpanded = true
+                                    activePanel = "weather"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            EditorMetaPill(
+                                label = if (selectedTagIds.isEmpty()) "标签" else "标签 ${selectedTagIds.size}",
+                                isSelected = selectedTagIds.isNotEmpty(),
+                                onClick = {
+                                    isMetadataExpanded = true
+                                    activePanel = "tags"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            EditorMetaPill(
+                                label = selectedLocation?.take(4) ?: "位置",
+                                isSelected = selectedLocation != null,
+                                onClick = {
+                                    isMetadataExpanded = true
+                                    activePanel = "location"
+                                },
+                                modifier = Modifier.weight(1f)
                             )
                             Icon(
-                                imageVector = weatherIconFor(selectedWeather).icon,
-                                contentDescription = "天气",
-                                tint = if (selectedWeather != null) weatherIconFor(selectedWeather).tint else textSecondary.copy(alpha = 0.5f),
+                                imageVector = Icons.Default.ExpandMore,
+                                contentDescription = "展开",
+                                tint = textSecondary.copy(alpha = 0.64f),
                                 modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable {
-                                        isMetadataExpanded = true
-                                        activePanel = "weather"
-                                    }
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Sell,
-                                contentDescription = "标签",
-                                tint = if (selectedTagIds.isNotEmpty()) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable {
-                                        isMetadataExpanded = true
-                                        activePanel = "tags"
-                                    }
-                            )
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "位置",
-                                tint = if (selectedLocation != null) MaterialTheme.colorScheme.primary else textSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable {
-                                        isMetadataExpanded = true
-                                        activePanel = "location"
-                                    }
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.42f))
+                                    .clickable { isMetadataExpanded = true }
+                                    .padding(4.dp)
                             )
                         }
                     }
@@ -1182,54 +1138,63 @@ fun EditorScreen(
                 }
             }
 
-            // WebView (fills remaining space)
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                isWebViewReady = true
-                            }
-                            override fun shouldInterceptRequest(
-                                view: WebView?,
-                                request: android.webkit.WebResourceRequest?
-                            ): android.webkit.WebResourceResponse? {
-                                val reqUrl = request?.url?.toString() ?: return null
-                                if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
-                                    try {
-                                        val path = reqUrl.removePrefix("file://")
-                                        val file = java.io.File(path)
-                                        if (file.exists() && file.canRead()) {
-                                            val mime = when {
-                                                path.endsWith(".mp4") -> "video/mp4"
-                                                path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
-                                                path.endsWith(".png") -> "image/png"
-                                                path.endsWith(".webp") -> "image/webp"
-                                                else -> "image/jpeg"
-                                            }
-                                            return android.webkit.WebResourceResponse(
-                                                mime, null, file.inputStream()
-                                            )
-                                        }
-                                    } catch (_: Exception) {}
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 10.dp)
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                    .background(paperColor)
+                    .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    isWebViewReady = true
                                 }
-                                return null
+                                override fun shouldInterceptRequest(
+                                    view: WebView?,
+                                    request: android.webkit.WebResourceRequest?
+                                ): android.webkit.WebResourceResponse? {
+                                    val reqUrl = request?.url?.toString() ?: return null
+                                    if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                        try {
+                                            val path = reqUrl.removePrefix("file://")
+                                            val file = java.io.File(path)
+                                            if (file.exists() && file.canRead()) {
+                                                val mime = when {
+                                                    path.endsWith(".mp4") -> "video/mp4"
+                                                    path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                    path.endsWith(".png") -> "image/png"
+                                                    path.endsWith(".webp") -> "image/webp"
+                                                    else -> "image/jpeg"
+                                                }
+                                                return android.webkit.WebResourceResponse(
+                                                    mime, null, file.inputStream()
+                                                )
+                                            }
+                                        } catch (_: Exception) {}
+                                    }
+                                    return null
+                                }
                             }
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.allowFileAccess = true
+                            settings.allowContentAccess = true
+                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                            setBackgroundColor(0)
+                            addJavascriptInterface(jsBridge, "DiaryBridge")
+                            loadUrl("file:///android_asset/editor.html")
+                            webView = this
                         }
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.allowFileAccess = true
-                        settings.allowContentAccess = true
-                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                        setBackgroundColor(0)
-                        addJavascriptInterface(jsBridge, "DiaryBridge")
-                        loadUrl("file:///android_asset/editor.html")
-                        webView = this
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             // Word count and writing duration - integrated into space above toolbar
             if (charCount > 0 || writingDuration > 30) {
@@ -1275,80 +1240,77 @@ fun EditorScreen(
                     }
                 }
             }
-        }
-        // Floating toolbar overlay - hidden by default, shown when keyboard appears
-        AnimatedVisibility(
-            visible = showToolbar,
-            enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
-            exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150)),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            Box(modifier = Modifier.imePadding()) {
-                EditorToolbar(
-                    showToolbar = showToolbar,
-                    activeCategory = activeCategory,
-                    isFocusWritingMode = !isFullEditorVisible,
-                    onWritingModeChange = { isFocusWritingMode ->
-                        isFullEditorVisible = !isFocusWritingMode
-                        if (isFocusWritingMode) {
-                            activePanel = null
-                            activeCategory = -1
-                            webView?.requestFocus()
-                            webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                        }
-                    },
-                    onCategoryChange = { cat ->
-                        if (activeCategory == cat) {
-                            // Same category clicked - close it and show keyboard
-                            activeCategory = -1
-                            webView?.requestFocus()
-                            webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                        } else {
-                            // New category - open it and hide keyboard
-                            activeCategory = cat
+
+            AnimatedVisibility(
+                visible = showToolbar,
+                enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
+                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
+            ) {
+                Box(modifier = Modifier.imePadding()) {
+                    EditorToolbar(
+                        showToolbar = showToolbar,
+                        activeCategory = activeCategory,
+                        isFocusWritingMode = !isFullEditorVisible,
+                        onWritingModeChange = { isFocusWritingMode ->
+                            isFullEditorVisible = !isFocusWritingMode
+                            if (isFocusWritingMode) {
+                                activePanel = null
+                                activeCategory = -1
+                                webView?.requestFocus()
+                                webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                            }
+                        },
+                        onCategoryChange = { cat ->
+                            if (activeCategory == cat) {
+                                activeCategory = -1
+                                webView?.requestFocus()
+                                webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                            } else {
+                                activeCategory = cat
+                                val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                            }
+                        },
+                        activeFormats = activeFormats,
+                        onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
+                        onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
+                        onInsert = { action ->
+                            when (action) {
+                                "divider" -> webView?.evaluateJavascript("insertDivider()", null)
+                            }
+                        },
+                        onImageInsert = { imageLauncher.launch("image/*") },
+                        onHideKeyboard = {
                             val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                             imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                        },
+                        onShowKeyboard = {
+                            webView?.requestFocus()
+                            webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                        },
+                        onHideToolbar = {
+                            isToolbarManuallyHidden = true
+                            showToolbar = false
+                        },
+                        onClose = {
+                            if (hasUnsavedChanges) showUnsavedDialog = true
+                            else onNavigateBack()
+                        },
+                        fontSize = editorFontSize,
+                        onFontSizeChange = { newSize ->
+                            editorFontSize = newSize
+                            prefs.edit().putString("editor_font_size", when(newSize) {
+                                10 -> "tiny"
+                                14 -> "small"
+                                16 -> "medium"
+                                18 -> "large"
+                                20 -> "extra_large"
+                                else -> "small"
+                            }).apply()
+                            webView?.evaluateJavascript("setFontSize($newSize)", null)
                         }
-                    },
-                activeFormats = activeFormats,
-                onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
-                onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
-                onInsert = { action ->
-                    when (action) {
-                        "divider" -> webView?.evaluateJavascript("insertDivider()", null)
-                    }
-                },
-                onImageInsert = { imageLauncher.launch("image/*") },
-                onHideKeyboard = {
-                    val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
-                },
-                onShowKeyboard = {
-                    webView?.requestFocus()
-                    webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                },
-                onHideToolbar = {
-                    isToolbarManuallyHidden = true
-                    showToolbar = false
-                },
-                onClose = {
-                    if (hasUnsavedChanges) showUnsavedDialog = true
-                    else onNavigateBack()
-                },
-                fontSize = editorFontSize,
-                onFontSizeChange = { newSize ->
-                    editorFontSize = newSize
-                    prefs.edit().putString("editor_font_size", when(newSize) {
-                        10 -> "tiny"
-                        14 -> "small"
-                        16 -> "medium"
-                        18 -> "large"
-                        20 -> "extra_large"
-                        else -> "small"
-                    }).apply()
-                    webView?.evaluateJavascript("setFontSize($newSize)", null)
+                    )
                 }
-            )
             }
         }
         SnackbarHost(
@@ -1356,5 +1318,84 @@ fun EditorScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
         }
+    }
+}
+
+@Composable
+private fun EditorTopIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f)
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.42f))
+            .border(0.5.dp, borderColor, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+            modifier = Modifier.size(19.dp)
+        )
+    }
+}
+
+@Composable
+private fun EditorMetaPill(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    val contentColor = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+    val backgroundColor = if (isSelected) accent.copy(alpha = 0.12f) else Color.Transparent
+
+    Box(
+        modifier = modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 9.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun EditorSaveButton(
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "保存",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
     }
 }
