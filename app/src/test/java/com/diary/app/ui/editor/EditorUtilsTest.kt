@@ -26,9 +26,28 @@ class EditorUtilsTest {
     }
 
     @Test
+    fun `metadata tag summary keeps label prefix and truncates after two tags`() {
+        val summary = metadataTagSummary(listOf("工作", "阅读", "散步"))
+
+        assertEquals("标签 工作 · 阅读…", summary)
+    }
+
+    @Test
+    fun `metadata location summary keeps single line compact fallback`() {
+        assertEquals("位置", metadataLocationSummary(null))
+        assertEquals("南京西路咖啡馆", metadataLocationSummary("南京西路咖啡馆"))
+    }
+
+    @Test
     fun `editor mode toggle label reflects current mode`() {
-        assertEquals("显示编辑器", editorModeToggleLabel(isFullEditorVisible = false))
-        assertEquals("专注书写", editorModeToggleLabel(isFullEditorVisible = true))
+        assertEquals("专注", editorModeToggleLabel(isFocusWritingMode = true))
+        assertEquals("完整", editorModeToggleLabel(isFocusWritingMode = false))
+    }
+
+    @Test
+    fun `toolbar visibility icon reflects current state`() {
+        assertEquals("工具栏已显示", toolbarVisibilityDescription(isToolbarVisible = true))
+        assertEquals("工具栏已隐藏", toolbarVisibilityDescription(isToolbarVisible = false))
     }
 
     @Test

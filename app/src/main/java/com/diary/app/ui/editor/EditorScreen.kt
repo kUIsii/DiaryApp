@@ -11,15 +11,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,8 +29,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,7 +43,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
@@ -77,13 +76,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
@@ -94,6 +97,8 @@ import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import com.diary.app.data.RecentLocation
+import com.diary.app.data.Tag
 import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.todo.TodoViewModel
@@ -146,11 +151,8 @@ fun EditorScreen(
     var showDraftsDialog by remember { mutableStateOf(false) }
     var currentDraftId by remember { mutableStateOf(draftId) }
 
-    // Which metadata panel is open: null = none, "mood", "weather", "tags"
+    // Which metadata overlay is open: null = none, "mood", "weather", "tags", "location"
     var activePanel by remember { mutableStateOf<String?>(null) }
-
-    // Metadata collapse state
-    var isMetadataExpanded by remember { mutableStateOf(false) }
 
     // Toolbar state - initially hidden, shown when keyboard appears
     var showToolbar by remember { mutableStateOf(true) }
@@ -502,11 +504,14 @@ fun EditorScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val paperColor = if (isDark) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
-    }
+    val paperColor = MaterialTheme.colorScheme.surface
+    val paperTintBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.Transparent,
+            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.055f else 0.075f),
+            Color.Transparent
+        )
+    )
     val editorBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.22f else 0.46f)
     val metaSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.16f else 0.48f)
     val metaBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.18f else 0.42f)
@@ -808,6 +813,11 @@ fun EditorScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
+        EditorPaperLines(
+            isDark = isDark,
+            lineHeight = (editorFontSize * 1.4f).dp,
+            modifier = Modifier.fillMaxSize()
+        )
         Column(modifier = Modifier.fillMaxSize()) {
             // Top bar - simplified: only undo, redo, save
             Row(
@@ -861,11 +871,12 @@ fun EditorScreen(
                     onClick = { showDraftsDialog = true }
                 )
                 EditorTopIconButton(
-                    icon = if (isToolbarManuallyHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = if (isToolbarManuallyHidden) "显示编辑器" else "隐藏编辑器",
+                    icon = if (showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = toolbarVisibilityDescription(showToolbar),
                     onClick = {
-                        isToolbarManuallyHidden = !isToolbarManuallyHidden
-                        showToolbar = !isToolbarManuallyHidden
+                        val nextVisible = !showToolbar
+                        showToolbar = nextVisible
+                        isToolbarManuallyHidden = !nextVisible
                     }
                 )
                 EditorSaveButton(onClick = { saveCurrentEntry() })
@@ -873,7 +884,7 @@ fun EditorScreen(
 
             // Date + time (compact single line)
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -893,7 +904,7 @@ fun EditorScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 2.dp)
+                    .padding(horizontal = 18.dp, vertical = 3.dp)
             ) {
                 BasicTextField(
                     value = entryTitle,
@@ -916,227 +927,27 @@ fun EditorScreen(
                 )
             }
 
-            AnimatedVisibility(visible = !isKeyboardVisible || isFullEditorVisible || !isMetadataExpanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (isMetadataExpanded) {
-                        // Row 1: mood + weather + category
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Mood chip
-                            val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
-                            val currentSelectedMood = selectedMood
-                            MetadataChip(
-                                label = currentSelectedMood?.let(::moodLabelForLevel) ?: "心情",
-                                icon = moodIconForLevel(currentSelectedMood ?: 3).icon,
-                                isSelected = currentSelectedMood != null,
-                                isActive = activePanel == "mood",
-                                onClick = { activePanel = if (activePanel == "mood") null else "mood" },
-                                accentColor = moodColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                            // Weather chip
-                            val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
-                            MetadataChip(
-                                label = selectedWeather ?: "天气",
-                                icon = weatherIconFor(selectedWeather).icon,
-                                isSelected = selectedWeather != null,
-                                isActive = activePanel == "weather",
-                                onClick = { activePanel = if (activePanel == "weather") null else "weather" },
-                                accentColor = weatherColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                            val rowTagLabel = summarizeSelectedNames(
-                                names = allTags.filter { it.id in selectedTagIds }.map { it.name },
-                                emptyLabel = "标签"
-                            )
-                            MetadataChip(
-                                label = rowTagLabel,
-                                icon = Icons.Default.Sell,
-                                isSelected = selectedTagIds.isNotEmpty(),
-                                isActive = activePanel == "tags",
-                                onClick = { activePanel = if (activePanel == "tags") null else "tags" },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        // Row 2: location (left-aligned)
-                        MetadataChip(
-                            label = resolveCenteredLocationLabel(selectedLocation),
-                            icon = Icons.Default.LocationOn,
-                            isSelected = selectedLocation != null,
-                            isActive = activePanel == "location",
-                            onClick = { activePanel = if (activePanel == "location") null else "location" },
-                            centerContent = true
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            EditorMetaPill(
-                                label = "收起",
-                                isSelected = false,
-                                onClick = {
-                                    isMetadataExpanded = false
-                                    activePanel = null
-                                }
-                            )
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(36.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(metaSurfaceColor)
-                                .border(0.5.dp, metaBorderColor, RoundedCornerShape(18.dp))
-                                .padding(horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val currentSelectedMood = selectedMood
-                            EditorMetaPill(
-                                label = currentSelectedMood?.let { "心情 ${moodLabelForLevel(it)}" } ?: "心情",
-                                isSelected = currentSelectedMood != null,
-                                onClick = {
-                                    isMetadataExpanded = true
-                                    activePanel = "mood"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            EditorMetaPill(
-                                label = selectedWeather ?: "天气",
-                                isSelected = selectedWeather != null,
-                                onClick = {
-                                    isMetadataExpanded = true
-                                    activePanel = "weather"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            EditorMetaPill(
-                                label = if (selectedTagIds.isEmpty()) "标签" else "标签 ${selectedTagIds.size}",
-                                isSelected = selectedTagIds.isNotEmpty(),
-                                onClick = {
-                                    isMetadataExpanded = true
-                                    activePanel = "tags"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            EditorMetaPill(
-                                label = selectedLocation?.take(4) ?: "位置",
-                                isSelected = selectedLocation != null,
-                                onClick = {
-                                    isMetadataExpanded = true
-                                    activePanel = "location"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ExpandMore,
-                                contentDescription = "展开",
-                                tint = textSecondary.copy(alpha = 0.64f),
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.42f))
-                                    .clickable { isMetadataExpanded = true }
-                                    .padding(4.dp)
-                            )
-                        }
+            EditorMetadataStrip(
+                selectedMood = selectedMood,
+                selectedWeather = selectedWeather,
+                selectedTagNames = allTags.filter { it.id in selectedTagIds }.map { it.name },
+                selectedLocation = selectedLocation,
+                activePanel = activePanel,
+                surfaceColor = metaSurfaceColor,
+                borderColor = metaBorderColor,
+                onPanelSelected = { panel ->
+                    val nextPanel = if (activePanel == panel) null else panel
+                    activePanel = nextPanel
+                    if (nextPanel != null) {
+                        val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                        val activity = context as? android.app.Activity
+                        imm.hideSoftInputFromWindow(activity?.currentFocus?.windowToken, 0)
                     }
-                }
-            }
-
-            // Expandable panels - simple background
-            AnimatedVisibility(
-                visible = activePanel != null && (!isKeyboardVisible || isFullEditorVisible),
-                enter = expandVertically(tween(250)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(200)) + fadeOut(tween(150))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 1.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(surfaceVariant.copy(alpha = 0.34f))
-                        .animateContentSize()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .heightIn(min = 46.dp)
-                    ) {
-                        when (activePanel) {
-                            "mood" -> Column {
-                                MoodSlider(
-                                    selectedLevel = selectedMood,
-                                    onLevelChange = {
-                                        selectedMood = it
-                                        viewModel.markContentChanged()
-                                    }
-                                )
-                                if (selectedMood != null) {
-                                    TextButton(
-                                        onClick = {
-                                            selectedMood = null
-                                            viewModel.markContentChanged()
-                                        },
-                                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    ) {
-                                        Text("清除心情", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                            "weather" -> Column {
-                                WeatherSelector(
-                                    selectedWeather = selectedWeather,
-                                    onWeatherSelected = {
-                                        selectedWeather = it
-                                        viewModel.markContentChanged()
-                                    }
-                                )
-                                if (selectedWeather != null) {
-                                    TextButton(
-                                        onClick = {
-                                            selectedWeather = null
-                                            viewModel.markContentChanged()
-                                        },
-                                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    ) {
-                                        Text("清除天气", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                            "tags" -> TagEditor(
-                                allTags = allTags,
-                                selectedTagIds = selectedTagIds,
-                                onTagToggle = {
-                                    viewModel.toggleTag(it)
-                                    viewModel.markContentChanged()
-                                },
-                                onAddTag = { showTagDialog = true }
-                            )
-                            "location" -> LocationSelector(
-                                selectedLocation = selectedLocation,
-                                latitude = locationLat,
-                                longitude = locationLng,
-                                onLocationSelected = { name, lat, lng ->
-                                    selectedLocation = name
-                                    locationLat = lat
-                                    locationLng = lng
-                                    viewModel.markContentChanged()
-                                },
-                                recentLocations = recentLocations
-                            )
-                        }
-                    }
-                }
-            }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 5.dp)
+            )
 
             Box(
                 modifier = Modifier
@@ -1145,6 +956,7 @@ fun EditorScreen(
                     .padding(horizontal = 10.dp)
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
                     .background(paperColor)
+                    .background(paperTintBrush)
                     .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
             ) {
                 AndroidView(
@@ -1292,10 +1104,6 @@ fun EditorScreen(
                             isToolbarManuallyHidden = true
                             showToolbar = false
                         },
-                        onClose = {
-                            if (hasUnsavedChanges) showUnsavedDialog = true
-                            else onNavigateBack()
-                        },
                         fontSize = editorFontSize,
                         onFontSizeChange = { newSize ->
                             editorFontSize = newSize
@@ -1313,11 +1121,278 @@ fun EditorScreen(
                 }
             }
         }
+        MetadataOverlayPanel(
+            activePanel = activePanel,
+            selectedMood = selectedMood,
+            selectedWeather = selectedWeather,
+            allTags = allTags,
+            selectedTagIds = selectedTagIds,
+            selectedLocation = selectedLocation,
+            locationLat = locationLat,
+            locationLng = locationLng,
+            recentLocations = recentLocations,
+            onDismiss = { activePanel = null },
+            onMoodSelected = {
+                selectedMood = it
+                viewModel.markContentChanged()
+            },
+            onWeatherSelected = {
+                selectedWeather = it
+                viewModel.markContentChanged()
+            },
+            onTagToggle = {
+                viewModel.toggleTag(it)
+                viewModel.markContentChanged()
+            },
+            onAddTag = { showTagDialog = true },
+            onLocationSelected = { name, lat, lng ->
+                selectedLocation = name
+                locationLat = lat
+                locationLng = lng
+                viewModel.markContentChanged()
+            }
+        )
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
         }
+    }
+}
+
+@Composable
+private fun EditorMetadataStrip(
+    selectedMood: Int?,
+    selectedWeather: String?,
+    selectedTagNames: List<String>,
+    selectedLocation: String?,
+    activePanel: String?,
+    surfaceColor: Color,
+    borderColor: Color,
+    onPanelSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(surfaceColor)
+            .border(0.5.dp, borderColor, RoundedCornerShape(18.dp))
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+        EditorMetaPill(
+            label = selectedMood?.let { "心情 ${moodLabelForLevel(it)}" } ?: "心情",
+            isSelected = selectedMood != null,
+            isActive = activePanel == "mood",
+            accentColor = moodColor,
+            onClick = { onPanelSelected("mood") },
+            modifier = Modifier.weight(0.92f)
+        )
+        val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
+        EditorMetaPill(
+            label = selectedWeather?.let { "天气 $it" } ?: "天气",
+            isSelected = selectedWeather != null,
+            isActive = activePanel == "weather",
+            accentColor = weatherColor,
+            onClick = { onPanelSelected("weather") },
+            modifier = Modifier.weight(0.92f)
+        )
+        EditorMetaPill(
+            label = metadataTagSummary(selectedTagNames),
+            isSelected = selectedTagNames.isNotEmpty(),
+            isActive = activePanel == "tags",
+            onClick = { onPanelSelected("tags") },
+            modifier = Modifier.weight(1.28f)
+        )
+        EditorMetaPill(
+            label = metadataLocationSummary(selectedLocation),
+            isSelected = selectedLocation?.trim()?.isNotEmpty() == true,
+            isActive = activePanel == "location",
+            onClick = { onPanelSelected("location") },
+            modifier = Modifier.weight(1.08f)
+        )
+    }
+}
+
+@Composable
+private fun MetadataOverlayPanel(
+    activePanel: String?,
+    selectedMood: Int?,
+    selectedWeather: String?,
+    allTags: List<Tag>,
+    selectedTagIds: Set<Long>,
+    selectedLocation: String?,
+    locationLat: Double?,
+    locationLng: Double?,
+    recentLocations: List<RecentLocation>,
+    onDismiss: () -> Unit,
+    onMoodSelected: (Int?) -> Unit,
+    onWeatherSelected: (String?) -> Unit,
+    onTagToggle: (Long) -> Unit,
+    onAddTag: () -> Unit,
+    onLocationSelected: (String?, Double?, Double?) -> Unit
+) {
+    AnimatedVisibility(
+        visible = activePanel != null,
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(120)),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(4f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 14.dp)
+                    .padding(top = 132.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+                        RoundedCornerShape(22.dp)
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {}
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .animateContentSize()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 72.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when (activePanel) {
+                                "mood" -> "心情"
+                                "weather" -> "天气"
+                                "tags" -> "标签"
+                                "location" -> "位置"
+                                else -> ""
+                            },
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "关闭",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onDismiss)
+                                .padding(5.dp)
+                        )
+                    }
+                    when (activePanel) {
+                        "mood" -> Column {
+                            MoodSlider(
+                                selectedLevel = selectedMood,
+                                onLevelChange = onMoodSelected
+                            )
+                            if (selectedMood != null) {
+                                TextButton(
+                                    onClick = { onMoodSelected(null) },
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                ) {
+                                    Text("清除心情", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        "weather" -> Column {
+                            WeatherSelector(
+                                selectedWeather = selectedWeather,
+                                onWeatherSelected = onWeatherSelected
+                            )
+                            if (selectedWeather != null) {
+                                TextButton(
+                                    onClick = { onWeatherSelected(null) },
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                ) {
+                                    Text("清除天气", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        "tags" -> TagEditor(
+                            allTags = allTags,
+                            selectedTagIds = selectedTagIds,
+                            onTagToggle = onTagToggle,
+                            onAddTag = onAddTag
+                        )
+                        "location" -> LocationSelector(
+                            selectedLocation = selectedLocation,
+                            latitude = locationLat,
+                            longitude = locationLng,
+                            onLocationSelected = onLocationSelected,
+                            recentLocations = recentLocations
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorPaperLines(
+    isDark: Boolean,
+    lineHeight: Dp,
+    modifier: Modifier = Modifier
+) {
+    val lineColor = if (isDark) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.045f)
+    } else {
+        Color(0xFF2A463B).copy(alpha = 0.075f)
+    }
+    val marginColor = Color(0xFFC77E4B).copy(alpha = if (isDark) 0.16f else 0.13f)
+    val fadeColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.08f else 0.16f)
+
+    Canvas(modifier = modifier) {
+        val step = lineHeight.toPx().coerceAtLeast(16f)
+        var y = 6.dp.toPx() + step - 1f
+        while (y < size.height) {
+            drawLine(
+                color = lineColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1f
+            )
+            y += step
+        }
+        val marginX = 28.dp.toPx()
+        drawLine(
+            color = marginColor,
+            start = Offset(marginX, 0f),
+            end = Offset(marginX, size.height),
+            strokeWidth = 1f
+        )
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Transparent, fadeColor),
+                startY = size.height * 0.78f,
+                endY = size.height
+            )
+        )
     }
 }
 
@@ -1351,18 +1426,29 @@ private fun EditorTopIconButton(
 private fun EditorMetaPill(
     label: String,
     isSelected: Boolean,
+    isActive: Boolean = false,
+    accentColor: Color? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val accent = MaterialTheme.colorScheme.primary
-    val contentColor = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-    val backgroundColor = if (isSelected) accent.copy(alpha = 0.12f) else Color.Transparent
+    val accent = accentColor ?: MaterialTheme.colorScheme.primary
+    val contentColor = when {
+        isSelected || isActive -> accent
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+    }
+    val backgroundColor = when {
+        isActive -> accent.copy(alpha = 0.18f)
+        isSelected -> accent.copy(alpha = 0.12f)
+        else -> Color.Transparent
+    }
+    val borderColor = if (isActive) accent.copy(alpha = 0.34f) else Color.Transparent
 
     Box(
         modifier = modifier
             .height(28.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(backgroundColor)
+            .border(0.5.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 9.dp),
         contentAlignment = Alignment.Center
@@ -1370,7 +1456,7 @@ private fun EditorMetaPill(
         Text(
             text = label,
             fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

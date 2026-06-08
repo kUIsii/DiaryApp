@@ -14,8 +14,8 @@
             --code-bg: rgba(0,0,0,0.03);
             --line-height: 19.6px;
             --line-offset: 6px;
-            --line-color: rgba(42, 70, 59, 0.09);
-            --margin-line-color: rgba(199, 126, 75, 0.16);
+            --line-color: rgba(42, 70, 59, 0.055);
+            --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
         }
         .theme-dark {
@@ -25,13 +25,14 @@
             --accent-light: rgba(107, 168, 232, 0.15);
             --blockquote-bg: rgba(107, 168, 232, 0.08);
             --code-bg: rgba(255,255,255,0.05);
-            --line-color: rgba(255,255,255,0.055);
-            --margin-line-color: rgba(199, 126, 75, 0.18);
+            --line-color: rgba(255,255,255,0.035);
+            --margin-line-color: rgba(199, 126, 75, 0.13);
             --paper-bg: transparent;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
             height: 100%;
+            min-height: 100%;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
@@ -45,6 +46,7 @@
         #editor {
             flex: 1;
             min-height: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
         }
@@ -52,18 +54,19 @@
             border: none !important;
             font-size: 14px;
             line-height: var(--line-height);
+            flex: 1 1 auto;
             height: 100% !important;
             min-height: 100% !important;
         }
         .ql-editor {
             height: 100% !important;
-            min-height: 100vh;
-            padding: 6px 16px calc(var(--editor-bottom-gap, 120px)) 28px;
+            min-height: 100%;
+            padding: 6px 16px calc(var(--editor-bottom-gap, 120px)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
             background:
-                linear-gradient(90deg, transparent 0 21px, var(--margin-line-color) 21px 22px, transparent 22px),
+                linear-gradient(90deg, transparent 0 27px, var(--margin-line-color) 27px 28px, transparent 28px),
                 repeating-linear-gradient(
                     to bottom,
                     transparent 0,
@@ -81,7 +84,7 @@
         }
         .theme-dark .ql-editor {
             background:
-                linear-gradient(90deg, transparent 0 21px, var(--margin-line-color) 21px 22px, transparent 22px),
+                linear-gradient(90deg, transparent 0 27px, var(--margin-line-color) 27px 28px, transparent 28px),
                 repeating-linear-gradient(
                     to bottom,
                     transparent 0,
@@ -102,6 +105,13 @@
             margin: 0;
             min-height: var(--line-height);
             line-height: var(--line-height);
+        }
+        .ql-editor > * {
+            line-height: var(--line-height);
+        }
+        .ql-editor li::before {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
         }
 
         /* Headings */
@@ -124,29 +134,48 @@
         .ql-editor ul:not([data-checked]),
         .ql-editor ul[data-checked="true"],
         .ql-editor ul[data-checked="false"] {
-            margin: 0 0 8px 0 !important;
-            padding-left: 1.5em !important;
+            margin: 0 !important;
+            padding-left: 0 !important;
         }
-        .ql-editor ol li {
-            margin-bottom: 2px;
+        .ql-editor ol {
+            counter-reset: editor-ordered;
+        }
+        .ql-editor ol > li {
+            counter-increment: editor-ordered;
+            list-style: none !important;
+            position: relative !important;
+            padding-left: 1.3em !important;
+            min-height: var(--line-height);
+            line-height: var(--line-height) !important;
+        }
+        .ql-editor ol > li::before {
+            content: counter(editor-ordered) "." !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 1em !important;
+            color: var(--text) !important;
+            opacity: 0.72;
+            text-align: left !important;
         }
 
         /* Bullet list */
         .ql-editor ul:not([data-checked]) {
-            padding-left: 1.5em !important;
-            margin: 0 0 8px 0 !important;
+            padding-left: 0 !important;
+            margin: 0 !important;
         }
         .ql-editor ul:not([data-checked]) > li {
             list-style: none !important;
             position: relative !important;
-            padding-left: 0 !important;
-            margin-bottom: 4px !important;
+            padding-left: 1.3em !important;
+            min-height: var(--line-height);
+            line-height: var(--line-height) !important;
         }
         .ql-editor ul:not([data-checked]) > li::before {
             content: "\25CF" !important;
             position: absolute !important;
-            left: -1.05em !important;
-            top: 0.35em !important;
+            left: 0.18em !important;
+            top: calc((var(--line-height) - 8px) / 2) !important;
             color: var(--text) !important;
             font-size: 8px !important;
             line-height: inherit !important;
@@ -155,23 +184,24 @@
         /* Checkbox list */
         .ql-editor ul[data-checked="true"],
         .ql-editor ul[data-checked="false"] {
-            padding-left: 1.5em !important;
-            margin: 0 0 8px 0 !important;
+            padding-left: 0 !important;
+            margin: 0 !important;
             pointer-events: auto !important;
         }
         .ql-editor ul[data-checked="true"] > li,
         .ql-editor ul[data-checked="false"] > li {
             list-style: none !important;
             position: relative !important;
-            padding-left: 0 !important;
-            margin-bottom: 4px !important;
+            padding-left: 1.55em !important;
+            min-height: var(--line-height);
+            line-height: var(--line-height) !important;
             cursor: pointer !important;
         }
         .ql-editor ul[data-checked="false"] > li::before {
             content: "" !important;
             position: absolute !important;
-            left: -1.25em !important;
-            top: 0.2em !important;
+            left: 0 !important;
+            top: calc((var(--line-height) - 15px) / 2) !important;
             width: 15px !important;
             height: 15px !important;
             border: 1.5px solid var(--text) !important;
@@ -182,8 +212,8 @@
         .ql-editor ul[data-checked="true"] > li::before {
             content: "" !important;
             position: absolute !important;
-            left: -1.25em !important;
-            top: 0.2em !important;
+            left: 0 !important;
+            top: calc((var(--line-height) - 15px) / 2) !important;
             width: 15px !important;
             height: 15px !important;
             border: 1.5px solid var(--accent) !important;
@@ -193,8 +223,8 @@
         .ql-editor ul[data-checked="true"] > li::after {
             content: "" !important;
             position: absolute !important;
-            left: -0.92em !important;
-            top: 0.34em !important;
+            left: 5px !important;
+            top: calc((var(--line-height) - 11px) / 2) !important;
             width: 4px !important;
             height: 8px !important;
             border: solid #fff !important;
@@ -284,7 +314,7 @@
         function setTheme(mode) {
             if (mode === 'dark') {
                 document.body.className = 'theme-dark';
-                document.body.style.background = '#0A1520';
+                document.body.style.background = 'transparent';
             } else {
                 document.body.className = '';
                 document.body.style.background = 'transparent';
@@ -342,6 +372,18 @@
                 } else {
                     quill.formatLine(lineIndex, lineLength, 'list', 'unchecked');
                 }
+                reportFormat();
+            }
+        }
+        function indentLine() {
+            var r = quill.getSelection(true);
+            var line = quill.getLine(r.index);
+            if (line) {
+                var lineIndex = quill.getIndex(line[0]);
+                var lineLength = line[0].length();
+                var f = quill.getFormat(lineIndex, lineLength);
+                var current = parseInt(f.indent || 0, 10) || 0;
+                quill.formatLine(lineIndex, lineLength, 'indent', current >= 3 ? false : current + 1);
                 reportFormat();
             }
         }
@@ -528,7 +570,7 @@
             restoreEditorContext();
         }
         function setEditorBottomGap(pixels) {
-            var safePixels = Math.max(Number(pixels) || 0, 96);
+            var safePixels = Math.max(Number(pixels) || 0, 56);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
         }
 
@@ -639,10 +681,10 @@
         document.querySelector('.ql-editor').addEventListener('click', function(e) {
             var li = e.target.closest ? e.target.closest('ul[data-checked] > li') : null;
             if (!li) return;
-            // Only toggle if click is on the checkbox area (left 30px)
+            // Only toggle if click is on the checkbox area.
             var rect = li.getBoundingClientRect();
             var clickX = e.clientX - rect.left;
-            if (clickX > 30) return;
+            if (clickX > 26) return;
             var blot = Quill.find(li);
             if (!blot) return;
             var index = quill.getIndex(blot);

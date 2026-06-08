@@ -92,8 +92,23 @@ internal fun summarizeSelectedNames(
     }
 }
 
-internal fun editorModeToggleLabel(isFullEditorVisible: Boolean): String {
-    return if (isFullEditorVisible) "专注书写" else "显示编辑器"
+internal fun metadataTagSummary(names: List<String>): String {
+    val cleaned = names.map { it.trim() }.filter { it.isNotEmpty() }
+    if (cleaned.isEmpty()) return "标签"
+    val visible = cleaned.take(2).joinToString(" · ")
+    return if (cleaned.size > 2) "标签 $visible…" else "标签 $visible"
+}
+
+internal fun metadataLocationSummary(selectedLocation: String?): String {
+    return selectedLocation?.trim().takeUnless { it.isNullOrEmpty() } ?: "位置"
+}
+
+internal fun editorModeToggleLabel(isFocusWritingMode: Boolean): String {
+    return if (isFocusWritingMode) "专注" else "完整"
+}
+
+internal fun toolbarVisibilityDescription(isToolbarVisible: Boolean): String {
+    return if (isToolbarVisible) "工具栏已显示" else "工具栏已隐藏"
 }
 
 internal fun resolveEditorBottomGap(
