@@ -1,313 +1,327 @@
-# Editor Stability And Writing Focus Design
+# 日记编辑器稳定性与书写优先设计说明
 
-## Summary
+## 一、概述
 
-This design updates the diary editor to prioritize stable writing over aggressive rich-text behavior. The current editor mixes Compose layout shifts, WebView viewport changes, and Quill auto-scrolling, which creates cursor jumps, hidden content, inconsistent list behavior, and unreliable image insertion.
+这次设计的目标，是把日记编辑页从“富文本功能很多，但写起来不稳定”，调整为“先保证书写稳定，再保留需要的编辑能力”。
 
-The redesign keeps the current Compose + WebView + Quill architecture, but narrows responsibilities:
+目前编辑页同时存在 Compose 外层布局变化、WebView 视口变化、Quill 编辑器自动滚动三套机制，它们会互相影响，最终导致：
 
-- Compose owns page structure, metadata layout, and editor mode visibility.
-- The WebView editor owns cursor visibility, internal scrolling, media rendering, and selection restoration.
-- The toolbar supports two explicit states: writing-focused mode and full editing mode.
+- 光标位置跳动
+- 长内容输入时突然上滚
+- 有序列表换行后不自动跟随
+- 一部分内容看起来像“消失了”，其实是被遮挡或滚动错位
+- 插入图片后只看到一个小图标，实际图片不显示
 
-## Goals
+这次不会推翻现有的 `Compose + WebView + Quill` 架构，而是在现有基础上重新划清职责：
 
-- Make writing feel stable when the keyboard opens, closes, or the user continues typing on long content.
-- Prevent cursor jumps and preserve editing context when the user taps back into the editor or briefly leaves the page.
-- Fix ordered-list continuation visibility and remove unexpected upward scrolling.
-- Align bullet-list dots and checkbox markers with the ordered-list indentation baseline.
-- Make inserted images render reliably instead of appearing as a broken placeholder or tiny icon.
-- Rework metadata placement to match the requested layout:
-  - Row 1: mood / weather / category
-  - Row 2: location centered
-- Add an explicit editor-visibility toggle so the user can write with minimal UI chrome while always keeping font-size controls available.
+- Compose 负责页面结构、标签区域、工具栏显示逻辑
+- WebView 内部编辑器负责光标可见、正文滚动、图片渲染、位置恢复
+- 工具栏拆成“专注书写”和“完整编辑”两种状态
 
-## Non-Goals
+## 二、目标
 
-- Replacing Quill with a native Compose editor.
-- Redesigning the note content model or stored Delta format.
-- Adding brand-new rich text features beyond the requested mode toggle and stability fixes.
-- Building persistent cross-session cursor restore for every draft revision. This pass only guarantees stable restore within the active editing session and predictable restore after common in-screen interactions.
+- 让长文输入时页面保持稳定，不再因为键盘、工具栏或换行而频繁跳动
+- 保证光标在继续输入、点回编辑器、临时离开再回来时都尽量回到刚才那一段
+- 修复有序列表换行不跟随的问题
+- 让无序列表圆点和复选框位置与有序列表的文字基线对齐
+- 修复图片插入后不显示的问题
+- 按你的要求调整标签布局：
+  - 第一行：心情 / 天气 / 分类
+  - 第二行：位置，单独一行并居中
+- 增加一个“编辑器显示”按钮，让你可以在“只想写字”和“需要编辑功能”之间切换
+- 无论哪种状态，都保留字号调节功能
 
-## Current Problems
+## 三、不在本次范围内的内容
 
-### Layout And Scroll Conflicts
+- 不改成原生 Compose 富文本编辑器
+- 不更换 Quill
+- 不重做日记内容存储格式
+- 不新增大量新的富文本功能
+- 不做复杂的跨会话永久光标恢复
 
-The current screen changes bottom spacing from Compose while the WebView also resizes itself and tries to scroll the cursor into view. This creates multiple competing scroll systems:
+这次只保证当前编辑会话中的位置稳定，以及常见切换场景下的可预测恢复。
 
-- Compose updates bottom gap based on keyboard and toolbar state.
-- The Web editor resizes itself with `visualViewport`.
-- Quill selection and text-change callbacks trigger auto-scroll.
+## 四、当前问题拆解
 
-These overlapping behaviors create:
+### 1. 滚动控制互相打架
 
-- ordered-list newline not scrolling down reliably
-- upward jumps during continuous typing
-- content seeming to disappear until the keyboard opens or the user manually scrolls
-- unstable position after focus returns to the editor
+现在编辑页的滚动控制分散在多个地方：
 
-### List Marker Misalignment
+- Compose 会根据键盘和工具栏状态修改底部留白
+- WebView 页面会根据 `visualViewport` 变化重新调整高度
+- Quill 会在光标变化和文本变化时自动滚动
 
-Bullet and checkbox lists use custom CSS overrides that do not match Quill’s ordered-list indentation and baseline positioning.
+这三者叠在一起，就会产生下面这些体验问题：
 
-### Media Rendering Failure
+- 有序列表回车换行后没有稳定往下跟
+- 连续输入时偶尔自己往上跳
+- 内容明明存在，但视图看起来像少了一截
+- 点回编辑器时光标和视图会莫名跑位
 
-Images are copied locally and inserted as `file://` URLs, but the display pipeline is brittle. Rendering can fail depending on how the editor loads the file resource and how Quill places the embed, leaving only a placeholder-like result.
+### 2. 无序列表和复选框样式偏移
 
-### UI Density
+目前 `editor.html` 里对无序列表和复选框做了单独的 CSS 重写，但这套缩进和基线没有跟 Quill 原本的有序列表体系对齐，所以会显得位置怪。
 
-The metadata chips, title, editor, keyboard, and toolbar compete for vertical space. The current toolbar always emphasizes editing tools even when the user only wants to write text.
+### 3. 图片插入链路不稳定
 
-## Proposed Approach
+图片现在虽然会被复制到本地，再以 `file://` 的形式插入，但 WebView 读取、本地资源拦截、Quill 插入渲染这条链路并不稳，所以最终可能只出现一个很小的图标或者类似占位效果，真正图片没有渲染出来。
 
-### 1. Single Scroll Owner
+### 4. 页面垂直空间过紧
 
-The editor WebView becomes the only owner of runtime writing scroll behavior.
+标题、标签区、WebView、键盘、工具栏都在抢高度。当前工具栏又偏向“总是展示编辑功能”，这会进一步压缩正文可视区域。
 
-Compose changes:
+## 五、总体方案
 
-- Keep the page layout structurally stable while typing.
-- Avoid repeated editor-height and bottom-gap oscillation while the keyboard is visible.
-- Limit layout reactions to a small set of predictable state changes:
-  - keyboard hidden
-  - keyboard shown in writing-focused mode
-  - keyboard shown in full editing mode
+### 1. 统一滚动归属
 
-Web editor changes:
+后续只保留一套真正生效的“正文滚动控制”，由 WebView 内部编辑器负责。
 
-- Keep one internal cursor-visibility routine.
-- Scroll only when the caret leaves a defined safe zone.
-- Avoid “helpful” scrolling if the caret is already visible.
-- Use the same scroll behavior for:
-  - normal typing
-  - ordered-list newline
-  - bullet-list newline
-  - checkbox toggling
-  - media insertion
-  - returning focus to the editor
+Compose 侧调整为：
 
-### 2. Writing-Focused Vs Full Editing Modes
+- 输入过程中尽量不主动介入正文滚动
+- 页面高度变化尽量收敛成少数几种稳定状态，而不是跟着输入不断调整
+- 键盘出现后，只在必要时切换固定底部安全区，不再频繁来回改动
 
-Add an explicit editor visibility toggle in the bottom tool area.
+Web 编辑器侧调整为：
 
-Modes:
+- 只保留一套“保证光标可见”的逻辑
+- 只有当光标真的快离开可视安全区时才滚动
+- 如果光标本来就在可见区域内，就不再“自作聪明”强制滚动
+- 以下场景统一走同一套逻辑：
+  - 普通输入
+  - 有序列表换行
+  - 无序列表换行
+  - 复选框切换
+  - 插入图片
+  - 重新聚焦编辑器
 
-- Writing-focused mode
-  - hide format/list/insert/color groups
-  - keep font-size controls visible
-  - preserve a clean writing layout
-- Full editing mode
-  - show format/list/insert/color tools
-  - keep font-size controls visible
+### 2. 增加“专注书写 / 完整编辑”两种模式
 
-Behavior:
+底部增加一个明确的切换入口，用来决定当前是否显示完整编辑功能。
 
-- Default behavior favors writing-focused interaction when the user starts typing.
-- If the user explicitly switches to full editing mode, that choice is preserved for the current editor session.
-- Toggling modes must not reset content, selection, or scroll position.
+两种模式定义如下：
 
-### 3. Stable Editing Context Memory
+- 专注书写
+  - 隐藏格式、列表、插入、颜色等大部分富文本操作
+  - 保留字号调节
+  - 页面尽量把空间让给正文
+- 完整编辑
+  - 展示原有编辑功能
+  - 同样保留字号调节
 
-Add a lightweight “editing context memory” layer instead of storing only a raw scroll number.
+行为约定：
 
-The editor tracks:
+- 用户开始写字后，界面默认更偏向“书写优先”
+- 如果用户主动切到完整编辑模式，本次编辑会话里尽量记住这个状态
+- 模式切换不能影响已写内容、当前光标位置和滚动位置
 
-- last known selection index and length
-- last known editor scroll top
-- whether the restore was user-initiated or system-initiated
-- a short-lived “restore lock” to prevent immediate counter-scroll after restoring
+### 3. 增加“位置记忆”稳定层
 
-This context is used when:
+这里不是简单记住一个 `scrollTop` 数字，而是记住“当前编辑上下文”。
 
-- the user taps back into the editor
-- the keyboard reopens
-- a toolbar panel closes and returns focus
-- media insertion finishes
-- the screen temporarily loses focus and returns during the same session
+编辑器需要记录：
 
-Rules:
+- 最近一次有效选区的起始位置和长度
+- 最近一次编辑区内部的滚动位置
+- 这次恢复是用户主动触发，还是系统流程触发
+- 一个短暂的“恢复保护锁”，防止刚恢复完位置又被下一轮自动滚动打断
 
-- Restore selection first, then restore visibility around that selection.
-- Prefer the selection anchor over raw scrollTop if both are available.
-- Do not force-scroll to the bottom after restore.
-- Ignore stale restore attempts after major content changes that invalidate the old selection range.
+这些信息会在下面场景里使用：
 
-### 4. Metadata Layout Update
+- 用户点回编辑器
+- 键盘重新弹出
+- 关闭工具栏子面板后回到正文
+- 图片插入完成
+- 页面临时失焦后在当前会话中恢复
 
-Restructure metadata chips to match the requested order:
+恢复规则：
 
-- First row:
-  - mood
-  - weather
-  - category
-- Second row:
-  - location only
+- 优先恢复选区，再围绕选区恢复可视位置
+- 如果“选区位置”和“纯滚动位置”都存在，优先相信选区
+- 不要强行把视图拉回底部
+- 如果内容已经发生较大变化，旧位置失效，就自动裁剪到合理范围
 
-Layout rules:
+### 4. 标签区重新布局
 
-- The location row is centered.
-- Long location text truncates gracefully.
-- The metadata area should occupy less visual weight while typing.
-- Opening metadata panels should not destabilize the editor viewport.
+标签区改成你要求的结构：
 
-### 5. Reliable Media Display
+- 第一行：
+  - 心情
+  - 天气
+  - 分类
+- 第二行：
+  - 位置
 
-Keep local-file insertion, but harden the rendering chain.
+布局规则：
 
-Pipeline:
+- 位置独占一行，整体居中
+- 位置文字过长时优雅省略
+- 标签区整体视觉权重要更轻，避免继续抢正文空间
+- 展开标签相关面板时，也不能带着正文区域一起乱跳
 
-1. User selects an image.
-2. App copies it into app-controlled media storage.
-3. The WebView serves it through a reliable readable path.
-4. The editor inserts a renderable image source.
-5. The editor confirms visibility and keeps the caret in a predictable place after insertion.
+### 5. 图片插入改成“稳定显示优先”
 
-Implementation direction:
+继续沿用“选择图片后复制到应用本地”的大方向，但补齐整个渲染链路。
 
-- Prefer a WebView-readable app-local URI strategy that does not depend on fragile inline Base64 for large media.
-- Ensure file access and resource interception are consistent for editor embeds.
-- Add image load success/failure hooks in the page so the UI can react if the asset does not render.
-- Compress oversized images before insertion to reduce memory pressure and layout instability.
+流程调整为：
 
-## Component-Level Design
+1. 用户选择图片
+2. 应用将图片复制到自己可控的本地媒体目录
+3. 必要时先压缩，减少过大图片带来的卡顿和异常
+4. WebView 通过稳定、可读的资源路径去读取图片
+5. 编辑器在当前光标处插入图片
+6. 图片加载成功后，再稳定地把光标放到图片后面
+7. 如果图片加载失败，要有明确失败处理，而不是只留下一个奇怪的小图标
 
-### Compose Screen (`EditorScreen.kt`)
+实现方向：
 
-Responsibilities after redesign:
+- 优先采用对 WebView 更稳定的本地资源读取方案
+- 避免继续依赖大体积 Base64 内嵌图片
+- 增加图片加载成功/失败的监听
+- 插图完成后统一走位置恢复逻辑，保证继续写字时不跳
 
-- Owns high-level layout and editor mode state.
-- Owns metadata arrangement and panel visibility.
-- Owns media-picker launchers and handoff into the Web editor.
-- Avoids micro-managing live cursor scroll.
+## 六、组件级设计
 
-Changes:
+### 1. `EditorScreen.kt`
 
-- Introduce a `editorMode` state with values similar to `WritingFocus` and `FullEditing`.
-- Replace the current toolbar show/hide assumptions with explicit mode-driven rendering.
-- Reduce bottom-gap recalculation churn to stable presets.
-- Rework metadata chip rows to `mood/weather/category` + centered `location`.
-- Ensure WebView focus restoration uses a dedicated restore path instead of generic `focusEditor()`.
+调整后的职责：
 
-### Toolbar (`EditorToolbar.kt`)
+- 管理页面整体结构
+- 管理编辑器模式状态
+- 管理标签布局与面板展开
+- 管理媒体选择器与传值
+- 不再细粒度插手正文实时滚动
 
-Responsibilities after redesign:
+计划修改点：
 
-- Always show font-size controls.
-- Provide a clear mode toggle for “editor tools visible” vs “writing focus”.
-- Show advanced editing controls only in full editing mode.
+- 新增明确的编辑器模式状态，例如“专注书写 / 完整编辑”
+- 将当前工具栏显示逻辑改为以模式驱动，而不是单纯依赖键盘出现与否
+- 底部留白改成固定几档状态，不再频繁跳变
+- 标签区改成“心情 / 天气 / 分类”加“位置居中单行”
+- WebView 聚焦时改为调用专门的“稳定恢复”逻辑，而不是普通 `focusEditor()`
 
-Changes:
+### 2. `EditorToolbar.kt`
 
-- Add a dedicated toggle action for editor visibility.
-- Preserve font-size control in both modes.
-- Avoid reflow patterns that unnecessarily steal height from the editor during typing.
+调整后的职责：
 
-### Web Editor (`editor.html`)
+- 无论什么模式都保留字号调节
+- 提供一个明确的“编辑器显示”切换入口
+- 只有在完整编辑模式下才展示格式、列表、插入、颜色等功能
 
-Responsibilities after redesign:
+计划修改点：
 
-- Own caret-safe scrolling.
-- Own selection/context memory.
-- Own stable list styling.
-- Own media embed rendering and post-insert viewport recovery.
+- 增加模式切换按钮
+- 保留字号区域常驻显示
+- 避免因为展开/收起工具区而频繁抢占正文高度
 
-Changes:
+### 3. `editor.html`
 
-- Replace current scroll heuristics with one guarded visibility algorithm.
-- Add context-memory helpers:
-  - save selection context
-  - restore selection context
-  - guarded focus restore
-- Normalize list CSS so bullet and checkbox markers align with ordered-list structure.
-- Add image load bookkeeping and reliable post-insert caret placement.
-- Minimize side effects in `selection-change` and `text-change`.
+调整后的职责：
 
-## Data And Event Flow
+- 负责正文内部滚动稳定
+- 负责光标和上下文位置记忆
+- 负责列表样式对齐
+- 负责图片插入后的渲染与位置恢复
 
-### Typing Flow
+计划修改点：
 
-1. User types in Quill.
-2. Quill emits content change.
-3. Editor updates plain text and save signals.
-4. Editor checks whether caret is outside the safe zone.
-5. Editor scrolls only if needed.
-6. Compose does not perform extra live scroll correction.
+- 将当前多处滚动触发逻辑收敛为一套带保护条件的可视区域算法
+- 新增位置记忆相关方法：
+  - 保存当前选区上下文
+  - 恢复选区上下文
+  - 带保护的重新聚焦恢复
+- 调整无序列表和复选框 CSS，使其和有序列表的缩进、基线统一
+- 增加图片加载状态记录和插图后的光标恢复
+- 尽量减少 `selection-change` 与 `text-change` 中的副作用
 
-### Focus Return Flow
+## 七、事件流设计
 
-1. User taps back into the editor or closes a toolbar panel.
-2. Compose requests a guarded focus restore.
-3. Web editor restores the last valid selection context.
-4. Web editor ensures the caret is visible without jumping to unrelated content.
+### 1. 普通输入流程
 
-### Image Insert Flow
+1. 用户在 Quill 中输入
+2. 编辑器触发内容变化
+3. 同步普通文本与自动保存状态
+4. 检查当前光标是否快离开安全可视区
+5. 只有需要时才轻微滚动
+6. Compose 外层不再追加第二套滚动修正
 
-1. Compose picker returns a URI.
-2. App copies/compresses the image into local editor media storage.
-3. Compose passes a safe image source into the editor.
-4. Editor inserts the embed at the current selection.
-5. Editor waits for image load completion.
-6. Editor restores a valid caret position after the embed and scrolls minimally if needed.
+### 2. 回到编辑器流程
 
-## Error Handling
+1. 用户点击回到正文，或者关闭某个工具栏面板
+2. Compose 发起一次“稳定恢复焦点”的请求
+3. Web 编辑器恢复最近一次有效选区
+4. Web 编辑器只把当前那一段重新带回可见区域，不拉到别的位置
 
-- If selection restoration points past the current document length, clamp to the nearest valid range.
-- If media copy fails, do not insert a broken embed; surface a user-visible failure message instead.
-- If an image resource cannot be read by WebView, fail fast and log the path/URI type for debugging.
-- If image load never completes, keep the document usable and place the caret after the attempted insert without forcing erratic scrolling.
-- If the editor loses format state during guarded restore, prefer stable selection/visibility over immediate toolbar synchronization.
+### 3. 插图流程
 
-## Testing Strategy
+1. Compose 侧收到系统图片选择结果
+2. 将图片复制并压缩到应用本地目录
+3. 把稳定可读取的图片资源地址传给编辑器
+4. 编辑器在当前选区插入图片
+5. 等待图片成功加载
+6. 将光标恢复到图片后面
+7. 如有必要再做最小滚动，保证继续输入稳定
 
-### Unit-Level / Local Logic
+## 八、异常处理
 
-- Add or extend tests for editor utility logic where extraction is practical:
-  - bottom-gap preset mapping
-  - selection clamp rules
-  - editor mode persistence for the current session
+- 如果恢复位置超出了当前文档长度，要自动裁剪到合法范围
+- 如果图片复制失败，不插入损坏内容，直接给用户失败提示
+- 如果 WebView 无法读取该图片资源，要明确记录路径类型和失败原因，方便排查
+- 如果图片长时间没有加载完成，也不能把编辑器卡死或让光标乱跳
+- 如果在恢复焦点过程中格式状态同步晚了一点，优先保证位置和可见性稳定
 
-### Manual / Integration Verification
+## 九、测试与验证策略
 
-Primary scenarios:
+### 1. 本地逻辑测试
 
-- New diary, plain paragraph typing with keyboard open
-- Edit existing diary with long content
-- Ordered list: repeated newline continuation stays visible
-- Bullet list marker alignment matches ordered list baseline
-- Checkbox list marker alignment matches ordered list baseline
-- Tapping checkbox toggles state without jumping viewport
-- Insert image and confirm the image is visibly rendered
-- Continue typing after image insertion without cursor jump
-- Open and close advanced editor tools without losing current writing position
-- Tap out and back into the editor and confirm selection/viewport stability
-- Keyboard hide/show cycles do not make content appear missing
-- Metadata row layout matches the requested arrangement
+能抽出的逻辑尽量补测试，例如：
 
-## Rollout Plan
+- 底部留白档位映射
+- 选区恢复时的边界裁剪
+- 当前编辑会话中的模式记忆逻辑
 
-1. Stabilize Web editor scroll ownership and selection restore behavior.
-2. Add writing-focused/full-editing mode toggle and keep font controls persistent.
-3. Update metadata row layout.
-4. Harden media insertion and rendering.
-5. Run targeted manual verification on the scenarios above.
+### 2. 手工验证重点场景
 
-## Risks And Mitigations
+这次至少覆盖下面这些场景：
 
-- Risk: Quill selection events may still fire in ways that re-trigger unwanted scroll.
-  - Mitigation: add guarded restore flags and suppress redundant auto-scroll windows.
-- Risk: WebView local media loading differs across Android versions.
-  - Mitigation: use one explicit supported URI/resource strategy and verify through WebView interception.
-- Risk: reducing Compose-side reactions could expose existing assumptions in toolbar behavior.
-  - Mitigation: keep bottom spacing preset-driven and verify mode transitions separately from typing.
+- 新建日记后直接连续输入
+- 编辑已有长日记
+- 有序列表连续回车换行时，光标始终可见
+- 无序列表圆点位置与有序列表对齐
+- 复选框位置与有序列表对齐
+- 点击复选框勾选时，正文不乱跳
+- 插入图片后，图片立即可见
+- 插图后继续输入，光标和视图不乱跳
+- 打开和关闭编辑功能时，不丢失当前写作位置
+- 点出编辑器再点回来，位置基本保持稳定
+- 键盘收起和弹出后，内容不再出现“像消失了一截”的问题
+- 标签布局符合新的两行要求
 
-## Acceptance Criteria
+## 十、实施顺序
 
-- The editor no longer unexpectedly jumps upward during ordinary writing.
-- Ordered lists continue onto a new line while keeping the caret visible.
-- Content no longer appears to “disappear” behind keyboard or layout changes during common editing flows.
-- Bullet and checkbox markers visually align with the list text in the same way as ordered lists.
-- Inserted images render visibly in the document immediately after insertion.
-- The user can switch between writing-focused and full editing modes without losing content, cursor position, or scroll stability.
-- Font-size controls remain available in both modes.
-- Metadata layout matches the requested two-row structure with centered location.
-- Tapping back into the editor or returning from small interruptions restores the current writing context predictably.
+1. 先收敛 Web 编辑器滚动控制和位置恢复逻辑
+2. 再加入“专注书写 / 完整编辑”切换，并保留字号常驻
+3. 调整标签区布局
+4. 修复图片插入与显示链路
+5. 做针对性的手工验证和必要回归
+
+## 十一、风险与应对
+
+- 风险：Quill 的选区事件仍可能在某些边界场景触发多次滚动
+  - 应对：加恢复保护锁和短时间抑制重复自动滚动
+- 风险：不同 Android 版本下 WebView 读取本地资源行为可能不同
+  - 应对：统一采用一套明确支持的本地资源读取方式，并结合资源拦截验证
+- 风险：减少 Compose 外层干预后，可能暴露旧工具栏逻辑的隐藏耦合
+  - 应对：把底部留白收敛成固定档位，并把模式切换和正文输入分开验证
+
+## 十二、验收标准
+
+- 普通写作过程中，编辑器不再莫名其妙往上跳
+- 有序列表连续换行时，光标能稳定保持可见
+- 内容不再因为键盘或布局变化而出现“像消失了”的体验
+- 无序列表圆点和复选框与列表文字对齐正常
+- 插入图片后，图片能直接显示在正文里
+- 用户可以在“专注书写”和“完整编辑”之间切换，且不会丢内容、丢光标或丢当前位置
+- 两种模式下都能调节字号
+- 标签区域布局符合“第一行心情/天气/分类，第二行位置居中”
+- 点回编辑器、关闭工具面板、插图后继续写字时，当前位置保持可预测和稳定
