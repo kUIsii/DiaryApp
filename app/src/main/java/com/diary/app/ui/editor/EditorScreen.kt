@@ -62,6 +62,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -202,6 +203,7 @@ fun EditorScreen(
     var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
     var isApplyingProgrammaticContent by remember { mutableStateOf(false) }
     var metadataVersion by remember { mutableIntStateOf(0) }
+    var isExitingEditor by remember { mutableStateOf(false) }
 
     // Writing duration
     val writingDuration by viewModel.writingDuration.collectAsState()
@@ -497,20 +499,41 @@ fun EditorScreen(
 
     // Auto-save when app goes to background (focus loss)
     val lifecycleOwner = LocalLifecycleOwner.current
+    val latestHasUnsavedChanges by rememberUpdatedState(hasUnsavedChanges)
+    val latestEntryTitle by rememberUpdatedState(entryTitle)
+    val latestSelectedMood by rememberUpdatedState(selectedMood)
+    val latestSelectedWeather by rememberUpdatedState(selectedWeather)
+    val latestSelectedLocation by rememberUpdatedState(selectedLocation)
+    val latestLocationLat by rememberUpdatedState(locationLat)
+    val latestLocationLng by rememberUpdatedState(locationLng)
+    val latestIsExitingEditor by rememberUpdatedState(isExitingEditor)
     DisposableEffect(lifecycleOwner, webView) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
-                if (!hasUnsavedChanges) return@LifecycleEventObserver
-                webView?.evaluateJavascript("getContent()") { json ->
-                    if (!hasUnsavedChanges) return@evaluateJavascript
-                    webView?.evaluateJavascript("getPlainText()") { plain ->
-                        if (!hasUnsavedChanges) return@evaluateJavascript
+                if (!shouldPersistDraftOnPause(latestHasUnsavedChanges, latestIsExitingEditor)) {
+                    return@LifecycleEventObserver
+                }
+                webView?.evaluateJavascript("getContent()") outerCallback@{ json ->
+                    if (!shouldPersistDraftOnPause(latestHasUnsavedChanges, latestIsExitingEditor)) {
+                        return@outerCallback
+                    }
+                    webView?.evaluateJavascript("getPlainText()") innerCallback@{ plain ->
+                        if (!shouldPersistDraftOnPause(latestHasUnsavedChanges, latestIsExitingEditor)) {
+                            return@innerCallback
+                        }
                         val cleanJson = unescapeEvaluateJsResult(json)
                         val cleanPlain = unescapeEvaluateJsResult(plain)
                         if (cleanPlain.isNotBlank()) {
-                            val saveTitle = entryTitle.ifBlank { dateTitle }
+                            val saveTitle = latestEntryTitle.ifBlank { dateTitle }
                             viewModel.updateLatestContent(cleanJson, cleanPlain, saveTitle)
-                            viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
+                            viewModel.performAutoSave(
+                                diaryId,
+                                latestSelectedMood,
+                                latestSelectedWeather,
+                                latestSelectedLocation,
+                                latestLocationLat,
+                                latestLocationLng
+                            )
                         }
                     }
                 }
@@ -554,6 +577,8 @@ fun EditorScreen(
                 "focusEditorWithRestore()",
                 null
             )
+            kotlinx.coroutines.delay(80)
+            webView?.evaluateJavascript("ensureSelection()", null)
             isToolbarLocked = false
         }
     }
@@ -583,6 +608,7 @@ fun EditorScreen(
     )
 
     fun saveCurrentEntry() {
+        isExitingEditor = true
         webView?.evaluateJavascript("getContent()") { json ->
             webView?.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
                 val cleanJson = unescapeEvaluateJsResult(json)
@@ -664,6 +690,7 @@ fun EditorScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
+                                isExitingEditor = true
                                 webView?.evaluateJavascript("getContent()") { json ->
                                     webView?.evaluateJavascript("getPlainText()") { plain ->
                                         val cleanJson = unescapeEvaluateJsResult(json)
@@ -699,6 +726,7 @@ fun EditorScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
+                                isExitingEditor = true
                                 viewModel.discardChanges(diaryId)
                                 currentDraftId?.let(viewModel::deleteDraft)
                                 currentDraftId = null
@@ -867,6 +895,7 @@ fun EditorScreen(
         if (hasUnsavedChanges) {
             showUnsavedDialog = true
         } else {
+            isExitingEditor = true
             onNavigateBack()
         }
     }
@@ -884,7 +913,10 @@ fun EditorScreen(
                 IconButton(
                     onClick = {
                         if (hasUnsavedChanges) showUnsavedDialog = true
-                        else onNavigateBack()
+                        else {
+                            isExitingEditor = true
+                            onNavigateBack()
+                        }
                     },
                     modifier = Modifier.size(36.dp)
                 ) {
@@ -1208,7 +1240,11 @@ fun EditorScreen(
             locationLat = locationLat,
             locationLng = locationLng,
             recentLocations = recentLocations,
-            onDismiss = { activePanel = null },
+            onDismiss = {
+                activePanel = null
+                webView?.requestFocus()
+                webView?.evaluateJavascript("focusEditorWithRestore()", null)
+            },
             onMoodSelected = {
                 selectedMood = it
                 viewModel.markContentChanged()

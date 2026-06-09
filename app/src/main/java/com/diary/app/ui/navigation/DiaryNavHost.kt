@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -131,6 +131,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
@@ -169,7 +170,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(
+                top = innerPadding.calculateTopPadding()
+            )
         ) {
             // region Bottom nav destinations
 
@@ -353,9 +356,7 @@ private fun DiaryBottomNavigationBar(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
@@ -372,6 +373,12 @@ private fun DiaryBottomNavigationBar(
                     )
                 }
             }
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(surfaceColor)
+                    .windowInsetsBottomHeight(WindowInsets.navigationBars)
+            )
         }
     }
 }

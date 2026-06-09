@@ -136,6 +136,18 @@ class EditorUtilsTest {
     }
 
     @Test
+    fun `draft list item key is namespaced consistently`() {
+        assertEquals("draft_item_abc123", draftListItemKey("abc123"))
+    }
+
+    @Test
+    fun `pause autosave is skipped when editor is intentionally exiting`() {
+        assertEquals(true, shouldPersistDraftOnPause(hasUnsavedChanges = true, isExitingEditor = false))
+        assertEquals(false, shouldPersistDraftOnPause(hasUnsavedChanges = false, isExitingEditor = false))
+        assertEquals(false, shouldPersistDraftOnPause(hasUnsavedChanges = true, isExitingEditor = true))
+    }
+
+    @Test
     fun `should restore draft when snapshot has any meaningful content`() {
         assertEquals(
             true,
@@ -210,5 +222,13 @@ class EditorUtilsTest {
         assertEquals(true, isMeaningfulDraft(EditorSnapshot(title = "A thought")))
         assertEquals(true, isMeaningfulDraft(EditorSnapshot(moodLevel = 2)))
         assertEquals(true, isMeaningfulDraft(EditorSnapshot(tagIds = setOf(7L))))
+    }
+
+    @Test
+    fun `editor asset restores a usable cursor on focus`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("function ensureSelection("))
+        assertTrue(html.contains("function focusEditorAtEnd()"))
     }
 }

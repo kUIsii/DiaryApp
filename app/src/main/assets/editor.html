@@ -485,6 +485,24 @@
             if (editor) editor.scrollTop = 0;
             saveEditorContext({ index: nextIndex, length: 0 });
         }
+        function ensureSelection() {
+            var selection = quill.getSelection();
+            if (selection) return selection;
+            var docLength = Math.max(quill.getLength() - 1, 0);
+            var safeIndex = Math.max(Math.min(editorContext.selectionIndex || docLength, docLength), 0);
+            quill.setSelection(safeIndex, 0, 'silent');
+            var normalized = { index: safeIndex, length: 0 };
+            saveEditorContext(normalized);
+            return normalized;
+        }
+        function focusEditorAtEnd() {
+            var docLength = Math.max(quill.getLength() - 1, 0);
+            quill.focus();
+            quill.setSelection(docLength, 0, 'silent');
+            saveEditorContext({ index: docLength, length: 0 });
+            setRestoreLock(180);
+            scrollToCursor(docLength, 0, true);
+        }
         function finalizeMediaInsert(nextIndex) {
             var safeIndex = Math.max(nextIndex || 0, 0);
             quill.setSelection(safeIndex, 0, 'silent');
@@ -617,6 +635,7 @@
         function focusEditor() { quill.focus(); }
         function focusEditorWithRestore() {
             quill.focus();
+            ensureSelection();
             restoreEditorContext();
         }
         function setEditorBottomGap(pixels) {

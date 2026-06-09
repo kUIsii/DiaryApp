@@ -170,7 +170,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun getAllDrafts(): List<DraftData> {
         val ids = getAllDraftIds()
         return ids.mapNotNull { id ->
-            val json = prefs.getString("draft_item_$id", null) ?: return@mapNotNull null
+            val json = prefs.getString(draftListItemKey(id), null) ?: return@mapNotNull null
             try { gson.fromJson(json, DraftData::class.java) } catch (_: Exception) { null }
         }.sortedByDescending { it.timestamp }
     }
@@ -188,7 +188,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             tagIds = _selectedTagIds.value, timestamp = System.currentTimeMillis(),
             location = location, latitude = latitude, longitude = longitude
         )
-        prefs.edit().putString("draft_item_$id", gson.toJson(data)).apply()
+        prefs.edit().putString(draftListItemKey(id), gson.toJson(data)).apply()
         val ids = getAllDraftIds()
         ids.add(id)
         saveDraftIds(ids)
@@ -196,14 +196,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun deleteDraft(draftId: String) {
-        prefs.edit().remove("draft_item_$draftId").apply()
+        prefs.edit().remove(draftListItemKey(draftId)).apply()
         val ids = getAllDraftIds()
         ids.remove(draftId)
         saveDraftIds(ids)
     }
 
     fun loadDraftById(draftId: String): DraftData? {
-        val json = prefs.getString("draft_item_$draftId", null) ?: return null
+        val json = prefs.getString(draftListItemKey(draftId), null) ?: return null
         return try { gson.fromJson(json, DraftData::class.java) } catch (_: Exception) { null }
     }
 

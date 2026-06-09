@@ -156,6 +156,15 @@ internal fun draftKeysToClear(diaryId: Long?): Set<String> {
     }
 }
 
+internal fun draftListItemKey(draftId: String): String = "draft_item_$draftId"
+
+internal fun shouldPersistDraftOnPause(
+    hasUnsavedChanges: Boolean,
+    isExitingEditor: Boolean
+): Boolean {
+    return hasUnsavedChanges && !isExitingEditor
+}
+
 internal fun shouldRestoreDraft(snapshot: EditorSnapshot): Boolean {
     return isMeaningfulDraft(snapshot)
 }
