@@ -457,7 +457,9 @@ fun EditorScreen(
     LaunchedEffect(contentVersion) {
         if (contentVersion > 0) {
             kotlinx.coroutines.delay(5000)
+            if (!hasUnsavedChanges) return@LaunchedEffect
             webView?.evaluateJavascript("getContent()") { json ->
+                if (!hasUnsavedChanges) return@evaluateJavascript
                 val cleanJson = unescapeEvaluateJsResult(json)
                 val saveTitle = entryTitle.ifBlank { dateTitle }
                 viewModel.updateLatestContent(cleanJson, latestPlainText, saveTitle)
@@ -500,7 +502,9 @@ fun EditorScreen(
             if (event == Lifecycle.Event.ON_PAUSE) {
                 if (!hasUnsavedChanges) return@LifecycleEventObserver
                 webView?.evaluateJavascript("getContent()") { json ->
+                    if (!hasUnsavedChanges) return@evaluateJavascript
                     webView?.evaluateJavascript("getPlainText()") { plain ->
+                        if (!hasUnsavedChanges) return@evaluateJavascript
                         val cleanJson = unescapeEvaluateJsResult(json)
                         val cleanPlain = unescapeEvaluateJsResult(plain)
                         if (cleanPlain.isNotBlank()) {
@@ -541,12 +545,12 @@ fun EditorScreen(
         }
     }
 
-    // Auto-show keyboard after WebView loads
-    LaunchedEffect(webView) {
-        webView?.let {
-            kotlinx.coroutines.delay(500)
-            it.requestFocus()
-            it.evaluateJavascript(
+    // Auto-show keyboard after WebView finishes loading
+    LaunchedEffect(webView, isWebViewReady) {
+        if (webView != null && isWebViewReady) {
+            kotlinx.coroutines.delay(300)
+            webView?.requestFocus()
+            webView?.evaluateJavascript(
                 "focusEditorWithRestore()",
                 null
             )

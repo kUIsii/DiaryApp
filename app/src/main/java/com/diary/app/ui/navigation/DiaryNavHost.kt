@@ -47,9 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -133,6 +130,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     val haptic = rememberHapticFeedback()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
@@ -347,34 +345,17 @@ private fun DiaryBottomNavigationBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     Surface(
         color = surfaceColor,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 8.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .drawBehind {
-                    drawLine(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.05f),
-                                primaryColor.copy(alpha = 0.35f),
-                                primaryColor.copy(alpha = 0.05f)
-                            )
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(size.width, 0f),
-                        strokeWidth = 1.5.dp.toPx()
-                    )
-                }
         ) {
             Row(
                 modifier = Modifier

@@ -780,15 +780,6 @@
         }
 
         var _scrollTimer = null;
-        function getViewportState(editor) {
-            var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 72;
-            var topInset = 18;
-            var bottomInset = Math.max(bottomGap + 16, 96);
-            return {
-                visibleTop: editor.scrollTop + topInset,
-                visibleBottom: editor.scrollTop + editor.clientHeight - bottomInset
-            };
-        }
         function scrollToCursor(index, length, forceRestore) {
             clearTimeout(_scrollTimer);
             _scrollTimer = setTimeout(function() {
@@ -796,25 +787,18 @@
                     if (!forceRestore && Date.now() < editorContext.restoreLockUntil) return;
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
-                    if (editor && bounds) {
-                        var cursorTop = bounds.top;
-                        var cursorBottom = bounds.top + Math.max(bounds.height, 24);
-                        var viewport = getViewportState(editor);
+                    if (!editor || !bounds) return;
 
-                        if (!forceRestore && cursorTop >= viewport.visibleTop && cursorBottom <= viewport.visibleBottom) {
-                            return;
-                        }
+                    var kbHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
+                    var cursorEnd = bounds.top + Math.max(bounds.height, 20);
 
-                        var targetTop = editor.scrollTop;
-                        if (cursorBottom > viewport.visibleBottom) {
-                            targetTop += cursorBottom - viewport.visibleBottom;
-                        } else if (cursorTop < viewport.visibleTop) {
-                            targetTop -= viewport.visibleTop - cursorTop;
-                        }
-                        editor.scrollTo({ top: Math.max(targetTop, 0), behavior: 'auto' });
+                    if (cursorEnd > editor.scrollTop + editor.clientHeight - kbHeight - 40) {
+                        editor.scrollTo({ top: Math.max(cursorEnd - editor.clientHeight + kbHeight + 40, 0), behavior: 'auto' });
+                    } else if (bounds.top < editor.scrollTop + 12) {
+                        editor.scrollTo({ top: Math.max(bounds.top - 12, 0), behavior: 'auto' });
                     }
                 } catch(e) {}
-            }, forceRestore ? 0 : 16);
+            }, forceRestore ? 0 : 80);
         }
     </script>
 </body>
