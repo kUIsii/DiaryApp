@@ -318,6 +318,11 @@ fun EditorScreen(
                 activeCategory = activeCategory
             )
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
+            // Explicitly reset keyboard height when keyboard is dismissed
+            // (VisualViewport API may not fire reliably on all devices)
+            if (!isKeyboardVisible) {
+                webView?.evaluateJavascript("setKeyboardHeight(0)", null)
+            }
         }
     }
 

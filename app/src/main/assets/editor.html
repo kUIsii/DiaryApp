@@ -308,15 +308,15 @@
 
         // Detect keyboard height via VisualViewport API
         (function() {
-            var baseHeight = window.innerHeight;
+            // Use screen.height as stable base (doesn't change with keyboard)
+            var baseHeight = Math.max(window.innerHeight, (window.screen && window.screen.height) || 0);
             function updateKeyboardHeight() {
                 if (window.visualViewport) {
-                    var vh = baseHeight;
                     var vvH = window.visualViewport.height;
-                    var kh = Math.max(vh - vvH, 0);
+                    var kh = Math.max(baseHeight - vvH, 0);
                     document.documentElement.style.setProperty(
                         '--keyboard-height',
-                        (kh > 50 ? kh : 0) + 'px'
+                        (kh > 80 ? kh : 0) + 'px'
                     );
                 }
             }
@@ -324,10 +324,10 @@
                 window.visualViewport.addEventListener('resize', updateKeyboardHeight);
                 window.visualViewport.addEventListener('scroll', updateKeyboardHeight);
             }
-            // Also track base height changes (rotation etc.)
             window.addEventListener('resize', function() {
-                if (!window.visualViewport || window.visualViewport.height > baseHeight * 0.8) {
-                    baseHeight = window.innerHeight;
+                // Update baseHeight only when keyboard is not visible (viewport is large)
+                if (window.visualViewport && window.visualViewport.height > baseHeight * 0.7) {
+                    baseHeight = Math.max(window.innerHeight, (window.screen && window.screen.height) || 0);
                 }
                 updateKeyboardHeight();
             });
@@ -737,6 +737,12 @@
             reportFormat();
         });
 
+        // Allow Kotlin to explicitly set/reset keyboard height
+        function setKeyboardHeight(px) {
+            var safe = Math.max(Number(px) || 0, 0);
+            document.documentElement.style.setProperty('--keyboard-height', safe + 'px');
+        }
+
         var _scrollTimer = null;
         function scrollToCursor(index, length, forceRestore) {
             clearTimeout(_scrollTimer);
@@ -750,11 +756,13 @@
                         var rootStyles = getComputedStyle(document.documentElement);
                         var lineHeight = parseFloat(rootStyles.getPropertyValue('--line-height')) || 20;
                         var bottomGap = parseFloat(rootStyles.getPropertyValue('--editor-bottom-gap')) || 32;
+                        var keyboardH = parseFloat(rootStyles.getPropertyValue('--keyboard-height')) || 0;
                         var bottomReserve = Math.max(bottomGap + lineHeight, lineHeight * 2);
                         var visibleTop = editor.scrollTop + lineHeight;
-                        var visibleBottom = editor.scrollTop + editor.clientHeight - bottomReserve;
+                        // Subtract keyboard height so scroll triggers before cursor is hidden
+                        var visibleBottom = editor.scrollTop + editor.clientHeight - keyboardH - bottomReserve;
                         if (cursorBottom > visibleBottom) {
-                            var target = Math.max(cursorBottom - editor.clientHeight + bottomReserve, 0);
+                            var target = Math.max(cursorBottom - editor.clientHeight + keyboardH + bottomReserve, 0);
                             editor.scrollTo({ top: target, behavior: forceRestore ? 'auto' : 'smooth' });
                         } else if (bounds.top < visibleTop) {
                             var target2 = Math.max(bounds.top - lineHeight, 0);
