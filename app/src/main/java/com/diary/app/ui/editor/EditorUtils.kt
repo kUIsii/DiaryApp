@@ -119,6 +119,13 @@ internal fun resolveEditorBottomGap(
     }
 }
 
+internal fun shouldAutoHideToolbarOnKeyboardHidden(
+    activeCategory: Int,
+    keepToolbarOpen: Boolean
+): Boolean {
+    return activeCategory < 0 && !keepToolbarOpen
+}
+
 internal fun resolveCenteredLocationLabel(selectedLocation: String?): String {
     return selectedLocation?.trim().takeUnless { it.isNullOrEmpty() } ?: "位置"
 }

@@ -70,19 +70,7 @@
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
-            background:
-                linear-gradient(90deg, transparent 0 27px, var(--margin-line-color) 27px 28px, transparent 28px),
-                repeating-linear-gradient(
-                    to bottom,
-                    transparent 0,
-                    transparent calc(var(--line-height) - 1px),
-                    var(--line-color) calc(var(--line-height) - 1px),
-                    var(--line-color) var(--line-height)
-            ),
-                var(--paper-bg);
-            background-size: 100% var(--line-height), 100% var(--line-height), auto;
-            background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
-            background-attachment: scroll, scroll, scroll;
+            background: transparent;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
@@ -101,19 +89,7 @@
             background: transparent;
         }
         .theme-dark .ql-editor {
-            background:
-                linear-gradient(90deg, transparent 0 27px, var(--margin-line-color) 27px 28px, transparent 28px),
-                repeating-linear-gradient(
-                    to bottom,
-                    transparent 0,
-                    transparent calc(var(--line-height) - 1px),
-                    var(--line-color) calc(var(--line-height) - 1px),
-                    var(--line-color) var(--line-height)
-            ),
-                var(--paper-bg);
-            background-size: 100% var(--line-height), 100% var(--line-height), auto;
-            background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
-            background-attachment: scroll, scroll, scroll;
+            background: transparent;
             scrollbar-color: rgba(255,255,255,0.1) transparent;
         }
         .theme-dark .ql-editor::-webkit-scrollbar-thumb {

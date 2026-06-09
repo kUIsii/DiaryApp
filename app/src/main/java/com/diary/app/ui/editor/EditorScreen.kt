@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -73,9 +74,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -155,6 +158,7 @@ fun EditorScreen(
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
     var isToolbarManuallyHidden by remember { mutableStateOf(false) }
+    var keepToolbarOpen by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
@@ -167,10 +171,10 @@ fun EditorScreen(
                     activeCategory = -1
                 }
             }
-        } else if (activeCategory < 0) {
+        } else if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
             // Keyboard disappeared — hide toolbar after short delay
             kotlinx.coroutines.delay(200)
-            if (activeCategory < 0) {
+            if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
                 showToolbar = false
             }
         }
@@ -501,6 +505,8 @@ fun EditorScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val paperColor = MaterialTheme.colorScheme.surface
+    val paperLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isDark) 0.045f else 0.075f)
+    val paperMarginLineColor = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.15f)
     val paperTintBrush = Brush.verticalGradient(
         colors = listOf(
             Color.Transparent,
@@ -868,6 +874,7 @@ fun EditorScreen(
                         val nextVisible = !showToolbar
                         showToolbar = nextVisible
                         isToolbarManuallyHidden = !nextVisible
+                        keepToolbarOpen = nextVisible
                     }
                 )
                 EditorSaveButton(onClick = { saveCurrentEntry() })
@@ -948,6 +955,27 @@ fun EditorScreen(
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
                     .background(paperColor)
                     .background(paperTintBrush)
+                    .drawBehind {
+                        val lineStep = 22.dp.toPx()
+                        val firstLine = 28.dp.toPx()
+                        var y = firstLine
+                        while (y < size.height) {
+                            drawLine(
+                                color = paperLineColor,
+                                start = Offset(0f, y),
+                                end = Offset(size.width, y),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                            y += lineStep
+                        }
+                        val marginX = 66.dp.toPx()
+                        drawLine(
+                            color = paperMarginLineColor,
+                            start = Offset(marginX, 0f),
+                            end = Offset(marginX, size.height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
                     .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
             ) {
                 AndroidView(
@@ -990,6 +1018,8 @@ fun EditorScreen(
                             settings.allowContentAccess = true
                             settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                             setBackgroundColor(0)
+                            isVerticalScrollBarEnabled = false
+                            isHorizontalScrollBarEnabled = false
                             addJavascriptInterface(jsBridge, "DiaryBridge")
                             loadUrl("file:///android_asset/editor.html")
                             webView = this
@@ -1047,7 +1077,8 @@ fun EditorScreen(
             AnimatedVisibility(
                 visible = showToolbar,
                 enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
-                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
+                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150)),
+                modifier = Modifier.imePadding()
             ) {
                 EditorToolbar(
                     showToolbar = showToolbar,
@@ -1055,10 +1086,12 @@ fun EditorScreen(
                     onCategoryChange = { cat ->
                         if (activeCategory == cat) {
                             activeCategory = -1
+                            keepToolbarOpen = true
                             webView?.requestFocus()
                             webView?.evaluateJavascript("focusEditorWithRestore()", null)
                         } else {
                             activeCategory = cat
+                            keepToolbarOpen = true
                             val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                             imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
                         }
@@ -1082,6 +1115,7 @@ fun EditorScreen(
                     },
                     onHideToolbar = {
                         isToolbarManuallyHidden = true
+                        keepToolbarOpen = false
                         showToolbar = false
                     },
                     fontSize = editorFontSize,

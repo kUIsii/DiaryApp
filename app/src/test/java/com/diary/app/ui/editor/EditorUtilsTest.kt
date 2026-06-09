@@ -81,6 +81,23 @@ class EditorUtilsTest {
 
         assertTrue(html.contains("min-height: 100vh"))
         assertFalse(html.contains("60vh"))
+        assertFalse(html.contains("repeating-linear-gradient"))
+    }
+
+    @Test
+    fun `keyboard closing does not auto hide a manually opened toolbar`() {
+        assertEquals(
+            true,
+            shouldAutoHideToolbarOnKeyboardHidden(activeCategory = -1, keepToolbarOpen = false)
+        )
+        assertEquals(
+            false,
+            shouldAutoHideToolbarOnKeyboardHidden(activeCategory = -1, keepToolbarOpen = true)
+        )
+        assertEquals(
+            false,
+            shouldAutoHideToolbarOnKeyboardHidden(activeCategory = 0, keepToolbarOpen = false)
+        )
     }
 
     @Test
