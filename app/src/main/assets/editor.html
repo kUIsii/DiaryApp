@@ -61,7 +61,7 @@
         }
         .ql-editor {
             flex: 1;
-            padding: 10px 16px calc(var(--keyboard-height, 0px) + var(--editor-bottom-gap, 32px) + var(--line-height)) 34px;
+            padding: 10px 16px calc(var(--editor-bottom-gap, 32px) + var(--line-height)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
@@ -743,6 +743,14 @@
             document.documentElement.style.setProperty('--keyboard-height', safe + 'px');
         }
 
+        // Called by Kotlin when keyboard is dismissed — re-evaluate scroll
+        function scrollToCurrentCursor(forceRestore) {
+            var sel = quill.getSelection();
+            if (sel) {
+                scrollToCursor(sel.index, sel.length || 0, !!forceRestore);
+            }
+        }
+
         var _scrollTimer = null;
         function scrollToCursor(index, length, forceRestore) {
             clearTimeout(_scrollTimer);
@@ -759,10 +767,11 @@
                         var keyboardH = parseFloat(rootStyles.getPropertyValue('--keyboard-height')) || 0;
                         var bottomReserve = Math.max(bottomGap + lineHeight, lineHeight * 2);
                         var visibleTop = editor.scrollTop + lineHeight;
-                        // Subtract keyboard height so scroll triggers before cursor is hidden
+                        // visibleBottom accounts for keyboard — cursor above keyboard
                         var visibleBottom = editor.scrollTop + editor.clientHeight - keyboardH - bottomReserve;
                         if (cursorBottom > visibleBottom) {
-                            var target = Math.max(cursorBottom - editor.clientHeight + keyboardH + bottomReserve, 0);
+                            // Scroll so cursor line is at the top of the visible area
+                            var target = Math.max(bounds.top - lineHeight, 0);
                             editor.scrollTo({ top: target, behavior: forceRestore ? 'auto' : 'smooth' });
                         } else if (bounds.top < visibleTop) {
                             var target2 = Math.max(bounds.top - lineHeight, 0);

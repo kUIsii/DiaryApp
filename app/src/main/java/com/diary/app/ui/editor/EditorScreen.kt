@@ -159,10 +159,13 @@ fun EditorScreen(
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
     var isToolbarManuallyHidden by remember { mutableStateOf(false) }
     var keepToolbarOpen by remember { mutableStateOf(false) }
+    // Once user clicks the toggle button, lock the state — no auto-show/hide
+    var isToolbarLocked by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
     LaunchedEffect(isKeyboardVisible) {
+        if (isToolbarLocked) return@LaunchedEffect
         if (isKeyboardVisible) {
             // Keyboard appeared — only show toolbar if user hasn't manually hidden it
             if (!isToolbarManuallyHidden) {
@@ -322,6 +325,9 @@ fun EditorScreen(
             // (VisualViewport API may not fire reliably on all devices)
             if (!isKeyboardVisible) {
                 webView?.evaluateJavascript("setKeyboardHeight(0)", null)
+                // Re-evaluate scroll position now that keyboard is gone
+                kotlinx.coroutines.delay(300)
+                webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
             }
         }
     }
@@ -880,6 +886,7 @@ fun EditorScreen(
                         showToolbar = nextVisible
                         isToolbarManuallyHidden = !nextVisible
                         keepToolbarOpen = nextVisible
+                        isToolbarLocked = true
                     }
                 )
                 EditorSaveButton(onClick = { saveCurrentEntry() })
