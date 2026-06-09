@@ -784,23 +784,22 @@
             _scrollTimer = setTimeout(function() {
                 try {
                     if (!forceRestore && Date.now() < editorContext.restoreLockUntil) return;
+                    var scrollEl = document.body;
+                    var kbHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
+                    // Only auto-scroll when keyboard is visible to avoid premature scrolling during normal typing
+                    if (kbHeight <= 0) return;
+
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (!editor || !bounds) return;
 
-                    // Use body as the scroll container (body has overflow-y: auto)
-                    var scrollEl = document.body;
-                    var kbHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
                     var editorRect = editor.getBoundingClientRect();
-                    // bounds.top is relative to the editor, convert to page coordinate
                     var cursorAbsTop = editorRect.top + bounds.top + scrollEl.scrollTop;
                     var cursorEnd = cursorAbsTop + Math.max(bounds.height, 20);
                     var viewBottom = scrollEl.scrollTop + scrollEl.clientHeight - kbHeight;
-                    // Only add threshold when keyboard is visible to avoid premature scrolling
-                    var threshold = kbHeight > 0 ? 12 : 0;
 
-                    if (cursorEnd > viewBottom - threshold) {
-                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + threshold, 0), behavior: 'auto' });
+                    if (cursorEnd > viewBottom - 12) {
+                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 12, 0), behavior: 'auto' });
                     } else if (cursorAbsTop < scrollEl.scrollTop + 12) {
                         scrollEl.scrollTo({ top: Math.max(cursorAbsTop - 12, 0), behavior: 'auto' });
                     }
