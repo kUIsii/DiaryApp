@@ -96,15 +96,11 @@ internal fun metadataTagSummary(names: List<String>): String {
     val cleaned = names.map { it.trim() }.filter { it.isNotEmpty() }
     if (cleaned.isEmpty()) return "标签"
     val visible = cleaned.take(2).joinToString(" · ")
-    return if (cleaned.size > 2) "标签 $visible…" else "标签 $visible"
+    return if (cleaned.size > 2) "$visible…" else visible
 }
 
 internal fun metadataLocationSummary(selectedLocation: String?): String {
     return selectedLocation?.trim().takeUnless { it.isNullOrEmpty() } ?: "位置"
-}
-
-internal fun editorModeToggleLabel(isFocusWritingMode: Boolean): String {
-    return if (isFocusWritingMode) "专注" else "完整"
 }
 
 internal fun toolbarVisibilityDescription(isToolbarVisible: Boolean): String {
@@ -114,14 +110,12 @@ internal fun toolbarVisibilityDescription(isToolbarVisible: Boolean): String {
 internal fun resolveEditorBottomGap(
     showToolbar: Boolean,
     isKeyboardVisible: Boolean,
-    isFullEditorVisible: Boolean,
     activeCategory: Int
 ): Int {
     return when {
-        showToolbar && isFullEditorVisible && activeCategory >= 0 -> 120
-        showToolbar && isKeyboardVisible && isFullEditorVisible -> 104
-        showToolbar || isKeyboardVisible -> 88
-        else -> 72
+        showToolbar && activeCategory >= 0 -> 56
+        showToolbar || isKeyboardVisible -> 40
+        else -> 24
     }
 }
 

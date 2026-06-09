@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.FormatIndentIncrease
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
@@ -78,8 +77,6 @@ internal fun EditorToolbar(
     onHideKeyboard: () -> Unit = {},
     onShowKeyboard: () -> Unit = {},
     onHideToolbar: () -> Unit = {},
-    isFocusWritingMode: Boolean = false,
-    onWritingModeChange: (Boolean) -> Unit = {},
     fontSize: Int = 14,
     onFontSizeChange: (Int) -> Unit = {}
 ) {
@@ -127,118 +124,89 @@ internal fun EditorToolbar(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-            if (isFocusWritingMode) {
-                ToolbarActionButton(
-                    icon = Icons.Default.FormatIndentIncrease,
-                    label = "\u7f29\u8fdb",
-                    onClick = { onFormat("indentLine()") },
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .width(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Transparent)
+                    .clickable {
+                        val sizes = listOf(10, 12, 14, 16, 18, 20)
+                        val currentIndex = sizes.indexOf(fontSize).coerceAtLeast(0)
+                        if (currentIndex > 0) onFontSizeChange(sizes[currentIndex - 1])
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "A-",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+            }
+            Text(
+                text = "$fontSize",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = activeColor,
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(activeColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .width(42.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Transparent)
+                    .clickable {
+                        val sizes = listOf(10, 12, 14, 16, 18, 20)
+                        val currentIndex = sizes.indexOf(fontSize).coerceIn(0, sizes.lastIndex)
+                        if (currentIndex < sizes.lastIndex) onFontSizeChange(sizes[currentIndex + 1])
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "A+",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            categories.forEach { category ->
+                CategoryButton(
+                    icon = category.icon,
+                    label = category.label,
+                    isActive = activeCategory == category.index,
+                    onClick = {
+                        if (activeCategory == category.index) {
+                            onCategoryChange(-1)
+                            onShowKeyboard()
+                        } else {
+                            onCategoryChange(category.index)
+                            onHideKeyboard()
+                        }
+                    },
                     textColor = textColor,
                     activeColor = activeColor
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .width(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Transparent)
-                        .clickable {
-                            val sizes = listOf(10, 12, 14, 16, 18, 20)
-                            val currentIndex = sizes.indexOf(fontSize).coerceAtLeast(0)
-                            if (currentIndex > 0) onFontSizeChange(sizes[currentIndex - 1])
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "A-",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = textColor
-                    )
-                }
-                Text(
-                    text = "$fontSize",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = activeColor,
-                    modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(activeColor.copy(alpha = 0.12f))
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .width(42.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Transparent)
-                        .clickable {
-                            val sizes = listOf(10, 12, 14, 16, 18, 20)
-                            val currentIndex = sizes.indexOf(fontSize).coerceIn(0, sizes.lastIndex)
-                            if (currentIndex < sizes.lastIndex) onFontSizeChange(sizes[currentIndex + 1])
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "A+",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = textColor
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            TextButton(
-                onClick = {
-                    val nextMode = !isFocusWritingMode
-                    onWritingModeChange(nextMode)
-                    if (nextMode) {
-                        onCategoryChange(-1)
-                        onShowKeyboard()
-                    }
-                }
-            ) {
-                Text(
-                    text = editorModeToggleLabel(isFocusWritingMode),
-                    color = activeColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        if (!isFocusWritingMode) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                categories.forEach { category ->
-                    CategoryButton(
-                        icon = category.icon,
-                        label = category.label,
-                        isActive = activeCategory == category.index,
-                        onClick = {
-                            if (activeCategory == category.index) {
-                                onCategoryChange(-1)
-                                onShowKeyboard()
-                            } else {
-                                onCategoryChange(category.index)
-                                onHideKeyboard()
-                            }
-                        },
-                        textColor = textColor,
-                        activeColor = activeColor
-                    )
-                }
             }
         }
 
         AnimatedVisibility(
-            visible = !isFocusWritingMode && activeCategory >= 0,
+            visible = activeCategory >= 0,
             enter = expandVertically(tween(200)) + fadeIn(),
             exit = shrinkVertically(tween(150)) + fadeOut()
         ) {
@@ -318,39 +286,6 @@ private fun CategoryButton(
             text = label,
             fontSize = 11.sp,
             color = if (isActive) activeColor else textColor
-        )
-    }
-}
-
-@Composable
-private fun ToolbarActionButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    textColor: Color,
-    activeColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(activeColor.copy(alpha = 0.1f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = activeColor,
-            modifier = Modifier.size(17.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = textColor
         )
     }
 }

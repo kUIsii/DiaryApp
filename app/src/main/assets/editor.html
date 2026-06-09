@@ -13,10 +13,11 @@
             --blockquote-bg: rgba(74, 144, 217, 0.05);
             --code-bg: rgba(0,0,0,0.03);
             --line-height: 19.6px;
-            --line-offset: 6px;
-            --line-color: rgba(42, 70, 59, 0.055);
+            --line-offset: 5px;
+            --line-color: rgba(42, 70, 59, 0.07);
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
+            --editor-bottom-gap: 32px;
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -46,6 +47,7 @@
         #editor {
             flex: 1;
             min-height: 100%;
+            min-height: 100vh;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -57,11 +59,13 @@
             flex: 1 1 auto;
             height: 100% !important;
             min-height: 100% !important;
+            min-height: 100vh !important;
         }
         .ql-editor {
             height: 100% !important;
-            min-height: 100%;
-            padding: 6px 16px calc(var(--editor-bottom-gap, 120px)) 34px;
+            min-height: 100% !important;
+            min-height: 100vh !important;
+            padding: 6px 16px calc(var(--editor-bottom-gap, 32px)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
@@ -73,14 +77,15 @@
                     transparent calc(var(--line-height) - 1px),
                     var(--line-color) calc(var(--line-height) - 1px),
                     var(--line-color) var(--line-height)
-                ),
+            ),
                 var(--paper-bg);
             background-size: 100% var(--line-height), 100% var(--line-height), auto;
             background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
-            background-attachment: local, local, local;
+            background-attachment: scroll, scroll, scroll;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            scroll-padding-bottom: calc(var(--editor-bottom-gap, 32px) + var(--line-height));
         }
         .theme-dark .ql-editor {
             background:
@@ -91,11 +96,11 @@
                     transparent calc(var(--line-height) - 1px),
                     var(--line-color) calc(var(--line-height) - 1px),
                     var(--line-color) var(--line-height)
-                ),
+            ),
                 var(--paper-bg);
             background-size: 100% var(--line-height), 100% var(--line-height), auto;
             background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
-            background-attachment: local, local, local;
+            background-attachment: scroll, scroll, scroll;
         }
         .ql-editor.ql-blank::before {
             color: var(--placeholder);
@@ -570,7 +575,7 @@
             restoreEditorContext();
         }
         function setEditorBottomGap(pixels) {
-            var safePixels = Math.max(Number(pixels) || 0, 56);
+            var safePixels = Math.max(Number(pixels) || 0, 24);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
         }
 
@@ -707,14 +712,17 @@
                     if (editor && bounds) {
                         var cursorTop = bounds.top;
                         var cursorBottom = bounds.top + Math.max(bounds.height, 24);
-                        var visibleTop = editor.scrollTop + 20;
-                        var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 180;
-                        var visibleBottom = editor.scrollTop + editor.clientHeight - Math.max(bottomGap * 0.55, 110);
+                        var rootStyles = getComputedStyle(document.documentElement);
+                        var lineHeight = parseFloat(rootStyles.getPropertyValue('--line-height')) || 20;
+                        var visibleTop = editor.scrollTop + lineHeight;
+                        var bottomGap = parseFloat(rootStyles.getPropertyValue('--editor-bottom-gap')) || 32;
+                        var bottomReserve = Math.max(bottomGap + lineHeight, lineHeight * 2);
+                        var visibleBottom = editor.scrollTop + editor.clientHeight - bottomReserve;
                         if (cursorBottom > visibleBottom) {
-                            var targetBottomTop = Math.max(cursorBottom - editor.clientHeight * 0.6, 0);
+                            var targetBottomTop = Math.max(cursorBottom - editor.clientHeight + bottomReserve, 0);
                             editor.scrollTo({ top: targetBottomTop, behavior: 'auto' });
                         } else if (cursorTop < visibleTop) {
-                            var targetTop = Math.max(cursorTop - 36, 0);
+                            var targetTop = Math.max(cursorTop - lineHeight, 0);
                             editor.scrollTo({ top: targetTop, behavior: 'auto' });
                         }
                     }

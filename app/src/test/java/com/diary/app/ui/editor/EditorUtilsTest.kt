@@ -26,10 +26,10 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `metadata tag summary keeps label prefix and truncates after two tags`() {
+    fun `metadata tag summary shows selected names without field prefix`() {
         val summary = metadataTagSummary(listOf("工作", "阅读", "散步"))
 
-        assertEquals("标签 工作 · 阅读…", summary)
+        assertEquals("工作 · 阅读…", summary)
     }
 
     @Test
@@ -39,52 +39,34 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `editor mode toggle label reflects current mode`() {
-        assertEquals("专注", editorModeToggleLabel(isFocusWritingMode = true))
-        assertEquals("完整", editorModeToggleLabel(isFocusWritingMode = false))
-    }
-
-    @Test
     fun `toolbar visibility icon reflects current state`() {
         assertEquals("工具栏已显示", toolbarVisibilityDescription(isToolbarVisible = true))
         assertEquals("工具栏已隐藏", toolbarVisibilityDescription(isToolbarVisible = false))
     }
 
     @Test
-    fun `editor bottom gap preset matches mode and keyboard state`() {
+    fun `editor bottom gap only reserves a compact cursor safety area`() {
         assertEquals(
-            72,
+            24,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
-                isFullEditorVisible = false,
                 activeCategory = -1
             )
         )
         assertEquals(
-            88,
+            40,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
-                isFullEditorVisible = false,
                 activeCategory = -1
             )
         )
         assertEquals(
-            104,
+            56,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
-                isFullEditorVisible = true,
-                activeCategory = -1
-            )
-        )
-        assertEquals(
-            120,
-            resolveEditorBottomGap(
-                showToolbar = true,
-                isKeyboardVisible = true,
-                isFullEditorVisible = true,
                 activeCategory = 2
             )
         )

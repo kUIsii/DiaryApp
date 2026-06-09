@@ -158,7 +158,6 @@ fun EditorScreen(
     var showToolbar by remember { mutableStateOf(true) }
     var activeCategory by remember { mutableIntStateOf(-1) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
-    var isFullEditorVisible by remember { mutableStateOf(false) }
     var isToolbarManuallyHidden by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
@@ -235,8 +234,8 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(isKeyboardVisible, isFullEditorVisible) {
-        if (isKeyboardVisible && !isFullEditorVisible) {
+    LaunchedEffect(isKeyboardVisible) {
+        if (isKeyboardVisible) {
             activePanel = null
         }
     }
@@ -309,12 +308,11 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isFullEditorVisible, isWebViewReady) {
+    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isWebViewReady) {
         if (isWebViewReady) {
             val bottomGap = resolveEditorBottomGap(
                 showToolbar = showToolbar,
                 isKeyboardVisible = isKeyboardVisible,
-                isFullEditorVisible = isFullEditorVisible,
                 activeCategory = activeCategory
             )
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
@@ -1062,16 +1060,6 @@ fun EditorScreen(
                     EditorToolbar(
                         showToolbar = showToolbar,
                         activeCategory = activeCategory,
-                        isFocusWritingMode = !isFullEditorVisible,
-                        onWritingModeChange = { isFocusWritingMode ->
-                            isFullEditorVisible = !isFocusWritingMode
-                            if (isFocusWritingMode) {
-                                activePanel = null
-                                activeCategory = -1
-                                webView?.requestFocus()
-                                webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                            }
-                        },
                         onCategoryChange = { cat ->
                             if (activeCategory == cat) {
                                 activeCategory = -1
@@ -1182,26 +1170,29 @@ private fun EditorMetadataStrip(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val moodColor = selectedMood?.let { moodIconForLevel(it).tint }
+        val moodMeta = selectedMood?.let { moodIconForLevel(it) }
         EditorMetaPill(
-            label = selectedMood?.let { "心情 ${moodLabelForLevel(it)}" } ?: "心情",
+            label = selectedMood?.let { moodLabelForLevel(it) } ?: "心情",
+            icon = moodMeta?.icon,
             isSelected = selectedMood != null,
             isActive = activePanel == "mood",
-            accentColor = moodColor,
+            accentColor = moodMeta?.tint,
             onClick = { onPanelSelected("mood") },
             modifier = Modifier.weight(0.92f)
         )
-        val weatherColor = selectedWeather?.let { weatherIconFor(it).tint }
+        val weatherMeta = selectedWeather?.let { weatherIconFor(it) }
         EditorMetaPill(
-            label = selectedWeather?.let { "天气 $it" } ?: "天气",
+            label = selectedWeather ?: "天气",
+            icon = weatherMeta?.icon,
             isSelected = selectedWeather != null,
             isActive = activePanel == "weather",
-            accentColor = weatherColor,
+            accentColor = weatherMeta?.tint,
             onClick = { onPanelSelected("weather") },
             modifier = Modifier.weight(0.92f)
         )
         EditorMetaPill(
             label = metadataTagSummary(selectedTagNames),
+            icon = if (selectedTagNames.isNotEmpty()) Icons.Default.Sell else null,
             isSelected = selectedTagNames.isNotEmpty(),
             isActive = activePanel == "tags",
             onClick = { onPanelSelected("tags") },
@@ -1209,6 +1200,7 @@ private fun EditorMetadataStrip(
         )
         EditorMetaPill(
             label = metadataLocationSummary(selectedLocation),
+            icon = if (selectedLocation?.trim()?.isNotEmpty() == true) Icons.Default.LocationOn else null,
             isSelected = selectedLocation?.trim()?.isNotEmpty() == true,
             isActive = activePanel == "location",
             onClick = { onPanelSelected("location") },
@@ -1425,6 +1417,7 @@ private fun EditorTopIconButton(
 @Composable
 private fun EditorMetaPill(
     label: String,
+    icon: ImageVector? = null,
     isSelected: Boolean,
     isActive: Boolean = false,
     accentColor: Color? = null,
@@ -1453,14 +1446,28 @@ private fun EditorMetaPill(
             .padding(horizontal = 9.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
-            color = contentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected || isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
