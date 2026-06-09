@@ -17,7 +17,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
@@ -77,12 +76,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -162,14 +159,16 @@ fun EditorScreen(
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
     LaunchedEffect(isKeyboardVisible) {
-        if (isKeyboardVisible && !isToolbarManuallyHidden) {
-            showToolbar = true
-            // When keyboard reappears, close any open sub-panel
-            if (activeCategory >= 0) {
-                activeCategory = -1
+        if (isKeyboardVisible) {
+            // Keyboard appeared — only show toolbar if user hasn't manually hidden it
+            if (!isToolbarManuallyHidden) {
+                showToolbar = true
+                if (activeCategory >= 0) {
+                    activeCategory = -1
+                }
             }
         } else if (activeCategory < 0) {
-            // Delay hiding to avoid flicker when transitioning from sub-panel to keyboard
+            // Keyboard disappeared — hide toolbar after short delay
             kotlinx.coroutines.delay(200)
             if (activeCategory < 0) {
                 showToolbar = false
@@ -810,11 +809,6 @@ fun EditorScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
-        EditorPaperLines(
-            isDark = isDark,
-            lineHeight = (editorFontSize * 1.4f).dp,
-            modifier = Modifier.fillMaxSize()
-        )
         Column(modifier = Modifier.fillMaxSize()) {
             // Top bar - simplified: only undo, redo, save
             Row(
@@ -1339,49 +1333,6 @@ private fun MetadataOverlayPanel(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EditorPaperLines(
-    isDark: Boolean,
-    lineHeight: Dp,
-    modifier: Modifier = Modifier
-) {
-    val lineColor = if (isDark) {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.045f)
-    } else {
-        Color(0xFF2A463B).copy(alpha = 0.075f)
-    }
-    val marginColor = Color(0xFFC77E4B).copy(alpha = if (isDark) 0.16f else 0.13f)
-    val fadeColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.08f else 0.16f)
-
-    Canvas(modifier = modifier) {
-        val step = lineHeight.toPx().coerceAtLeast(16f)
-        var y = 6.dp.toPx() + step - 1f
-        while (y < size.height) {
-            drawLine(
-                color = lineColor,
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = 1f
-            )
-            y += step
-        }
-        val marginX = 28.dp.toPx()
-        drawLine(
-            color = marginColor,
-            start = Offset(marginX, 0f),
-            end = Offset(marginX, size.height),
-            strokeWidth = 1f
-        )
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(Color.Transparent, fadeColor),
-                startY = size.height * 0.78f,
-                endY = size.height
-            )
-        )
     }
 }
 

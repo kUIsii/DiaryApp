@@ -60,8 +60,7 @@
             min-height: 100% !important;
         }
         .ql-editor {
-            height: 100% !important;
-            min-height: 100% !important;
+            min-height: calc(100% + 60vh) !important;
             padding: 6px 16px calc(var(--editor-bottom-gap, 32px)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
@@ -83,6 +82,18 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             scroll-padding-bottom: calc(var(--editor-bottom-gap, 32px) + var(--line-height));
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.12) transparent;
+        }
+        .ql-editor::-webkit-scrollbar {
+            width: 3px;
+        }
+        .ql-editor::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.12);
+            border-radius: 3px;
+        }
+        .ql-editor::-webkit-scrollbar-track {
+            background: transparent;
         }
         .theme-dark .ql-editor {
             background:
@@ -98,6 +109,10 @@
             background-size: 100% var(--line-height), 100% var(--line-height), auto;
             background-position: 0 var(--line-offset), 0 var(--line-offset), 0 0;
             background-attachment: scroll, scroll, scroll;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+        .theme-dark .ql-editor::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
         }
         .ql-editor.ql-blank::before {
             color: var(--placeholder);
