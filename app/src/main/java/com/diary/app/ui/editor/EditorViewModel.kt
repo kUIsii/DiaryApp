@@ -122,6 +122,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _hasUnsavedChanges.value = false
     }
 
+    fun discardChanges(diaryId: Long?) {
+        clearDraft(diaryId)
+        latestContent = ""
+        latestPlainText = ""
+        _hasUnsavedChanges.value = false
+    }
+
     // Draft management
     private fun draftKey(diaryId: Long?): String {
         return if (diaryId != null) "draft_$diaryId" else "draft_new"

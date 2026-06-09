@@ -641,7 +641,7 @@ fun EditorScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable {
-                                viewModel.clearDraft(diaryId)
+                                viewModel.discardChanges(diaryId)
                                 currentDraftId?.let(viewModel::deleteDraft)
                                 currentDraftId = null
                                 pendingDraft = null
