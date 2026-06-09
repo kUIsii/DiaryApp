@@ -17,7 +17,7 @@
             --line-color: rgba(42, 70, 59, 0.07);
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
-            --editor-bottom-gap: 72px;
+            --editor-bottom-gap: 32px;
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -39,60 +39,40 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
             background: transparent;
             color: var(--text);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .ql-toolbar.ql-snow { display: none !important; }
         #editor {
-            flex: 1;
             min-height: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
         .ql-container.ql-snow {
             border: none !important;
             font-size: 14px;
             line-height: var(--line-height);
-            flex: 1 1 auto;
-            height: 100% !important;
-            min-height: 100% !important;
-            overflow: hidden;
         }
         .ql-editor {
-            flex: 1;
-            height: 100% !important;
-            min-height: 100% !important;
-            padding: 12px 20px calc(var(--editor-bottom-gap, 72px) + 28px) 34px;
+            min-height: 100%;
+            padding: 12px 20px calc(var(--editor-bottom-gap, 32px) + 28px) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
             background: transparent;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            scroll-padding-bottom: calc(var(--editor-bottom-gap, 72px) + 28px);
-            scrollbar-width: auto;
-            scrollbar-color: rgba(0,0,0,0.12) transparent;
         }
-        .ql-editor::-webkit-scrollbar {
+        body::-webkit-scrollbar {
             width: 8px;
         }
-        .ql-editor::-webkit-scrollbar-thumb {
+        body::-webkit-scrollbar-thumb {
             background: rgba(0,0,0,0.12);
             border-radius: 8px;
         }
-        .ql-editor::-webkit-scrollbar-track {
+        body::-webkit-scrollbar-track {
             background: transparent;
         }
-        .theme-dark .ql-editor {
-            background: transparent;
+        body.theme-dark {
             scrollbar-color: rgba(255,255,255,0.1) transparent;
         }
-        .theme-dark .ql-editor::-webkit-scrollbar-thumb {
+        body.theme-dark::-webkit-scrollbar-thumb {
             background: rgba(255,255,255,0.1);
         }
         .ql-editor.ql-blank::before {
@@ -463,10 +443,9 @@
         }
         function saveEditorContext(range) {
             if (!range) return;
-            var editor = document.querySelector('.ql-editor');
             editorContext.selectionIndex = Math.max(range.index || 0, 0);
             editorContext.selectionLength = Math.max(range.length || 0, 0);
-            editorContext.scrollTop = editor ? editor.scrollTop : 0;
+            editorContext.scrollTop = document.body.scrollTop;
         }
         function setRestoreLock(durationMs) {
             editorContext.restoreLockUntil = Date.now() + durationMs;
@@ -481,8 +460,7 @@
             editorContext.scrollTop = 0;
             editorContext.restoreLockUntil = 0;
             quill.setSelection(nextIndex, 0, 'silent');
-            var editor = document.querySelector('.ql-editor');
-            if (editor) editor.scrollTop = 0;
+            document.body.scrollTop = 0;
             saveEditorContext({ index: nextIndex, length: 0 });
         }
         function ensureSelection() {
@@ -747,19 +725,20 @@
         });
 
         // Make the whole paper surface behave like a phone memo editor.
-        // Use pointerdown for reliable mobile detection; check click position
-        // instead of e.target (Android WebView snaps target to child elements).
+        // Tapping below content moves cursor to end. Do NOT call preventDefault()
+        // as it blocks native scroll gestures on Android WebView.
         document.querySelector('.ql-editor').addEventListener('pointerdown', function(e) {
             var children = this.children;
             if (children.length === 0) return;
             var lastChild = children[children.length - 1];
             var rect = lastChild.getBoundingClientRect();
             if (e.clientY > rect.bottom) {
-                e.preventDefault();
                 var docLength = Math.max(quill.getLength() - 1, 0);
-                quill.focus();
-                quill.setSelection(docLength, 0, 'user');
-                saveEditorContext({ index: docLength, length: 0 });
+                setTimeout(function() {
+                    quill.focus();
+                    quill.setSelection(docLength, 0, 'user');
+                    saveEditorContext({ index: docLength, length: 0 });
+                }, 0);
             }
         });
 
@@ -808,13 +787,19 @@
                     var editor = document.querySelector('.ql-editor');
                     if (!editor || !bounds) return;
 
+                    // Use body as the scroll container (body has overflow-y: auto)
+                    var scrollEl = document.body;
                     var kbHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
-                    var cursorEnd = bounds.top + Math.max(bounds.height, 20);
+                    var editorRect = editor.getBoundingClientRect();
+                    // bounds.top is relative to the editor, convert to page coordinate
+                    var cursorAbsTop = editorRect.top + bounds.top + scrollEl.scrollTop;
+                    var cursorEnd = cursorAbsTop + Math.max(bounds.height, 20);
+                    var viewBottom = scrollEl.scrollTop + scrollEl.clientHeight - kbHeight;
 
-                    if (cursorEnd > editor.scrollTop + editor.clientHeight - kbHeight - 40) {
-                        editor.scrollTo({ top: Math.max(cursorEnd - editor.clientHeight + kbHeight + 40, 0), behavior: 'auto' });
-                    } else if (bounds.top < editor.scrollTop + 12) {
-                        editor.scrollTo({ top: Math.max(bounds.top - 12, 0), behavior: 'auto' });
+                    if (cursorEnd > viewBottom - 40) {
+                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 40, 0), behavior: 'auto' });
+                    } else if (cursorAbsTop < scrollEl.scrollTop + 12) {
+                        scrollEl.scrollTo({ top: Math.max(cursorAbsTop - 12, 0), behavior: 'auto' });
                     }
                 } catch(e) {}
             }, forceRestore ? 0 : 80);

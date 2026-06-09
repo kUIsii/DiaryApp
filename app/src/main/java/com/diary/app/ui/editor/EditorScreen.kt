@@ -609,12 +609,19 @@ fun EditorScreen(
 
     fun saveCurrentEntry() {
         isExitingEditor = true
-        webView?.evaluateJavascript("getContent()") { json ->
-            webView?.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
+        val wv = webView
+        if (wv == null) {
+            isExitingEditor = false
+            onNavigateBack()
+            return
+        }
+        wv.evaluateJavascript("getContent()") { json ->
+            wv.evaluateJavascript("getPlainText()") plainCallback@{ plain ->
                 val cleanJson = unescapeEvaluateJsResult(json)
                 val cleanPlain = unescapeEvaluateJsResult(plain)
                 val saveTitle = entryTitle.ifBlank { dateTitle }
                 if (cleanPlain.isBlank() && saveTitle.isBlank()) {
+                    isExitingEditor = false
                     onNavigateBack()
                     return@plainCallback
                 }
@@ -1110,7 +1117,7 @@ fun EditorScreen(
                             settings.allowContentAccess = true
                             settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                             setBackgroundColor(0)
-                            isVerticalScrollBarEnabled = false
+                            isVerticalScrollBarEnabled = true
                             isHorizontalScrollBarEnabled = false
                             addJavascriptInterface(jsBridge, "DiaryBridge")
                             loadUrl("file:///android_asset/editor.html")

@@ -170,9 +170,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(
-                top = innerPadding.calculateTopPadding()
-            )
+            modifier = Modifier.padding(innerPadding)
         ) {
             // region Bottom nav destinations
 

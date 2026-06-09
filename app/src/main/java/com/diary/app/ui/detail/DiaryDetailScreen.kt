@@ -9,6 +9,8 @@ import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import kotlinx.coroutines.launch
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -217,7 +220,7 @@ fun DiaryDetailScreen(
                     visible = contentVisible,
                     enter = fadeIn(tween(400))
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         // Header: centered date + mood
                         DetailHeader(
                             entry = currentEntry,
@@ -303,7 +306,7 @@ fun DiaryDetailScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f)
+                                .heightIn(min = 300.dp)
                                 .padding(horizontal = 24.dp)
                         )
 

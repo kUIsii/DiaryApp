@@ -50,7 +50,7 @@ class EditorUtilsTest {
     @Test
     fun `editor bottom gap only reserves a compact cursor safety area`() {
         assertEquals(
-            72,
+            32,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
@@ -58,7 +58,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            148,
+            56,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -66,7 +66,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            228,
+            80,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -79,7 +79,7 @@ class EditorUtilsTest {
     fun `editor asset uses viewport backed memo paper instead of fake scroll padding`() {
         val html = File("src/main/assets/editor.html").readText()
 
-        assertTrue(html.contains("min-height: 100vh"))
+        assertTrue(html.contains("min-height: 100%"))
         assertFalse(html.contains("60vh"))
         assertFalse(html.contains("repeating-linear-gradient"))
     }
