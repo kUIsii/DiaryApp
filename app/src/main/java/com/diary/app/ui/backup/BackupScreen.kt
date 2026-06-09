@@ -330,12 +330,12 @@ fun BackupScreen(
                                                     }
                                                 }
                                                 val path = DiaryExporter.export(context, dao)
-                                                val entries = dao.getAllEntriesOnce()
+                                                val count = dao.getEntryCount()
                                                 val record = BackupRecord(
                                                     fileName = File(path).name,
                                                     filePath = path,
                                                     timestamp = System.currentTimeMillis(),
-                                                    entryCount = entries.size,
+                                                    entryCount = count,
                                                     fileSize = 0L
                                                 )
                                                 BackupManager.addBackupRecord(context, record)

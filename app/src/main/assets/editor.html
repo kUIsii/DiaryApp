@@ -479,23 +479,17 @@
             quill.focus();
             quill.setSelection(docLength, 0, 'silent');
             saveEditorContext({ index: docLength, length: 0 });
-            setRestoreLock(180);
-            scrollToCursor(docLength, 0, true);
         }
         function finalizeMediaInsert(nextIndex) {
             var safeIndex = Math.max(nextIndex || 0, 0);
             quill.setSelection(safeIndex, 0, 'silent');
             saveEditorContext({ index: safeIndex, length: 0 });
-            setRestoreLock(180);
-            scrollToCursor(safeIndex, 0, true);
         }
         function restoreEditorContext() {
             var docLength = Math.max(quill.getLength() - 1, 0);
             var index = Math.min(editorContext.selectionIndex || 0, docLength);
             var length = Math.min(editorContext.selectionLength || 0, Math.max(docLength - index, 0));
             quill.setSelection(index, length, 'silent');
-            setRestoreLock(180);
-            scrollToCursor(index, length, true);
         }
         function insertMedia(type, url) {
             try {
@@ -631,12 +625,11 @@
                 var sel = quill.getSelection();
                 if (sel) {
                     saveEditorContext(sel);
-                    scrollToCursor(sel.index, sel.length, false);
                 }
             }, 16);
         });
 
-        // Selection change: report format state + auto-scroll to cursor (with debounce)
+        // Selection change: report format state
         var formatChangeTimer = null;
         quill.on('selection-change', function(range) {
             if (range) {
@@ -649,8 +642,6 @@
                         DiaryBridge.onFormatChange(JSON.stringify(formats || {}));
                     }, 120);
                 }
-                // Auto-scroll cursor into view
-                scrollToCursor(range.index, range.length, false);
             }
         });
 
@@ -770,42 +761,8 @@
             document.documentElement.style.setProperty('--keyboard-height', safe + 'px');
         }
 
-        // Called by Kotlin when keyboard is dismissed — re-evaluate scroll
-        function scrollToCurrentCursor(forceRestore) {
-            var sel = quill.getSelection();
-            if (sel) {
-                scrollToCursor(sel.index, sel.length || 0, !!forceRestore);
-            }
-        }
-
-        var _scrollTimer = null;
-        function scrollToCursor(index, length, forceRestore) {
-            clearTimeout(_scrollTimer);
-            _scrollTimer = setTimeout(function() {
-                try {
-                    if (!forceRestore && Date.now() < editorContext.restoreLockUntil) return;
-                    var scrollEl = document.body;
-                    var kbHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
-                    // Only auto-scroll when keyboard is visible to avoid premature scrolling during normal typing
-                    if (kbHeight <= 0) return;
-
-                    var bounds = quill.getBounds(index, length);
-                    var editor = document.querySelector('.ql-editor');
-                    if (!editor || !bounds) return;
-
-                    var editorRect = editor.getBoundingClientRect();
-                    var cursorAbsTop = editorRect.top + bounds.top + scrollEl.scrollTop;
-                    var cursorEnd = cursorAbsTop + Math.max(bounds.height, 20);
-                    var viewBottom = scrollEl.scrollTop + scrollEl.clientHeight - kbHeight;
-
-                    if (cursorEnd > viewBottom - 12) {
-                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 12, 0), behavior: 'auto' });
-                    } else if (cursorAbsTop < scrollEl.scrollTop + 12) {
-                        scrollEl.scrollTo({ top: Math.max(cursorAbsTop - 12, 0), behavior: 'auto' });
-                    }
-                } catch(e) {}
-            }, forceRestore ? 0 : 80);
-        }
+        // Called by Kotlin when keyboard is dismissed — no-op, browser handles scrolling naturally
+        function scrollToCurrentCursor(forceRestore) {}
     </script>
 </body>
 </html>

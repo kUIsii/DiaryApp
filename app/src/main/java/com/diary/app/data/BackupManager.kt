@@ -122,7 +122,7 @@ object BackupManager {
 
     suspend fun performAutoBackup(context: Context, dao: DiaryDao): BackupRecord? {
         return try {
-            val entries = dao.getAllEntriesOnce()
+            val count = dao.getEntryCount()
             val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
             val fileName = "auto_backup_$timestamp.json"
 
@@ -133,7 +133,7 @@ object BackupManager {
                 fileName = fileName,
                 filePath = result,
                 timestamp = System.currentTimeMillis(),
-                entryCount = entries.size,
+                entryCount = count,
                 fileSize = file?.length() ?: 0L
             )
             addBackupRecord(context, record)
