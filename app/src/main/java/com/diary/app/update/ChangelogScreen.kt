@@ -113,6 +113,15 @@ data class ChangelogRelease(
     @SerializedName("published_at") val publishedAt: String?
 )
 
+private object ChangelogCache {
+    var releases: List<ChangelogRelease>? = null
+    var cachedAt: Long = 0L
+    private const val TTL_MS = 30 * 60 * 1000L // 30 minutes
+
+    fun isValid(): Boolean = releases != null && System.currentTimeMillis() - cachedAt < TTL_MS
+    fun set(data: List<ChangelogRelease>) { releases = data; cachedAt = System.currentTimeMillis() }
+}
+
 @Composable
 fun ChangelogScreen(onNavigateBack: () -> Unit) {
     var releases by remember { mutableStateOf<List<ChangelogRelease>>(emptyList()) }
@@ -120,6 +129,11 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
+        if (ChangelogCache.isValid()) {
+            releases = ChangelogCache.releases!!
+            isLoading = false
+            return@LaunchedEffect
+        }
         withContext(Dispatchers.IO) {
             try {
                 val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases?per_page=30")
@@ -130,10 +144,14 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                 if (conn.responseCode == 200) {
                     val json = conn.inputStream.bufferedReader().readText()
                     try {
-                        releases = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
+                        val data = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
+                        ChangelogCache.set(data)
+                        releases = data
                     } catch (parseEx: Exception) {
                         error = "数据解析失败"
                     }
+                } else if (conn.responseCode == 403) {
+                    error = "请求过于频繁，请稍后再试"
                 } else {
                     error = "加载失败 (${conn.responseCode})"
                 }
