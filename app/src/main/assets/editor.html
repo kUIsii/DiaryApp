@@ -61,7 +61,7 @@
         }
         .ql-editor {
             flex: 1;
-            padding: 10px 16px calc(60vh + var(--editor-bottom-gap, 32px)) 34px;
+            padding: 10px 16px calc(var(--keyboard-height, 0px) + var(--editor-bottom-gap, 32px) + var(--line-height)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
@@ -305,6 +305,33 @@
             scrollTop: 0,
             restoreLockUntil: 0
         };
+
+        // Detect keyboard height via VisualViewport API
+        (function() {
+            var baseHeight = window.innerHeight;
+            function updateKeyboardHeight() {
+                if (window.visualViewport) {
+                    var vh = baseHeight;
+                    var vvH = window.visualViewport.height;
+                    var kh = Math.max(vh - vvH, 0);
+                    document.documentElement.style.setProperty(
+                        '--keyboard-height',
+                        (kh > 50 ? kh : 0) + 'px'
+                    );
+                }
+            }
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', updateKeyboardHeight);
+                window.visualViewport.addEventListener('scroll', updateKeyboardHeight);
+            }
+            // Also track base height changes (rotation etc.)
+            window.addEventListener('resize', function() {
+                if (!window.visualViewport || window.visualViewport.height > baseHeight * 0.8) {
+                    baseHeight = window.innerHeight;
+                }
+                updateKeyboardHeight();
+            });
+        })();
 
         function setTheme(mode) {
             if (mode === 'dark') {
@@ -710,31 +737,32 @@
             reportFormat();
         });
 
+        var _scrollTimer = null;
         function scrollToCursor(index, length, forceRestore) {
-            setTimeout(function() {
+            clearTimeout(_scrollTimer);
+            _scrollTimer = setTimeout(function() {
                 try {
                     if (!forceRestore && Date.now() < editorContext.restoreLockUntil) return;
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
-                        var cursorTop = bounds.top;
                         var cursorBottom = bounds.top + Math.max(bounds.height, 24);
                         var rootStyles = getComputedStyle(document.documentElement);
                         var lineHeight = parseFloat(rootStyles.getPropertyValue('--line-height')) || 20;
-                        var visibleTop = editor.scrollTop + lineHeight;
                         var bottomGap = parseFloat(rootStyles.getPropertyValue('--editor-bottom-gap')) || 32;
                         var bottomReserve = Math.max(bottomGap + lineHeight, lineHeight * 2);
+                        var visibleTop = editor.scrollTop + lineHeight;
                         var visibleBottom = editor.scrollTop + editor.clientHeight - bottomReserve;
                         if (cursorBottom > visibleBottom) {
-                            var targetBottomTop = Math.max(cursorBottom - editor.clientHeight + bottomReserve, 0);
-                            editor.scrollTo({ top: targetBottomTop, behavior: 'auto' });
-                        } else if (cursorTop < visibleTop) {
-                            var targetTop = Math.max(cursorTop - lineHeight, 0);
-                            editor.scrollTo({ top: targetTop, behavior: 'auto' });
+                            var target = Math.max(cursorBottom - editor.clientHeight + bottomReserve, 0);
+                            editor.scrollTo({ top: target, behavior: forceRestore ? 'auto' : 'smooth' });
+                        } else if (bounds.top < visibleTop) {
+                            var target2 = Math.max(bounds.top - lineHeight, 0);
+                            editor.scrollTo({ top: target2, behavior: forceRestore ? 'auto' : 'smooth' });
                         }
                     }
                 } catch(e) {}
-            }, forceRestore ? 0 : 30);
+            }, forceRestore ? 0 : 80);
         }
     </script>
 </body>
