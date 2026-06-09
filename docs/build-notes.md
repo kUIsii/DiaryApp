@@ -24,3 +24,4 @@
 
 - Avoid running `clean`, `compile`, `test`, and `assemble` in parallel against the same workspace build directory.
 - If local unit tests need to be reliable on this machine, switch Gradle runtime to `JDK 17` first.
+- 以后所有 release notes 和更新日志都使用中文书写。

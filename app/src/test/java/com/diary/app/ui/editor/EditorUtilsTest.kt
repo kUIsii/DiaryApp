@@ -1,7 +1,10 @@
 package com.diary.app.ui.editor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class EditorUtilsTest {
 
@@ -70,6 +73,14 @@ class EditorUtilsTest {
                 activeCategory = 2
             )
         )
+    }
+
+    @Test
+    fun `editor asset uses viewport backed memo paper instead of fake scroll padding`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("min-height: 100vh"))
+        assertFalse(html.contains("60vh"))
     }
 
     @Test
