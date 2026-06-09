@@ -122,21 +122,26 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases")
+                val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases?per_page=30")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 conn.connectTimeout = 10000
                 conn.readTimeout = 10000
                 if (conn.responseCode == 200) {
                     val json = conn.inputStream.bufferedReader().readText()
-                    releases = Gson().fromJson(json, Array<ChangelogRelease>::class.java).toList()
+                    try {
+                        releases = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
+                    } catch (parseEx: Exception) {
+                        error = "数据解析失败"
+                    }
                 } else {
-                    error = "加载失败"
+                    error = "加载失败 (${conn.responseCode})"
                 }
             } catch (e: Exception) {
-                error = "网络连接失败"
+                error = e.message ?: "网络连接失败"
+            } finally {
+                isLoading = false
             }
-            isLoading = false
         }
     }
 

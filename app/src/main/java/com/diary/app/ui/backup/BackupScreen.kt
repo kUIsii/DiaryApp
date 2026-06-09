@@ -321,13 +321,14 @@ fun BackupScreen(
                                         isBackingUp = true
                                         backupProgress = 0f
                                         scope.launch {
-                                            launch {
-                                                while (backupProgress < 0.9f) {
-                                                    delay(100)
-                                                    backupProgress += 0.05f
-                                                }
-                                            }
                                             try {
+                                                // Progress simulation
+                                                launch {
+                                                    while (backupProgress < 0.9f) {
+                                                        delay(100)
+                                                        backupProgress += 0.05f
+                                                    }
+                                                }
                                                 val path = DiaryExporter.export(context, dao)
                                                 val entries = dao.getAllEntriesOnce()
                                                 val record = BackupRecord(
@@ -344,8 +345,9 @@ fun BackupScreen(
                                                 Toast.makeText(context, context.getString(R.string.backup_success, path), Toast.LENGTH_LONG).show()
                                             } catch (e: Exception) {
                                                 Toast.makeText(context, context.getString(R.string.backup_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                                            } finally {
+                                                isBackingUp = false
                                             }
-                                            isBackingUp = false
                                         }
                                     }
                                 )
