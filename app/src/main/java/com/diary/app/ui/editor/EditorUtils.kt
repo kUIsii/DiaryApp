@@ -113,9 +113,9 @@ internal fun resolveEditorBottomGap(
     activeCategory: Int
 ): Int {
     return when {
-        showToolbar && activeCategory >= 0 -> 56
-        showToolbar || isKeyboardVisible -> 40
-        else -> 24
+        showToolbar && activeCategory >= 0 -> 228
+        showToolbar || isKeyboardVisible -> 148
+        else -> 72
     }
 }
 
@@ -156,8 +156,8 @@ internal fun draftKeysToClear(diaryId: Long?): Set<String> {
     }
 }
 
-internal fun shouldRestoreDraft(diaryId: Long?, plainText: String): Boolean {
-    return plainText.isNotBlank()
+internal fun shouldRestoreDraft(snapshot: EditorSnapshot): Boolean {
+    return isMeaningfulDraft(snapshot)
 }
 
 internal fun iconForTemplate(iconName: String): ImageVector {

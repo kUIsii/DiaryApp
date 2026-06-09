@@ -50,7 +50,7 @@ class EditorUtilsTest {
     @Test
     fun `editor bottom gap only reserves a compact cursor safety area`() {
         assertEquals(
-            24,
+            72,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
@@ -58,7 +58,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            40,
+            148,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -66,7 +66,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            56,
+            228,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -136,10 +136,35 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `should restore draft only for new entries with non blank content`() {
-        assertEquals(true, shouldRestoreDraft(diaryId = null, plainText = "hello"))
-        assertEquals(true, shouldRestoreDraft(diaryId = 7L, plainText = "hello"))
-        assertEquals(false, shouldRestoreDraft(diaryId = null, plainText = "   "))
+    fun `should restore draft when snapshot has any meaningful content`() {
+        assertEquals(
+            true,
+            shouldRestoreDraft(
+                EditorSnapshot(
+                    plainText = "hello",
+                    defaultTitle = "2026年6月9日"
+                )
+            )
+        )
+        assertEquals(
+            true,
+            shouldRestoreDraft(
+                EditorSnapshot(
+                    moodLevel = 3,
+                    defaultTitle = "2026年6月9日"
+                )
+            )
+        )
+        assertEquals(
+            true,
+            shouldRestoreDraft(
+                EditorSnapshot(
+                    location = "上海 徐汇",
+                    defaultTitle = "2026年6月9日"
+                )
+            )
+        )
+        assertEquals(false, shouldRestoreDraft(EditorSnapshot()))
     }
 
     @Test

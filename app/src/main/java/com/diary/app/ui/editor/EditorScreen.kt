@@ -200,6 +200,8 @@ fun EditorScreen(
     var showUnsavedDialog by remember { mutableStateOf(false) }
     var showDraftDialog by remember { mutableStateOf(false) }
     var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
+    var isApplyingProgrammaticContent by remember { mutableStateOf(false) }
+    var metadataVersion by remember { mutableIntStateOf(0) }
 
     // Writing duration
     val writingDuration by viewModel.writingDuration.collectAsState()
@@ -210,7 +212,10 @@ fun EditorScreen(
             Base64.NO_WRAP
         )
         if (isWebViewReady) {
-            webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
+            isApplyingProgrammaticContent = true
+            webView?.evaluateJavascript("setContentBase64('$base64Content')") {
+                isApplyingProgrammaticContent = false
+            }
         }
         entryTitle = draft.title.takeUnless { it == dateTitle } ?: ""
         selectedMood = draft.moodLevel
@@ -277,7 +282,10 @@ fun EditorScreen(
                     safeContent.toByteArray(Charsets.UTF_8),
                     Base64.NO_WRAP
                 )
-                webView?.evaluateJavascript("setContentBase64('$base64Content')", null)
+                isApplyingProgrammaticContent = true
+                webView?.evaluateJavascript("setContentBase64('$base64Content')") {
+                    isApplyingProgrammaticContent = false
+                }
             }
         }
     }
@@ -420,8 +428,10 @@ fun EditorScreen(
             latestPlainText = text
             charCount = text.length
             wordCount = countWords(text)
-            viewModel.markContentChanged()
-            contentVersion++
+            if (!isApplyingProgrammaticContent) {
+                viewModel.markContentChanged()
+                contentVersion++
+            }
         }
     }
 
@@ -452,6 +462,25 @@ fun EditorScreen(
                 val saveTitle = entryTitle.ifBlank { dateTitle }
                 viewModel.updateLatestContent(cleanJson, latestPlainText, saveTitle)
                 viewModel.performAutoSave(diaryId, selectedMood, selectedWeather, selectedLocation, locationLat, locationLng)
+            }
+        }
+    }
+
+    LaunchedEffect(metadataVersion) {
+        if (metadataVersion > 0 && hasUnsavedChanges) {
+            kotlinx.coroutines.delay(2500)
+            webView?.evaluateJavascript("getContent()") { json ->
+                val cleanJson = unescapeEvaluateJsResult(json)
+                val saveTitle = entryTitle.ifBlank { dateTitle }
+                viewModel.updateLatestContent(cleanJson, latestPlainText, saveTitle)
+                viewModel.performAutoSave(
+                    diaryId,
+                    selectedMood,
+                    selectedWeather,
+                    selectedLocation,
+                    locationLat,
+                    locationLng
+                )
             }
         }
     }
@@ -493,7 +522,19 @@ fun EditorScreen(
     LaunchedEffect(diaryId, draftId) {
         if (draftId == null) {
             val draft = viewModel.loadDraft(diaryId)
-            if (draft != null && shouldRestoreDraft(diaryId = diaryId, plainText = draft.plainText)) {
+            if (
+                draft != null && shouldRestoreDraft(
+                    EditorSnapshot(
+                        title = draft.title,
+                        plainText = draft.plainText,
+                        moodLevel = draft.moodLevel,
+                        weather = draft.weather,
+                        tagIds = draft.tagIds,
+                        location = draft.location,
+                        defaultTitle = dateTitle
+                    )
+                )
+            ) {
                 pendingDraft = draft
                 showDraftDialog = true
             }
@@ -509,6 +550,7 @@ fun EditorScreen(
                 "focusEditorWithRestore()",
                 null
             )
+            isToolbarLocked = false
         }
     }
 
@@ -566,6 +608,7 @@ fun EditorScreen(
                     currentDraftId = null
                     pendingDraft = null
                     viewModel.onManualSaveCompleted(diaryId)
+                    isToolbarLocked = false
                     haptic.success()
                     snackbarHostState.showSnackbar(
                         message = "日记已保存",
@@ -921,6 +964,7 @@ fun EditorScreen(
                     onValueChange = {
                         entryTitle = it
                         viewModel.markContentChanged()
+                        metadataVersion++
                     },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = titleTextStyle,
@@ -963,7 +1007,7 @@ fun EditorScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 10.dp)
+                    .padding(horizontal = 8.dp)
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
                     .background(paperColor)
                     .background(paperTintBrush)
@@ -1037,7 +1081,9 @@ fun EditorScreen(
                             webView = this
                         }
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 2.dp)
                 )
             }
 
@@ -1101,6 +1147,7 @@ fun EditorScreen(
                             keepToolbarOpen = true
                             webView?.requestFocus()
                             webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                            isToolbarLocked = false
                         } else {
                             activeCategory = cat
                             keepToolbarOpen = true
@@ -1124,6 +1171,7 @@ fun EditorScreen(
                     onShowKeyboard = {
                         webView?.requestFocus()
                         webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                        isToolbarLocked = false
                     },
                     onHideToolbar = {
                         isToolbarManuallyHidden = true
@@ -1160,14 +1208,17 @@ fun EditorScreen(
             onMoodSelected = {
                 selectedMood = it
                 viewModel.markContentChanged()
+                metadataVersion++
             },
             onWeatherSelected = {
                 selectedWeather = it
                 viewModel.markContentChanged()
+                metadataVersion++
             },
             onTagToggle = {
                 viewModel.toggleTag(it)
                 viewModel.markContentChanged()
+                metadataVersion++
             },
             onAddTag = { showTagDialog = true },
             onLocationSelected = { name, lat, lng ->
@@ -1175,6 +1226,7 @@ fun EditorScreen(
                 locationLat = lat
                 locationLng = lng
                 viewModel.markContentChanged()
+                metadataVersion++
             }
         )
         SnackbarHost(

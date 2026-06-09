@@ -17,7 +17,7 @@
             --line-color: rgba(42, 70, 59, 0.07);
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
-            --editor-bottom-gap: 32px;
+            --editor-bottom-gap: 72px;
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -42,6 +42,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            height: 100%;
         }
         .ql-toolbar.ql-snow { display: none !important; }
         #editor {
@@ -50,6 +51,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .ql-container.ql-snow {
             border: none !important;
@@ -58,10 +60,13 @@
             flex: 1 1 auto;
             height: 100% !important;
             min-height: 100% !important;
+            overflow: hidden;
         }
         .ql-editor {
             flex: 1;
-            padding: 10px 16px calc(var(--editor-bottom-gap, 32px) + var(--line-height)) 34px;
+            height: 100% !important;
+            min-height: 100% !important;
+            padding: 12px 20px calc(var(--editor-bottom-gap, 72px) + 28px) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
@@ -69,16 +74,16 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
-            scroll-padding-bottom: calc(var(--editor-bottom-gap, 32px) + var(--line-height));
-            scrollbar-width: thin;
+            scroll-padding-bottom: calc(var(--editor-bottom-gap, 72px) + 28px);
+            scrollbar-width: auto;
             scrollbar-color: rgba(0,0,0,0.12) transparent;
         }
         .ql-editor::-webkit-scrollbar {
-            width: 3px;
+            width: 8px;
         }
         .ql-editor::-webkit-scrollbar-thumb {
             background: rgba(0,0,0,0.12);
-            border-radius: 3px;
+            border-radius: 8px;
         }
         .ql-editor::-webkit-scrollbar-track {
             background: transparent;
@@ -305,6 +310,18 @@
             scrollTop: 0,
             restoreLockUntil: 0
         };
+        var isProgrammaticChange = false;
+
+        function withProgrammaticChange(action) {
+            isProgrammaticChange = true;
+            try {
+                action();
+            } finally {
+                setTimeout(function() {
+                    isProgrammaticChange = false;
+                }, 0);
+            }
+        }
 
         // Detect keyboard height via VisualViewport API
         (function() {
@@ -537,52 +554,60 @@
         function getPlainText() { return quill.getText(); }
         function setContent(deltaJSON) {
             try {
-                var parsed = JSON.parse(deltaJSON);
-                if (parsed && parsed.ops) {
-                    quill.setContents(parsed);
-                    resetEditorContext();
-                } else {
-                    quill.setText(deltaJSON);
-                    resetEditorContext();
-                }
+                withProgrammaticChange(function() {
+                    var parsed = JSON.parse(deltaJSON);
+                    if (parsed && parsed.ops) {
+                        quill.setContents(parsed, 'silent');
+                        resetEditorContext();
+                    } else {
+                        quill.setText(deltaJSON, 'silent');
+                        resetEditorContext();
+                    }
+                });
             } catch(e) {
                 // If JSON parse fails, try as plain text
-                quill.setText(deltaJSON);
-                resetEditorContext();
+                withProgrammaticChange(function() {
+                    quill.setText(deltaJSON, 'silent');
+                    resetEditorContext();
+                });
             }
         }
         function setContentBase64(base64) {
             try {
                 var decoded = decodeURIComponent(escape(atob(base64)));
-                // Try normal JSON parse first
-                try {
-                    var parsed = JSON.parse(decoded);
-                    if (parsed && parsed.ops) {
-                        quill.setContents(parsed);
-                        resetEditorContext();
-                        return;
-                    }
-                } catch(e1) {}
-                // Try fixing corrupted JSON (literal newlines in strings)
-                try {
-                    var fixed = decoded.replace(/[\r\n]/g, function(m) { return m === '\r' ? '\\r' : '\\n'; });
-                    var parsed2 = JSON.parse(fixed);
-                    if (parsed2 && parsed2.ops) {
-                        quill.setContents(parsed2);
-                        resetEditorContext();
-                        return;
-                    }
-                } catch(e2) {}
-                // Fallback: set as plain text
-                quill.setText(decoded);
-                resetEditorContext();
+                withProgrammaticChange(function() {
+                    // Try normal JSON parse first
+                    try {
+                        var parsed = JSON.parse(decoded);
+                        if (parsed && parsed.ops) {
+                            quill.setContents(parsed, 'silent');
+                            resetEditorContext();
+                            return;
+                        }
+                    } catch(e1) {}
+                    // Try fixing corrupted JSON (literal newlines in strings)
+                    try {
+                        var fixed = decoded.replace(/[\r\n]/g, function(m) { return m === '\r' ? '\\r' : '\\n'; });
+                        var parsed2 = JSON.parse(fixed);
+                        if (parsed2 && parsed2.ops) {
+                            quill.setContents(parsed2, 'silent');
+                            resetEditorContext();
+                            return;
+                        }
+                    } catch(e2) {}
+                    // Fallback: set as plain text
+                    quill.setText(decoded, 'silent');
+                    resetEditorContext();
+                });
             } catch(e) {
                 console.error('setContentBase64 error:', e);
             }
         }
         function setTemplate(text) {
-            quill.setText(text);
-            resetEditorContext();
+            withProgrammaticChange(function() {
+                quill.setText(text, 'silent');
+                resetEditorContext();
+            });
         }
         function setFontSize(size) {
             var editor = document.querySelector('.ql-editor');
@@ -601,16 +626,16 @@
 
         // Content change callback for word count and auto-save
         quill.on('text-change', function(delta, oldDelta, source) {
-            if (window.DiaryBridge) {
+            if (!isProgrammaticChange && window.DiaryBridge) {
                 DiaryBridge.onContentChange(quill.getText());
             }
             setTimeout(function() {
                 var sel = quill.getSelection();
                 if (sel) {
                     saveEditorContext(sel);
-                    scrollToCursor(sel.index, sel.length, source === 'api');
+                    scrollToCursor(sel.index, sel.length, false);
                 }
-            }, 30);
+            }, 16);
         });
 
         // Selection change: report format state + auto-scroll to cursor (with debounce)
@@ -755,6 +780,15 @@
         }
 
         var _scrollTimer = null;
+        function getViewportState(editor) {
+            var bottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 72;
+            var topInset = 18;
+            var bottomInset = Math.max(bottomGap + 16, 96);
+            return {
+                visibleTop: editor.scrollTop + topInset,
+                visibleBottom: editor.scrollTop + editor.clientHeight - bottomInset
+            };
+        }
         function scrollToCursor(index, length, forceRestore) {
             clearTimeout(_scrollTimer);
             _scrollTimer = setTimeout(function() {
@@ -763,21 +797,24 @@
                     var bounds = quill.getBounds(index, length);
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
+                        var cursorTop = bounds.top;
                         var cursorBottom = bounds.top + Math.max(bounds.height, 24);
-                        var vvH = (window.visualViewport && window.visualViewport.height) || 0;
-                        var visibleHeight = vvH > 0 ? Math.min(editor.clientHeight, vvH) : editor.clientHeight;
-                        var visibleTop = editor.scrollTop;
-                        var visibleBottom = editor.scrollTop + visibleHeight;
-                        if (cursorBottom > visibleBottom + 4) {
-                            var target = Math.max(bounds.top - 8, 0);
-                            editor.scrollTo({ top: target, behavior: forceRestore ? 'auto' : 'smooth' });
-                        } else if (bounds.top < visibleTop) {
-                            var target2 = Math.max(bounds.top - 8, 0);
-                            editor.scrollTo({ top: target2, behavior: forceRestore ? 'auto' : 'smooth' });
+                        var viewport = getViewportState(editor);
+
+                        if (!forceRestore && cursorTop >= viewport.visibleTop && cursorBottom <= viewport.visibleBottom) {
+                            return;
                         }
+
+                        var targetTop = editor.scrollTop;
+                        if (cursorBottom > viewport.visibleBottom) {
+                            targetTop += cursorBottom - viewport.visibleBottom;
+                        } else if (cursorTop < viewport.visibleTop) {
+                            targetTop -= viewport.visibleTop - cursorTop;
+                        }
+                        editor.scrollTo({ top: Math.max(targetTop, 0), behavior: 'auto' });
                     }
                 } catch(e) {}
-            }, forceRestore ? 0 : 80);
+            }, forceRestore ? 0 : 16);
         }
     </script>
 </body>
