@@ -464,6 +464,9 @@
             editorContext.scrollTop = 0;
             editorContext.restoreLockUntil = 0;
             quill.setSelection(nextIndex, 0, 'silent');
+            var editor = document.querySelector('.ql-editor');
+            if (editor) editor.scrollTop = 0;
+            saveEditorContext({ index: nextIndex, length: 0 });
         }
         function finalizeMediaInsert(nextIndex) {
             var safeIndex = Math.max(nextIndex || 0, 0);
@@ -761,20 +764,15 @@
                     var editor = document.querySelector('.ql-editor');
                     if (editor && bounds) {
                         var cursorBottom = bounds.top + Math.max(bounds.height, 24);
-                        var rootStyles = getComputedStyle(document.documentElement);
-                        var lineHeight = parseFloat(rootStyles.getPropertyValue('--line-height')) || 20;
-                        var bottomGap = parseFloat(rootStyles.getPropertyValue('--editor-bottom-gap')) || 32;
-                        var keyboardH = parseFloat(rootStyles.getPropertyValue('--keyboard-height')) || 0;
-                        var bottomReserve = Math.max(bottomGap + lineHeight, lineHeight * 2);
-                        var visibleTop = editor.scrollTop + lineHeight;
-                        // visibleBottom accounts for keyboard — cursor above keyboard
-                        var visibleBottom = editor.scrollTop + editor.clientHeight - keyboardH - bottomReserve;
-                        if (cursorBottom > visibleBottom) {
-                            // Scroll so cursor line is at the top of the visible area
-                            var target = Math.max(bounds.top - lineHeight, 0);
+                        var vvH = (window.visualViewport && window.visualViewport.height) || 0;
+                        var visibleHeight = vvH > 0 ? Math.min(editor.clientHeight, vvH) : editor.clientHeight;
+                        var visibleTop = editor.scrollTop;
+                        var visibleBottom = editor.scrollTop + visibleHeight;
+                        if (cursorBottom > visibleBottom + 4) {
+                            var target = Math.max(bounds.top - 8, 0);
                             editor.scrollTo({ top: target, behavior: forceRestore ? 'auto' : 'smooth' });
                         } else if (bounds.top < visibleTop) {
-                            var target2 = Math.max(bounds.top - lineHeight, 0);
+                            var target2 = Math.max(bounds.top - 8, 0);
                             editor.scrollTo({ top: target2, behavior: forceRestore ? 'auto' : 'smooth' });
                         }
                     }
