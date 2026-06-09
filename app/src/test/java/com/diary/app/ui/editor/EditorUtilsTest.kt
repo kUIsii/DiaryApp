@@ -50,7 +50,7 @@ class EditorUtilsTest {
     @Test
     fun `editor bottom gap only reserves a compact cursor safety area`() {
         assertEquals(
-            32,
+            20,
             resolveEditorBottomGap(
                 showToolbar = false,
                 isKeyboardVisible = false,
@@ -58,7 +58,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            56,
+            36,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,
@@ -66,7 +66,7 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
-            80,
+            56,
             resolveEditorBottomGap(
                 showToolbar = true,
                 isKeyboardVisible = true,

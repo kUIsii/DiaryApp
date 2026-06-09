@@ -128,15 +128,14 @@ val bottomNavItems = listOf(
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val showBottomBar = currentDestination?.route in bottomNavItems.map { it.screen.route }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry?.destination
-            val showBottomBar = currentDestination?.route in bottomNavItems.map { it.screen.route }
-
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
                     items = bottomNavItems,
@@ -167,10 +166,17 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
         }
 
+        // Bottom nav screens get full padding; editor/detail only get top padding
+        val navHostModifier = if (showBottomBar) {
+            Modifier.padding(innerPadding)
+        } else {
+            Modifier.padding(top = innerPadding.calculateTopPadding())
+        }
+
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = navHostModifier
         ) {
             // region Bottom nav destinations
 

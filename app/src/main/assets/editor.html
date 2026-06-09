@@ -17,7 +17,7 @@
             --line-color: rgba(42, 70, 59, 0.07);
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
-            --editor-bottom-gap: 32px;
+            --editor-bottom-gap: 20px;
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -53,7 +53,7 @@
         }
         .ql-editor {
             min-height: 100%;
-            padding: 12px 20px calc(var(--editor-bottom-gap, 32px) + 28px) 34px;
+            padding: 12px 20px calc(var(--editor-bottom-gap, 20px) + 28px) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
             line-height: var(--line-height) !important;
@@ -617,7 +617,7 @@
             restoreEditorContext();
         }
         function setEditorBottomGap(pixels) {
-            var safePixels = Math.max(Number(pixels) || 0, 24);
+            var safePixels = Math.max(Number(pixels) || 0, 16);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
         }
 
@@ -796,8 +796,8 @@
                     var cursorEnd = cursorAbsTop + Math.max(bounds.height, 20);
                     var viewBottom = scrollEl.scrollTop + scrollEl.clientHeight - kbHeight;
 
-                    if (cursorEnd > viewBottom - 40) {
-                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 40, 0), behavior: 'auto' });
+                    if (cursorEnd > viewBottom - 20) {
+                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 20, 0), behavior: 'auto' });
                     } else if (cursorAbsTop < scrollEl.scrollTop + 12) {
                         scrollEl.scrollTo({ top: Math.max(cursorAbsTop - 12, 0), behavior: 'auto' });
                     }
