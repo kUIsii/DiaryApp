@@ -60,7 +60,7 @@
             min-height: 100% !important;
         }
         .ql-editor {
-            height: 100% !important;
+            flex: 1;
             padding: 10px 16px calc(60vh + var(--editor-bottom-gap, 32px)) 34px;
             color: var(--text);
             font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
@@ -673,12 +673,20 @@
         });
 
         // Make the whole paper surface behave like a phone memo editor.
-        document.querySelector('.ql-editor').addEventListener('click', function(e) {
-            if (e.target !== this) return;
-            var docLength = Math.max(quill.getLength() - 1, 0);
-            quill.focus();
-            quill.setSelection(docLength, 0, 'user');
-            saveEditorContext({ index: docLength, length: 0 });
+        // Use pointerdown for reliable mobile detection; check click position
+        // instead of e.target (Android WebView snaps target to child elements).
+        document.querySelector('.ql-editor').addEventListener('pointerdown', function(e) {
+            var children = this.children;
+            if (children.length === 0) return;
+            var lastChild = children[children.length - 1];
+            var rect = lastChild.getBoundingClientRect();
+            if (e.clientY > rect.bottom) {
+                e.preventDefault();
+                var docLength = Math.max(quill.getLength() - 1, 0);
+                quill.focus();
+                quill.setSelection(docLength, 0, 'user');
+                saveEditorContext({ index: docLength, length: 0 });
+            }
         });
 
         // Click on checkbox item to toggle checked/unchecked
