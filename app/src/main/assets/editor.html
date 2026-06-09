@@ -796,9 +796,11 @@
                     var cursorAbsTop = editorRect.top + bounds.top + scrollEl.scrollTop;
                     var cursorEnd = cursorAbsTop + Math.max(bounds.height, 20);
                     var viewBottom = scrollEl.scrollTop + scrollEl.clientHeight - kbHeight;
+                    // Only add threshold when keyboard is visible to avoid premature scrolling
+                    var threshold = kbHeight > 0 ? 12 : 0;
 
-                    if (cursorEnd > viewBottom - 20) {
-                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + 20, 0), behavior: 'auto' });
+                    if (cursorEnd > viewBottom - threshold) {
+                        scrollEl.scrollTo({ top: Math.max(cursorEnd - scrollEl.clientHeight + kbHeight + threshold, 0), behavior: 'auto' });
                     } else if (cursorAbsTop < scrollEl.scrollTop + 12) {
                         scrollEl.scrollTo({ top: Math.max(cursorAbsTop - 12, 0), behavior: 'auto' });
                     }

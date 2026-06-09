@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -428,6 +429,30 @@ private fun DetailHeader(
                         color = weatherTint.copy(alpha = 0.7f)
                     )
                 }
+            }
+        }
+
+        // Location
+        val locationText = entry.location?.trim().takeUnless { it.isNullOrEmpty() }
+        if (locationText != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "位置",
+                    tint = textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = locationText,
+                    fontSize = 12.sp,
+                    color = textSecondary.copy(alpha = 0.55f)
+                )
             }
         }
     }
