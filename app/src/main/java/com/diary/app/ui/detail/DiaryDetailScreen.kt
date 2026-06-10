@@ -263,6 +263,9 @@ fun DiaryDetailScreen(
                                                     val fallback = currentEntry.plainText.take(5000)
                                                     evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                 }
+                                            } else if (currentEntry.plainText.isNotBlank()) {
+                                                val fallback = currentEntry.plainText.take(5000)
+                                                evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                             }
                                             evaluateJavascript("setFontSize($fontSizePx)", null)
                                         }

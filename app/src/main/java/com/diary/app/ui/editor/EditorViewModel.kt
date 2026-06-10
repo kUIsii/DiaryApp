@@ -232,7 +232,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun loadEntry(id: Long) {
         viewModelScope.launch {
-            _currentEntry.value = dao.getEntryById(id)
+            _currentEntry.value = dao.getEntryByIdSafe(id)
             val tags = dao.getTagsForDiary(id)
             _selectedTagIds.value = tags.map { it.tagId }.toSet()
         }
@@ -270,7 +270,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val safeContent = stripBase64FromContent(content)
 
         val entryId = if (diaryId != null) {
-            val existing = dao.getEntryById(diaryId)
+            val existing = dao.getEntryByIdSafe(diaryId)
             if (existing != null) {
                 val updated = existing.copy(
                     title = title,

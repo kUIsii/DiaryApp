@@ -56,7 +56,7 @@ object DiaryExporter {
         var offset = 0
         val batchSize = 50
         while (true) {
-            val batch = dao.getEntriesBatch(offset, batchSize)
+            val batch = dao.getEntriesBatchForExport(offset, batchSize)
             if (batch.isEmpty()) break
             entries.addAll(batch)
             offset += batchSize

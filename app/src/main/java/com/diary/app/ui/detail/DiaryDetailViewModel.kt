@@ -10,6 +10,7 @@ import com.diary.app.data.DiaryExporter
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
 import com.diary.app.data.TrashEntry
+import com.diary.app.data.normalizeContentForExport
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.weatherLabelFor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +35,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
     fun loadEntry(id: Long) {
         viewModelScope.launch {
             try {
-                val loaded = dao.getEntryById(id)
+                val loaded = dao.getEntryByIdSafe(id)
                 if (loaded == null) {
                     _loadError.value = true
                     return@launch
@@ -175,7 +176,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         val trashEntry = TrashEntry(
             originalId = currentEntry.id,
             title = currentEntry.title,
-            content = currentEntry.content,
+            content = normalizeContentForExport(currentEntry.content),
             plainText = currentEntry.plainText,
             moodLevel = currentEntry.moodLevel,
             weather = currentEntry.weather,

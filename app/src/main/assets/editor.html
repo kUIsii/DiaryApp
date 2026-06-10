@@ -550,9 +550,11 @@
             var visibleTop = viewportTop + 12;
             // editorBottomGap is extra scroll room near the document tail, not hidden viewport.
             var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight, 0);
-            var bottomThreshold = visibleBottom - 2;
-            var topThreshold = visibleTop + (force ? 2 : 0);
             var editorRect = quill.root.getBoundingClientRect();
+            var editorVisibleTop = Math.max(visibleTop, editorRect.top);
+            var editorVisibleBottom = Math.min(visibleBottom, editorRect.bottom);
+            var bottomThreshold = editorVisibleBottom - 2;
+            var topThreshold = editorVisibleTop + (force ? 2 : 0);
             var caretTop = editorRect.top + bounds.top;
             var caretBottom = caretTop + bounds.height;
             var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;

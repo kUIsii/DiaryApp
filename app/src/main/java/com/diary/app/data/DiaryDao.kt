@@ -24,6 +24,14 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_entries WHERE id = :id")
     suspend fun getEntryById(id: Long): DiaryEntry?
 
+    @Query("""
+        SELECT id, title,
+        CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        FROM diary_entries WHERE id = :id
+    """)
+    suspend fun getEntryByIdSafe(id: Long): DiaryEntry?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertEntry(entry: DiaryEntry): Long
 
@@ -116,6 +124,14 @@ interface DiaryDao {
 
     @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
     suspend fun getEntriesBatch(offset: Int, limit: Int): List<DiaryEntry>
+
+    @Query("""
+        SELECT id, title,
+        CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        FROM diary_entries ORDER BY createdAt DESC LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getEntriesBatchForExport(offset: Int, limit: Int): List<DiaryEntry>
 
     @Query("SELECT * FROM tags ORDER BY name ASC")
     suspend fun getAllTagsOnce(): List<Tag>

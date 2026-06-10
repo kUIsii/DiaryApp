@@ -8,6 +8,7 @@ import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
+import com.diary.app.data.normalizeContentForExport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +26,7 @@ internal fun toTrashEntry(entry: DiaryEntry): TrashEntry {
     return TrashEntry(
         originalId = entry.id,
         title = entry.title,
-        content = entry.content,
+        content = normalizeContentForExport(entry.content),
         plainText = entry.plainText,
         moodLevel = entry.moodLevel,
         weather = entry.weather,
@@ -359,7 +360,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteEntry(entry: DiaryPreview) {
         viewModelScope.launch {
             // Fetch full entry (with content) for trash
-            val fullEntry = dao.getEntryById(entry.id) ?: return@launch
+            val fullEntry = dao.getEntryByIdSafe(entry.id) ?: return@launch
             val trashEntry = toTrashEntry(fullEntry)
             dao.insertTrashEntry(trashEntry)
             dao.deleteEntryWithTags(fullEntry)
@@ -368,7 +369,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteEntryById(id: Long) {
         viewModelScope.launch {
-            val entry = dao.getEntryById(id)
+            val entry = dao.getEntryByIdSafe(id)
             if (entry != null) {
                 dao.insertTrashEntry(toTrashEntry(entry))
                 dao.deleteEntryWithTags(entry)
@@ -380,7 +381,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
             ids.forEach { id ->
-                val entry = dao.getEntryById(id) ?: return@forEach
+                val entry = dao.getEntryByIdSafe(id) ?: return@forEach
                 dao.insertTrashEntry(toTrashEntry(entry))
                 dao.deleteEntryWithTags(entry)
             }

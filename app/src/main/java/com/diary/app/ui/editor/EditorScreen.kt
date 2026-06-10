@@ -289,6 +289,11 @@ fun EditorScreen(
                 webView?.evaluateJavascript("setContentBase64('$base64Content')") {
                     isApplyingProgrammaticContent = false
                 }
+            } else if (diaryId != null && entry.plainText.isNotBlank()) {
+                isApplyingProgrammaticContent = true
+                webView?.evaluateJavascript("setContent(${org.json.JSONObject.quote(entry.plainText)})") {
+                    isApplyingProgrammaticContent = false
+                }
             }
         }
     }

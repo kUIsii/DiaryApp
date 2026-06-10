@@ -351,4 +351,14 @@ class EditorUtilsTest {
         assertTrue(html.contains("var caretTop = editorRect.top + bounds.top;"))
         assertTrue(html.contains("var caretBottom = caretTop + bounds.height;"))
     }
+
+    @Test
+    fun `editor asset clamps cursor visibility to the webview viewport before keyboard edge`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("var editorVisibleBottom = Math.min(visibleBottom, editorRect.bottom);"))
+        assertTrue(html.contains("var editorVisibleTop = Math.max(visibleTop, editorRect.top);"))
+        assertTrue(html.contains("var bottomThreshold = editorVisibleBottom - 2;"))
+        assertTrue(html.contains("var topThreshold = editorVisibleTop + (force ? 2 : 0);"))
+    }
 }
