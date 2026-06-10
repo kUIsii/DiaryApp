@@ -320,4 +320,13 @@ class EditorUtilsTest {
         assertTrue(html.contains("window.visualViewport.addEventListener('resize', handleViewportChange);"))
         assertTrue(html.contains("window.visualViewport.addEventListener('scroll', handleViewportChange);"))
     }
+
+    @Test
+    fun `editor asset does not treat forced visibility checks as unconditional scrolling`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertFalse(html.contains("if (force || caretBottom > visibleBottom)"))
+        assertTrue(html.contains("var bottomThreshold = visibleBottom - (force ? 6 : 18);"))
+        assertTrue(html.contains("if (caretBottom > bottomThreshold)"))
+    }
 }

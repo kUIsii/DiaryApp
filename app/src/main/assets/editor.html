@@ -549,14 +549,16 @@
             var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;
             var visibleTop = viewportTop + 12;
             var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap - 18, 0);
+            var bottomThreshold = visibleBottom - (force ? 6 : 18);
+            var topThreshold = visibleTop + (force ? 2 : 0);
             var caretTop = bounds.top;
             var caretBottom = bounds.top + bounds.height;
             var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            if (force || caretBottom > visibleBottom) {
-                var nextScrollDown = currentScroll + (caretBottom - visibleBottom) + 18;
+            if (caretBottom > bottomThreshold) {
+                var nextScrollDown = currentScroll + (caretBottom - bottomThreshold) + (force ? 6 : 12);
                 window.scrollTo({ top: Math.max(nextScrollDown, 0), behavior: 'auto' });
-            } else if (caretTop < visibleTop) {
-                var nextScrollUp = currentScroll - (visibleTop - caretTop) - 18;
+            } else if (caretTop < topThreshold) {
+                var nextScrollUp = currentScroll - (topThreshold - caretTop) - 12;
                 window.scrollTo({ top: Math.max(nextScrollUp, 0), behavior: 'auto' });
             }
         }
