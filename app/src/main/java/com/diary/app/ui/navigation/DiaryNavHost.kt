@@ -241,7 +241,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
-                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) }
+                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
+                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) }
                 )
             }
 

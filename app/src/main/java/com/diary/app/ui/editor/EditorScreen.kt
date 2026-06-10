@@ -81,7 +81,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -190,6 +192,9 @@ fun EditorScreen(
     var wordCount by remember { mutableIntStateOf(0) }
     var latestPlainText by remember { mutableStateOf("") }
     var contentVersion by remember { mutableIntStateOf(0) }
+    var webViewViewportHeightPx by remember { mutableIntStateOf(0) }
+    var writingStatsHeightPx by remember { mutableIntStateOf(0) }
+    var toolbarHeightPx by remember { mutableIntStateOf(0) }
 
     // Title state
     var entryTitle by remember { mutableStateOf("") }
@@ -197,6 +202,7 @@ fun EditorScreen(
     // Auto-save and unsaved changes
     val autoSaveVisible by viewModel.autoSaveVisible.collectAsState()
     val hasUnsavedChanges by viewModel.hasUnsavedChanges.collectAsState()
+    val density = LocalDensity.current
 
     // Dialogs
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -208,6 +214,7 @@ fun EditorScreen(
 
     // Writing duration
     val writingDuration by viewModel.writingDuration.collectAsState()
+    val isWritingStatsVisible = charCount > 0 || writingDuration > 30
 
     val applyDraftToEditor: (DraftData, String?) -> Unit = { draft, sourceDraftId ->
         val base64Content = Base64.encodeToString(
@@ -329,12 +336,44 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(showToolbar, activeCategory, isKeyboardVisible, isWebViewReady) {
+    LaunchedEffect(isWritingStatsVisible) {
+        if (!isWritingStatsVisible) {
+            writingStatsHeightPx = 0
+        }
+    }
+
+    LaunchedEffect(showToolbar) {
+        if (!showToolbar) {
+            toolbarHeightPx = 0
+        }
+    }
+
+    LaunchedEffect(
+        showToolbar,
+        activeCategory,
+        isKeyboardVisible,
+        isWebViewReady,
+        isWritingStatsVisible,
+        webViewViewportHeightPx,
+        writingStatsHeightPx,
+        toolbarHeightPx,
+        density
+    ) {
         if (isWebViewReady) {
             val bottomGap = resolveEditorBottomGap(
                 showToolbar = showToolbar,
                 activeCategory = activeCategory
             )
+            val viewportHeightCssPx = with(density) {
+                webViewViewportHeightPx.toDp().value.toInt()
+            }
+            val bottomObstructionCssPx = with(density) {
+                val obstructionPx = (if (isWritingStatsVisible) writingStatsHeightPx else 0) +
+                    (if (showToolbar) toolbarHeightPx else 0)
+                obstructionPx.toDp().value.toInt()
+            }
+            webView?.evaluateJavascript("setViewportMetrics($viewportHeightCssPx)", null)
+            webView?.evaluateJavascript("setBottomObstruction($bottomObstructionCssPx)", null)
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
             if (isKeyboardVisible) {
                 kotlinx.coroutines.delay(90)
@@ -699,7 +738,22 @@ fun EditorScreen(
                         Text(stringResource(R.string.continue_editing), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    // 2. Save as draft
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .clickable {
+                                showUnsavedDialog = false
+                                saveCurrentEntry()
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.save_and_exit), fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // 3. Save as draft
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -735,7 +789,7 @@ fun EditorScreen(
                         Text(stringResource(R.string.save_as_draft), fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    // 3. Exit without saving
+                    // 4. Exit without saving
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1070,6 +1124,7 @@ fun EditorScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .onSizeChanged { webViewViewportHeightPx = it.height }
                     .padding(horizontal = 8.dp)
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
                     .background(paperColor)
@@ -1151,10 +1206,11 @@ fun EditorScreen(
             }
 
             // Word count and writing duration - integrated into space above toolbar
-            if (charCount > 0 || writingDuration > 30) {
+            if (isWritingStatsVisible) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .onSizeChanged { writingStatsHeightPx = it.height }
                         .padding(horizontal = 20.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -1200,60 +1256,62 @@ fun EditorScreen(
                 enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
                 exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
             ) {
-                EditorToolbar(
-                    showToolbar = showToolbar,
-                    activeCategory = activeCategory,
-                    onCategoryChange = { cat ->
-                        if (activeCategory == cat) {
-                            activeCategory = -1
-                            keepToolbarOpen = true
+                Box(modifier = Modifier.onSizeChanged { toolbarHeightPx = it.height }) {
+                    EditorToolbar(
+                        showToolbar = showToolbar,
+                        activeCategory = activeCategory,
+                        onCategoryChange = { cat ->
+                            if (activeCategory == cat) {
+                                activeCategory = -1
+                                keepToolbarOpen = true
+                                webView?.requestFocus()
+                                webView?.evaluateJavascript("focusEditorWithRestore()", null)
+                                isToolbarLocked = false
+                            } else {
+                                activeCategory = cat
+                                keepToolbarOpen = true
+                                val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                            }
+                        },
+                        activeFormats = activeFormats,
+                        onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
+                        onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
+                        onInsert = { action ->
+                            when (action) {
+                                "divider" -> webView?.evaluateJavascript("insertDivider()", null)
+                            }
+                        },
+                        onImageInsert = { imageLauncher.launch("image/*") },
+                        onHideKeyboard = {
+                            val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                            imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                        },
+                        onShowKeyboard = {
                             webView?.requestFocus()
                             webView?.evaluateJavascript("focusEditorWithRestore()", null)
                             isToolbarLocked = false
-                        } else {
-                            activeCategory = cat
-                            keepToolbarOpen = true
-                            val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                            imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                        },
+                        onHideToolbar = {
+                            isToolbarManuallyHidden = true
+                            keepToolbarOpen = false
+                            showToolbar = false
+                        },
+                        fontSize = editorFontSize,
+                        onFontSizeChange = { newSize ->
+                            editorFontSize = newSize
+                            prefs.edit().putString("editor_font_size", when(newSize) {
+                                10 -> "tiny"
+                                14 -> "small"
+                                16 -> "medium"
+                                18 -> "large"
+                                20 -> "extra_large"
+                                else -> "small"
+                            }).apply()
+                            webView?.evaluateJavascript("setFontSize($newSize)", null)
                         }
-                    },
-                    activeFormats = activeFormats,
-                    onFormat = { cmd -> webView?.evaluateJavascript(cmd, null) },
-                    onHeading = { level -> webView?.evaluateJavascript("setHeading($level)", null) },
-                    onInsert = { action ->
-                        when (action) {
-                            "divider" -> webView?.evaluateJavascript("insertDivider()", null)
-                        }
-                    },
-                    onImageInsert = { imageLauncher.launch("image/*") },
-                    onHideKeyboard = {
-                        val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                        imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
-                    },
-                    onShowKeyboard = {
-                        webView?.requestFocus()
-                        webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                        isToolbarLocked = false
-                    },
-                    onHideToolbar = {
-                        isToolbarManuallyHidden = true
-                        keepToolbarOpen = false
-                        showToolbar = false
-                    },
-                    fontSize = editorFontSize,
-                    onFontSizeChange = { newSize ->
-                        editorFontSize = newSize
-                        prefs.edit().putString("editor_font_size", when(newSize) {
-                            10 -> "tiny"
-                            14 -> "small"
-                            16 -> "medium"
-                            18 -> "large"
-                            20 -> "extra_large"
-                            else -> "small"
-                        }).apply()
-                        webView?.evaluateJavascript("setFontSize($newSize)", null)
-                    }
-                )
+                    )
+                }
             }
         }
         MetadataOverlayPanel(

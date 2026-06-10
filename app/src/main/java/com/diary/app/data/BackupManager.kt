@@ -2,7 +2,9 @@ package com.diary.app.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.diary.app.BuildConfig
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.time.LocalDateTime
@@ -21,6 +23,19 @@ data class BackupRecord(
     val entryCount: Int,
     val fileSize: Long
 )
+
+fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"): String {
+    val baseName = rawName
+        .trim()
+        .removeSuffix(".json")
+        .replace(Regex("[\\\\/:*?\"<>|]+"), "-")
+        .replace(Regex("\\s+"), "-")
+        .replace(Regex("-+"), "-")
+        .trim('-', '.')
+        .ifBlank { fallbackBaseName }
+
+    return if (baseName.lowercase().endsWith(".json")) baseName else "$baseName.json"
+}
 
 object BackupManager {
 
@@ -69,10 +84,6 @@ object BackupManager {
         return getPrefs(context).getInt(KEY_MAX_BACKUPS, DEFAULT_MAX_BACKUPS)
     }
 
-    fun setMaxBackups(context: Context, max: Int) {
-        getPrefs(context).edit().putInt(KEY_MAX_BACKUPS, max).apply()
-    }
-
     fun shouldAutoBackup(context: Context): Boolean {
         if (!isAutoBackupEnabled(context)) return false
         val frequency = getFrequency(context)
@@ -98,13 +109,10 @@ object BackupManager {
         val history = getBackupHistory(context).toMutableList()
         history.add(0, record)
 
-        // Enforce max backups: delete oldest files
         val maxBackups = getMaxBackups(context)
         while (history.size > maxBackups) {
             val oldest = history.removeLast()
-            try {
-                File(oldest.filePath).delete()
-            } catch (_: Exception) {}
+            runCatching { File(oldest.filePath).delete() }
         }
 
         saveHistory(context, history)
@@ -113,45 +121,110 @@ object BackupManager {
 
     fun deleteBackup(context: Context, record: BackupRecord) {
         val history = getBackupHistory(context).toMutableList()
-        history.removeAll { it.fileName == record.fileName }
+        history.removeAll { it.filePath == record.filePath }
         saveHistory(context, history)
-        try {
-            File(record.filePath).delete()
-        } catch (_: Exception) {}
+        runCatching { File(record.filePath).delete() }
+    }
+
+    fun renameBackup(context: Context, record: BackupRecord, requestedName: String): BackupRecord {
+        val sourceFile = File(record.filePath)
+        require(sourceFile.exists()) { "Backup file does not exist" }
+
+        val targetName = normalizeBackupFileName(requestedName)
+        val targetFile = File(sourceFile.parentFile ?: getBackupDir(context), targetName)
+        require(
+            sourceFile.absolutePath == targetFile.absolutePath || !targetFile.exists()
+        ) { "Backup with the same name already exists" }
+
+        if (sourceFile.absolutePath != targetFile.absolutePath) {
+            check(sourceFile.renameTo(targetFile)) { "Failed to rename backup file" }
+        }
+
+        val updated = record.copy(
+            fileName = targetName,
+            filePath = targetFile.absolutePath,
+            fileSize = targetFile.length()
+        )
+        val history = getBackupHistory(context).map {
+            if (it.filePath == record.filePath) updated else it
+        }
+        saveHistory(context, history)
+        return updated
+    }
+
+    suspend fun createBackup(context: Context, dao: DiaryDao): BackupRecord {
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        val file = File(getBackupDir(context), "diary_backup_$timestamp.json")
+        val json = buildBackupJson(dao)
+        file.parentFile?.mkdirs()
+        file.writeText(json, Charsets.UTF_8)
+
+        val record = BackupRecord(
+            fileName = file.name,
+            filePath = file.absolutePath,
+            timestamp = System.currentTimeMillis(),
+            entryCount = dao.getEntryCount(),
+            fileSize = file.length()
+        )
+        addBackupRecord(context, record)
+        return record
     }
 
     suspend fun performAutoBackup(context: Context, dao: DiaryDao): BackupRecord? {
-        return try {
-            val count = dao.getEntryCount()
-            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-            val fileName = "auto_backup_$timestamp.json"
-
-            val result = DiaryExporter.export(context, dao)
-            val file = getLatestBackupFile(context)
-
-            val record = BackupRecord(
-                fileName = fileName,
-                filePath = result,
-                timestamp = System.currentTimeMillis(),
-                entryCount = count,
-                fileSize = file?.length() ?: 0L
-            )
-            addBackupRecord(context, record)
-            record
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun getLatestBackupFile(context: Context): File? {
-        val dir = getBackupDir(context)
-        return dir.listFiles()?.maxByOrNull { it.lastModified() }
+        return runCatching { createBackup(context, dao) }.getOrNull()
     }
 
     fun getBackupDir(context: Context): File {
         val dir = File(context.filesDir, "backups")
         if (!dir.exists()) dir.mkdirs()
         return dir
+    }
+
+    private suspend fun buildBackupJson(dao: DiaryDao): String {
+        val entries = mutableListOf<DiaryEntry>()
+        var offset = 0
+        val batchSize = 50
+        while (true) {
+            val batch = dao.getEntriesBatchForExport(offset, batchSize)
+            if (batch.isEmpty()) break
+            entries.addAll(batch)
+            offset += batchSize
+        }
+
+        val tags = dao.getAllTagsOnce()
+        val allDiaryTags = dao.getAllDiaryTags()
+        val tagMap = tags.associateBy { it.id }
+        val diaryTagMap = allDiaryTags.groupBy({ it.diaryId }, { tagMap[it.tagId]?.name ?: "" })
+
+        val payload = DiaryBackup(
+            app = "DiaryApp",
+            version = BuildConfig.VERSION_NAME,
+            exportDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")),
+            entries = entries.map { entry ->
+                BackupEntry(
+                    title = entry.title,
+                    content = normalizeContentForExport(entry.content),
+                    plainText = entry.plainText,
+                    moodLevel = entry.moodLevel,
+                    weather = entry.weather,
+                    location = entry.location,
+                    latitude = entry.latitude,
+                    longitude = entry.longitude,
+                    tags = diaryTagMap[entry.id] ?: emptyList(),
+                    createdAt = entry.createdAt,
+                    updatedAt = entry.updatedAt
+                )
+            },
+            tags = tags.map { tag ->
+                BackupTag(
+                    name = tag.name,
+                    color = tag.color,
+                    isPreset = tag.isPreset
+                )
+            }
+        )
+
+        return GsonBuilder().setPrettyPrinting().create().toJson(payload)
     }
 
     private fun saveHistory(context: Context, history: List<BackupRecord>) {

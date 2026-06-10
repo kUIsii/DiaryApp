@@ -1,10 +1,12 @@
 package com.diary.app.ui.backup
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -31,6 +33,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
@@ -38,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -56,23 +61,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
+import com.diary.app.R
 import com.diary.app.data.BackupFrequency
 import com.diary.app.data.BackupManager
 import com.diary.app.data.BackupRecord
-import com.diary.app.data.DiaryExporter
-import androidx.compose.ui.res.stringResource
-import com.diary.app.R
+import com.diary.app.data.DiaryBackup
+import com.diary.app.data.DiaryImporter
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,18 +88,37 @@ fun BackupScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
-    val scope = rememberCoroutineScope()
     val dao = app.database.diaryDao()
+    val scope = rememberCoroutineScope()
 
     var autoBackupEnabled by remember { mutableStateOf(BackupManager.isAutoBackupEnabled(context)) }
     var frequency by remember { mutableStateOf(BackupManager.getFrequency(context)) }
     var backupHistory by remember { mutableStateOf(BackupManager.getBackupHistory(context)) }
     var isBackingUp by remember { mutableStateOf(false) }
+    var isImporting by remember { mutableStateOf(false) }
     var backupProgress by remember { mutableStateOf(0f) }
     var deleteTarget by remember { mutableStateOf<BackupRecord?>(null) }
+    var renameTarget by remember { mutableStateOf<BackupRecord?>(null) }
+    var renameInput by remember { mutableStateOf("") }
+    var pendingImport by remember { mutableStateOf<DiaryBackup?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
-
     var showContent by remember { mutableStateOf(false) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        try {
+            pendingImport = DiaryImporter.readAndValidate(context, uri)
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "读取备份失败: ${e.message ?: ""}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     LaunchedEffect(Unit) { showContent = true }
 
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -125,6 +149,86 @@ fun BackupScreen(
         )
     }
 
+    renameTarget?.let { record ->
+        AlertDialog(
+            onDismissRequest = { renameTarget = null },
+            title = { Text("重命名备份") },
+            text = {
+                OutlinedTextField(
+                    value = renameInput,
+                    onValueChange = { renameInput = it },
+                    singleLine = true,
+                    label = { Text("备份名称") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    try {
+                        BackupManager.renameBackup(context, record, renameInput)
+                        backupHistory = BackupManager.getBackupHistory(context)
+                        renameTarget = null
+                        Toast.makeText(context, "备份名称已更新", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            context,
+                            "重命名失败: ${e.message ?: ""}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    pendingImport?.let { backup ->
+        val entryCount = backup.entries?.size ?: 0
+        val tagCount = backup.tags?.size ?: 0
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("确认导入") },
+            text = { Text("将导入 $entryCount 篇日记和 $tagCount 个分类，现有数据不会被覆盖。确定继续？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val pending = backup
+                    pendingImport = null
+                    isImporting = true
+                    scope.launch {
+                        try {
+                            val result = DiaryImporter.import(app.database, pending)
+                            Toast.makeText(
+                                context,
+                                "导入成功: ${result.entryCount} 篇日记, ${result.tagCount} 个新分类",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "导入失败: ${e.message ?: ""}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } finally {
+                            isImporting = false
+                        }
+                    }
+                }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingImport = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     if (showFrequencyDialog) {
         AlertDialog(
             onDismissRequest = { showFrequencyDialog = false },
@@ -148,17 +252,10 @@ fun BackupScreen(
                                 modifier = Modifier
                                     .size(20.dp)
                                     .clip(CircleShape)
-                                    .background(
-                                        if (frequency == option) accentColor
-                                        else textTertiary
-                                    )
+                                    .background(if (frequency == option) accentColor else textTertiary)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = option.label,
-                                fontSize = 15.sp,
-                                color = textColor
-                            )
+                            Text(text = option.label, fontSize = 15.sp, color = textColor)
                         }
                     }
                 }
@@ -189,7 +286,7 @@ fun BackupScreen(
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,
-                        contentDescription = "返回",
+                        contentDescription = null,
                         tint = textSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -215,15 +312,16 @@ fun BackupScreen(
 
                 item {
                     StaggeredBackupItem(index = 0, showContent = showContent) {
-                        GlassCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = 24.dp
-                        ) {
+                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                             Column {
                                 BackupSettingRow(
                                     icon = Icons.Default.Schedule,
                                     title = stringResource(R.string.backup_auto),
-                                    subtitle = if (autoBackupEnabled) stringResource(R.string.backup_auto_on, frequency.label) else stringResource(R.string.backup_auto_off),
+                                    subtitle = if (autoBackupEnabled) {
+                                        stringResource(R.string.backup_auto_on, frequency.label)
+                                    } else {
+                                        stringResource(R.string.backup_auto_off)
+                                    },
                                     iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                     iconTint = MaterialTheme.colorScheme.primary,
                                     textColor = textColor,
@@ -247,8 +345,8 @@ fun BackupScreen(
                                             icon = Icons.Default.Schedule,
                                             title = stringResource(R.string.backup_frequency),
                                             subtitle = frequency.label,
-                                            iconBg = com.diary.app.ui.theme.WarningColor.copy(alpha = 0.1f),
-                                            iconTint = com.diary.app.ui.theme.WarningColor,
+                                            iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                            iconTint = MaterialTheme.colorScheme.tertiary,
                                             textColor = textColor,
                                             textTertiary = textTertiary,
                                             accentColor = accentColor,
@@ -273,8 +371,6 @@ fun BackupScreen(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(4.dp)) }
-
                 item {
                     StaggeredBackupItem(index = 1, showContent = showContent) {
                         GlassCard(
@@ -296,7 +392,7 @@ fun BackupScreen(
                                                 .height(4.dp)
                                                 .clip(RoundedCornerShape(2.dp)),
                                             color = accentColor,
-                                            trackColor = accentColor.copy(alpha = 0.15f),
+                                            trackColor = accentColor.copy(alpha = 0.15f)
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
@@ -311,43 +407,63 @@ fun BackupScreen(
                                 BackupActionButton(
                                     icon = Icons.Default.Backup,
                                     title = stringResource(R.string.backup_now),
-                                    subtitle = stringResource(R.string.backup_now_desc),
-                                    iconBg = com.diary.app.ui.theme.SuccessColor.copy(alpha = 0.1f),
-                                    iconTint = com.diary.app.ui.theme.SuccessColor,
+                                    subtitle = "保存一份可管理的本地 JSON 备份",
+                                    iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     textColor = textColor,
                                     textTertiary = textTertiary,
-                                    enabled = !isBackingUp,
+                                    enabled = !isBackingUp && !isImporting,
                                     onClick = {
                                         isBackingUp = true
                                         backupProgress = 0f
                                         scope.launch {
                                             try {
-                                                // Progress simulation
                                                 launch {
                                                     while (backupProgress < 0.9f) {
                                                         delay(100)
                                                         backupProgress += 0.05f
                                                     }
                                                 }
-                                                val path = DiaryExporter.export(context, dao)
-                                                val count = dao.getEntryCount()
-                                                val record = BackupRecord(
-                                                    fileName = File(path).name,
-                                                    filePath = path,
-                                                    timestamp = System.currentTimeMillis(),
-                                                    entryCount = count,
-                                                    fileSize = 0L
-                                                )
-                                                BackupManager.addBackupRecord(context, record)
+                                                val record = BackupManager.createBackup(context, dao)
                                                 backupHistory = BackupManager.getBackupHistory(context)
                                                 backupProgress = 1f
-                                                delay(300)
-                                                Toast.makeText(context, context.getString(R.string.backup_success, path), Toast.LENGTH_LONG).show()
+                                                delay(250)
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.backup_success, record.fileName),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, context.getString(R.string.backup_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.backup_failed, e.message ?: ""),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             } finally {
                                                 isBackingUp = false
                                             }
+                                        }
+                                    }
+                                )
+
+                                SettingDivider()
+
+                                BackupActionButton(
+                                    icon = Icons.Default.GetApp,
+                                    title = "导入备份",
+                                    subtitle = if (isImporting) {
+                                        "正在导入..."
+                                    } else {
+                                        "从文件导入 JSON 备份"
+                                    },
+                                    iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                    iconTint = MaterialTheme.colorScheme.tertiary,
+                                    textColor = textColor,
+                                    textTertiary = textTertiary,
+                                    enabled = !isBackingUp && !isImporting,
+                                    onClick = {
+                                        if (!isBackingUp && !isImporting) {
+                                            filePickerLauncher.launch(arrayOf("application/json", "text/plain"))
                                         }
                                     }
                                 )
@@ -355,8 +471,6 @@ fun BackupScreen(
                         }
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(4.dp)) }
 
                 if (backupHistory.isNotEmpty()) {
                     item {
@@ -376,8 +490,38 @@ fun BackupScreen(
                                 textColor = textColor,
                                 textSecondary = textSecondary,
                                 textTertiary = textTertiary,
+                                onRename = {
+                                    renameTarget = record
+                                    renameInput = record.fileName.removeSuffix(".json")
+                                },
                                 onDelete = { deleteTarget = record }
                             )
+                        }
+                    }
+                } else {
+                    item {
+                        StaggeredBackupItem(index = 2, showContent = showContent) {
+                            GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "暂无本地备份",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = textColor
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "创建一个本地备份后，就能在这里重命名、删除或导入。",
+                                        fontSize = 12.sp,
+                                        color = textTertiary
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -394,15 +538,19 @@ private fun BackupHistoryItem(
     textColor: Color,
     textSecondary: Color,
     textTertiary: Color,
+    onRename: () -> Unit,
     onDelete: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(record.timestamp))
+    val sizeLabel = when {
+        record.fileSize <= 0L -> ""
+        record.fileSize < 1024L -> "${record.fileSize}B"
+        record.fileSize < 1024L * 1024L -> "${record.fileSize / 1024L}KB"
+        else -> String.format("%.1fMB", record.fileSize / (1024f * 1024f))
+    }
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -411,13 +559,13 @@ private fun BackupHistoryItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(com.diary.app.ui.theme.SuccessColor.copy(alpha = 0.1f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Backup,
                     contentDescription = null,
-                    tint = com.diary.app.ui.theme.SuccessColor,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -434,11 +582,7 @@ private fun BackupHistoryItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row {
-                    Text(
-                        text = dateStr,
-                        fontSize = 11.sp,
-                        color = textTertiary
-                    )
+                    Text(text = dateStr, fontSize = 11.sp, color = textTertiary)
                     if (record.entryCount > 0) {
                         Text(
                             text = "  |  ${stringResource(R.string.backup_entry_count, record.entryCount)}",
@@ -446,16 +590,24 @@ private fun BackupHistoryItem(
                             color = textTertiary
                         )
                     }
+                    if (sizeLabel.isNotBlank()) {
+                        Text(text = "  |  $sizeLabel", fontSize = 11.sp, color = textTertiary)
+                    }
                 }
             }
 
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(36.dp)
-            ) {
+            IconButton(onClick = onRename, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = textSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = null,
                     tint = textTertiary,
                     modifier = Modifier.size(18.dp)
                 )
@@ -483,7 +635,7 @@ private fun BackupSettingRow(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
-        label = "scale"
+        label = "backupSettingScale"
     )
 
     Row(
@@ -499,10 +651,7 @@ private fun BackupSettingRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Box(
                 modifier = Modifier
                     .size(34.dp)
@@ -567,14 +716,16 @@ private fun BackupActionButton(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
-        label = "actionScale"
+        label = "backupActionScale"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
-                scaleX = scale; scaleY = scale; alpha = if (enabled) 1f else 0.5f
+                scaleX = scale
+                scaleY = scale
+                alpha = if (enabled) 1f else 0.5f
             }
             .clickable(
                 interactionSource = interactionSource,
@@ -601,7 +752,6 @@ private fun BackupActionButton(
     }
 }
 
-
 @Composable
 private fun StaggeredBackupItem(
     index: Int,
@@ -619,12 +769,12 @@ private fun StaggeredBackupItem(
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
         animationSpec = tween(300),
-        label = "staggerAlpha"
+        label = "backupStaggerAlpha"
     )
     val offsetY by animateFloatAsState(
         targetValue = if (visible) 0f else 20f,
         animationSpec = tween(300),
-        label = "staggerOffset"
+        label = "backupStaggerOffset"
     )
 
     Box(

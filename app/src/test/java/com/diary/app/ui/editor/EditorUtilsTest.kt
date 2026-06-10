@@ -257,6 +257,15 @@ class EditorUtilsTest {
     }
 
     @Test
+    fun `editor asset accepts explicit viewport metrics for cursor docking`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("--viewport-height"))
+        assertTrue(html.contains("function setViewportMetrics("))
+        assertTrue(html.contains("function setBottomObstruction("))
+    }
+
+    @Test
     fun `editor asset clear formatting removes inline styles at caret`() {
         val html = File("src/main/assets/editor.html").readText()
 

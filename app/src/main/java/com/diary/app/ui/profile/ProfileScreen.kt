@@ -51,7 +51,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FormatSize
-import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
@@ -102,9 +101,6 @@ import androidx.core.content.ContextCompat
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
 import com.diary.app.biometric.BiometricHelper
-import com.diary.app.data.DiaryBackup
-import com.diary.app.data.DiaryExporter
-import com.diary.app.data.DiaryImporter
 import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -170,7 +166,8 @@ fun ProfileScreen(
     onNavigateToChangelog: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
-    onNavigateToTrash: () -> Unit = {}
+    onNavigateToTrash: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
@@ -196,10 +193,6 @@ fun ProfileScreen(
                 .getString("editor_font_size", "small") ?: "small"
         )
     }
-    var isExporting by remember { mutableStateOf(false) }
-    var isImporting by remember { mutableStateOf(false) }
-    var pendingBackup by remember { mutableStateOf<DiaryBackup?>(null) }
-
     var reminderEnabled by remember { mutableStateOf(ReminderManager.isReminderEnabled(context)) }
     var reminderHour by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).first) }
     var reminderMinute by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).second) }
@@ -253,19 +246,6 @@ fun ProfileScreen(
         )
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            try {
-                val backup = DiaryImporter.readAndValidate(context, uri)
-                pendingBackup = backup
-            } catch (e: Exception) {
-                Toast.makeText(context, context.getString(R.string.profile_read_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
@@ -314,26 +294,6 @@ fun ProfileScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showRemovePinDialog = false }) { Text(stringResource(R.string.cancel)) } }
-        )
-    }
-
-    pendingBackup?.let { backup ->
-        val entryCount = backup.entries?.size ?: 0
-        val tagCount = backup.tags?.size ?: 0
-        AlertDialog(
-            onDismissRequest = { pendingBackup = null },
-            title = { Text(stringResource(R.string.profile_import_confirm)) },
-            text = { Text(stringResource(R.string.profile_import_confirm_message, entryCount, tagCount)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val b = backup; pendingBackup = null; isImporting = true
-                    scope.launch {
-                        try { val result = DiaryImporter.import(app.database, b); isImporting = false; Toast.makeText(context, context.getString(R.string.profile_import_success, result.entryCount, result.tagCount), Toast.LENGTH_SHORT).show() }
-                        catch (e: Exception) { isImporting = false; Toast.makeText(context, context.getString(R.string.profile_import_failed, e.message ?: ""), Toast.LENGTH_SHORT).show() }
-                    }
-                }) { Text(stringResource(R.string.confirm)) }
-            },
-            dismissButton = { TextButton(onClick = { pendingBackup = null }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -450,38 +410,11 @@ fun ProfileScreen(
                         icon = Icons.Default.Backup,
                         iconBg = sectionIconBg(1),
                         iconTint = sectionIconTint(1),
-                        title = stringResource(R.string.profile_export_backup),
-                        subtitle = if (isExporting) stringResource(R.string.profile_exporting) else stringResource(R.string.profile_export_backup_desc),
+                        title = stringResource(R.string.backup_title),
+                        subtitle = stringResource(R.string.settings_backup_desc),
                         textColor = textColor,
                         textTertiary = textTertiary,
-                        enabled = !isExporting,
-                        trailing = {
-                            if (isExporting) CircularProgressIndicator(color = accentColor, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-                        },
-                        onClick = {
-                            if (!isExporting) {
-                                isExporting = true
-                                scope.launch {
-                                    try { val dao = app.database.diaryDao(); val path = DiaryExporter.export(context, dao); isExporting = false; Toast.makeText(context, context.getString(R.string.profile_export_success, path), Toast.LENGTH_LONG).show() }
-                                    catch (e: Exception) { isExporting = false; Toast.makeText(context, context.getString(R.string.profile_export_failed, e.message ?: ""), Toast.LENGTH_SHORT).show() }
-                                }
-                            }
-                        }
-                    )
-                    SettingDivider()
-                    ClickableSettingRow(
-                        icon = Icons.Default.GetApp,
-                        iconBg = sectionIconBg(1),
-                        iconTint = sectionIconTint(1),
-                        title = stringResource(R.string.profile_import_backup),
-                        subtitle = if (isImporting) stringResource(R.string.profile_importing) else stringResource(R.string.profile_import_backup_desc),
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        enabled = !isImporting,
-                        trailing = {
-                            if (isImporting) CircularProgressIndicator(color = accentColor, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-                        },
-                        onClick = { if (!isImporting) filePickerLauncher.launch(arrayOf("application/json")) }
+                        onClick = onNavigateToBackup
                     )
                 }
 

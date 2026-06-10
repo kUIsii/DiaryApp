@@ -18,6 +18,8 @@
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
             --editor-bottom-gap: 20px;
+            --bottom-obstruction: 0px;
+            --viewport-height: 0px;
         }
         .theme-dark {
             --text: #E8F0F8;
@@ -542,14 +544,13 @@
             if (!selection) return;
             var bounds = quill.getBounds(selection.index, Math.max(selection.length, 1));
             if (!bounds) return;
-            var visualViewport = window.visualViewport;
-            var viewportHeight = visualViewport ? window.visualViewport.height : (window.innerHeight || document.documentElement.clientHeight || 0);
-            var viewportTop = visualViewport ? window.visualViewport.offsetTop : 0;
-            var keyboardHeight = visualViewport ? 0 : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0);
-            var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;
-            var visibleTop = viewportTop + 12;
-            // editorBottomGap is extra scroll room near the document tail, not hidden viewport.
-            var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight, 0);
+            var explicitViewportHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-height')) || 0;
+            var viewportHeight = explicitViewportHeight > 0
+                ? explicitViewportHeight
+                : (window.innerHeight || document.documentElement.clientHeight || 0);
+            var bottomObstruction = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bottom-obstruction')) || 0;
+            var visibleTop = 12;
+            var visibleBottom = Math.max(viewportHeight - bottomObstruction, visibleTop + 2);
             var editorRect = quill.root.getBoundingClientRect();
             var editorVisibleTop = Math.max(visibleTop, editorRect.top);
             var editorVisibleBottom = Math.min(visibleBottom, editorRect.bottom);
@@ -689,6 +690,16 @@
         function setEditorBottomGap(pixels) {
             var safePixels = Math.max(Number(pixels) || 0, 16);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
+        }
+
+        function setBottomObstruction(pixels) {
+            var safePixels = Math.max(Number(pixels) || 0, 0);
+            document.documentElement.style.setProperty('--bottom-obstruction', safePixels + 'px');
+        }
+
+        function setViewportMetrics(heightPx) {
+            var safeHeight = Math.max(Number(heightPx) || 0, 0);
+            document.documentElement.style.setProperty('--viewport-height', safeHeight + 'px');
         }
 
         // Content change callback for word count and auto-save

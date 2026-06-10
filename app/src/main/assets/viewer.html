@@ -33,7 +33,10 @@
             line-height: 2.0;
             color: var(--text);
         }
-        #content p { margin-bottom: 16px; }
+        #content p { margin: 0; }
+        #content p:empty::before {
+            content: '\00a0';
+        }
         #content:empty::before {
             content: '';
         }
