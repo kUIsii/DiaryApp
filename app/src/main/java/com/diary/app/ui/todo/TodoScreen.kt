@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -78,9 +79,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.DiaryApplication
 import com.diary.app.data.HabitRecord
 import com.diary.app.data.Tag
 import com.diary.app.data.TodoItem
+import com.diary.app.ui.experimental.orderTodoItemsForDisplay
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -98,8 +101,13 @@ private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"),
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
+fun TodoScreen(
+    viewModel: TodoViewModel = viewModel(),
+    onMainScreenSwipe: ((Float) -> Unit)? = null
+) {
+    val app = LocalContext.current.applicationContext as DiaryApplication
     val haptic = rememberHapticFeedback()
+    val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val allTodos by viewModel.allTodos.collectAsState()
     val allTags by viewModel.allTags.collectAsState()
     val habitUiState by viewModel.habitUiState.collectAsState()
@@ -119,8 +127,14 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val habitItems = allTodos.filter { it.category == TodoItem.CATEGORY_GOAL }
-    val memoItems = allTodos.filter { it.category != TodoItem.CATEGORY_GOAL && it.dueDate == null }
-    val deadlineItems = allTodos.filter { it.dueDate != null }.sortedBy { it.dueDate ?: Long.MAX_VALUE }
+    val memoItems = orderTodoItemsForDisplay(
+        items = allTodos.filter { it.category != TodoItem.CATEGORY_GOAL && it.dueDate == null },
+        keepCompletedInPlace = experimentalFeatures.keepCompletedItemsInPlace
+    )
+    val deadlineItems = orderTodoItemsForDisplay(
+        items = allTodos.filter { it.dueDate != null }.sortedBy { it.dueDate ?: Long.MAX_VALUE },
+        keepCompletedInPlace = experimentalFeatures.keepCompletedItemsInPlace
+    )
 
     var isMultiSelectMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -472,6 +486,12 @@ fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
                                     }
                                     totalDrag >= 48f && currentPageIndex > 0 -> {
                                         currentPageIndex -= 1
+                                    }
+                                    totalDrag <= -48f && currentPageIndex == TodoTab.entries.lastIndex -> {
+                                        onMainScreenSwipe?.invoke(totalDrag)
+                                    }
+                                    totalDrag >= 48f && currentPageIndex == 0 -> {
+                                        onMainScreenSwipe?.invoke(totalDrag)
                                     }
                                 }
                             }
@@ -1235,9 +1255,6 @@ private fun MemoTab(
     onToggleSelection: (Long) -> Unit,
     onMultiSelectModeChange: (Boolean) -> Unit
 ) {
-    val activeItems = items.filter { !it.isCompleted }
-    val completedItems = items.filter { it.isCompleted }
-
     if (items.isEmpty()) {
         EmptyState(
             icon = Icons.Default.Check,
@@ -1256,7 +1273,7 @@ private fun MemoTab(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            items(activeItems + completedItems, key = { it.id }) { item ->
+            items(items, key = { it.id }) { item ->
                 MemoItem(
                     item = item,
                     textColor = textColor,
@@ -1390,8 +1407,6 @@ private fun DeadlineTab(
     onMultiSelectModeChange: (Boolean) -> Unit
 ) {
     val today = remember { LocalDate.now() }
-    val activeItems = items.filter { !it.isCompleted }
-    val completedItems = items.filter { it.isCompleted }
 
     if (items.isEmpty()) {
         EmptyState(
@@ -1411,7 +1426,7 @@ private fun DeadlineTab(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            items(activeItems + completedItems, key = { it.id }) { item ->
+            items(items, key = { it.id }) { item ->
                 DeadlineItem(
                     item = item,
                     today = today,

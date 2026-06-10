@@ -8,10 +8,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,10 +29,10 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,6 +50,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,24 +62,25 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.diary.app.DiaryApplication
 import com.diary.app.ui.backup.BackupScreen
+import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.countdown.CountDownScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
-import com.diary.app.ui.components.rememberHapticFeedback
-import com.diary.app.ui.home.HomeScreen
-import com.diary.app.ui.review.DiaryReviewScreen
-import com.diary.app.ui.timeline.TimelineScreen
+import com.diary.app.ui.experimental.ExperimentalFeaturesScreen
+import com.diary.app.ui.experimental.resolveMainScreenSwipeTarget
 import com.diary.app.ui.favorites.FavoritesScreen
-import com.diary.app.ui.trash.TrashScreen
+import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
+import com.diary.app.ui.review.DiaryReviewScreen
 import com.diary.app.ui.settings.SettingsScreen
 import com.diary.app.ui.stats.StatsScreen
+import com.diary.app.ui.timeline.TimelineScreen
 import com.diary.app.ui.todo.TodoScreen
+import com.diary.app.ui.trash.TrashScreen
 import com.diary.app.update.ChangelogScreen
-
-// region Screen definitions
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -84,6 +88,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
     object Stats : Screen("stats", "统计", Icons.Default.BarChart)
     object Profile : Screen("profile", "我的", Icons.Default.Person)
+    object ExperimentalFeatures : Screen("experimental_features", "实验功能", Icons.Default.Home)
     object Editor : Screen("editor?diaryId={diaryId}&draftId={draftId}", "编辑日记", Icons.Default.Home) {
         fun createRoute(diaryId: Long? = null, draftId: String? = null): String {
             val params = mutableListOf<String>()
@@ -92,9 +97,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
             return if (params.isEmpty()) "editor" else "editor?${params.joinToString("&")}"
         }
     }
+
     object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Home) {
         fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
+
     object Changelog : Screen("changelog", "更新日志", Icons.Default.Home)
     object TagManagement : Screen("tag_management", "分类管理", Icons.Default.Home)
     object Review : Screen("review", "日记回顾", Icons.Default.Home)
@@ -104,10 +111,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Trash : Screen("trash", "回收站", Icons.Default.Home)
     object CountDown : Screen("countdown", "倒数日", Icons.Default.Home)
 }
-
-// endregion
-
-// region Bottom navigation item with badge support
 
 data class BottomNavItem(
     val screen: Screen,
@@ -122,15 +125,50 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Profile)
 )
 
-// endregion
-
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
+    val app = LocalContext.current.applicationContext as DiaryApplication
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
+    val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = currentDestination?.route in bottomNavItems.map { it.screen.route }
+    val currentRoute = currentDestination?.route
+    val showBottomBar = currentRoute in bottomNavItems.map { it.screen.route }
+
+    fun navigateToBottomRoute(route: String) {
+        haptic.click()
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    val rootSwipeModifier = if (showBottomBar && currentRoute != Screen.Todo.route) {
+        Modifier.pointerInput(currentRoute, experimentalFeatures.mainScreenSwipeEnabled) {
+            var totalDrag = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { totalDrag = 0f },
+                onHorizontalDrag = { change, dragAmount ->
+                    totalDrag += dragAmount
+                    change.consume()
+                },
+                onDragEnd = {
+                    val targetRoute = resolveMainScreenSwipeTarget(
+                        currentRoute = currentRoute,
+                        totalDrag = totalDrag,
+                        enabled = experimentalFeatures.mainScreenSwipeEnabled
+                    )
+                    if (targetRoute != null) {
+                        navigateToBottomRoute(targetRoute)
+                    }
+                }
+            )
+        }
+    } else {
+        Modifier
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -138,15 +176,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
                     items = bottomNavItems,
-                    currentRoute = currentDestination?.route,
-                    onNavigate = { route ->
-                        haptic.click()
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    currentRoute = currentRoute,
+                    onNavigate = ::navigateToBottomRoute
                 )
             }
         }
@@ -156,16 +187,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 navController.navigate(Screen.Editor.createRoute())
                 onNavigateHandled()
             } else if (navigateTo == "todo") {
-                navController.navigate(Screen.Todo.route) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
+                navigateToBottomRoute(Screen.Todo.route)
                 onNavigateHandled()
             }
         }
 
-        // Bottom nav screens get full padding; editor/detail only get top padding
         val navHostModifier = if (showBottomBar) {
             Modifier.padding(innerPadding)
         } else {
@@ -175,10 +201,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = navHostModifier
+            modifier = navHostModifier.then(rootSwipeModifier)
         ) {
-            // region Bottom nav destinations
-
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
@@ -188,7 +212,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
                     onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
-                    onNavigateToStats = { navController.navigate(Screen.Stats.route) }
+                    onNavigateToStats = { navController.navigate(Screen.Stats.route) },
+                    onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -196,7 +221,20 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(Screen.Todo.route) { TodoScreen() }
+            composable(Screen.Todo.route) {
+                TodoScreen(
+                    onMainScreenSwipe = { dragAmount ->
+                        val targetRoute = resolveMainScreenSwipeTarget(
+                            currentRoute = Screen.Todo.route,
+                            totalDrag = dragAmount,
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                        )
+                        if (targetRoute != null) {
+                            navigateToBottomRoute(targetRoute)
+                        }
+                    }
+                )
+            }
             composable(Screen.Stats.route) { StatsScreen() }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -206,10 +244,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) }
                 )
             }
-
-            // endregion
-
-            // region Secondary destinations
 
             composable(Screen.Changelog.route) {
                 ChangelogScreen(onNavigateBack = { navController.popBackStack() })
@@ -232,9 +266,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Backup.route) {
-                BackupScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+                BackupScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(Screen.Favorites.route) {
                 FavoritesScreen(
@@ -249,14 +281,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.CountDown.route) {
-                CountDownScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+                CountDownScreen(onNavigateBack = { navController.popBackStack() })
             }
-
-            // endregion
-
-            // region Full-screen slide destinations (Editor & Detail)
+            composable(Screen.ExperimentalFeatures.route) {
+                ExperimentalFeaturesScreen(onNavigateBack = { navController.popBackStack() })
+            }
 
             composable(
                 route = Screen.Editor.route,
@@ -297,6 +326,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
             composable(
                 route = Screen.Detail.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType }),
@@ -329,21 +359,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 DiaryDetailScreen(
                     diaryId = diaryId,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditor = { id ->
-                        navController.navigate(Screen.Editor.createRoute(id))
-                    },
-                    onNavigateToDetail = { id ->
-                        navController.navigate(Screen.Detail.createRoute(id))
-                    }
+                    onNavigateToEditor = { id -> navController.navigate(Screen.Editor.createRoute(id)) },
+                    onNavigateToDetail = { id -> navController.navigate(Screen.Detail.createRoute(id)) }
                 )
             }
-
-            // endregion
         }
     }
 }
-
-// region Custom bottom navigation bar
 
 @Composable
 private fun DiaryBottomNavigationBar(
@@ -358,9 +380,7 @@ private fun DiaryBottomNavigationBar(
         shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -445,7 +465,6 @@ private fun DiaryBottomNavItem(
                         }
                 )
 
-                // Badge support
                 if (item.showBadge) {
                     Badge {
                         if (item.badgeCount > 0) {
@@ -469,7 +488,6 @@ private fun DiaryBottomNavItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Animated indicator bar
             Box(
                 modifier = Modifier
                     .width(indicatorWidth)
@@ -480,5 +498,3 @@ private fun DiaryBottomNavItem(
         }
     }
 }
-
-// endregion

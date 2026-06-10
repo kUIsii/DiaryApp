@@ -80,6 +80,7 @@ fun HomeScreen(
     onNavigateToCountDown: () -> Unit = {},
     onNavigateToTimeline: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
+    onNavigateToExperimentalFeatures: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -228,6 +229,15 @@ fun HomeScreen(
                 expanded = showFunctionMenu,
                 onDismiss = { showFunctionMenu = false },
                 items = listOf(
+                    FunctionMenuItem(
+                        id = "experimental",
+                        title = "实验功能",
+                        icon = Icons.Default.AutoAwesome,
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToExperimentalFeatures()
+                        }
+                    ),
                     FunctionMenuItem(
                         id = "stats",
                         title = "统计",
