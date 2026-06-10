@@ -257,4 +257,12 @@ class EditorUtilsTest {
         assertTrue(html.contains(".theme-dark hr {"))
         assertTrue(html.contains("rgba(255,255,255,0.34)"))
     }
+
+    @Test
+    fun `editor asset avoids nested internal scrolling in quill`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("height: auto !important;"))
+        assertTrue(html.contains("overflow-y: visible !important;"))
+    }
 }
