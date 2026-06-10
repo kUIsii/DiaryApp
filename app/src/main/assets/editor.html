@@ -156,10 +156,11 @@
             content: "\25CF" !important;
             position: absolute !important;
             left: 0.18em !important;
-            top: calc((var(--line-height) - 8px) / 2) !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
             color: var(--text) !important;
             font-size: 8px !important;
-            line-height: inherit !important;
+            line-height: 1 !important;
         }
 
         /* Checkbox list */
@@ -224,6 +225,9 @@
             background: linear-gradient(to right, transparent 5%, rgba(128,128,128,0.5) 15%, rgba(128,128,128,0.5) 85%, transparent 95%);
             margin: 20px 0;
             cursor: pointer;
+        }
+        .theme-dark hr {
+            background: linear-gradient(to right, transparent 5%, rgba(255,255,255,0.34) 15%, rgba(255,255,255,0.34) 85%, transparent 95%);
         }
         hr.ql-selected {
             background: var(--accent) !important;
@@ -425,18 +429,37 @@
             quill.format('background', normalized);
             reportFormat();
         }
+        function clearInlineFormatsAtCaret() {
+            quill.format('bold', false);
+            quill.format('italic', false);
+            quill.format('underline', false);
+            quill.format('strike', false);
+            quill.format('color', false);
+            quill.format('background', false);
+            quill.format('link', false);
+            quill.format('code', false);
+        }
+        function clearLineFormats(lineIndex, lineLength) {
+            quill.formatLine(lineIndex, lineLength, 'header', false);
+            quill.formatLine(lineIndex, lineLength, 'blockquote', false);
+            quill.formatLine(lineIndex, lineLength, 'list', false);
+            quill.formatLine(lineIndex, lineLength, 'indent', false);
+            quill.formatLine(lineIndex, lineLength, 'align', false);
+            quill.formatLine(lineIndex, lineLength, 'direction', false);
+            quill.formatLine(lineIndex, lineLength, 'code-block', false);
+        }
         function clearFormatting() {
             var r = quill.getSelection();
             if (r) {
                 if (r.length > 0) {
                     quill.removeFormat(r.index, r.length);
                 } else {
-                    // No selection - clear current line format
+                    clearInlineFormatsAtCaret();
                     var line = quill.getLine(r.index);
                     if (line) {
                         var lineIndex = quill.getIndex(line[0]);
                         var lineLength = line[0].length();
-                        quill.removeFormat(lineIndex, lineLength);
+                        clearLineFormats(lineIndex, lineLength);
                     }
                 }
             }

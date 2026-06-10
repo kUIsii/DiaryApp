@@ -231,4 +231,30 @@ class EditorUtilsTest {
         assertTrue(html.contains("function ensureSelection("))
         assertTrue(html.contains("function focusEditorAtEnd()"))
     }
+
+    @Test
+    fun `editor asset vertically centers unordered list bullets`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("top: 50% !important;"))
+        assertTrue(html.contains("transform: translateY(-50%) !important;"))
+    }
+
+    @Test
+    fun `editor asset clear formatting removes inline styles at caret`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("quill.format('bold', false);"))
+        assertTrue(html.contains("quill.format('italic', false);"))
+        assertTrue(html.contains("quill.format('underline', false);"))
+        assertTrue(html.contains("quill.format('strike', false);"))
+    }
+
+    @Test
+    fun `editor asset gives dark mode dividers stronger contrast`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains(".theme-dark hr {"))
+        assertTrue(html.contains("rgba(255,255,255,0.34)"))
+    }
 }
