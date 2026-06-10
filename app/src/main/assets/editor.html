@@ -552,8 +552,9 @@
             var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight, 0);
             var bottomThreshold = visibleBottom - 2;
             var topThreshold = visibleTop + (force ? 2 : 0);
-            var caretTop = bounds.top;
-            var caretBottom = bounds.top + bounds.height;
+            var editorRect = quill.root.getBoundingClientRect();
+            var caretTop = editorRect.top + bounds.top;
+            var caretBottom = caretTop + bounds.height;
             var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
             if (caretBottom > bottomThreshold) {
                 var nextScrollDown = currentScroll + (caretBottom - bottomThreshold);

@@ -342,4 +342,13 @@ class EditorUtilsTest {
         assertTrue(html.contains("var bottomThreshold = visibleBottom - 2;"))
         assertFalse(html.contains("+ (force ? 6 : 12)"))
     }
+
+    @Test
+    fun `editor asset converts quill bounds into viewport coordinates before scrolling`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("var editorRect = quill.root.getBoundingClientRect();"))
+        assertTrue(html.contains("var caretTop = editorRect.top + bounds.top;"))
+        assertTrue(html.contains("var caretBottom = caretTop + bounds.height;"))
+    }
 }
