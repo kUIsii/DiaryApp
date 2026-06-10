@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +20,23 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+
+internal fun toTrashEntry(entry: DiaryEntry): TrashEntry {
+    return TrashEntry(
+        originalId = entry.id,
+        title = entry.title,
+        content = entry.content,
+        plainText = entry.plainText,
+        moodLevel = entry.moodLevel,
+        weather = entry.weather,
+        location = entry.location,
+        latitude = entry.latitude,
+        longitude = entry.longitude,
+        isFavorite = entry.isFavorite,
+        createdAt = entry.createdAt,
+        updatedAt = entry.updatedAt
+    )
+}
 
 data class TagInfo(val id: Long, val name: String, val color: Color)
 
@@ -329,24 +347,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun favoriteEntries(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { id ->
+                dao.toggleFavorite(id, true)
+            }
+        }
+    }
+
     fun deleteEntry(entry: DiaryPreview) {
         viewModelScope.launch {
             // Fetch full entry (with content) for trash
             val fullEntry = dao.getEntryById(entry.id) ?: return@launch
-            val trashEntry = TrashEntry(
-                originalId = fullEntry.id,
-                title = fullEntry.title,
-                content = fullEntry.content,
-                plainText = fullEntry.plainText,
-                moodLevel = fullEntry.moodLevel,
-                weather = fullEntry.weather,
-                location = fullEntry.location,
-                latitude = fullEntry.latitude,
-                longitude = fullEntry.longitude,
-                isFavorite = fullEntry.isFavorite,
-                createdAt = fullEntry.createdAt,
-                updatedAt = fullEntry.updatedAt
-            )
+            val trashEntry = toTrashEntry(fullEntry)
             dao.insertTrashEntry(trashEntry)
             dao.deleteEntryWithTags(fullEntry)
         }
@@ -356,21 +370,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val entry = dao.getEntryById(id)
             if (entry != null) {
-                val trashEntry = TrashEntry(
-                    originalId = entry.id,
-                    title = entry.title,
-                    content = entry.content,
-                    plainText = entry.plainText,
-                    moodLevel = entry.moodLevel,
-                    weather = entry.weather,
-                    location = entry.location,
-                    latitude = entry.latitude,
-                    longitude = entry.longitude,
-                    isFavorite = entry.isFavorite,
-                    createdAt = entry.createdAt,
-                    updatedAt = entry.updatedAt
-                )
-                dao.insertTrashEntry(trashEntry)
+                dao.insertTrashEntry(toTrashEntry(entry))
+                dao.deleteEntryWithTags(entry)
+            }
+        }
+    }
+
+    fun deleteEntries(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { id ->
+                val entry = dao.getEntryById(id) ?: return@forEach
+                dao.insertTrashEntry(toTrashEntry(entry))
                 dao.deleteEntryWithTags(entry)
             }
         }

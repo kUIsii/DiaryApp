@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,12 +34,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,16 +56,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryPreview
-import com.diary.app.ui.components.GlassCard
-import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.FunctionMenu
 import com.diary.app.ui.components.FunctionMenuItem
+import com.diary.app.ui.components.GlassCard
+import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -84,26 +91,26 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
-    val entries by viewModel.entries.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
-    val stats by viewModel.stats.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
     val selectedEntries by viewModel.selectedEntries.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showFunctionMenu by remember { mutableStateOf(false) }
-
-    // Multi-select state
-    var multiSelectMode by remember { mutableStateOf(false) }
-    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
             viewModel.selectDate(LocalDate.now())
         }
+    }
+
+    LaunchedEffect(selectedDate) {
+        multiSelectState = HomeMultiSelectState()
+        showDeleteConfirm = false
     }
 
     GradientBackground {
@@ -114,7 +121,6 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Page header
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -134,7 +140,6 @@ fun HomeScreen(
                             )
                         }
 
-                        // Function menu button
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
@@ -154,7 +159,6 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Calendar
                 item {
                     CalendarView(
                         entryDates = entryDates,
@@ -170,19 +174,34 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Selected date header
-                val currentSelectedDate = selectedDate
-                if (currentSelectedDate != null) {
+                selectedDate?.let { currentDate ->
                     item {
                         SelectedDateHeader(
-                            date = currentSelectedDate,
-                            entryCount = selectedEntries.size
+                            date = currentDate,
+                            entryCount = selectedEntries.size,
+                            multiSelectState = multiSelectState,
+                            onFavoriteSelected = {
+                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                                    haptic.click()
+                                    viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                    multiSelectState = multiSelectState.clearSelection()
+                                }
+                            },
+                            onDeleteSelected = {
+                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                                    haptic.click()
+                                    showDeleteConfirm = true
+                                }
+                            },
+                            onCancelMultiSelect = {
+                                haptic.click()
+                                multiSelectState = multiSelectState.clearSelection()
+                            }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
 
-                // Entries for selected date
                 if (selectedDate != null && selectedEntries.isEmpty()) {
                     item {
                         NoEntriesForDate()
@@ -196,35 +215,43 @@ fun HomeScreen(
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
+                                slideInVertically(
+                                    animationSpec = tween(300, delayMillis = enterDelay),
+                                    initialOffsetY = { it / 5 }
+                                )
                         ) {
                             EntryCard(
                                 entry = entry,
                                 tags = tagsMap[entry.id] ?: emptyList(),
+                                isSelected = entry.id in multiSelectState.selectedIds,
                                 onClick = {
                                     haptic.click()
-                                    onNavigateToDetail(entry.id)
+                                    if (multiSelectState.isEnabled) {
+                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        onNavigateToDetail(entry.id)
+                                    }
                                 },
                                 onLongClick = {
                                     haptic.click()
-                                    // TODO: Implement multi-select mode
+                                    multiSelectState = if (multiSelectState.isEnabled) {
+                                        multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        HomeMultiSelectState.startSelection(entry.id)
+                                    }
                                 }
                             )
                         }
                     }
                 }
 
-                // Bottom padding
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
-            // FAB
-            FAB(onClick = { onNavigateToEditor(null) })
+            if (!multiSelectState.isEnabled) {
+                FAB(onClick = { onNavigateToEditor(null) })
+            }
 
-            // Function menu overlay (MUST be after LazyColumn for proper z-order)
             FunctionMenu(
                 expanded = showFunctionMenu,
                 onDismiss = { showFunctionMenu = false },
@@ -258,54 +285,183 @@ fun HomeScreen(
                     )
                 )
             )
+
+            if (showDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirm = false },
+                    title = { Text("删除选中的日记？") },
+                    text = { Text("这些日记会被移入回收站。") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteEntries(multiSelectState.selectedIds)
+                                multiSelectState = multiSelectState.clearSelection()
+                                showDeleteConfirm = false
+                            }
+                        ) {
+                            Text("删除", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirm = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SelectedDateHeader(date: LocalDate, entryCount: Int) {
+private fun SelectedDateHeader(
+    date: LocalDate,
+    entryCount: Int,
+    multiSelectState: HomeMultiSelectState,
+    onFavoriteSelected: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onCancelMultiSelect: () -> Unit
+) {
     val today = LocalDate.now()
     val dateText = when (date) {
         today -> "今天"
         today.minusDays(1) -> "昨天"
-        else -> {
-            val formatter = DateTimeFormatter.ofPattern("M月d日 EEEE")
-            date.format(formatter)
-        }
+        else -> date.format(DateTimeFormatter.ofPattern("M月d日 EEEE"))
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    if (multiSelectState.isEnabled) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "已选择 ${multiSelectState.selectedCount} 篇",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "可批量收藏或删除",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            HeaderActionButton(
+                icon = Icons.Default.Favorite,
+                label = "收藏",
+                enabled = multiSelectState.selectedIds.isNotEmpty(),
+                onClick = onFavoriteSelected
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            HeaderActionButton(
+                icon = Icons.Default.Delete,
+                label = "删除",
+                enabled = multiSelectState.selectedIds.isNotEmpty(),
+                onClick = onDeleteSelected
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(onClick = onCancelMultiSelect) {
+                Text("取消")
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = dateText,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = if (entryCount > 0) "$entryCount 篇日记" else "暂无日记",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeaderActionButton(
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor = if (enabled) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val contentColor = if (enabled) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(containerColor),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                imageVector = icon,
+                contentDescription = label,
+                tint = contentColor,
                 modifier = Modifier.size(18.dp)
             )
         }
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(
-                text = dateText,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = if (entryCount > 0) "$entryCount 篇日记" else "暂无日记",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = contentColor
+        )
     }
 }
 
@@ -328,7 +484,7 @@ private fun NoEntriesForDate() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "这天没有日记",
+                text = "这一天还没有日记",
                 fontSize = 16.sp,
                 color = onSurfaceVariant,
                 fontWeight = FontWeight.Medium
@@ -347,7 +503,8 @@ private fun NoEntriesForDate() {
 @Composable
 private fun EntryCard(
     entry: DiaryPreview,
-    tags: List<com.diary.app.ui.home.TagInfo>,
+    tags: List<TagInfo>,
+    isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}
 ) {
@@ -359,155 +516,186 @@ private fun EntryCard(
         label = "entryCardScale"
     )
 
-    GlassCard(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp
+            .then(
+                if (isSelected) {
+                    Modifier.border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clip(RoundedCornerShape(16.dp))
     ) {
-        Column {
-            // Time row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = formatEntryTime(entry.createdAt),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-
-            // Title (if exists)
-            if (entry.title.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = entry.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Text preview (replace literal \n with line breaks)
-            if (entry.plainText.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = entry.plainText
-                        .replace("\\n", "\n")
-                        .replace("\r\n", "\n")
-                        .replace("\r", "\n"),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 22.sp
-                )
-            }
-
-            // Bottom info: mood/weather on left, tags on right
-            val hasMoodWeather = entry.moodLevel != null || entry.weather != null
-            val hasTags = tags.isNotEmpty()
-            if (hasMoodWeather || hasTags) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Left: mood + weather
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                ),
+            cornerRadius = 16.dp,
+            innerPadding = 16.dp
+        ) {
+            Column {
+                if (isSelected) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        if (entry.moodLevel != null) {
-                            val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = moodIcon,
-                                    contentDescription = "心情",
-                                    tint = moodTint,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = moodLabelForLevel(entry.moodLevel),
-                                    fontSize = 12.sp,
-                                    color = moodTint,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        if (entry.weather != null) {
-                            val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = weatherIcon,
-                                    contentDescription = "天气",
-                                    tint = weatherTint,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = weatherLabelFor(entry.weather),
-                                    fontSize = 12.sp,
-                                    color = weatherTint,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(12.dp)
+                            )
                         }
                     }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
 
-                    // Spacer to push tags to the right
-                    Spacer(modifier = Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formatEntryTime(entry.createdAt),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
 
-                    // Right: tags
-                    if (hasTags) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            tags.forEach { tag ->
+                if (entry.title.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = entry.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (entry.plainText.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = entry.plainText
+                            .replace("\\n", "\n")
+                            .replace("\r\n", "\n")
+                            .replace("\r", "\n"),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                val hasMoodWeather = entry.moodLevel != null || entry.weather != null
+                val hasTags = tags.isNotEmpty()
+                if (hasMoodWeather || hasTags) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            if (entry.moodLevel != null) {
+                                val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(tag.color.copy(alpha = 0.12f))
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .clip(CircleShape)
-                                            .background(tag.color)
+                                    Icon(
+                                        imageVector = moodIcon,
+                                        contentDescription = "心情",
+                                        tint = moodTint,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = tag.name,
-                                        fontSize = 11.sp,
-                                        color = tag.color,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1
+                                        text = moodLabelForLevel(entry.moodLevel),
+                                        fontSize = 12.sp,
+                                        color = moodTint,
+                                        fontWeight = FontWeight.Medium
                                     )
+                                }
+                            }
+                            if (entry.weather != null) {
+                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = weatherIcon,
+                                        contentDescription = "天气",
+                                        tint = weatherTint,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = weatherLabelFor(entry.weather),
+                                        fontSize = 12.sp,
+                                        color = weatherTint,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        if (hasTags) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                tags.forEach { tag ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(tag.color.copy(alpha = 0.12f))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(5.dp)
+                                                .clip(CircleShape)
+                                                .background(tag.color)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = tag.name,
+                                            fontSize = 11.sp,
+                                            color = tag.color,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
