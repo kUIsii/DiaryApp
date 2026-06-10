@@ -236,8 +236,10 @@ fun LocationSelector(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     recentLocations.forEach { loc ->
+                        val isLongLocation = loc.location.length > 18
                         Box(
                             modifier = Modifier
+                                .then(if (isLongLocation) Modifier.fillMaxWidth() else Modifier)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .clickable {
@@ -246,19 +248,26 @@ fun LocationSelector(
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = if (isLongLocation) Modifier.fillMaxWidth() else Modifier,
+                                verticalAlignment = Alignment.Top,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier
+                                        .padding(top = 2.dp)
+                                        .size(14.dp)
                                 )
                                 Text(
                                     text = loc.location,
                                     fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = if (isLongLocation) Modifier.weight(1f) else Modifier,
+                                    maxLines = if (isLongLocation) 3 else 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    lineHeight = 18.sp
                                 )
                             }
                         }

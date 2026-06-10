@@ -114,7 +114,7 @@ internal fun resolveEditorBottomGap(
 ): Int {
     return when {
         showToolbar && activeCategory >= 0 -> 56
-        showToolbar || isKeyboardVisible -> 36
+        showToolbar -> 36
         else -> 20
     }
 }

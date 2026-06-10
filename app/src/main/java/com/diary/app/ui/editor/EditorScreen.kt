@@ -332,6 +332,10 @@ fun EditorScreen(
                 activeCategory = activeCategory
             )
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
+            if (isKeyboardVisible) {
+                kotlinx.coroutines.delay(90)
+                webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
+            }
             // Explicitly reset keyboard height when keyboard is dismissed
             // (VisualViewport API may not fire reliably on all devices)
             if (!isKeyboardVisible) {

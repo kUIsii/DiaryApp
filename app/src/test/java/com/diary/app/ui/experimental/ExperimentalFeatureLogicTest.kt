@@ -73,4 +73,17 @@ class ExperimentalFeatureLogicTest {
 
         assertEquals(listOf(1L, 3L, 2L), ordered.map { it.id })
     }
+
+    @Test
+    fun `memo items ignore completion sorting when keep in place experiment enabled`() {
+        val items = listOf(
+            TodoItem(id = 2, title = "completed", isCompleted = true, sortOrder = 2, createdAt = 200L),
+            TodoItem(id = 1, title = "first", isCompleted = false, sortOrder = 0, createdAt = 300L),
+            TodoItem(id = 3, title = "third", isCompleted = false, sortOrder = 1, createdAt = 100L)
+        )
+
+        val ordered = orderMemoItemsForDisplay(items, keepCompletedInPlace = true)
+
+        assertEquals(listOf(1L, 3L, 2L), ordered.map { it.id })
+    }
 }

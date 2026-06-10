@@ -83,6 +83,7 @@ import com.diary.app.DiaryApplication
 import com.diary.app.data.HabitRecord
 import com.diary.app.data.Tag
 import com.diary.app.data.TodoItem
+import com.diary.app.ui.experimental.orderMemoItemsForDisplay
 import com.diary.app.ui.experimental.orderTodoItemsForDisplay
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
@@ -127,7 +128,7 @@ fun TodoScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val habitItems = allTodos.filter { it.category == TodoItem.CATEGORY_GOAL }
-    val memoItems = orderTodoItemsForDisplay(
+    val memoItems = orderMemoItemsForDisplay(
         items = allTodos.filter { it.category != TodoItem.CATEGORY_GOAL && it.dueDate == null },
         keepCompletedInPlace = experimentalFeatures.keepCompletedItemsInPlace
     )

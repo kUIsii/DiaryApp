@@ -43,3 +43,19 @@ fun orderTodoItemsForDisplay(
     val completedItems = items.filter { it.isCompleted }
     return activeItems + completedItems
 }
+
+fun orderMemoItemsForDisplay(
+    items: List<TodoItem>,
+    keepCompletedInPlace: Boolean
+): List<TodoItem> {
+    if (!keepCompletedInPlace) {
+        return orderTodoItemsForDisplay(items, keepCompletedInPlace = false)
+    }
+
+    return items.sortedWith(
+        compareByDescending<TodoItem> { it.isPinned }
+            .thenByDescending { it.priority }
+            .thenBy { it.sortOrder }
+            .thenByDescending { it.createdAt }
+    )
+}

@@ -58,6 +58,14 @@ class EditorUtilsTest {
             )
         )
         assertEquals(
+            20,
+            resolveEditorBottomGap(
+                showToolbar = false,
+                isKeyboardVisible = true,
+                activeCategory = -1
+            )
+        )
+        assertEquals(
             36,
             resolveEditorBottomGap(
                 showToolbar = true,
@@ -274,5 +282,21 @@ class EditorUtilsTest {
         assertTrue(html.contains("requestAnimationFrame(function() {"))
         assertTrue(html.contains("scrollSelectionIntoView(false);"))
         assertTrue(html.contains("function scrollToCurrentCursor(forceRestore) { scrollSelectionIntoView"))
+    }
+
+    @Test
+    fun `editor asset uses visual viewport height to avoid double counting keyboard space`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("window.visualViewport ? window.visualViewport.height"))
+        assertTrue(html.contains("var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;"))
+    }
+
+    @Test
+    fun `editor asset rechecks cursor visibility right after enter`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("if (e.key === 'Enter')"))
+        assertTrue(html.contains("scrollSelectionIntoView(true);"))
     }
 }

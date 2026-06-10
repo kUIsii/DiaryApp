@@ -527,10 +527,13 @@
             if (!selection) return;
             var bounds = quill.getBounds(selection.index, Math.max(selection.length, 1));
             if (!bounds) return;
-            var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-            var keyboardHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
-            var visibleTop = 12;
-            var visibleBottom = Math.max(viewportHeight - keyboardHeight - 18, 0);
+            var visualViewport = window.visualViewport;
+            var viewportHeight = visualViewport ? window.visualViewport.height : (window.innerHeight || document.documentElement.clientHeight || 0);
+            var viewportTop = visualViewport ? window.visualViewport.offsetTop : 0;
+            var keyboardHeight = visualViewport ? 0 : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0);
+            var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;
+            var visibleTop = viewportTop + 12;
+            var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap - 18, 0);
             var caretTop = bounds.top;
             var caretBottom = bounds.top + bounds.height;
             var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -712,6 +715,11 @@
 
         // Handle backspace/delete for divider removal
         document.querySelector('.ql-editor').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                setTimeout(function() {
+                    scrollSelectionIntoView(true);
+                }, 0);
+            }
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 var sel = quill.getSelection();
                 if (!sel) return;
