@@ -80,9 +80,9 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `editor layout does not double reserve ime space when webview already resizes`() {
+    fun `editor layout reserves ime space whenever keyboard is visible`() {
         assertEquals(
-            false,
+            true,
             shouldApplyImePaddingToEditorLayout(isKeyboardVisible = true)
         )
         assertEquals(
