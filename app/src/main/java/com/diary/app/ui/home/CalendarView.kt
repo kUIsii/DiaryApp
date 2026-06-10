@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -402,16 +403,40 @@ private fun CalendarDay(
         label = "dayScale"
     )
 
+    val primaryMoodColor = dayInfo?.moodLevel?.let(::moodColorForLevel)
+    val accentMoodColor = dayInfo?.accentMoodLevel?.let(::moodColorForLevel)
+
     val textColor = when {
         isSelected -> Color.White
         isToday -> primary
         else -> onBackground.copy(alpha = 0.8f)
     }
 
-    val bgColor = when {
-        isSelected -> primary.copy(alpha = 0.8f)
-        isToday -> primary.copy(alpha = 0.08f)
-        else -> Color.Transparent
+    val backgroundBrush = when {
+        isSelected -> Brush.linearGradient(
+            colors = listOf(primary.copy(alpha = 0.9f), primary.copy(alpha = 0.76f))
+        )
+        primaryMoodColor != null && dayInfo?.hasMixedMoods == true && accentMoodColor != null ->
+            Brush.linearGradient(
+                colors = listOf(
+                    primaryMoodColor.copy(alpha = if (isToday) 0.24f else 0.18f),
+                    accentMoodColor.copy(alpha = if (isToday) 0.18f else 0.12f)
+                )
+            )
+        primaryMoodColor != null ->
+            Brush.linearGradient(
+                colors = listOf(
+                    primaryMoodColor.copy(alpha = if (isToday) 0.22f else 0.16f),
+                    primaryMoodColor.copy(alpha = if (isToday) 0.14f else 0.1f)
+                )
+            )
+        isToday -> Brush.linearGradient(
+            colors = listOf(
+                primary.copy(alpha = 0.1f),
+                primary.copy(alpha = 0.06f)
+            )
+        )
+        else -> Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
     }
 
     Box(
@@ -420,7 +445,7 @@ private fun CalendarDay(
             .padding(2.dp)
             .scale(animatedScale)
             .clip(CircleShape)
-            .background(bgColor)
+            .background(backgroundBrush)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -438,21 +463,16 @@ private fun CalendarDay(
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal
             )
             if (hasEntry) {
-                val moodLevel = dayInfo?.moodLevel
-                val dotColor = if (isSelected) {
-                    Color.White.copy(alpha = 0.8f)
-                } else if (moodLevel != null) {
-                    moodColorForLevel(moodLevel).copy(alpha = 0.8f)
-                } else {
-                    // White-blue gradient dot for entries without mood
-                    primary.copy(alpha = 0.6f)
+                val countColor = when {
+                    isSelected -> Color.White.copy(alpha = 0.94f)
+                    primaryMoodColor != null -> primaryMoodColor.copy(alpha = 0.92f)
+                    else -> primary.copy(alpha = 0.82f)
                 }
-                Box(
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(dotColor)
+                Text(
+                    text = "${dayInfo?.entryCount ?: 1}",
+                    fontSize = 8.sp,
+                    color = countColor,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

@@ -43,7 +43,13 @@ data class TagInfo(val id: Long, val name: String, val color: Color)
 
 data class HomeStats(val total: Int, val streak: Int, val thisMonth: Int)
 
-data class DayInfo(val moodLevel: Int?, val weather: String?)
+data class DayInfo(
+    val moodLevel: Int?,
+    val weather: String?,
+    val accentMoodLevel: Int? = null,
+    val hasMixedMoods: Boolean = false,
+    val entryCount: Int = 0
+)
 
 data class ReviewEntry(val label: String, val entry: DiaryPreview)
 
@@ -173,8 +179,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         .toLocalDate()
                 }
                 .mapValues { (_, dayEntries) ->
-                    val entry = dayEntries.first()
-                    DayInfo(entry.moodLevel, entry.weather)
+                    val latestEntry = dayEntries.first()
+                    val moodSummary = buildCalendarMoodSummary(
+                        moodLevels = dayEntries.mapNotNull { it.moodLevel },
+                        entryCount = dayEntries.size
+                    )
+                    DayInfo(
+                        moodLevel = moodSummary.primaryMoodLevel ?: latestEntry.moodLevel,
+                        weather = latestEntry.weather,
+                        accentMoodLevel = moodSummary.accentMoodLevel,
+                        hasMixedMoods = moodSummary.hasMixedMoods,
+                        entryCount = moodSummary.entryCount
+                    )
                 }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())

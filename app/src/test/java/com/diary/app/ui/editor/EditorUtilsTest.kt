@@ -262,7 +262,14 @@ class EditorUtilsTest {
 
         assertTrue(html.contains("--viewport-height"))
         assertTrue(html.contains("function setViewportMetrics("))
-        assertTrue(html.contains("function setBottomObstruction("))
+        assertFalse(html.contains("function setBottomObstruction("))
+    }
+
+    @Test
+    fun `editor screen no longer sends duplicate bottom obstruction to web content`() {
+        val source = File("src/main/java/com/diary/app/ui/editor/EditorScreen.kt").readText()
+
+        assertFalse(source.contains("setBottomObstruction("))
     }
 
     @Test
@@ -302,12 +309,12 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `editor asset uses visual viewport height to avoid double counting keyboard space`() {
+    fun `editor asset uses explicit webview viewport height instead of keyboard math`() {
         val html = File("src/main/assets/editor.html").readText()
 
-        assertTrue(html.contains("window.visualViewport ? window.visualViewport.height"))
-        assertTrue(html.contains("var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;"))
-        assertFalse(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap - 18, 0);"))
+        assertTrue(html.contains("var explicitViewportHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-height')) || 0;"))
+        assertTrue(html.contains("var viewportHeight = explicitViewportHeight > 0"))
+        assertFalse(html.contains("window.visualViewport ? window.visualViewport.height"))
     }
 
     @Test
@@ -319,12 +326,13 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `editor asset rescrolls caret when visual viewport changes`() {
+    fun `editor asset stops listening to viewport scroll events that cause self triggered jumps`() {
         val html = File("src/main/assets/editor.html").readText()
 
         assertTrue(html.contains("function handleViewportChange()"))
         assertTrue(html.contains("window.visualViewport.addEventListener('resize', handleViewportChange);"))
-        assertTrue(html.contains("window.visualViewport.addEventListener('scroll', handleViewportChange);"))
+        assertFalse(html.contains("window.visualViewport.addEventListener('scroll', handleViewportChange);"))
+        assertFalse(html.contains("var viewportSyncTimer = null;"))
     }
 
     @Test
@@ -337,11 +345,11 @@ class EditorUtilsTest {
     }
 
     @Test
-    fun `editor asset keeps bottom gap as extra scroll room instead of fake occlusion`() {
+    fun `editor asset keeps bottom gap separate from viewport occlusion checks`() {
         val html = File("src/main/assets/editor.html").readText()
 
-        assertTrue(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight"))
-        assertFalse(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap"))
+        assertTrue(html.contains("var visibleBottom = Math.max(viewportHeight, visibleTop + 2);"))
+        assertFalse(html.contains("editorBottomGap"))
     }
 
     @Test

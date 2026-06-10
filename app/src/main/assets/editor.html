@@ -18,7 +18,6 @@
             --margin-line-color: rgba(199, 126, 75, 0.11);
             --paper-bg: transparent;
             --editor-bottom-gap: 20px;
-            --bottom-obstruction: 0px;
             --viewport-height: 0px;
         }
         .theme-dark {
@@ -315,18 +314,10 @@
             }
         }
 
-        var viewportSyncTimer = null;
-
         function handleViewportChange() {
             if (typeof updateKeyboardHeight === 'function') {
                 updateKeyboardHeight();
             }
-            clearTimeout(viewportSyncTimer);
-            viewportSyncTimer = setTimeout(function() {
-                if (quill && quill.hasFocus && quill.hasFocus()) {
-                    scrollSelectionIntoView(true);
-                }
-            }, 36);
         }
 
         // Detect keyboard height via VisualViewport API
@@ -345,7 +336,6 @@
             }
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', handleViewportChange);
-                window.visualViewport.addEventListener('scroll', handleViewportChange);
             }
             window.addEventListener('resize', function() {
                 // Update baseHeight only when keyboard is not visible (viewport is large)
@@ -548,9 +538,8 @@
             var viewportHeight = explicitViewportHeight > 0
                 ? explicitViewportHeight
                 : (window.innerHeight || document.documentElement.clientHeight || 0);
-            var bottomObstruction = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bottom-obstruction')) || 0;
-            var visibleTop = 12;
-            var visibleBottom = Math.max(viewportHeight - bottomObstruction, visibleTop + 2);
+            var visibleTop = 8;
+            var visibleBottom = Math.max(viewportHeight, visibleTop + 2);
             var editorRect = quill.root.getBoundingClientRect();
             var editorVisibleTop = Math.max(visibleTop, editorRect.top);
             var editorVisibleBottom = Math.min(visibleBottom, editorRect.bottom);
@@ -690,11 +679,6 @@
         function setEditorBottomGap(pixels) {
             var safePixels = Math.max(Number(pixels) || 0, 16);
             document.documentElement.style.setProperty('--editor-bottom-gap', safePixels + 'px');
-        }
-
-        function setBottomObstruction(pixels) {
-            var safePixels = Math.max(Number(pixels) || 0, 0);
-            document.documentElement.style.setProperty('--bottom-obstruction', safePixels + 'px');
         }
 
         function setViewportMetrics(heightPx) {
