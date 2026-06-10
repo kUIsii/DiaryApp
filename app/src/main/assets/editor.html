@@ -519,6 +519,29 @@
             var length = Math.min(editorContext.selectionLength || 0, Math.max(docLength - index, 0));
             quill.setSelection(index, length, 'silent');
         }
+        function scrollSelectionIntoView(force) {
+            var selection = quill.getSelection();
+            if (!selection) {
+                selection = ensureSelection();
+            }
+            if (!selection) return;
+            var bounds = quill.getBounds(selection.index, Math.max(selection.length, 1));
+            if (!bounds) return;
+            var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+            var keyboardHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
+            var visibleTop = 12;
+            var visibleBottom = Math.max(viewportHeight - keyboardHeight - 18, 0);
+            var caretTop = bounds.top;
+            var caretBottom = bounds.top + bounds.height;
+            var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            if (force || caretBottom > visibleBottom) {
+                var nextScrollDown = currentScroll + (caretBottom - visibleBottom) + 18;
+                window.scrollTo({ top: Math.max(nextScrollDown, 0), behavior: 'auto' });
+            } else if (caretTop < visibleTop) {
+                var nextScrollUp = currentScroll - (visibleTop - caretTop) - 18;
+                window.scrollTo({ top: Math.max(nextScrollUp, 0), behavior: 'auto' });
+            }
+        }
         function insertMedia(type, url) {
             try {
                 var r = quill.getSelection(true);
@@ -653,6 +676,7 @@
                 var sel = quill.getSelection();
                 if (sel) {
                     saveEditorContext(sel);
+                    scrollSelectionIntoView(false);
                 }
             }, 16);
         });
@@ -662,6 +686,9 @@
         quill.on('selection-change', function(range) {
             if (range) {
                 saveEditorContext(range);
+                requestAnimationFrame(function() {
+                    scrollSelectionIntoView(false);
+                });
                 // Debounce format change reporting to reduce lag
                 if (window.DiaryBridge) {
                     clearTimeout(formatChangeTimer);
@@ -790,7 +817,9 @@
         }
 
         // Called by Kotlin when keyboard is dismissed — no-op, browser handles scrolling naturally
-        function scrollToCurrentCursor(forceRestore) {}
+        function scrollToCurrentCursor(forceRestore) {
+            scrollSelectionIntoView(!!forceRestore);
+        }
     </script>
 </body>
 </html>

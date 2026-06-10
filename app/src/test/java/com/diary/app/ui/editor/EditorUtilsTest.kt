@@ -265,4 +265,14 @@ class EditorUtilsTest {
         assertTrue(html.contains("height: auto !important;"))
         assertTrue(html.contains("overflow-y: visible !important;"))
     }
+
+    @Test
+    fun `editor asset scrolls caret into view immediately after selection changes`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("function scrollSelectionIntoView(force)"))
+        assertTrue(html.contains("requestAnimationFrame(function() {"))
+        assertTrue(html.contains("scrollSelectionIntoView(false);"))
+        assertTrue(html.contains("function scrollToCurrentCursor(forceRestore) { scrollSelectionIntoView"))
+    }
 }

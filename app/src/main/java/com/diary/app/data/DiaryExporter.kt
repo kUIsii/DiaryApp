@@ -72,7 +72,7 @@ object DiaryExporter {
         val exportEntries = entries.map { entry ->
             ExportFile(
                 title = entry.title,
-                content = entry.content,
+                content = normalizeContentForExport(entry.content),
                 plainText = entry.plainText,
                 moodLevel = entry.moodLevel,
                 weather = entry.weather,
@@ -110,7 +110,15 @@ object DiaryExporter {
     }
 
     suspend fun exportAsMarkdown(context: Context, dao: DiaryDao): String {
-        val entries = dao.getAllEntriesOnce()
+        val entries = mutableListOf<DiaryEntry>()
+        var offset = 0
+        val batchSize = 50
+        while (true) {
+            val batch = dao.getEntriesBatch(offset, batchSize)
+            if (batch.isEmpty()) break
+            entries.addAll(batch)
+            offset += batchSize
+        }
         val tags = dao.getAllTagsOnce()
         val allDiaryTags = dao.getAllDiaryTags()
 
