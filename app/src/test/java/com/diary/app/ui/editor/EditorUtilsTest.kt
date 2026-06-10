@@ -53,7 +53,6 @@ class EditorUtilsTest {
             20,
             resolveEditorBottomGap(
                 showToolbar = false,
-                isKeyboardVisible = false,
                 activeCategory = -1
             )
         )
@@ -61,7 +60,6 @@ class EditorUtilsTest {
             20,
             resolveEditorBottomGap(
                 showToolbar = false,
-                isKeyboardVisible = true,
                 activeCategory = -1
             )
         )
@@ -69,7 +67,6 @@ class EditorUtilsTest {
             36,
             resolveEditorBottomGap(
                 showToolbar = true,
-                isKeyboardVisible = true,
                 activeCategory = -1
             )
         )
@@ -77,16 +74,15 @@ class EditorUtilsTest {
             56,
             resolveEditorBottomGap(
                 showToolbar = true,
-                isKeyboardVisible = true,
                 activeCategory = 2
             )
         )
     }
 
     @Test
-    fun `editor layout reserves ime space whenever keyboard is visible`() {
+    fun `editor layout does not double reserve ime space when webview already resizes`() {
         assertEquals(
-            true,
+            false,
             shouldApplyImePaddingToEditorLayout(isKeyboardVisible = true)
         )
         assertEquals(
@@ -302,6 +298,7 @@ class EditorUtilsTest {
 
         assertTrue(html.contains("window.visualViewport ? window.visualViewport.height"))
         assertTrue(html.contains("var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;"))
+        assertFalse(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap - 18, 0);"))
     }
 
     @Test
@@ -326,7 +323,23 @@ class EditorUtilsTest {
         val html = File("src/main/assets/editor.html").readText()
 
         assertFalse(html.contains("if (force || caretBottom > visibleBottom)"))
-        assertTrue(html.contains("var bottomThreshold = visibleBottom - (force ? 6 : 18);"))
+        assertFalse(html.contains("var bottomThreshold = visibleBottom - (force ? 6 : 18);"))
         assertTrue(html.contains("if (caretBottom > bottomThreshold)"))
+    }
+
+    @Test
+    fun `editor asset keeps bottom gap as extra scroll room instead of fake occlusion`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight"))
+        assertFalse(html.contains("var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap"))
+    }
+
+    @Test
+    fun `editor asset keeps obscured caret tight to keyboard or toolbar`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("var bottomThreshold = visibleBottom - 2;"))
+        assertFalse(html.contains("+ (force ? 6 : 12)"))
     }
 }

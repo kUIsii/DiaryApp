@@ -109,7 +109,6 @@ internal fun toolbarVisibilityDescription(isToolbarVisible: Boolean): String {
 
 internal fun resolveEditorBottomGap(
     showToolbar: Boolean,
-    isKeyboardVisible: Boolean,
     activeCategory: Int
 ): Int {
     return when {
@@ -119,8 +118,9 @@ internal fun resolveEditorBottomGap(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 internal fun shouldApplyImePaddingToEditorLayout(isKeyboardVisible: Boolean): Boolean {
-    return isKeyboardVisible
+    return false
 }
 
 internal fun shouldAutoHideToolbarOnKeyboardHidden(

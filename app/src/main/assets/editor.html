@@ -548,14 +548,15 @@
             var keyboardHeight = visualViewport ? 0 : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0);
             var editorBottomGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--editor-bottom-gap')) || 0;
             var visibleTop = viewportTop + 12;
-            var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight - editorBottomGap - 18, 0);
-            var bottomThreshold = visibleBottom - (force ? 6 : 18);
+            // editorBottomGap is extra scroll room near the document tail, not hidden viewport.
+            var visibleBottom = Math.max(viewportTop + viewportHeight - keyboardHeight, 0);
+            var bottomThreshold = visibleBottom - 2;
             var topThreshold = visibleTop + (force ? 2 : 0);
             var caretTop = bounds.top;
             var caretBottom = bounds.top + bounds.height;
             var currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
             if (caretBottom > bottomThreshold) {
-                var nextScrollDown = currentScroll + (caretBottom - bottomThreshold) + (force ? 6 : 12);
+                var nextScrollDown = currentScroll + (caretBottom - bottomThreshold);
                 window.scrollTo({ top: Math.max(nextScrollDown, 0), behavior: 'auto' });
             } else if (caretTop < topThreshold) {
                 var nextScrollUp = currentScroll - (topThreshold - caretTop) - 12;

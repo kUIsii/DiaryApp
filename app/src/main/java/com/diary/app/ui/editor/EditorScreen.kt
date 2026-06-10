@@ -328,7 +328,6 @@ fun EditorScreen(
         if (isWebViewReady) {
             val bottomGap = resolveEditorBottomGap(
                 showToolbar = showToolbar,
-                isKeyboardVisible = isKeyboardVisible,
                 activeCategory = activeCategory
             )
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
