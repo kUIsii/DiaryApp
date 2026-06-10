@@ -914,7 +914,17 @@ fun EditorScreen(
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (shouldApplyImePaddingToEditorLayout(isKeyboardVisible)) {
+                        Modifier.imePadding()
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
             // Top bar - simplified: only undo, redo, save
             Row(
                 modifier = Modifier
@@ -1184,8 +1194,7 @@ fun EditorScreen(
             AnimatedVisibility(
                 visible = showToolbar,
                 enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
-                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150)),
-                modifier = Modifier.imePadding()
+                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
             ) {
                 EditorToolbar(
                     showToolbar = showToolbar,

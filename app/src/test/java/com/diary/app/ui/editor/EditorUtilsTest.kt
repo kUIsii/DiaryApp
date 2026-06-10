@@ -84,6 +84,18 @@ class EditorUtilsTest {
     }
 
     @Test
+    fun `editor layout reserves ime space whenever keyboard is visible`() {
+        assertEquals(
+            true,
+            shouldApplyImePaddingToEditorLayout(isKeyboardVisible = true)
+        )
+        assertEquals(
+            false,
+            shouldApplyImePaddingToEditorLayout(isKeyboardVisible = false)
+        )
+    }
+
+    @Test
     fun `editor asset uses viewport backed memo paper instead of fake scroll padding`() {
         val html = File("src/main/assets/editor.html").readText()
 
@@ -298,5 +310,14 @@ class EditorUtilsTest {
 
         assertTrue(html.contains("if (e.key === 'Enter')"))
         assertTrue(html.contains("scrollSelectionIntoView(true);"))
+    }
+
+    @Test
+    fun `editor asset rescrolls caret when visual viewport changes`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("function handleViewportChange()"))
+        assertTrue(html.contains("window.visualViewport.addEventListener('resize', handleViewportChange);"))
+        assertTrue(html.contains("window.visualViewport.addEventListener('scroll', handleViewportChange);"))
     }
 }

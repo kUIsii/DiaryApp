@@ -119,6 +119,10 @@ internal fun resolveEditorBottomGap(
     }
 }
 
+internal fun shouldApplyImePaddingToEditorLayout(isKeyboardVisible: Boolean): Boolean {
+    return isKeyboardVisible
+}
+
 internal fun shouldAutoHideToolbarOnKeyboardHidden(
     activeCategory: Int,
     keepToolbarOpen: Boolean
