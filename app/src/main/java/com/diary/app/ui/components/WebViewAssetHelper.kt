@@ -28,7 +28,7 @@ object WebViewAssetHelper {
             )
             .addPathHandler(
                 "/diary_media/",
-                WebViewAssetLoader.InternalStoragePathHandler(context, context.filesDir)
+                WebViewAssetLoader.InternalStoragePathHandler(context, File(context.filesDir, "diary_media"))
             )
             .build()
     }
