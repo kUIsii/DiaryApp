@@ -51,6 +51,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,6 +74,7 @@ import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.WebViewAssetHelper
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.weatherIconFor
@@ -102,7 +104,20 @@ fun DiaryDetailScreen(
     val relatedEntries by viewModel.relatedEntries.collectAsState()
     val loadError by viewModel.loadError.collectAsState()
 
+    val detailJsBridge = remember { DetailJsBridge() }
     var webView by remember { mutableStateOf<WebView?>(null) }
+
+    // 图片查看器状态
+    var imageViewerUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+    var imageViewerIndex by remember { mutableIntStateOf(0) }
+
+    // 监听图片点击事件
+    LaunchedEffect(Unit) {
+        detailJsBridge.imageClicks.collect { event ->
+            imageViewerUrls = event.allUrls
+            imageViewerIndex = event.allUrls.indexOf(event.clickedUrl).coerceAtLeast(0)
+        }
+    }
 
     val fontSizePx = remember {
         val prefs = context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
@@ -238,6 +253,8 @@ fun DiaryDetailScreen(
 
                         // Content WebView
                         val maxContentSize = 2 * 1024 * 1024 // 2MB limit for WebView content
+                        val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
+
                         AndroidView(
                             factory = { ctx ->
                                 WebView(ctx).apply {
@@ -247,7 +264,12 @@ fun DiaryDetailScreen(
                                             evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
                                             if (currentEntry.content.isNotBlank()) {
                                                 try {
-                                                    val safeContent = currentEntry.content
+                                                    // 把旧的 file:// URL 转成 WebViewAssetLoader 的 https:// 格式
+                                                    var safeContent = currentEntry.content.replace(
+                                                        Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                                                    ) { match ->
+                                                        "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                                                    }
                                                     if (safeContent.length > maxContentSize) {
                                                         val fallback = currentEntry.plainText.take(5000)
                                                         evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
@@ -273,24 +295,9 @@ fun DiaryDetailScreen(
                                             view: WebView?,
                                             request: android.webkit.WebResourceRequest?
                                         ): android.webkit.WebResourceResponse? {
-                                            val reqUrl = request?.url?.toString() ?: return null
-                                            if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
-                                                try {
-                                                    val path = reqUrl.removePrefix("file://")
-                                                    val file = java.io.File(path)
-                                                    if (file.exists() && file.canRead()) {
-                                                        val mime = when {
-                                                            path.endsWith(".mp4") -> "video/mp4"
-                                                            path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
-                                                            path.endsWith(".png") -> "image/png"
-                                                            path.endsWith(".webp") -> "image/webp"
-                                                            else -> "image/jpeg"
-                                                        }
-                                                        return android.webkit.WebResourceResponse(mime, null, file.inputStream())
-                                                    }
-                                                } catch (_: Exception) {}
-                                            }
-                                            return null
+                                            // 用 WebViewAssetLoader 处理本地资源
+                                            return WebViewAssetHelper.interceptRequest(assetLoader, request)
+                                                ?: super.shouldInterceptRequest(view, request)
                                         }
                                     }
                                     settings.javaScriptEnabled = true
@@ -304,6 +311,7 @@ fun DiaryDetailScreen(
                                     settings.loadWithOverviewMode = true
                                     settings.useWideViewPort = true
                                     setBackgroundColor(0)
+                                    addJavascriptInterface(detailJsBridge, "DiaryBridge")
                                     loadUrl("file:///android_asset/viewer.html")
                                     webView = this
                                 }
@@ -342,6 +350,18 @@ fun DiaryDetailScreen(
                 }
             }
         }
+    }
+
+    // 全屏图片查看器
+    if (imageViewerUrls.isNotEmpty()) {
+        ImageViewerScreen(
+            imageUrls = imageViewerUrls,
+            initialIndex = imageViewerIndex,
+            onDismiss = {
+                imageViewerUrls = emptyList()
+                imageViewerIndex = 0
+            }
+        )
     }
 }
 

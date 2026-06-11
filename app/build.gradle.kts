@@ -12,8 +12,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 42
-        versionName = "1.12.0"
+        versionCode = 43
+        versionName = "1.13.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -112,6 +112,9 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // WebKit (WebViewAssetLoader)
+    implementation("androidx.webkit:webkit:1.8.0")
 
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")

@@ -94,6 +94,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.WebViewAssetHelper
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
@@ -281,10 +282,16 @@ fun EditorScreen(
             // Inject saved content into WebView when editing existing entry
             if (diaryId != null && entry.content.isNotBlank()) {
                 // Strip inline Base64 data URLs to prevent memory crash
-                val safeContent = entry.content.replace(
+                var safeContent = entry.content.replace(
                     Regex("\"data:image/[^\"]{0,5000000}\""),
                     "\"\""
                 )
+                // 把旧的 file:// URL 转成 WebViewAssetLoader 的 https:// 格式
+                safeContent = safeContent.replace(
+                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                ) { match ->
+                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                }
                 // Use Base64 encoding to avoid escaping issues
                 val base64Content = Base64.encodeToString(
                     safeContent.toByteArray(Charsets.UTF_8),
@@ -398,7 +405,8 @@ fun EditorScreen(
                     if (scaled !== bitmap) scaled.recycle()
                     bitmap.recycle()
 
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
+                    val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(webViewUrl)}')", null)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -416,7 +424,8 @@ fun EditorScreen(
                 context.contentResolver.openInputStream(mediaUri)?.use { input ->
                     outputFile.outputStream().use { output -> input.copyTo(output) }
                 }
-                webView?.evaluateJavascript("insertMedia('video', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
+                val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
+                webView?.evaluateJavascript("insertMedia('video', '${escapeForJs(webViewUrl)}')", null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -433,7 +442,8 @@ fun EditorScreen(
                 context.contentResolver.openInputStream(mediaUri)?.use { input ->
                     outputFile.outputStream().use { output -> input.copyTo(output) }
                 }
-                webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs("file://${outputFile.absolutePath}")}')", null)
+                val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
+                webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs(webViewUrl)}')", null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -1130,6 +1140,8 @@ fun EditorScreen(
                     }
                     .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
             ) {
+                val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
+
                 AndroidView(
                     factory = { ctx ->
                         WebView(ctx).apply {
@@ -1142,26 +1154,9 @@ fun EditorScreen(
                                     view: WebView?,
                                     request: android.webkit.WebResourceRequest?
                                 ): android.webkit.WebResourceResponse? {
-                                    val reqUrl = request?.url?.toString() ?: return null
-                                    if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
-                                        try {
-                                            val path = reqUrl.removePrefix("file://")
-                                            val file = java.io.File(path)
-                                            if (file.exists() && file.canRead()) {
-                                                val mime = when {
-                                                    path.endsWith(".mp4") -> "video/mp4"
-                                                    path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
-                                                    path.endsWith(".png") -> "image/png"
-                                                    path.endsWith(".webp") -> "image/webp"
-                                                    else -> "image/jpeg"
-                                                }
-                                                return android.webkit.WebResourceResponse(
-                                                    mime, null, file.inputStream()
-                                                )
-                                            }
-                                        } catch (_: Exception) {}
-                                    }
-                                    return null
+                                    // 用 WebViewAssetLoader 处理本地资源
+                                    return WebViewAssetHelper.interceptRequest(assetLoader, request)
+                                        ?: super.shouldInterceptRequest(view, request)
                                 }
                             }
                             settings.javaScriptEnabled = true
