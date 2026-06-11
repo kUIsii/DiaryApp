@@ -538,7 +538,7 @@ fun ProfileScreen(
                                 isChecking = true
                                 scope.launch {
                                     try {
-                                        val result = UpdateChecker.checkForUpdate(context, BuildConfig.VERSION_NAME)
+                                        val result = UpdateChecker.checkForUpdate(context, BuildConfig.VERSION_NAME, forceRefresh = true)
                                         isChecking = false
                                         if (result != null) { updateVersion = result.versionName; updateNotes = result.releaseNotes; updateUrl = result.downloadUrl; isForceUpdate = result.isForceUpdate; showUpdateDialog = true }
                                         else { Toast.makeText(context, context.getString(R.string.profile_latest_version), Toast.LENGTH_SHORT).show() }
