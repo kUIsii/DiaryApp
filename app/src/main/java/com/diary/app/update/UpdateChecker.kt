@@ -9,11 +9,6 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class CachedUpdateResult(
-    val updateInfo: UpdateInfo?,
-    val timestamp: Long
-)
-
 data class GitHubRelease(
     @SerializedName("tag_name") val tagName: String,
     val body: String?,
@@ -34,31 +29,8 @@ data class UpdateInfo(
 
 object UpdateChecker {
 
-    private const val CACHE_KEY = "update_check_cache"
-    private const val CACHE_VERSION_KEY = "update_check_version"
-    private const val CACHE_DURATION_MS = 30 * 60 * 1000L // 30 分钟
-
-    suspend fun checkForUpdate(context: Context, currentVersionName: String, forceRefresh: Boolean = false): UpdateInfo? {
+    suspend fun checkForUpdate(context: Context, currentVersionName: String): UpdateInfo? {
         return withContext(Dispatchers.IO) {
-            val prefs = context.getSharedPreferences("diary_update_prefs", Context.MODE_PRIVATE)
-
-            // 版本变化时清除缓存
-            val cachedVersion = prefs.getString(CACHE_VERSION_KEY, null)
-            if (cachedVersion != currentVersionName) {
-                prefs.edit().remove(CACHE_KEY).putString(CACHE_VERSION_KEY, currentVersionName).apply()
-            }
-
-            // 检查缓存（手动检查时跳过缓存）
-            if (!forceRefresh) {
-                val cached = try {
-                    Gson().fromJson(prefs.getString(CACHE_KEY, null), CachedUpdateResult::class.java)
-                } catch (_: Exception) { null }
-
-                if (cached != null && System.currentTimeMillis() - cached.timestamp < CACHE_DURATION_MS) {
-                    return@withContext cached.updateInfo
-                }
-            }
-
             try {
                 val isExperimental = BuildConfig.FLAVOR == "experimental"
                 val url = URL(
@@ -91,15 +63,10 @@ object UpdateChecker {
                     val version = release.tagName.removePrefix("v").substringBefore("-")
                     val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
                     parts.getOrElse(0) { 0 } * 1000000 + parts.getOrElse(1) { 0 } * 1000 + parts.getOrElse(2) { 0 }
-                } ?: run {
-                    // 没有匹配的 release，缓存 null 结果
-                    prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(null, System.currentTimeMillis()))).apply()
-                    return@withContext null
-                }
+                } ?: return@withContext null
 
                 val latestVersion = matchingRelease.tagName.removePrefix("v")
                 if (!isNewerVersion(currentVersionName, latestVersion)) {
-                    prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(null, System.currentTimeMillis()))).apply()
                     return@withContext null
                 }
 
@@ -111,7 +78,7 @@ object UpdateChecker {
                 val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
                         releaseBody.contains("[强制更新]")
 
-                val result = UpdateInfo(
+                UpdateInfo(
                     versionName = latestVersion,
                     releaseNotes = releaseBody
                         .replace("[force]", "", ignoreCase = true)
@@ -120,9 +87,6 @@ object UpdateChecker {
                     downloadUrl = apkAsset.downloadUrl,
                     isForceUpdate = isForce
                 )
-                // 缓存结果
-                prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(result, System.currentTimeMillis()))).apply()
-                result
             } catch (e: Exception) {
                 null
             }
@@ -146,15 +110,10 @@ object UpdateChecker {
             if (latestPart < currentPart) return false
         }
 
-        // 基础版本相同，比较后缀
-        // 如果后缀相同，不需要更新
         if (currentSuffix == latestSuffix) return false
-
-        // 有后缀的版本比没有后缀的版本低（正式版 > 测试版）
         if (latestSuffix.isEmpty()) return true
         if (currentSuffix.isEmpty()) return false
 
-        // 两个不同的后缀，按字典序比较
         return latestSuffix > currentSuffix
     }
 }
