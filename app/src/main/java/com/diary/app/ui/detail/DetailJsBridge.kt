@@ -19,14 +19,18 @@ class DetailJsBridge {
     private val _imageClicks = MutableSharedFlow<ImageClickEvent>(extraBufferCapacity = 1)
     val imageClicks: SharedFlow<ImageClickEvent> = _imageClicks.asSharedFlow()
 
-    @JavascriptInterface
-    fun onImageClick(clickedUrl: String, allUrlsJson: String) {
-        try {
+    internal fun parseImageClickEvent(clickedUrl: String, allUrlsJson: String): ImageClickEvent {
+        return try {
             val urlsArray = org.json.JSONArray(allUrlsJson)
             val urls = (0 until urlsArray.length()).map { urlsArray.getString(it) }
-            _imageClicks.tryEmit(ImageClickEvent(clickedUrl, urls))
+            ImageClickEvent(clickedUrl, urls)
         } catch (_: Exception) {
-            _imageClicks.tryEmit(ImageClickEvent(clickedUrl, listOf(clickedUrl)))
+            ImageClickEvent(clickedUrl, listOf(clickedUrl))
         }
+    }
+
+    @JavascriptInterface
+    fun onImageClick(clickedUrl: String, allUrlsJson: String) {
+        _imageClicks.tryEmit(parseImageClickEvent(clickedUrl, allUrlsJson))
     }
 }

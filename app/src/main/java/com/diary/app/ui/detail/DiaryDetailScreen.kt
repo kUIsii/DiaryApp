@@ -9,6 +9,7 @@ import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
@@ -236,7 +237,9 @@ fun DiaryDetailScreen(
                     visible = contentVisible,
                     enter = fadeIn(tween(400))
                 ) {
-                    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val webViewHeight = (maxHeight * 0.56f).coerceAtLeast(360.dp)
+                        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         // Header: centered date + mood
                         DetailHeader(
                             entry = currentEntry,
@@ -337,7 +340,7 @@ fun DiaryDetailScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 300.dp)
+                                .height(webViewHeight)
                                 .padding(horizontal = 24.dp)
                         )
 
@@ -365,6 +368,7 @@ fun DiaryDetailScreen(
                             onDelete = { showDeleteDialog = true },
                             onToggleFavorite = { viewModel.toggleFavorite() }
                         )
+                    }
                     }
                 }
             }

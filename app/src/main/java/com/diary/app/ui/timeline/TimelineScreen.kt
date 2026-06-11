@@ -287,6 +287,7 @@ fun TimelineScreen(
                             MonthGroupHeader(
                                 month = month,
                                 entryCount = monthTotal,
+                                dayCount = dateGroups.size,
                                 isExpanded = isExpanded,
                                 onClick = {
                                     expandedMonths[month] = !isExpanded
@@ -617,6 +618,7 @@ private fun ActiveFilterChip(
 private fun MonthGroupHeader(
     month: YearMonth,
     entryCount: Int,
+    dayCount: Int,
     isExpanded: Boolean,
     onClick: () -> Unit
 ) {
@@ -644,19 +646,11 @@ private fun MonthGroupHeader(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = "$entryCount",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Text(
+            text = "$dayCount 天 · $entryCount 篇",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -698,98 +692,60 @@ private fun DayGroupCard(
         }
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp)
+            .padding(bottom = 14.dp)
     ) {
-        // Left: vertical timeline axis with horizontal branch
-        Column(
-            modifier = Modifier.width(36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Dot at the branch point (aligned with date text)
             Box(
                 modifier = Modifier
-                    .padding(top = 6.dp)
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.62f))
             )
-
-            // Vertical line continues down through the card
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = dateText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${entries.size} 篇",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
             )
         }
 
-        // Right: date header + day card containing all entries
-        Column(modifier = Modifier.weight(1f)) {
-            // Date label
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 10.dp)
-            ) {
-                // Date text
-                Text(
-                    text = dateText,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.68f))
+                .border(
+                    width = 0.8.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.36f),
+                    shape = RoundedCornerShape(16.dp)
                 )
-
-                // Entry count badge
-                if (entries.size > 1) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "${entries.size}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            // Day card (big card containing all entries)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = 2.dp,
-                        shape = RoundedCornerShape(16.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.08f),
-                        spotColor = Color.Black.copy(alpha = 0.08f)
-                    )
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(16.dp)
-                    )
+        ) {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    entries.forEach { entry ->
-                        val tags = tagsMap[entry.id] ?: emptyList()
-                        EntryItemCard(
-                            entry = entry,
-                            tags = tags,
-                            onClick = { onEntryClick(entry.id) }
-                        )
-                    }
+                entries.forEach { entry ->
+                    val tags = tagsMap[entry.id] ?: emptyList()
+                    EntryItemCard(
+                        entry = entry,
+                        tags = tags,
+                        onClick = { onEntryClick(entry.id) }
+                    )
                 }
             }
         }
@@ -811,42 +767,17 @@ private fun EntryItemCard(
         label = "entryScale"
     )
 
-    // Mood-based background color
-    val isDark = themeMode().isDark()
-    val moodBgColor = if (isDark) {
-        when (entry.moodLevel) {
-            1 -> Color(0xFF2D2218) // dark warm brown
-            2 -> Color(0xFF2D2818) // dark amber
-            3 -> Color(0xFF222222) // dark neutral
-            4 -> Color(0xFF1A2D1A) // dark green
-            5 -> Color(0xFF1A2235) // dark blue
-            6 -> Color(0xFF251A30) // dark purple
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        }
-    } else {
-        when (entry.moodLevel) {
-            1 -> Color(0xFFFFF3E0) // warm orange
-            2 -> Color(0xFFFFF8E1) // light amber
-            3 -> Color(0xFFF5F5F5) // neutral gray
-            4 -> Color(0xFFE8F5E9) // light green
-            5 -> Color(0xFFE3F2FD) // light blue
-            6 -> Color(0xFFF3E5F5) // light purple
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        }
-    }
+    val accentColor = entry.moodLevel?.let {
+        val (_, tint) = moodIconForLevel(it)
+        tint
+    } ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 1.dp,
-                shape = RoundedCornerShape(12.dp),
-                ambientColor = Color.Black.copy(alpha = 0.04f),
-                spotColor = Color.Black.copy(alpha = 0.04f)
-            )
             .clip(RoundedCornerShape(12.dp))
-            .background(moodBgColor)
-            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f))
+            .border(0.7.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f), RoundedCornerShape(12.dp))
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -857,9 +788,16 @@ private fun EntryItemCard(
                 onClick = onClick
             )
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxSize()
+                    .background(accentColor.copy(alpha = 0.58f))
+            )
+            Column(
+                modifier = Modifier.padding(start = 12.dp, top = 11.dp, end = 12.dp, bottom = 11.dp)
+            ) {
             // Time row
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -990,6 +928,8 @@ private fun EntryItemCard(
             }
         }
     }
+}
+
 }
 
 private fun formatEntryTime(timestamp: Long): String {

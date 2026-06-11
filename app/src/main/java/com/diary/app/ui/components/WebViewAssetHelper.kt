@@ -35,15 +35,13 @@ object WebViewAssetHelper {
 
     /** 把本地文件路径转成 WebView 可加载的 https URL */
     fun toWebViewUrl(filePath: String): String {
-        // filePath 形如 /data/.../files/diary_media/img_xxx.jpg
-        // 需要转成 https://appassets/diary_media/img_xxx.jpg
-        val mediaIndex = filePath.indexOf("diary_media")
+        val normalized = filePath.replace("\\", "/")
+        val mediaIndex = normalized.indexOf("/diary_media/")
         if (mediaIndex >= 0) {
-            val relativePath = filePath.substring(mediaIndex)
+            val relativePath = normalized.substring(mediaIndex + 1)
             return "https://$AUTHORITY/$relativePath"
         }
-        // fallback: 直接用 file://
-        return "file://$filePath"
+        return if (normalized.startsWith("file://")) normalized else "file://$normalized"
     }
 
     /** 把 file:// URL 转成 WebView 可加载的 https URL */

@@ -37,14 +37,18 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -96,11 +101,17 @@ fun HomeScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedEntries by viewModel.selectedEntries.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
+    val weeklySummary by viewModel.weeklySummary.collectAsState()
+    val onThisDayEntries by viewModel.onThisDayEntries.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchEntries by viewModel.entries.collectAsState()
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showFunctionMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
+    val isSearching = searchQuery.isNotBlank()
+    val visibleEntries = if (isSearching) searchEntries else selectedEntries
 
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
@@ -160,55 +171,89 @@ fun HomeScreen(
                 }
 
                 item {
-                    CalendarView(
-                        entryDates = entryDates,
-                        dayInfoMap = dayInfoMap,
-                        selectedDate = selectedDate,
-                        onDateSelected = { date ->
-                            haptic.click()
-                            viewModel.selectDate(date)
-                        },
-                        calendarMode = calendarMode,
-                        onModeChange = { calendarMode = it }
+                    HomeSearchCard(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.setSearchQuery(it) },
+                        onClear = { viewModel.setSearchQuery("") }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                selectedDate?.let { currentDate ->
+                if (isSearching) {
                     item {
-                        SelectedDateHeader(
-                            date = currentDate,
-                            entryCount = selectedEntries.size,
-                            multiSelectState = multiSelectState,
-                            onFavoriteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
-                                    haptic.click()
-                                    viewModel.favoriteEntries(multiSelectState.selectedIds)
-                                    multiSelectState = multiSelectState.clearSelection()
-                                }
-                            },
-                            onDeleteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
-                                    haptic.click()
-                                    showDeleteConfirm = true
-                                }
-                            },
-                            onCancelMultiSelect = {
-                                haptic.click()
-                                multiSelectState = multiSelectState.clearSelection()
-                            }
+                        SearchResultHeader(
+                            query = searchQuery,
+                            resultCount = visibleEntries.size,
+                            onClear = { viewModel.setSearchQuery("") }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
+                } else {
+                    item {
+                        HomeInsightRow(
+                            weeklySummary = weeklySummary,
+                            onThisDayEntries = onThisDayEntries,
+                            onThisDayClick = {
+                                onThisDayEntries.firstOrNull()?.let { entry ->
+                                    haptic.click()
+                                    onNavigateToDetail(entry.id)
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    item {
+                        CalendarView(
+                            entryDates = entryDates,
+                            dayInfoMap = dayInfoMap,
+                            selectedDate = selectedDate,
+                            onDateSelected = { date ->
+                                haptic.click()
+                                viewModel.selectDate(date)
+                            },
+                            calendarMode = calendarMode,
+                            onModeChange = { calendarMode = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    selectedDate?.let { currentDate ->
+                        item {
+                            SelectedDateHeader(
+                                date = currentDate,
+                                entryCount = visibleEntries.size,
+                                multiSelectState = multiSelectState,
+                                onFavoriteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                        multiSelectState = multiSelectState.clearSelection()
+                                    }
+                                },
+                                onDeleteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        showDeleteConfirm = true
+                                    }
+                                },
+                                onCancelMultiSelect = {
+                                    haptic.click()
+                                    multiSelectState = multiSelectState.clearSelection()
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
                 }
 
-                if (selectedDate != null && selectedEntries.isEmpty()) {
+                if ((selectedDate != null || isSearching) && visibleEntries.isEmpty()) {
                     item {
-                        NoEntriesForDate()
+                        NoEntriesForDate(isSearching = isSearching)
                     }
                 } else {
                     itemsIndexed(
-                        items = selectedEntries,
+                        items = visibleEntries,
                         key = { _, entry -> entry.id }
                     ) { index, entry ->
                         val enterDelay = (index * 60).coerceAtMost(400)
@@ -466,7 +511,167 @@ private fun HeaderActionButton(
 }
 
 @Composable
-private fun NoEntriesForDate() {
+private fun HomeSearchCard(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        innerPadding = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                modifier = Modifier.padding(horizontal = 8.dp).size(18.dp)
+            )
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        text = "搜索日记、标签、心情",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+            if (query.isNotBlank()) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "清除搜索",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onClear)
+                        .padding(8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeInsightRow(
+    weeklySummary: HomeViewModel.WeeklySummary,
+    onThisDayEntries: List<DiaryPreview>,
+    onThisDayClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        val hasOnThisDay = onThisDayEntries.isNotEmpty()
+        HomeInsightCard(
+            title = "本周",
+            primary = "${weeklySummary.entryCount} 篇",
+            secondary = "${weeklySummary.daysWithEntries} 天记录 · ${weeklySummary.totalWords} 字",
+            modifier = Modifier.weight(if (hasOnThisDay) 1f else 2f)
+        )
+        if (hasOnThisDay) {
+            HomeInsightCard(
+                title = "历史今天",
+                primary = "${onThisDayEntries.size} 篇",
+                secondary = onThisDayEntries.firstOrNull()?.plainText?.take(18)?.ifBlank { "点开回看同一天" }
+                    ?: "点开回看同一天",
+                modifier = Modifier.weight(1f),
+                onClick = onThisDayClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeInsightCard(
+    title: String,
+    primary: String,
+    secondary: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.62f))
+            .border(
+                0.5.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f),
+                RoundedCornerShape(16.dp)
+            )
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Column {
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = primary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = secondary,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchResultHeader(
+    query: String,
+    resultCount: Int,
+    onClear: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "搜索结果",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "“$query” · $resultCount 篇",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = onClear) {
+            Text("清除")
+        }
+    }
+}
+
+@Composable
+private fun NoEntriesForDate(isSearching: Boolean = false) {
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     Box(
@@ -484,14 +689,14 @@ private fun NoEntriesForDate() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "这一天还没有日记",
+                text = if (isSearching) "没有找到相关日记" else "这一天还没有日记",
                 fontSize = 16.sp,
                 color = onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "点击下方按钮开始记录",
+                text = if (isSearching) "换个关键词再试试" else "点击下方按钮开始记录",
                 fontSize = 13.sp,
                 color = onSurfaceVariant.copy(alpha = 0.6f)
             )

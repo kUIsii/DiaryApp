@@ -15,6 +15,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -122,6 +125,9 @@ fun TodoScreen(
 
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var quickMemoText by remember { mutableStateOf("") }
+    var quickDeadlineText by remember { mutableStateOf("") }
+    var quickDeadlineOffsetDays by remember { mutableIntStateOf(0) }
 
     val currentTab = TodoTab.entries[currentPageIndex]
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -465,6 +471,45 @@ fun TodoScreen(
                         }
                     }
                 }
+            }
+
+            if (currentTab == TodoTab.MEMO || currentTab == TodoTab.DEADLINE) {
+                QuickAddRow(
+                    value = if (currentTab == TodoTab.MEMO) quickMemoText else quickDeadlineText,
+                    onValueChange = {
+                        if (currentTab == TodoTab.MEMO) quickMemoText = it else quickDeadlineText = it
+                    },
+                    placeholder = if (currentTab == TodoTab.MEMO) "快速记一条备忘" else "快速加一个待办",
+                    showDeadlinePresets = currentTab == TodoTab.DEADLINE,
+                    deadlineOffsetDays = quickDeadlineOffsetDays,
+                    onDeadlineOffsetChange = { quickDeadlineOffsetDays = it },
+                    onSubmit = {
+                        when (currentTab) {
+                            TodoTab.MEMO -> {
+                                val text = quickMemoText.trim()
+                                if (text.isNotBlank()) {
+                                    viewModel.addMemo(text)
+                                    quickMemoText = ""
+                                }
+                            }
+                            TodoTab.DEADLINE -> {
+                                val text = quickDeadlineText.trim()
+                                if (text.isNotBlank()) {
+                                    val deadline = LocalDate.now()
+                                        .plusDays(quickDeadlineOffsetDays.toLong())
+                                        .atStartOfDay(ZoneId.systemDefault())
+                                        .toInstant()
+                                        .toEpochMilli()
+                                    viewModel.addDeadline(text, deadline)
+                                    quickDeadlineText = ""
+                                }
+                            }
+                            TodoTab.HABIT -> Unit
+                        }
+                    },
+                    onOpenFullAdd = { showAddDialog = true }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             Box(
@@ -1243,6 +1288,152 @@ private fun HabitRecordDialog(
 }
 
 @Composable
+private fun QuickAddRow(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    showDeadlinePresets: Boolean,
+    deadlineOffsetDays: Int,
+    onDeadlineOffsetChange: (Int) -> Unit,
+    onSubmit: () -> Unit,
+    onOpenFullAdd: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        cornerRadius = 16.dp,
+        innerPadding = 10.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    placeholder = {
+                        Text(
+                            text = placeholder,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (value.isBlank()) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+                            } else {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            }
+                        )
+                        .clickable { if (value.isNotBlank()) onSubmit() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "快速新增",
+                        tint = if (value.isBlank()) {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            if (showDeadlinePresets) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QuickDateChip(
+                        label = "今天",
+                        selected = deadlineOffsetDays == 0,
+                        onClick = { onDeadlineOffsetChange(0) }
+                    )
+                    QuickDateChip(
+                        label = "明天",
+                        selected = deadlineOffsetDays == 1,
+                        onClick = { onDeadlineOffsetChange(1) }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(onClick = onOpenFullAdd) {
+                        Text("选日期", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickDateChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+            )
+            .clickable(onClick = onClick)
+            .height(44.dp)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun TodoSectionHeader(
+    title: String,
+    count: Int
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = "$count 项",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.52f)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
 private fun MemoTab(
     items: List<TodoItem>,
     viewModel: TodoViewModel,
@@ -1274,24 +1465,32 @@ private fun MemoTab(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            items(items, key = { it.id }) { item ->
-                MemoItem(
-                    item = item,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onToggle = { viewModel.toggleTodo(item) },
-                    onDelete = { onDeleteRequest(item) },
-                    onEdit = { onEdit(item) },
-                    isMultiSelectMode = isMultiSelectMode,
-                    isSelected = item.id in selectedIds,
-                    onToggleSelection = { onToggleSelection(item.id) },
-                    onLongPress = {
-                        if (!isMultiSelectMode) {
-                            onMultiSelectModeChange(true)
-                            onToggleSelection(item.id)
-                        }
+            listOf(
+                "未完成" to items.filter { !it.isCompleted },
+                "已完成" to items.filter { it.isCompleted }
+            ).forEach { (sectionTitle, sectionItems) ->
+                if (sectionItems.isNotEmpty()) {
+                    item { TodoSectionHeader(title = sectionTitle, count = sectionItems.size) }
+                    items(sectionItems, key = { it.id }) { item ->
+                        MemoItem(
+                            item = item,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onToggle = { viewModel.toggleTodo(item) },
+                            onDelete = { onDeleteRequest(item) },
+                            onEdit = { onEdit(item) },
+                            isMultiSelectMode = isMultiSelectMode,
+                            isSelected = item.id in selectedIds,
+                            onToggleSelection = { onToggleSelection(item.id) },
+                            onLongPress = {
+                                if (!isMultiSelectMode) {
+                                    onMultiSelectModeChange(true)
+                                    onToggleSelection(item.id)
+                                }
+                            }
+                        )
                     }
-                )
+                }
             }
 
             item {
@@ -1408,6 +1607,7 @@ private fun DeadlineTab(
     onMultiSelectModeChange: (Boolean) -> Unit
 ) {
     val today = remember { LocalDate.now() }
+    val tomorrow = today.plusDays(1)
 
     if (items.isEmpty()) {
         EmptyState(
@@ -1427,25 +1627,48 @@ private fun DeadlineTab(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            items(items, key = { it.id }) { item ->
-                DeadlineItem(
-                    item = item,
-                    today = today,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onToggle = { viewModel.toggleTodo(item) },
-                    onDelete = { onDeleteRequest(item) },
-                    onEdit = { onEdit(item) },
-                    isMultiSelectMode = isMultiSelectMode,
-                    isSelected = item.id in selectedIds,
-                    onToggleSelection = { onToggleSelection(item.id) },
-                    onLongPress = {
-                        if (!isMultiSelectMode) {
-                            onMultiSelectModeChange(true)
-                            onToggleSelection(item.id)
-                        }
+            val pendingItems = items.filter { !it.isCompleted }
+            val completedItems = items.filter { it.isCompleted }
+            val sections = listOf(
+                "过期" to pendingItems.filter { item ->
+                    item.dueDate?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().isBefore(today) } == true
+                },
+                "今天" to pendingItems.filter { item ->
+                    item.dueDate?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() == today } == true
+                },
+                "明天" to pendingItems.filter { item ->
+                    item.dueDate?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() == tomorrow } == true
+                },
+                "之后" to pendingItems.filter { item ->
+                    item.dueDate?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().isAfter(tomorrow) } == true
+                },
+                "已完成" to completedItems
+            )
+
+            sections.forEach { (sectionTitle, sectionItems) ->
+                if (sectionItems.isNotEmpty()) {
+                    item { TodoSectionHeader(title = sectionTitle, count = sectionItems.size) }
+                    items(sectionItems, key = { it.id }) { item ->
+                        DeadlineItem(
+                            item = item,
+                            today = today,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onToggle = { viewModel.toggleTodo(item) },
+                            onDelete = { onDeleteRequest(item) },
+                            onEdit = { onEdit(item) },
+                            isMultiSelectMode = isMultiSelectMode,
+                            isSelected = item.id in selectedIds,
+                            onToggleSelection = { onToggleSelection(item.id) },
+                            onLongPress = {
+                                if (!isMultiSelectMode) {
+                                    onMultiSelectModeChange(true)
+                                    onToggleSelection(item.id)
+                                }
+                            }
+                        )
                     }
-                )
+                }
             }
 
             item {
