@@ -609,7 +609,7 @@ fun BackupScreen(
                                 textTertiary = textTertiary,
                                 onRename = {
                                     renameTarget = record
-                                    renameInput = record.fileName.removeSuffix(".json")
+                                    renameInput = record.fileName.removeSuffix(".json").removePrefix("diary_backup_")
                                 },
                                 onDelete = { deleteTarget = record }
                             )

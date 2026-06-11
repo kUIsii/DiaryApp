@@ -39,7 +39,9 @@ fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"
         .trim('-', '.')
         .ifBlank { fallbackBaseName }
 
-    return if (baseName.lowercase().endsWith(".json")) baseName else "$baseName.json"
+    // 确保以 diary_backup_ 开头，这样导入扫描能找到
+    val prefixed = if (baseName.startsWith("diary_backup_")) baseName else "diary_backup_$baseName"
+    return "$prefixed.json"
 }
 
 object BackupManager {
