@@ -311,7 +311,7 @@ class MainActivity : FragmentActivity() {
                         if (!hasChecked) {
                             hasChecked = true
                             try {
-                                val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+                                val result = UpdateChecker.checkForUpdate(context, BuildConfig.VERSION_NAME)
                                 if (result != null) {
                                     updateVersion = result.versionName
                                     updateNotes = result.releaseNotes

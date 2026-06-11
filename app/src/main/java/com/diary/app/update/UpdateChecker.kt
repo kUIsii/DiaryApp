@@ -1,5 +1,6 @@
 package com.diary.app.update
 
+import android.content.Context
 import com.diary.app.BuildConfig
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
@@ -7,7 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.math.pow
+
+data class CachedUpdateResult(
+    val updateInfo: UpdateInfo?,
+    val timestamp: Long
+)
 
 data class GitHubRelease(
     @SerializedName("tag_name") val tagName: String,
@@ -29,8 +34,21 @@ data class UpdateInfo(
 
 object UpdateChecker {
 
-    suspend fun checkForUpdate(currentVersionName: String): UpdateInfo? {
+    private const val CACHE_KEY = "update_check_cache"
+    private const val CACHE_DURATION_MS = 30 * 60 * 1000L // 30 分钟
+
+    suspend fun checkForUpdate(context: Context, currentVersionName: String): UpdateInfo? {
         return withContext(Dispatchers.IO) {
+            // 先检查缓存
+            val prefs = context.getSharedPreferences("diary_update_prefs", Context.MODE_PRIVATE)
+            val cached = try {
+                Gson().fromJson(prefs.getString(CACHE_KEY, null), CachedUpdateResult::class.java)
+            } catch (_: Exception) { null }
+
+            if (cached != null && System.currentTimeMillis() - cached.timestamp < CACHE_DURATION_MS) {
+                return@withContext cached.updateInfo
+            }
+
             try {
                 val isExperimental = BuildConfig.FLAVOR == "experimental"
                 val url = URL(
@@ -38,6 +56,9 @@ object UpdateChecker {
                 )
                 val connection = url.openConnection() as HttpURLConnection
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
+                    connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
+                }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
 
@@ -48,8 +69,6 @@ object UpdateChecker {
                 val json = connection.inputStream.bufferedReader().readText()
                 val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java)
 
-                // 根据 flavor 过滤：experimental 只匹配 experimental，stable 只匹配非 experimental
-                // 找到版本号最高的 release（而不是第一个，因为 API 按创建时间排序）
                 val matchingRelease = releases.filter { release ->
                     val tag = release.tagName.lowercase()
                     val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
@@ -61,12 +80,16 @@ object UpdateChecker {
                 }.maxByOrNull { release ->
                     val version = release.tagName.removePrefix("v").substringBefore("-")
                     val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
-                    // 将版本号转换为可比较的数值：major*1000000 + minor*1000 + patch
                     parts.getOrElse(0) { 0 } * 1000000 + parts.getOrElse(1) { 0 } * 1000 + parts.getOrElse(2) { 0 }
-                } ?: return@withContext null
+                } ?: run {
+                    // 没有匹配的 release，缓存 null 结果
+                    prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(null, System.currentTimeMillis()))).apply()
+                    return@withContext null
+                }
 
                 val latestVersion = matchingRelease.tagName.removePrefix("v")
                 if (!isNewerVersion(currentVersionName, latestVersion)) {
+                    prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(null, System.currentTimeMillis()))).apply()
                     return@withContext null
                 }
 
@@ -78,7 +101,7 @@ object UpdateChecker {
                 val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
                         releaseBody.contains("[强制更新]")
 
-                UpdateInfo(
+                val result = UpdateInfo(
                     versionName = latestVersion,
                     releaseNotes = releaseBody
                         .replace("[force]", "", ignoreCase = true)
@@ -87,6 +110,9 @@ object UpdateChecker {
                     downloadUrl = apkAsset.downloadUrl,
                     isForceUpdate = isForce
                 )
+                // 缓存结果
+                prefs.edit().putString(CACHE_KEY, Gson().toJson(CachedUpdateResult(result, System.currentTimeMillis()))).apply()
+                result
             } catch (e: Exception) {
                 null
             }

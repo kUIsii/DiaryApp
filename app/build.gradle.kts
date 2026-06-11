@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+}
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -21,6 +28,7 @@ android {
         }
         buildConfigField("String", "GITHUB_OWNER", "\"kUIsii\"")
         buildConfigField("String", "GITHUB_REPO", "\"DiaryApp\"")
+        buildConfigField("String", "GITHUB_TOKEN", "\"${localProps.getProperty("GITHUB_TOKEN", "")}\"")
     }
 
     signingConfigs {
