@@ -295,9 +295,28 @@ fun DiaryDetailScreen(
                                             view: WebView?,
                                             request: android.webkit.WebResourceRequest?
                                         ): android.webkit.WebResourceResponse? {
-                                            // 用 WebViewAssetLoader 处理本地资源
-                                            return WebViewAssetHelper.interceptRequest(assetLoader, request)
-                                                ?: super.shouldInterceptRequest(view, request)
+                                            // 先用 WebViewAssetLoader 处理 https://appassets/ 资源
+                                            val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
+                                            if (assetResponse != null) return assetResponse
+                                            // 兜底：处理旧的 file:// URL
+                                            val reqUrl = request?.url?.toString() ?: return null
+                                            if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                                try {
+                                                    val path = reqUrl.removePrefix("file://")
+                                                    val file = java.io.File(path)
+                                                    if (file.exists() && file.canRead()) {
+                                                        val mime = when {
+                                                            path.endsWith(".mp4") -> "video/mp4"
+                                                            path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                            path.endsWith(".png") -> "image/png"
+                                                            path.endsWith(".webp") -> "image/webp"
+                                                            else -> "image/jpeg"
+                                                        }
+                                                        return android.webkit.WebResourceResponse(mime, null, file.inputStream())
+                                                    }
+                                                } catch (_: Exception) {}
+                                            }
+                                            return super.shouldInterceptRequest(view, request)
                                         }
                                     }
                                     settings.javaScriptEnabled = true
@@ -312,7 +331,7 @@ fun DiaryDetailScreen(
                                     settings.useWideViewPort = true
                                     setBackgroundColor(0)
                                     addJavascriptInterface(detailJsBridge, "DiaryBridge")
-                                    loadUrl("https://appassets/assets/viewer.html")
+                                    loadUrl("file:///android_asset/viewer.html")
                                     webView = this
                                 }
                             },

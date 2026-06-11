@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -467,6 +468,40 @@ fun BackupScreen(
                                         }
                                     }
                                 )
+
+                                SettingDivider()
+
+                                BackupActionButton(
+                                    icon = Icons.Default.Save,
+                                    title = "导出到 Downloads",
+                                    subtitle = "保存到下载目录，卸载后不会丢失",
+                                    iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                                    iconTint = MaterialTheme.colorScheme.secondary,
+                                    textColor = textColor,
+                                    textTertiary = textTertiary,
+                                    enabled = !isBackingUp && !isImporting,
+                                    onClick = {
+                                        isBackingUp = true
+                                        scope.launch {
+                                            try {
+                                                val fileName = BackupManager.exportToDownloads(context, dao)
+                                                Toast.makeText(
+                                                    context,
+                                                    "已导出到 Downloads: $fileName",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "导出失败: ${e.message ?: ""}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } finally {
+                                                isBackingUp = false
+                                            }
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
@@ -494,7 +529,25 @@ fun BackupScreen(
                                     renameTarget = record
                                     renameInput = record.fileName.removeSuffix(".json")
                                 },
-                                onDelete = { deleteTarget = record }
+                                onDelete = { deleteTarget = record },
+                                onExport = {
+                                    scope.launch {
+                                        try {
+                                            val fileName = BackupManager.exportRecordToDownloads(context, record, dao)
+                                            Toast.makeText(
+                                                context,
+                                                "已导出到 Downloads: $fileName",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                "导出失败: ${e.message ?: ""}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
                             )
                         }
                     }
@@ -539,7 +592,8 @@ private fun BackupHistoryItem(
     textSecondary: Color,
     textTertiary: Color,
     onRename: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onExport: () -> Unit = {}
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(record.timestamp))
@@ -596,6 +650,14 @@ private fun BackupHistoryItem(
                 }
             }
 
+            IconButton(onClick = onExport, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Default.Save,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
             IconButton(onClick = onRename, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Default.Edit,
