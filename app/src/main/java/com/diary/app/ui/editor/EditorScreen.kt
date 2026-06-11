@@ -1168,7 +1168,7 @@ fun EditorScreen(
                             isVerticalScrollBarEnabled = true
                             isHorizontalScrollBarEnabled = false
                             addJavascriptInterface(jsBridge, "DiaryBridge")
-                            loadUrl("file:///android_asset/editor.html")
+                            loadUrl("https://appassets/assets/editor.html")
                             webView = this
                         }
                     },

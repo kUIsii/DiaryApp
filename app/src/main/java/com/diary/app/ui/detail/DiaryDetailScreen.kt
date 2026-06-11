@@ -312,7 +312,7 @@ fun DiaryDetailScreen(
                                     settings.useWideViewPort = true
                                     setBackgroundColor(0)
                                     addJavascriptInterface(detailJsBridge, "DiaryBridge")
-                                    loadUrl("file:///android_asset/viewer.html")
+                                    loadUrl("https://appassets/assets/viewer.html")
                                     webView = this
                                 }
                             },
