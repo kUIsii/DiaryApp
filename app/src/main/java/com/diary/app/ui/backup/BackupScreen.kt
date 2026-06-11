@@ -1,8 +1,6 @@
 package com.diary.app.ui.backup
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,9 +20,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -103,21 +104,8 @@ fun BackupScreen(
     var pendingImport by remember { mutableStateOf<DiaryBackup?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
     var showContent by remember { mutableStateOf(false) }
-
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        try {
-            pendingImport = DiaryImporter.readAndValidate(context, uri)
-        } catch (e: Exception) {
-            Toast.makeText(
-                context,
-                "读取备份失败: ${e.message ?: ""}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
+    var showFileListDialog by remember { mutableStateOf(false) }
+    var downloadFiles by remember { mutableStateOf<List<BackupManager.DownloadBackupFile>>(emptyList()) }
 
     LaunchedEffect(Unit) { showContent = true }
 
@@ -303,6 +291,94 @@ fun BackupScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showFrequencyDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // 备份文件列表弹窗
+    if (showFileListDialog) {
+        AlertDialog(
+            onDismissRequest = { showFileListDialog = false },
+            title = { Text("选择备份文件") },
+            text = {
+                if (downloadFiles.isEmpty()) {
+                    Text("Downloads 目录中没有找到备份文件", color = textTertiary)
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                        downloadFiles.forEach { file ->
+                            val sizeLabel = when {
+                                file.fileSize < 1024 -> "${file.fileSize}B"
+                                file.fileSize < 1024 * 1024 -> "${file.fileSize / 1024}KB"
+                                else -> String.format("%.1fMB", file.fileSize / (1024.0 * 1024.0))
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        showFileListDialog = false
+                                        // 读取文件并显示导入确认
+                                        scope.launch {
+                                            try {
+                                                val json = BackupManager.readDownloadBackup(context, file.fileName)
+                                                if (json != null) {
+                                                    pendingImport = com.google.gson.Gson().fromJson(json, DiaryBackup::class.java)
+                                                } else {
+                                                    Toast.makeText(context, "无法读取文件", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Backup,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = file.fileName,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = textColor,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "${dateFormat.format(Date(file.lastModified))}  |  $sizeLabel",
+                                        fontSize = 11.sp,
+                                        color = textTertiary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showFileListDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -503,7 +579,8 @@ fun BackupScreen(
                                     enabled = !isBackingUp && !isImporting,
                                     onClick = {
                                         if (!isBackingUp && !isImporting) {
-                                            filePickerLauncher.launch(arrayOf("application/json", "text/plain"))
+                                            downloadFiles = BackupManager.scanDownloadsBackups(context)
+                                            showFileListDialog = true
                                         }
                                     }
                                 )

@@ -342,4 +342,68 @@ object BackupManager {
         }
     }
 
+    data class DownloadBackupFile(
+        val fileName: String,
+        val fileSize: Long,
+        val lastModified: Long
+    )
+
+    /**
+     * 扫描 Downloads 目录中所有的 diary_backup_*.json 文件
+     */
+    fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
+        val results = mutableListOf<DownloadBackupFile>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val projection = arrayOf(
+                MediaStore.Downloads.DISPLAY_NAME,
+                MediaStore.Downloads.SIZE,
+                MediaStore.Downloads.DATE_MODIFIED
+            )
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
+            val selectionArgs = arrayOf("diary_backup_%")
+            context.contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs,
+                "${MediaStore.Downloads.DATE_MODIFIED} DESC"
+            )?.use { cursor ->
+                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
+                val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
+                while (cursor.moveToNext()) {
+                    results.add(DownloadBackupFile(
+                        fileName = cursor.getString(nameIdx),
+                        fileSize = cursor.getLong(sizeIdx),
+                        lastModified = cursor.getLong(dateIdx) * 1000
+                    ))
+                }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (dir.exists()) {
+                dir.listFiles()?.filter { it.name.startsWith("diary_backup_") && it.name.endsWith(".json") }
+                    ?.sortedByDescending { it.lastModified() }
+                    ?.forEach {
+                        results.add(DownloadBackupFile(it.name, it.length(), it.lastModified()))
+                    }
+            }
+        }
+        return results
+    }
+
+    /**
+     * 读取 Downloads 中某个备份文件的内容
+     */
+    fun readDownloadBackup(context: Context, fileName: String): String? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val uri = findDownloadsUri(context, fileName) ?: return null
+                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+            } else {
+                @Suppress("DEPRECATION")
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+                if (file.exists()) file.readText() else null
+            }
+        } catch (_: Exception) { null }
+    }
+
 }
