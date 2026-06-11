@@ -35,12 +35,20 @@ data class UpdateInfo(
 object UpdateChecker {
 
     private const val CACHE_KEY = "update_check_cache"
+    private const val CACHE_VERSION_KEY = "update_check_version"
     private const val CACHE_DURATION_MS = 30 * 60 * 1000L // 30 分钟
 
     suspend fun checkForUpdate(context: Context, currentVersionName: String): UpdateInfo? {
         return withContext(Dispatchers.IO) {
-            // 先检查缓存
             val prefs = context.getSharedPreferences("diary_update_prefs", Context.MODE_PRIVATE)
+
+            // 版本变化时清除缓存
+            val cachedVersion = prefs.getString(CACHE_VERSION_KEY, null)
+            if (cachedVersion != currentVersionName) {
+                prefs.edit().remove(CACHE_KEY).putString(CACHE_VERSION_KEY, currentVersionName).apply()
+            }
+
+            // 检查缓存
             val cached = try {
                 Gson().fromJson(prefs.getString(CACHE_KEY, null), CachedUpdateResult::class.java)
             } catch (_: Exception) { null }
