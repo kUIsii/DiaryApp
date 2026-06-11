@@ -59,6 +59,63 @@ object DiaryImporter {
         return backup
     }
 
+    suspend fun importOverwrite(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
+        val dao = database.diaryDao()
+        val now = System.currentTimeMillis()
+        val tagEntries = backup.tags.orEmpty()
+        val diaryEntries = backup.entries.orEmpty()
+
+        return database.withTransaction {
+            // 清空所有现有数据
+            dao.deleteAllImages()
+            dao.deleteAllDiaryTags()
+            dao.deleteAllEntries()
+            dao.deleteAllTags()
+
+            // 重新插入所有数据
+            var importedTagCount = 0
+            for (tagEntry in tagEntries) {
+                val name = tagEntry.name ?: continue
+                dao.insertTag(
+                    Tag(
+                        name = name,
+                        color = tagEntry.color ?: 4278210282L,
+                        isPreset = tagEntry.isPreset ?: false
+                    )
+                )
+                importedTagCount++
+            }
+
+            var importedEntryCount = 0
+            for (entry in diaryEntries) {
+                val newId = dao.insertEntry(
+                    DiaryEntry(
+                        title = entry.title ?: "",
+                        content = entry.content ?: "",
+                        plainText = entry.plainText ?: "",
+                        moodLevel = entry.moodLevel,
+                        weather = entry.weather,
+                        location = entry.location,
+                        latitude = entry.latitude,
+                        longitude = entry.longitude,
+                        createdAt = entry.createdAt ?: now,
+                        updatedAt = entry.updatedAt ?: now
+                    )
+                )
+                val tagNames = entry.tags.orEmpty()
+                for (tagName in tagNames) {
+                    val tag = dao.getTagByName(tagName)
+                    if (tag != null) {
+                        dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
+                    }
+                }
+                importedEntryCount++
+            }
+
+            ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
+        }
+    }
+
     suspend fun import(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
         val dao = database.diaryDao()
         val now = System.currentTimeMillis()

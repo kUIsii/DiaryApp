@@ -128,27 +128,27 @@ object BackupManager {
         val history = getBackupHistory(context).toMutableList()
         history.removeAll { it.filePath == record.filePath }
         saveHistory(context, history)
-        runCatching { File(record.filePath).delete() }
+        deleteDownloadsFile(context, record.fileName)
     }
 
     fun renameBackup(context: Context, record: BackupRecord, requestedName: String): BackupRecord {
-        val sourceFile = File(record.filePath)
-        require(sourceFile.exists()) { "Backup file does not exist" }
-
         val targetName = normalizeBackupFileName(requestedName)
-        val targetFile = File(sourceFile.parentFile ?: getBackupDir(context), targetName)
-        require(
-            sourceFile.absolutePath == targetFile.absolutePath || !targetFile.exists()
-        ) { "Backup with the same name already exists" }
 
-        if (sourceFile.absolutePath != targetFile.absolutePath) {
-            check(sourceFile.renameTo(targetFile)) { "Failed to rename backup file" }
-        }
+        // 读取原文件内容
+        val content = readFromDownloads(context, record.fileName)
+            ?: throw Exception("备份文件不存在")
+
+        // 删除旧文件
+        deleteDownloadsFile(context, record.fileName)
+
+        // 创建新文件
+        val dataBytes = content.toByteArray(Charsets.UTF_8)
+        val newFilePath = writeToDownloads(context, targetName, dataBytes)
 
         val updated = record.copy(
             fileName = targetName,
-            filePath = targetFile.absolutePath,
-            fileSize = targetFile.length()
+            filePath = newFilePath,
+            fileSize = dataBytes.size.toLong()
         )
         val history = getBackupHistory(context).map {
             if (it.filePath == record.filePath) updated else it
@@ -157,19 +157,103 @@ object BackupManager {
         return updated
     }
 
+    private fun readFromDownloads(context: Context, fileName: String): String? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val uri = findDownloadsUri(context, fileName) ?: return null
+                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+            } else {
+                @Suppress("DEPRECATION")
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+                if (file.exists()) file.readText() else null
+            }
+        } catch (_: Exception) { null }
+    }
+
+    private fun deleteDownloadsFile(context: Context, fileName: String) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val uri = findDownloadsUri(context, fileName)
+                if (uri != null) context.contentResolver.delete(uri, null, null)
+            } else {
+                @Suppress("DEPRECATION")
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+                if (file.exists()) file.delete()
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun writeToDownloads(context: Context, fileName: String, data: ByteArray): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw Exception("无法创建文件")
+            context.contentResolver.openOutputStream(uri)?.use { it.write(data) }
+                ?: throw Exception("无法写入文件")
+            return queryFilePath(context, uri) ?: "${Environment.DIRECTORY_DOWNLOADS}/$fileName"
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!dir.exists()) dir.mkdirs()
+            val file = File(dir, fileName)
+            file.writeBytes(data)
+            return file.absolutePath
+        }
+    }
+
+    private fun findDownloadsUri(context: Context, fileName: String): android.net.Uri? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val projection = arrayOf(MediaStore.Downloads._ID)
+        val selection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
+        return context.contentResolver.query(
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf(fileName), null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val id = cursor.getLong(0)
+                android.net.Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id.toString())
+            } else null
+        }
+    }
+
     suspend fun createBackup(context: Context, dao: DiaryDao): BackupRecord {
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        val file = File(getBackupDir(context), "diary_backup_$timestamp.json")
+        val fileName = "diary_backup_$timestamp.json"
         val json = buildBackupJson(dao)
-        file.parentFile?.mkdirs()
-        file.writeText(json, Charsets.UTF_8)
+        val dataBytes = json.toByteArray(Charsets.UTF_8)
+
+        val filePath: String
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw Exception("无法创建文件")
+            context.contentResolver.openOutputStream(uri)?.use { out ->
+                out.write(dataBytes)
+            } ?: throw Exception("无法写入文件")
+            // 通过 query 获取实际路径
+            filePath = queryFilePath(context, uri) ?: "${Environment.DIRECTORY_DOWNLOADS}/$fileName"
+        } else {
+            @Suppress("DEPRECATION")
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!downloadsDir.exists()) downloadsDir.mkdirs()
+            val file = File(downloadsDir, fileName)
+            file.writeText(json, Charsets.UTF_8)
+            filePath = file.absolutePath
+        }
 
         val record = BackupRecord(
-            fileName = file.name,
-            filePath = file.absolutePath,
+            fileName = fileName,
+            filePath = filePath,
             timestamp = System.currentTimeMillis(),
             entryCount = dao.getEntryCount(),
-            fileSize = file.length()
+            fileSize = dataBytes.size.toLong()
         )
         addBackupRecord(context, record)
         return record
@@ -183,6 +267,17 @@ object BackupManager {
         val dir = File(context.filesDir, "backups")
         if (!dir.exists()) dir.mkdirs()
         return dir
+    }
+
+    private fun queryFilePath(context: Context, uri: android.net.Uri): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val projection = arrayOf(MediaStore.Downloads.DATA)
+        return context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idx = cursor.getColumnIndex(MediaStore.Downloads.DATA)
+                if (idx >= 0) cursor.getString(idx) else null
+            } else null
+        }
     }
 
     private suspend fun buildBackupJson(dao: DiaryDao): String {
@@ -247,74 +342,4 @@ object BackupManager {
         }
     }
 
-    /**
-     * 导出备份到公共 Downloads 目录，用户可在文件管理器中找到。
-     * 返回保存的文件名。
-     */
-    suspend fun exportToDownloads(context: Context, dao: DiaryDao): String {
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        val fileName = "diary_backup_$timestamp.json"
-        val json = buildBackupJson(dao)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/json")
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
-            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: throw Exception("无法创建文件")
-            context.contentResolver.openOutputStream(uri)?.use { out ->
-                out.write(json.toByteArray(Charsets.UTF_8))
-            } ?: throw Exception("无法写入文件")
-        } else {
-            @Suppress("DEPRECATION")
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!downloadsDir.exists()) downloadsDir.mkdirs()
-            val file = File(downloadsDir, fileName)
-            file.writeText(json, Charsets.UTF_8)
-        }
-
-        return fileName
-    }
-
-    /**
-     * 从内部备份记录导出到 Downloads。如果备份文件还存在，直接复制；否则重新生成。
-     */
-    suspend fun exportRecordToDownloads(context: Context, record: BackupRecord, dao: DiaryDao): String {
-        val sourceFile = File(record.filePath)
-        val fileName = record.fileName
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/json")
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
-            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: throw Exception("无法创建文件")
-            context.contentResolver.openOutputStream(uri)?.use { out ->
-                if (sourceFile.exists()) {
-                    sourceFile.inputStream().use { it.copyTo(out) }
-                } else {
-                    // 文件已被删除，重新生成
-                    val json = buildBackupJson(dao)
-                    out.write(json.toByteArray(Charsets.UTF_8))
-                }
-            } ?: throw Exception("无法写入文件")
-        } else {
-            @Suppress("DEPRECATION")
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!downloadsDir.exists()) downloadsDir.mkdirs()
-            val targetFile = File(downloadsDir, fileName)
-            if (sourceFile.exists()) {
-                sourceFile.copyTo(targetFile, overwrite = true)
-            } else {
-                val json = buildBackupJson(dao)
-                targetFile.writeText(json, Charsets.UTF_8)
-            }
-        }
-
-        return fileName
-    }
 }

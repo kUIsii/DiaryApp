@@ -44,6 +44,18 @@ interface DiaryDao {
     @Query("DELETE FROM diary_entries WHERE id = :id")
     suspend fun deleteEntryById(id: Long)
 
+    @Query("DELETE FROM diary_entries")
+    suspend fun deleteAllEntries()
+
+    @Query("DELETE FROM tags")
+    suspend fun deleteAllTags()
+
+    @Query("DELETE FROM diary_tag_cross_ref")
+    suspend fun deleteAllDiaryTags()
+
+    @Query("DELETE FROM diary_images")
+    suspend fun deleteAllImages()
+
     @Transaction
     suspend fun deleteEntryWithTags(entry: DiaryEntry) {
         deleteTagsForDiary(entry.id)

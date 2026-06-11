@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -191,21 +190,61 @@ fun BackupScreen(
     pendingImport?.let { backup ->
         val entryCount = backup.entries?.size ?: 0
         val tagCount = backup.tags?.size ?: 0
+        var overwriteMode by remember { mutableStateOf(false) }
+
         AlertDialog(
             onDismissRequest = { pendingImport = null },
             title = { Text("确认导入") },
-            text = { Text("将导入 $entryCount 篇日记和 $tagCount 个分类，现有数据不会被覆盖。确定继续？") },
+            text = {
+                Column {
+                    Text("将导入 $entryCount 篇日记和 $tagCount 个分类。")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { overwriteMode = !overwriteMode }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = overwriteMode,
+                            onCheckedChange = { overwriteMode = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "覆盖现有数据",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = textColor
+                            )
+                            Text(
+                                text = "清空所有日记后导入，用于完全恢复",
+                                fontSize = 12.sp,
+                                color = textTertiary
+                            )
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     val pending = backup
+                    val overwrite = overwriteMode
                     pendingImport = null
                     isImporting = true
                     scope.launch {
                         try {
-                            val result = DiaryImporter.import(app.database, pending)
+                            val result = if (overwrite) {
+                                DiaryImporter.importOverwrite(app.database, pending)
+                            } else {
+                                DiaryImporter.import(app.database, pending)
+                            }
                             Toast.makeText(
                                 context,
-                                "导入成功: ${result.entryCount} 篇日记, ${result.tagCount} 个新分类",
+                                if (overwrite) "覆盖导入成功: ${result.entryCount} 篇日记"
+                                else "导入成功: ${result.entryCount} 篇日记, ${result.tagCount} 个新分类",
                                 Toast.LENGTH_SHORT
                             ).show()
                         } catch (e: Exception) {
@@ -468,40 +507,6 @@ fun BackupScreen(
                                         }
                                     }
                                 )
-
-                                SettingDivider()
-
-                                BackupActionButton(
-                                    icon = Icons.Default.Save,
-                                    title = "导出到 Downloads",
-                                    subtitle = "保存到下载目录，卸载后不会丢失",
-                                    iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-                                    iconTint = MaterialTheme.colorScheme.secondary,
-                                    textColor = textColor,
-                                    textTertiary = textTertiary,
-                                    enabled = !isBackingUp && !isImporting,
-                                    onClick = {
-                                        isBackingUp = true
-                                        scope.launch {
-                                            try {
-                                                val fileName = BackupManager.exportToDownloads(context, dao)
-                                                Toast.makeText(
-                                                    context,
-                                                    "已导出到 Downloads: $fileName",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            } catch (e: Exception) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "导出失败: ${e.message ?: ""}",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            } finally {
-                                                isBackingUp = false
-                                            }
-                                        }
-                                    }
-                                )
                             }
                         }
                     }
@@ -529,25 +534,7 @@ fun BackupScreen(
                                     renameTarget = record
                                     renameInput = record.fileName.removeSuffix(".json")
                                 },
-                                onDelete = { deleteTarget = record },
-                                onExport = {
-                                    scope.launch {
-                                        try {
-                                            val fileName = BackupManager.exportRecordToDownloads(context, record, dao)
-                                            Toast.makeText(
-                                                context,
-                                                "已导出到 Downloads: $fileName",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        } catch (e: Exception) {
-                                            Toast.makeText(
-                                                context,
-                                                "导出失败: ${e.message ?: ""}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
+                                onDelete = { deleteTarget = record }
                             )
                         }
                     }
@@ -592,8 +579,7 @@ private fun BackupHistoryItem(
     textSecondary: Color,
     textTertiary: Color,
     onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onExport: () -> Unit = {}
+    onDelete: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(record.timestamp))
@@ -650,14 +636,6 @@ private fun BackupHistoryItem(
                 }
             }
 
-            IconButton(onClick = onExport, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.Default.Save,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
             IconButton(onClick = onRename, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Default.Edit,
