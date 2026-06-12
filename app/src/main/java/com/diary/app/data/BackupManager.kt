@@ -408,4 +408,46 @@ object BackupManager {
         } catch (_: Exception) { null }
     }
 
+    /**
+     * 扫描 Downloads 目录，将历史记录中缺失的备份文件补回到记录中。
+     * 用于卸载重装后恢复备份历史。
+     */
+    fun recoverBackupHistory(context: Context) {
+        val existingFiles = scanDownloadsBackups(context)
+        if (existingFiles.isEmpty()) return
+
+        val history = getBackupHistory(context)
+        val knownFileNames = history.map { it.fileName }.toSet()
+
+        var changed = false
+        for (file in existingFiles) {
+            if (file.fileName in knownFileNames) continue
+
+            val entryCount = try {
+                val content = readDownloadBackup(context, file.fileName) ?: continue
+                val parsed = Gson().fromJson(content, DiaryBackup::class.java)
+                parsed?.entries?.size ?: 0
+            } catch (_: Exception) { 0 }
+
+            addBackupRecord(context, BackupRecord(
+                fileName = file.fileName,
+                filePath = "${Environment.DIRECTORY_DOWNLOADS}/${file.fileName}",
+                timestamp = file.lastModified,
+                entryCount = entryCount,
+                fileSize = file.fileSize
+            ))
+            changed = true
+        }
+
+        // 如果历史记录中的文件已不存在于 Downloads，清理掉
+        if (!changed) return
+        val currentHistory = getBackupHistory(context)
+        val validHistory = currentHistory.filter { record ->
+            existingFiles.any { it.fileName == record.fileName }
+        }
+        if (validHistory.size != currentHistory.size) {
+            saveHistory(context, validHistory)
+        }
+    }
+
 }

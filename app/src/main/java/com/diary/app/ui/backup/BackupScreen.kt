@@ -77,8 +77,10 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -107,7 +109,12 @@ fun BackupScreen(
     var showFileListDialog by remember { mutableStateOf(false) }
     var downloadFiles by remember { mutableStateOf<List<BackupManager.DownloadBackupFile>>(emptyList()) }
 
-    LaunchedEffect(Unit) { showContent = true }
+    LaunchedEffect(Unit) {
+        showContent = true
+        // 扫描 Downloads 目录，恢复卸载后丢失的备份记录
+        withContext(Dispatchers.IO) { BackupManager.recoverBackupHistory(context) }
+        backupHistory = BackupManager.getBackupHistory(context)
+    }
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant

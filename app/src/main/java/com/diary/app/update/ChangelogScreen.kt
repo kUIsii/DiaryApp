@@ -139,6 +139,9 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                 val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases?per_page=30")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
+                    conn.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
+                }
                 conn.connectTimeout = 10000
                 conn.readTimeout = 10000
                 if (conn.responseCode == 200) {
