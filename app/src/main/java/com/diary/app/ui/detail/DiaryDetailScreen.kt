@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -354,6 +355,10 @@ fun DiaryDetailScreen(
                                             WebView(ctx).apply {
                                                 isVerticalScrollBarEnabled = false
                                                 overScrollMode = WebView.OVER_SCROLL_NEVER
+                                                layoutParams = android.widget.FrameLayout.LayoutParams(
+                                                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                                                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+                                                )
                                                 webViewClient = object : WebViewClient() {
                                                     override fun onPageFinished(view: WebView?, url: String?) {
                                                         super.onPageFinished(view, url)
@@ -430,13 +435,7 @@ fun DiaryDetailScreen(
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .then(
-                                                if (webViewContentHeight > 0f) {
-                                                    Modifier.height(webViewContentHeight.dp)
-                                                } else {
-                                                    Modifier.heightIn(min = 100.dp)
-                                                }
-                                            )
+                                            .wrapContentHeight()
                                             .alpha(if (contentReady) 1f else 0f)
                                     )
                                 }
