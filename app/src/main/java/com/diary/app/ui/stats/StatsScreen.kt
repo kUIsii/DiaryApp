@@ -896,10 +896,11 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                     if (day != null) {
                         val bgColor = when {
                             day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
-                            day.count == 1 -> primaryColor.copy(alpha = 0.5f)
-                            day.count == 2 -> primaryColor.copy(alpha = 0.7f)
-                            day.count >= 3 -> primaryColor
-                            else -> surfaceVariant.copy(alpha = 0.4f)
+                            day.count == 1 -> primaryColor.copy(alpha = 0.25f)
+                            day.count == 2 -> primaryColor.copy(alpha = 0.45f)
+                            day.count == 3 -> primaryColor.copy(alpha = 0.65f)
+                            day.count == 4 -> primaryColor.copy(alpha = 0.85f)
+                            else -> primaryColor
                         }
                         Box(
                             modifier = Modifier
@@ -950,9 +951,11 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
         ) {
             val legendItems = listOf(
                 "0" to surfaceVariant.copy(alpha = 0.4f),
-                "1" to primaryColor.copy(alpha = 0.5f),
-                "2" to primaryColor.copy(alpha = 0.7f),
-                "3+" to primaryColor
+                "1" to primaryColor.copy(alpha = 0.25f),
+                "2" to primaryColor.copy(alpha = 0.45f),
+                "3" to primaryColor.copy(alpha = 0.65f),
+                "4" to primaryColor.copy(alpha = 0.85f),
+                "5+" to primaryColor
             )
             legendItems.forEachIndexed { index, (label, color) ->
                 if (index > 0) Spacer(modifier = Modifier.width(2.dp))
