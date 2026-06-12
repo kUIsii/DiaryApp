@@ -432,8 +432,10 @@ object DiaryExporter {
     }
 
     /**
-     * Simple delta-to-html for export (no JS needed).
-     * Handles basic text formatting, images, lists, and block elements.
+     * Delta-to-html for export. Handles all Quill formats:
+     * bold, italic, underline, strike, code, link, script, color, background,
+     * header, blockquote, code-block, ordered/bullet/checked/unchecked lists,
+     * indent, align, divider, image, video.
      */
     private fun deltaToHtmlForExport(content: String): String {
         if (content.isBlank()) return ""
@@ -468,8 +470,23 @@ object DiaryExporter {
                     }
                 } else if (insert is Map<*, *>) {
                     val imgSrc = insert["image"]
-                    if (imgSrc is String) {
-                        currentBlock.append("<img src='${escapeHtml(imgSrc)}' />")
+                    val videoSrc = insert["video"]
+                    val hasDivider = insert["divider"] != null
+                    when {
+                        hasDivider -> {
+                            if (currentBlock.isNotEmpty()) {
+                                blocks.add(Block(currentBlock.toString(), blockAttrs))
+                                currentBlock = StringBuilder()
+                                blockAttrs = null
+                            }
+                            blocks.add(Block("", mapOf("divider" to true)))
+                        }
+                        imgSrc is String -> {
+                            currentBlock.append("<img src='${escapeHtml(imgSrc)}' />")
+                        }
+                        videoSrc is String -> {
+                            currentBlock.append("<video src='${escapeHtml(videoSrc)}' controls></video>")
+                        }
                     }
                 }
             }
@@ -477,29 +494,44 @@ object DiaryExporter {
                 blocks.add(Block(currentBlock.toString(), blockAttrs))
             }
 
-            // Second pass: group consecutive list items
+            // Second pass: group consecutive list items, render other blocks
             val sb = StringBuilder()
-            var listBuffer = mutableListOf<String>()
+            data class ListItem(val html: String, val type: String, val listClass: String?)
+            var listBuffer = mutableListOf<ListItem>()
             var listType: String? = null
 
             fun flushList() {
                 if (listBuffer.isEmpty()) return
                 val tag = if (listType == "ordered") "ol" else "ul"
                 sb.append("<$tag>")
-                listBuffer.forEach { sb.append("<li>$it</li>") }
+                for (item in listBuffer) {
+                    val cls = item.listClass?.let { " class=\"$it\"" } ?: ""
+                    sb.append("<li$cls>${item.html}</li>")
+                }
                 sb.append("</$tag>")
                 listBuffer = mutableListOf()
                 listType = null
             }
 
             for (block in blocks) {
-                val currentListType = block.attrs?.get("list") as? String
+                val rawListType = block.attrs?.get("list") as? String
+                val currentListType = when (rawListType) {
+                    "ordered", "bullet" -> rawListType
+                    "checked", "unchecked" -> "checklist"
+                    else -> null
+                }
+
                 if (currentListType != null) {
                     if (listType != null && listType != currentListType) {
                         flushList()
                     }
                     listType = currentListType
-                    listBuffer.add(block.html)
+                    val cls = when (rawListType) {
+                        "checked" -> "task-checked"
+                        "unchecked" -> "task-unchecked"
+                        else -> null
+                    }
+                    listBuffer.add(ListItem(block.html, currentListType, cls))
                 } else {
                     flushList()
                     sb.append(wrapBlockForExport(block.html, block.attrs))
@@ -517,29 +549,54 @@ object DiaryExporter {
     private fun wrapInlineForExport(text: String, attrs: Map<String, Any>?): String {
         if (attrs.isNullOrEmpty()) return escapeHtml(text)
         var html = escapeHtml(text)
+        // Order matches viewer.html
+        if (attrs["code"] == true) html = "<code>$html</code>"
+        val link = attrs["link"] as? String
+        if (link != null) html = "<a href='${escapeHtml(link)}'>$html</a>"
         if (attrs["bold"] == true) html = "<strong>$html</strong>"
         if (attrs["italic"] == true) html = "<em>$html</em>"
         if (attrs["underline"] == true) html = "<u>$html</u>"
         if (attrs["strike"] == true) html = "<s>$html</s>"
-        if (attrs["code"] == true) html = "<code>$html</code>"
-        val link = attrs["link"] as? String
-        if (link != null) html = "<a href='${escapeHtml(link)}'>$html</a>"
+        val script = attrs["script"] as? String
+        if (script == "super") html = "<sup>$html</sup>"
+        else if (script == "sub") html = "<sub>$html</sub>"
         val color = attrs["color"] as? String
         if (color != null) html = "<span style='color:$color'>$html</span>"
+        val bg = attrs["background"] as? String
+        if (bg != null) html = "<span style='background:$bg'>$html</span>"
         return html
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun wrapBlockForExport(innerHtml: String, attrs: Map<String, Any>?): String {
         if (attrs.isNullOrEmpty()) return "<p>$innerHtml</p>"
+
+        if (attrs["divider"] == true) return "<hr />"
+
+        var tag = "p"
+        var content = innerHtml
+        var extra = ""
+
         val header = (attrs["header"] as? Double)?.toInt()
         if (header != null) {
-            val level = header.coerceIn(1, 3)
-            return "<h$level>$innerHtml</h$level>"
+            tag = "h${header.coerceIn(1, 3)}"
+        } else if (attrs["code-block"] == true) {
+            tag = "pre"
+            content = "<code>$content</code>"
+        } else if (attrs["blockquote"] == true) {
+            tag = "blockquote"
         }
-        if (attrs["code-block"] == true) return "<pre><code>$innerHtml</code></pre>"
-        if (attrs["blockquote"] == true) return "<blockquote>$innerHtml</blockquote>"
-        return "<p>$innerHtml</p>"
+
+        val align = attrs["align"] as? String
+        if (align != null) {
+            extra += " class=\"align-$align\""
+        }
+        val indent = (attrs["indent"] as? Double)?.toInt()
+        if (indent != null && indent > 0) {
+            extra += " style=\"padding-left:${indent * 24}px\""
+        }
+
+        return "<$tag$extra>$content</$tag>"
     }
 
     /**
