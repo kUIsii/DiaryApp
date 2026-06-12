@@ -1,6 +1,13 @@
 package com.diary.app.ui.backup
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -109,11 +116,22 @@ fun BackupScreen(
     var showFileListDialog by remember { mutableStateOf(false) }
     var downloadFiles by remember { mutableStateOf<List<BackupManager.DownloadBackupFile>>(emptyList()) }
 
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // 从设置页返回后检查权限
+        if (BackupManager.hasStoragePermission()) {
+            scope.launch(Dispatchers.IO) { BackupManager.initBackupDir(context) }
+            backupHistory = BackupManager.getBackupHistory(context)
+        }
+    }
+
     LaunchedEffect(Unit) {
         showContent = true
-        // 扫描 Downloads 目录，恢复卸载后丢失的备份记录
-        withContext(Dispatchers.IO) { BackupManager.recoverBackupHistory(context) }
-        backupHistory = BackupManager.getBackupHistory(context)
+        if (BackupManager.hasStoragePermission()) {
+            withContext(Dispatchers.IO) { BackupManager.initBackupDir(context) }
+            backupHistory = BackupManager.getBackupHistory(context)
+        }
     }
 
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -432,6 +450,38 @@ fun BackupScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                // 存储权限提示
+                if (!BackupManager.hasStoragePermission()) {
+                    item {
+                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "需要存储权限",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textColor
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "授予「所有文件访问」权限后，备份文件将保存到 Documents/DiaryApp/ 目录，卸载后不会丢失。",
+                                    fontSize = 13.sp,
+                                    color = textTertiary
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                TextButton(onClick = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                        intent.data = Uri.parse("package:${context.packageName}")
+                                        storagePermissionLauncher.launch(intent)
+                                    }
+                                }) {
+                                    Text("前往设置")
+                                }
+                            }
+                        }
+                    }
+                }
 
                 item {
                     StaggeredBackupItem(index = 0, showContent = showContent) {

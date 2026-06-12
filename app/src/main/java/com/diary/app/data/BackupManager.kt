@@ -53,6 +53,7 @@ object BackupManager {
     private const val KEY_BACKUP_HISTORY = "backup_history"
     private const val KEY_MAX_BACKUPS = "max_backups"
     private const val DEFAULT_MAX_BACKUPS = 10
+    private const val BACKUP_DIR_NAME = "DiaryApp"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -87,6 +88,24 @@ object BackupManager {
         getPrefs(context).edit().putLong(KEY_LAST_BACKUP, time).apply()
     }
 
+    fun hasStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            true // Android 10 以下通过 WRITE_EXTERNAL_STORAGE 处理
+        }
+    }
+
+    fun getBackupDir(): File {
+        return File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), BACKUP_DIR_NAME)
+    }
+
+    fun createBackupDir(): File {
+        val dir = getBackupDir()
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
     fun getMaxBackups(context: Context): Int {
         return getPrefs(context).getInt(KEY_MAX_BACKUPS, DEFAULT_MAX_BACKUPS)
     }
@@ -115,13 +134,6 @@ object BackupManager {
     fun addBackupRecord(context: Context, record: BackupRecord) {
         val history = getBackupHistory(context).toMutableList()
         history.add(0, record)
-
-        val maxBackups = getMaxBackups(context)
-        while (history.size > maxBackups) {
-            val oldest = history.removeLast()
-            runCatching { File(oldest.filePath).delete() }
-        }
-
         saveHistory(context, history)
         setLastBackupTime(context, System.currentTimeMillis())
     }
@@ -130,6 +142,10 @@ object BackupManager {
         val history = getBackupHistory(context).toMutableList()
         history.removeAll { it.filePath == record.filePath }
         saveHistory(context, history)
+        // 从备份目录删除
+        val file = File(getBackupDir(), record.fileName)
+        if (file.exists()) file.delete()
+        // 兼容旧版 Downloads 中的文件
         deleteDownloadsFile(context, record.fileName)
     }
 
@@ -137,19 +153,23 @@ object BackupManager {
         val targetName = normalizeBackupFileName(requestedName)
 
         // 读取原文件内容
-        val content = readFromDownloads(context, record.fileName)
+        val content = readFromBackupDir(context, record.fileName)
+            ?: readFromDownloads(context, record.fileName)
             ?: throw Exception("备份文件不存在")
 
         // 删除旧文件
+        File(getBackupDir(), record.fileName).let { if (it.exists()) it.delete() }
         deleteDownloadsFile(context, record.fileName)
 
-        // 创建新文件
+        // 创建新文件到备份目录
         val dataBytes = content.toByteArray(Charsets.UTF_8)
-        val newFilePath = writeToDownloads(context, targetName, dataBytes)
+        val dir = createBackupDir()
+        val newFile = File(dir, targetName)
+        newFile.writeBytes(dataBytes)
 
         val updated = record.copy(
             fileName = targetName,
-            filePath = newFilePath,
+            filePath = newFile.absolutePath,
             fileSize = dataBytes.size.toLong()
         )
         val history = getBackupHistory(context).map {
@@ -228,7 +248,12 @@ object BackupManager {
         val dataBytes = json.toByteArray(Charsets.UTF_8)
 
         val filePath: String
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (hasStoragePermission()) {
+            val dir = createBackupDir()
+            val file = File(dir, fileName)
+            file.writeBytes(dataBytes)
+            filePath = file.absolutePath
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
                 put(MediaStore.Downloads.MIME_TYPE, "application/json")
@@ -239,14 +264,13 @@ object BackupManager {
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 out.write(dataBytes)
             } ?: throw Exception("无法写入文件")
-            // 通过 query 获取实际路径
             filePath = queryFilePath(context, uri) ?: "${Environment.DIRECTORY_DOWNLOADS}/$fileName"
         } else {
             @Suppress("DEPRECATION")
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (!downloadsDir.exists()) downloadsDir.mkdirs()
             val file = File(downloadsDir, fileName)
-            file.writeText(json, Charsets.UTF_8)
+            file.writeBytes(dataBytes)
             filePath = file.absolutePath
         }
 
@@ -409,45 +433,97 @@ object BackupManager {
     }
 
     /**
-     * 扫描 Downloads 目录，将历史记录中缺失的备份文件补回到记录中。
-     * 用于卸载重装后恢复备份历史。
+     * 初始化备份目录：创建目录，扫描已有文件恢复历史记录，迁移旧版 Downloads 备份。
+     * 在 BackupScreen 打开时调用。
      */
-    fun recoverBackupHistory(context: Context) {
-        val existingFiles = scanDownloadsBackups(context)
-        if (existingFiles.isEmpty()) return
+    fun initBackupDir(context: Context) {
+        if (!hasStoragePermission()) return
+        createBackupDir()
 
-        val history = getBackupHistory(context)
-        val knownFileNames = history.map { it.fileName }.toSet()
-
-        var changed = false
-        for (file in existingFiles) {
-            if (file.fileName in knownFileNames) continue
-
-            val entryCount = try {
-                val content = readDownloadBackup(context, file.fileName) ?: continue
-                val parsed = Gson().fromJson(content, DiaryBackup::class.java)
-                parsed?.entries?.size ?: 0
-            } catch (_: Exception) { 0 }
-
-            addBackupRecord(context, BackupRecord(
-                fileName = file.fileName,
-                filePath = "${Environment.DIRECTORY_DOWNLOADS}/${file.fileName}",
-                timestamp = file.lastModified,
-                entryCount = entryCount,
-                fileSize = file.fileSize
-            ))
-            changed = true
+        // 扫描备份目录中已有文件，恢复历史记录
+        val existingFiles = scanBackupDir()
+        if (existingFiles.isNotEmpty()) {
+            val history = getBackupHistory(context)
+            val knownFileNames = history.map { it.fileName }.toSet()
+            for (file in existingFiles) {
+                if (file.name in knownFileNames) continue
+                val entryCount = try {
+                    val parsed = Gson().fromJson(file.readText(), DiaryBackup::class.java)
+                    parsed?.entries?.size ?: 0
+                } catch (_: Exception) { 0 }
+                addBackupRecord(context, BackupRecord(
+                    fileName = file.name,
+                    filePath = file.absolutePath,
+                    timestamp = file.lastModified(),
+                    entryCount = entryCount,
+                    fileSize = file.length()
+                ))
+            }
         }
 
-        // 如果历史记录中的文件已不存在于 Downloads，清理掉
-        if (!changed) return
-        val currentHistory = getBackupHistory(context)
-        val validHistory = currentHistory.filter { record ->
-            existingFiles.any { it.fileName == record.fileName }
-        }
-        if (validHistory.size != currentHistory.size) {
-            saveHistory(context, validHistory)
-        }
+        // 迁移旧版 Downloads 中的备份到新目录
+        migrateFromDownloads(context)
+    }
+
+    /**
+     * 扫描 Documents/DiaryApp/ 目录中的备份文件
+     */
+    private fun scanBackupDir(): Array<File> {
+        val dir = getBackupDir()
+        if (!dir.exists()) return emptyArray()
+        return dir.listFiles { file ->
+            file.isFile && file.name.startsWith("diary_backup_") && file.name.endsWith(".json")
+        } ?: emptyArray()
+    }
+
+    /**
+     * 从备份目录读取文件内容
+     */
+    private fun readFromBackupDir(context: Context, fileName: String): String? {
+        return try {
+            val file = File(getBackupDir(), fileName)
+            if (file.exists()) file.readText() else null
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * 将旧版 Downloads 中的备份文件迁移到 Documents/DiaryApp/
+     */
+    private fun migrateFromDownloads(context: Context) {
+        try {
+            val oldFiles = scanDownloadsBackups(context)
+            if (oldFiles.isEmpty()) return
+
+            val dir = createBackupDir()
+            val history = getBackupHistory(context).toMutableList()
+            val knownFileNames = history.map { it.fileName }.toSet()
+            var changed = false
+
+            for (oldFile in oldFiles) {
+                if (oldFile.fileName in knownFileNames) continue
+                val content = readDownloadBackup(context, oldFile.fileName) ?: continue
+
+                val newFile = File(dir, oldFile.fileName)
+                if (!newFile.exists()) {
+                    newFile.writeText(content)
+                }
+
+                val entryCount = try {
+                    Gson().fromJson(content, DiaryBackup::class.java)?.entries?.size ?: 0
+                } catch (_: Exception) { 0 }
+
+                history.add(0, BackupRecord(
+                    fileName = oldFile.fileName,
+                    filePath = newFile.absolutePath,
+                    timestamp = oldFile.lastModified,
+                    entryCount = entryCount,
+                    fileSize = newFile.length()
+                ))
+                changed = true
+            }
+
+            if (changed) saveHistory(context, history)
+        } catch (_: Exception) {}
     }
 
 }
