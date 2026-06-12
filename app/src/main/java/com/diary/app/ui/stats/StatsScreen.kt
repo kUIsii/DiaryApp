@@ -948,31 +948,27 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "无记录",
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            val legendItems = listOf(
+                "0" to surfaceVariant.copy(alpha = 0.4f),
+                "1" to primaryColor.copy(alpha = 0.5f),
+                "2" to primaryColor.copy(alpha = 0.7f),
+                "3+" to primaryColor
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(surfaceVariant.copy(alpha = 0.4f))
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "有记录",
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(primaryColor)
-            )
+            legendItems.forEachIndexed { index, (label, color) ->
+                if (index > 0) Spacer(modifier = Modifier.width(2.dp))
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(color)
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Text(
+                    text = label,
+                    fontSize = 9.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))

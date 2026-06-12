@@ -75,7 +75,7 @@ fun CalendarView(
 ) {
     val isDark = themeMode().isDark()
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-    var currentWeekStart by remember { mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))) }
+    var currentWeekStart by remember { mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))) }
     val today = remember { LocalDate.now() }
 
     val onBackground = MaterialTheme.colorScheme.onBackground
@@ -119,7 +119,7 @@ fun CalendarView(
 
             // Day of week headers
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { _, day ->
+                listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { _, day ->
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
@@ -307,7 +307,7 @@ private fun MonthView(
 ) {
     val firstDayOfMonth = currentMonth.atDay(1)
     val daysInMonth = currentMonth.lengthOfMonth()
-    val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+    val startOffset = (firstDayOfMonth.dayOfWeek.value - 1 + 7) % 7
     val totalCells = startOffset + daysInMonth
     val rows = (totalCells + 6) / 7
 

@@ -34,8 +34,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.diary.app.ui.components.GlassCard
-import com.diary.app.ui.theme.DarkAccentEnd
-import com.diary.app.ui.theme.DarkAccentStart
 
 @Composable
 fun ShareFormatDialog(
@@ -71,7 +69,10 @@ fun ShareFormatDialog(
                             .height(4.dp)
                             .background(
                                 Brush.horizontalGradient(
-                                    listOf(DarkAccentStart, DarkAccentEnd)
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
                                 )
                             )
                     )
