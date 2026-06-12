@@ -384,7 +384,7 @@ fun BackupScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = file.fileName,
+                                        text = file.fileName.removeSuffix(".json").removePrefix("diary_backup_"),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = textColor,
@@ -748,7 +748,7 @@ private fun BackupHistoryItem(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = record.fileName,
+                    text = record.fileName.removeSuffix(".json").removePrefix("diary_backup_"),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = textColor,
