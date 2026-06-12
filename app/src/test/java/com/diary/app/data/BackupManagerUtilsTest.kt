@@ -6,9 +6,9 @@ import org.junit.Test
 class BackupManagerUtilsTest {
 
     @Test
-    fun `normalized backup file name appends json extension and trims whitespace`() {
+    fun `normalized backup file name appends full backup extension and trims whitespace`() {
         assertEquals(
-            "trip-notes.json",
+            "diary_backup_trip-notes.diarybackup",
             normalizeBackupFileName("  trip-notes  ")
         )
     }
@@ -16,7 +16,7 @@ class BackupManagerUtilsTest {
     @Test
     fun `normalized backup file name removes invalid path characters`() {
         assertEquals(
-            "2026-06-10-backup.json",
+            "diary_backup_2026-06-10-backup.diarybackup",
             normalizeBackupFileName("2026/06/10:backup")
         )
     }
@@ -24,8 +24,16 @@ class BackupManagerUtilsTest {
     @Test
     fun `normalized backup file name falls back when name becomes empty`() {
         assertEquals(
-            "backup.json",
+            "diary_backup_backup.diarybackup",
             normalizeBackupFileName("   <>   ")
+        )
+    }
+
+    @Test
+    fun `normalized backup file name replaces old json suffix with full backup suffix`() {
+        assertEquals(
+            "diary_backup_20260612.diarybackup",
+            normalizeBackupFileName("diary_backup_20260612.json")
         )
     }
 }

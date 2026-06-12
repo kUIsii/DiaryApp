@@ -39,6 +39,11 @@ data class ImportResult(
     val tagCount: Int
 )
 
+data class PendingBackupImport(
+    val backup: DiaryBackup,
+    val mediaFiles: Map<String, ByteArray> = emptyMap()
+)
+
 object DiaryImporter {
 
     fun readAndValidate(context: Context, uri: Uri): DiaryBackup {

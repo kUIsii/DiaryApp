@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
@@ -87,6 +88,7 @@ fun HomeScreen(
     onNavigateToCountDown: () -> Unit = {},
     onNavigateToTimeline: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
+    onNavigateToMediaLibrary: () -> Unit = {},
     onNavigateToExperimentalFeatures: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -263,6 +265,15 @@ fun HomeScreen(
                         onClick = {
                             showFunctionMenu = false
                             onNavigateToExperimentalFeatures()
+                        }
+                    ),
+                    FunctionMenuItem(
+                        id = "media",
+                        title = "媒体库",
+                        icon = Icons.Default.Collections,
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToMediaLibrary()
                         }
                     ),
                     FunctionMenuItem(

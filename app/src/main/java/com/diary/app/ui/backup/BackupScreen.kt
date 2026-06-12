@@ -78,8 +78,8 @@ import com.diary.app.R
 import com.diary.app.data.BackupFrequency
 import com.diary.app.data.BackupManager
 import com.diary.app.data.BackupRecord
-import com.diary.app.data.DiaryBackup
 import com.diary.app.data.DiaryImporter
+import com.diary.app.data.PendingBackupImport
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
@@ -110,7 +110,7 @@ fun BackupScreen(
     var deleteTarget by remember { mutableStateOf<BackupRecord?>(null) }
     var renameTarget by remember { mutableStateOf<BackupRecord?>(null) }
     var renameInput by remember { mutableStateOf("") }
-    var pendingImport by remember { mutableStateOf<DiaryBackup?>(null) }
+    var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
     var showContent by remember { mutableStateOf(false) }
     var showFileListDialog by remember { mutableStateOf(false) }
@@ -200,7 +200,8 @@ fun BackupScreen(
         )
     }
 
-    pendingImport?.let { backup ->
+    pendingImport?.let { pendingImportData ->
+        val backup = pendingImportData.backup
         val entryCount = backup.entries?.size ?: 0
         val tagCount = backup.tags?.size ?: 0
         var overwriteMode by remember { mutableStateOf(false) }
@@ -243,16 +244,19 @@ fun BackupScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val pending = backup
+                    val pending = pendingImportData
                     val overwrite = overwriteMode
                     pendingImport = null
                     isImporting = true
                     scope.launch {
                         try {
+                            withContext(Dispatchers.IO) {
+                                BackupManager.restorePendingMedia(context, pending)
+                            }
                             val result = if (overwrite) {
-                                DiaryImporter.importOverwrite(app.database, pending)
+                                DiaryImporter.importOverwrite(app.database, pending.backup)
                             } else {
-                                DiaryImporter.import(app.database, pending)
+                                DiaryImporter.import(app.database, pending.backup)
                             }
                             Toast.makeText(
                                 context,
@@ -353,9 +357,9 @@ fun BackupScreen(
                                         // 读取文件并显示导入确认
                                         scope.launch {
                                             try {
-                                                val json = BackupManager.readDownloadBackup(context, file.fileName)
-                                                if (json != null) {
-                                                    pendingImport = com.google.gson.Gson().fromJson(json, DiaryBackup::class.java)
+                                                val pending = BackupManager.readBackupForImport(context, file.fileName)
+                                                if (pending != null) {
+                                                    pendingImport = pending
                                                 } else {
                                                     Toast.makeText(context, "无法读取文件", Toast.LENGTH_SHORT).show()
                                                 }
@@ -384,7 +388,7 @@ fun BackupScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = file.fileName.removeSuffix(".json").removePrefix("diary_backup_"),
+                                        text = displayBackupName(file.fileName),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = textColor,
@@ -580,7 +584,7 @@ fun BackupScreen(
                                 BackupActionButton(
                                     icon = Icons.Default.Backup,
                                     title = stringResource(R.string.backup_now),
-                                    subtitle = "保存一份可管理的本地 JSON 备份",
+                                    subtitle = "保存日记文字和图片到一个本地备份包",
                                     iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                     iconTint = MaterialTheme.colorScheme.primary,
                                     textColor = textColor,
@@ -627,7 +631,7 @@ fun BackupScreen(
                                     subtitle = if (isImporting) {
                                         "正在导入..."
                                     } else {
-                                        "从文件导入 JSON 备份"
+                                        "从本地备份包或旧 JSON 备份导入"
                                     },
                                     iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
                                     iconTint = MaterialTheme.colorScheme.tertiary,
@@ -666,7 +670,7 @@ fun BackupScreen(
                                 textTertiary = textTertiary,
                                 onRename = {
                                     renameTarget = record
-                                    renameInput = record.fileName.removeSuffix(".json").removePrefix("diary_backup_")
+                                    renameInput = displayBackupName(record.fileName)
                                 },
                                 onDelete = { deleteTarget = record }
                             )
@@ -748,7 +752,7 @@ private fun BackupHistoryItem(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = record.fileName.removeSuffix(".json").removePrefix("diary_backup_"),
+                    text = displayBackupName(record.fileName),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = textColor,
@@ -788,6 +792,13 @@ private fun BackupHistoryItem(
             }
         }
     }
+}
+
+private fun displayBackupName(fileName: String): String {
+    return fileName
+        .removeSuffix(".diarybackup")
+        .removeSuffix(".json")
+        .removePrefix("diary_backup_")
 }
 
 @Composable

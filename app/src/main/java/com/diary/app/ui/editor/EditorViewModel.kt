@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
+import com.diary.app.data.DiaryImage
+import com.diary.app.data.DiaryMediaManager
 import com.diary.app.data.DiaryTag
 import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
@@ -30,6 +32,7 @@ data class DraftData(
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+    private val appContext = application.applicationContext
     private val prefs = application.getSharedPreferences("editor_drafts", Context.MODE_PRIVATE)
     private val gson = Gson()
 
@@ -267,7 +270,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         longitude: Double? = null
     ): Long {
         // Strip Base64 data URLs from content before saving to prevent OOM on load
-        val safeContent = stripBase64FromContent(content)
+        val safeContent = DiaryMediaManager.contentToStableMediaRefs(stripBase64FromContent(content))
 
         val entryId = if (diaryId != null) {
             val existing = dao.getEntryByIdSafe(diaryId)
@@ -309,11 +312,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _selectedTagIds.value.forEach { tagId ->
             dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
         }
+        syncEntryImages(entryId, safeContent)
 
         clearDraftsForSavedEntry(diaryId)
         _hasUnsavedChanges.value = false
 
         return entryId
+    }
+
+    private suspend fun syncEntryImages(entryId: Long, content: String) {
+        dao.deleteImagesForEntry(entryId)
+        DiaryMediaManager.extractMediaNames(content).forEachIndexed { index, mediaName ->
+            val displayFile = java.io.File(DiaryMediaManager.mediaDir(appContext), mediaName)
+            val thumbFile = java.io.File(DiaryMediaManager.thumbDir(appContext), mediaName)
+            dao.insertImage(
+                DiaryImage(
+                    entryId = entryId,
+                    localPath = displayFile.absolutePath,
+                    thumbPath = thumbFile.absolutePath.takeIf { thumbFile.exists() },
+                    mediaName = mediaName,
+                    mediaRef = DiaryMediaManager.toMediaRef(mediaName),
+                    mimeType = "image/jpeg",
+                    fileSize = displayFile.takeIf { it.exists() }?.length() ?: 0L,
+                    sortOrder = index,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+        }
     }
 
     /**

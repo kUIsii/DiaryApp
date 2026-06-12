@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -174,13 +174,24 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN thumbPath TEXT")
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN mediaName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN mediaRef TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN mimeType TEXT NOT NULL DEFAULT 'image/jpeg'")
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN fileSize INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE diary_images ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     DiaryDatabase::class.java,
                     "diary_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {

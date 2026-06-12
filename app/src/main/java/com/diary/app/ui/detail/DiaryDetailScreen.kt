@@ -78,6 +78,7 @@ import com.diary.app.R
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.Tag
+import com.diary.app.data.DiaryMediaManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.WebViewAssetHelper
@@ -371,6 +372,7 @@ fun DiaryDetailScreen(
                                                                 ) { match ->
                                                                     "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
                                                                 }
+                                                                safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)
                                                                 if (safeContent.length > maxContentSize) {
                                                                     val fallback = currentEntry.plainText.take(5000)
                                                                     evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)

@@ -11,9 +11,11 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.content.ContentValues
 import java.io.File
-import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 enum class BackupFrequency(val label: String, val days: Int) {
     DAILY("每日", 1),
@@ -29,9 +31,12 @@ data class BackupRecord(
     val fileSize: Long
 )
 
+private const val FULL_BACKUP_EXTENSION = ".diarybackup"
+
 fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"): String {
     val baseName = rawName
         .trim()
+        .removeSuffix(FULL_BACKUP_EXTENSION)
         .removeSuffix(".json")
         .replace(Regex("[\\\\/:*?\"<>|]+"), "-")
         .replace(Regex("\\s+"), "-")
@@ -41,7 +46,7 @@ fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"
 
     // 确保以 diary_backup_ 开头，这样导入扫描能找到
     val prefixed = if (baseName.startsWith("diary_backup_")) baseName else "diary_backup_$baseName"
-    return "$prefixed.json"
+    return "$prefixed$FULL_BACKUP_EXTENSION"
 }
 
 object BackupManager {
@@ -54,6 +59,7 @@ object BackupManager {
     private const val KEY_MAX_BACKUPS = "max_backups"
     private const val DEFAULT_MAX_BACKUPS = 10
     private const val BACKUP_DIR_NAME = "DiaryApp"
+    private const val BACKUP_JSON_NAME = "backup.json"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -151,9 +157,10 @@ object BackupManager {
 
     fun renameBackup(context: Context, record: BackupRecord, requestedName: String): BackupRecord {
         val targetName = normalizeBackupFileName(requestedName)
+        val originalPackageBytes = readBackupPackageBytes(context, record.fileName)
 
         // 读取原文件内容
-        val content = readFromBackupDir(context, record.fileName)
+        val content = readBackupJsonFromBackupDir(record.fileName)
             ?: readFromDownloads(context, record.fileName)
             ?: throw Exception("备份文件不存在")
 
@@ -162,7 +169,11 @@ object BackupManager {
         deleteDownloadsFile(context, record.fileName)
 
         // 创建新文件到备份目录
-        val dataBytes = content.toByteArray(Charsets.UTF_8)
+        val dataBytes = if (targetName.endsWith(FULL_BACKUP_EXTENSION)) {
+            originalPackageBytes ?: buildFullBackupBytesFromJson(content)
+        } else {
+            content.toByteArray(Charsets.UTF_8)
+        }
         val dir = createBackupDir()
         val newFile = File(dir, targetName)
         newFile.writeBytes(dataBytes)
@@ -183,11 +194,17 @@ object BackupManager {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val uri = findDownloadsUri(context, fileName) ?: return null
-                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
+                        readBackupJsonFromZip(stream)
+                    } else {
+                        stream.bufferedReader().readText()
+                    }
+                }
             } else {
                 @Suppress("DEPRECATION")
                 val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
-                if (file.exists()) file.readText() else null
+                readBackupJsonFromFile(file)
             }
         } catch (_: Exception) { null }
     }
@@ -243,9 +260,9 @@ object BackupManager {
 
     suspend fun createBackup(context: Context, dao: DiaryDao): BackupRecord {
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        val fileName = "diary_backup_$timestamp.json"
+        val fileName = "diary_backup_$timestamp$FULL_BACKUP_EXTENSION"
         val json = buildBackupJson(dao)
-        val dataBytes = json.toByteArray(Charsets.UTF_8)
+        val dataBytes = buildFullBackupBytes(context, dao, json)
 
         val filePath: String
         if (hasStoragePermission()) {
@@ -256,7 +273,7 @@ object BackupManager {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.MIME_TYPE, "application/zip")
                 put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             }
             val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
@@ -283,6 +300,77 @@ object BackupManager {
         )
         addBackupRecord(context, record)
         return record
+    }
+
+    private fun buildFullBackupBytesFromJson(json: String): ByteArray {
+        val output = java.io.ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry(BACKUP_JSON_NAME))
+            zip.write(json.toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+        }
+        return output.toByteArray()
+    }
+
+    private fun readBackupPackageBytes(context: Context, fileName: String): ByteArray? {
+        if (!fileName.endsWith(FULL_BACKUP_EXTENSION)) return null
+        return try {
+            val backupFile = File(getBackupDir(), fileName)
+            if (backupFile.exists()) {
+                backupFile.readBytes()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val uri = findDownloadsUri(context, fileName) ?: return null
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } else {
+                @Suppress("DEPRECATION")
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+                if (file.exists()) file.readBytes() else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private suspend fun buildFullBackupBytes(context: Context, dao: DiaryDao, json: String): ByteArray {
+        val output = java.io.ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry(BACKUP_JSON_NAME))
+            zip.write(json.toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+
+            val mediaNames = referencedMediaNames(dao)
+            for (mediaName in mediaNames) {
+                val displayFile = File(DiaryMediaManager.mediaDir(context), mediaName)
+                if (displayFile.exists() && displayFile.isFile) {
+                    zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/$mediaName"))
+                    displayFile.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
+                val thumbFile = File(DiaryMediaManager.thumbDir(context), mediaName)
+                if (thumbFile.exists() && thumbFile.isFile) {
+                    zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/${DiaryMediaManager.THUMB_DIR_NAME}/$mediaName"))
+                    thumbFile.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
+            }
+        }
+        return output.toByteArray()
+    }
+
+    private suspend fun referencedMediaNames(dao: DiaryDao): Set<String> {
+        val names = linkedSetOf<String>()
+        dao.getAllImages().mapNotNullTo(names) { it.mediaName.takeIf(String::isNotBlank) }
+        var offset = 0
+        val batchSize = 50
+        while (true) {
+            val batch = dao.getEntriesBatchForExport(offset, batchSize)
+            if (batch.isEmpty()) break
+            batch.forEach { entry ->
+                names.addAll(DiaryMediaManager.extractMediaNames(entry.content))
+            }
+            offset += batchSize
+        }
+        return names
     }
 
     suspend fun performAutoBackup(context: Context, dao: DiaryDao): BackupRecord? {
@@ -375,10 +463,15 @@ object BackupManager {
     )
 
     /**
-     * 扫描 Downloads 目录中所有的 diary_backup_*.json 文件
+     * 扫描 Downloads 目录中所有的 diary_backup_* 备份文件。
      */
     fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
         val results = mutableListOf<DownloadBackupFile>()
+        if (hasStoragePermission()) {
+            scanBackupDir().forEach { file ->
+                results.add(DownloadBackupFile(file.name, file.length(), file.lastModified()))
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val projection = arrayOf(
                 MediaStore.Downloads.DISPLAY_NAME,
@@ -395,25 +488,33 @@ object BackupManager {
                 val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
                 val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
                 while (cursor.moveToNext()) {
-                    results.add(DownloadBackupFile(
-                        fileName = cursor.getString(nameIdx),
-                        fileSize = cursor.getLong(sizeIdx),
-                        lastModified = cursor.getLong(dateIdx) * 1000
-                    ))
+                    val fileName = cursor.getString(nameIdx)
+                    if (results.none { it.fileName == fileName }) {
+                        results.add(DownloadBackupFile(
+                            fileName = fileName,
+                            fileSize = cursor.getLong(sizeIdx),
+                            lastModified = cursor.getLong(dateIdx) * 1000
+                        ))
+                    }
                 }
             }
         } else {
             @Suppress("DEPRECATION")
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (dir.exists()) {
-                dir.listFiles()?.filter { it.name.startsWith("diary_backup_") && it.name.endsWith(".json") }
+                dir.listFiles()?.filter {
+                    it.name.startsWith("diary_backup_") &&
+                        (it.name.endsWith(".json") || it.name.endsWith(FULL_BACKUP_EXTENSION))
+                }
                     ?.sortedByDescending { it.lastModified() }
                     ?.forEach {
-                        results.add(DownloadBackupFile(it.name, it.length(), it.lastModified()))
+                        if (results.none { existing -> existing.fileName == it.name }) {
+                            results.add(DownloadBackupFile(it.name, it.length(), it.lastModified()))
+                        }
                     }
             }
         }
-        return results
+        return results.sortedByDescending { it.lastModified }
     }
 
     /**
@@ -423,13 +524,64 @@ object BackupManager {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val uri = findDownloadsUri(context, fileName) ?: return null
-                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
+                        readBackupJsonFromZip(stream)
+                    } else {
+                        stream.bufferedReader().readText()
+                    }
+                }
             } else {
                 @Suppress("DEPRECATION")
                 val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
-                if (file.exists()) file.readText() else null
+                readBackupJsonFromFile(file)
             }
         } catch (_: Exception) { null }
+    }
+
+    fun readBackupForImport(context: Context, fileName: String): PendingBackupImport? {
+        return try {
+            val file = File(getBackupDir(), fileName)
+            if (file.exists()) {
+                readPendingImportFromFile(file)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val uri = findDownloadsUri(context, fileName) ?: return null
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
+                        readPendingImportFromZip(stream)
+                    } else {
+                        PendingBackupImport(Gson().fromJson(stream.bufferedReader().readText(), DiaryBackup::class.java))
+                    }
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                readPendingImportFromFile(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName))
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun restorePendingMedia(context: Context, pending: PendingBackupImport) {
+        if (pending.mediaFiles.isEmpty()) return
+        val mediaDir = DiaryMediaManager.mediaDir(context)
+        val thumbDir = DiaryMediaManager.thumbDir(context)
+        pending.mediaFiles.forEach { (entryName, bytes) ->
+            val normalized = entryName.replace('\\', '/')
+            val target = when {
+                normalized.startsWith("${DiaryMediaManager.MEDIA_DIR_NAME}/${DiaryMediaManager.THUMB_DIR_NAME}/") -> {
+                    File(thumbDir, normalized.substringAfterLast('/'))
+                }
+                normalized.startsWith("${DiaryMediaManager.MEDIA_DIR_NAME}/") -> {
+                    File(mediaDir, normalized.substringAfterLast('/'))
+                }
+                else -> null
+            }
+            if (target != null) {
+                target.parentFile?.mkdirs()
+                target.writeBytes(bytes)
+            }
+        }
     }
 
     /**
@@ -448,7 +600,7 @@ object BackupManager {
             for (file in existingFiles) {
                 if (file.name in knownFileNames) continue
                 val entryCount = try {
-                    val parsed = Gson().fromJson(file.readText(), DiaryBackup::class.java)
+                    val parsed = Gson().fromJson(readBackupJsonFromFile(file), DiaryBackup::class.java)
                     parsed?.entries?.size ?: 0
                 } catch (_: Exception) { 0 }
                 addBackupRecord(context, BackupRecord(
@@ -472,18 +624,73 @@ object BackupManager {
         val dir = getBackupDir()
         if (!dir.exists()) return emptyArray()
         return dir.listFiles { file ->
-            file.isFile && file.name.startsWith("diary_backup_") && file.name.endsWith(".json")
+            file.isFile && file.name.startsWith("diary_backup_") &&
+                (file.name.endsWith(".json") || file.name.endsWith(FULL_BACKUP_EXTENSION))
         } ?: emptyArray()
     }
 
     /**
      * 从备份目录读取文件内容
      */
-    private fun readFromBackupDir(context: Context, fileName: String): String? {
+    private fun readBackupJsonFromBackupDir(fileName: String): String? {
         return try {
             val file = File(getBackupDir(), fileName)
-            if (file.exists()) file.readText() else null
+            readBackupJsonFromFile(file)
         } catch (_: Exception) { null }
+    }
+
+    private fun readBackupJsonFromFile(file: File): String? {
+        if (!file.exists()) return null
+        return if (file.name.endsWith(FULL_BACKUP_EXTENSION)) {
+            file.inputStream().use { readBackupJsonFromZip(it) }
+        } else {
+            file.readText()
+        }
+    }
+
+    private fun readBackupJsonFromZip(input: java.io.InputStream): String? {
+        ZipInputStream(input).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                if (!entry.isDirectory && entry.name == BACKUP_JSON_NAME) {
+                    return zip.readBytes().toString(Charsets.UTF_8)
+                }
+                zip.closeEntry()
+            }
+        }
+        return null
+    }
+
+    private fun readPendingImportFromFile(file: File): PendingBackupImport? {
+        if (!file.exists()) return null
+        return if (file.name.endsWith(FULL_BACKUP_EXTENSION)) {
+            file.inputStream().use { readPendingImportFromZip(it) }
+        } else {
+            PendingBackupImport(Gson().fromJson(file.readText(), DiaryBackup::class.java))
+        }
+    }
+
+    private fun readPendingImportFromZip(input: java.io.InputStream): PendingBackupImport? {
+        var backupJson: String? = null
+        val mediaFiles = linkedMapOf<String, ByteArray>()
+        ZipInputStream(input).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                if (!entry.isDirectory) {
+                    val bytes = zip.readBytes()
+                    when {
+                        entry.name == BACKUP_JSON_NAME -> backupJson = bytes.toString(Charsets.UTF_8)
+                        entry.name.startsWith("${DiaryMediaManager.MEDIA_DIR_NAME}/") -> mediaFiles[entry.name] = bytes
+                    }
+                }
+                zip.closeEntry()
+            }
+        }
+        val json = backupJson ?: return null
+        return PendingBackupImport(
+            backup = Gson().fromJson(json, DiaryBackup::class.java),
+            mediaFiles = mediaFiles
+        )
     }
 
     /**
@@ -501,6 +708,7 @@ object BackupManager {
 
             for (oldFile in oldFiles) {
                 if (oldFile.fileName in knownFileNames) continue
+                if (oldFile.fileName.endsWith(FULL_BACKUP_EXTENSION)) continue
                 val content = readDownloadBackup(context, oldFile.fileName) ?: continue
 
                 val newFile = File(dir, oldFile.fileName)

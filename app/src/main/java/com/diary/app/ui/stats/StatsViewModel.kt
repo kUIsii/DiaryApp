@@ -100,11 +100,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now()
 
-        val dates = entries.map {
+        val entryDates = entries.map {
             Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
-        }.toSet()
+        }
+        val activeDates = entryDates.toSet()
 
-        val streak = calculateStreak(dates)
+        val streak = calculateStreak(activeDates)
 
         val thisMonth = entries.count {
             val date = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
@@ -139,7 +140,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            heatmapData = computeHeatmapData(dates, now, heatmapRange.days),
+            heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
@@ -274,18 +275,19 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun computeHeatmapData(entryDates: Set<LocalDate>, now: LocalDate, days: Int): List<HeatmapDay> {
-        val result = mutableListOf<HeatmapDay>()
-        for (i in (days - 1) downTo 0) {
-            val date = now.minusDays(i.toLong())
-            result.add(
-                HeatmapDay(
-                    date = date,
-                    count = if (date in entryDates) 1 else 0,
-                )
-            )
-        }
-        return result
-    }
+}
 
+fun buildHeatmapData(entryDates: List<LocalDate>, now: LocalDate, days: Int): List<HeatmapDay> {
+    val entryCountsByDate = entryDates.groupingBy { it }.eachCount()
+    val result = mutableListOf<HeatmapDay>()
+    for (i in (days - 1) downTo 0) {
+        val date = now.minusDays(i.toLong())
+        result.add(
+            HeatmapDay(
+                date = date,
+                count = entryCountsByDate[date] ?: 0,
+            )
+        )
+    }
+    return result
 }

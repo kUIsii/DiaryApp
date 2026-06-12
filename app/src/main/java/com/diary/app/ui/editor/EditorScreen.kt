@@ -8,6 +8,7 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -101,6 +102,7 @@ import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import com.diary.app.data.DiaryMediaManager
 import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
 import com.diary.app.ui.theme.SuccessColor
@@ -216,8 +218,9 @@ fun EditorScreen(
     val isWritingStatsVisible = charCount > 0 || writingDuration > 30
 
     val applyDraftToEditor: (DraftData, String?) -> Unit = { draft, sourceDraftId ->
+        val draftContent = DiaryMediaManager.contentToWebViewUrls(context, draft.content)
         val base64Content = Base64.encodeToString(
-            draft.content.toByteArray(Charsets.UTF_8),
+            draftContent.toByteArray(Charsets.UTF_8),
             Base64.NO_WRAP
         )
         if (isWebViewReady) {
@@ -286,12 +289,7 @@ fun EditorScreen(
                     Regex("\"data:image/[^\"]{0,5000000}\""),
                     "\"\""
                 )
-                // 把旧的 file:// URL 转成 WebViewAssetLoader 的 https:// 格式
-                safeContent = safeContent.replace(
-                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
-                ) { match ->
-                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
-                }
+                safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)
                 // Use Base64 encoding to avoid escaping issues
                 val base64Content = Base64.encodeToString(
                     safeContent.toByteArray(Charsets.UTF_8),
@@ -376,37 +374,12 @@ fun EditorScreen(
     }
 
     // Media pickers - save images to local files for reliable display
-    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
-                val inputStream = context.contentResolver.openInputStream(imageUri)
-                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
-                if (bitmap != null) {
-                    // Scale down if larger than 800px on longest side
-                    val maxDim = 800
-                    val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
-                        val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
-                        android.graphics.Bitmap.createScaledBitmap(
-                            bitmap,
-                            (bitmap.width * scale).toInt(),
-                            (bitmap.height * scale).toInt(),
-                            true
-                        )
-                    } else bitmap
-                    // Save to local file instead of Base64 inline
-                    val mediaDir = java.io.File(context.filesDir, "diary_media")
-                    if (!mediaDir.exists()) mediaDir.mkdirs()
-                    val fileName = "img_${System.currentTimeMillis()}.jpg"
-                    val outputFile = java.io.File(mediaDir, fileName)
-                    java.io.FileOutputStream(outputFile).use { fos ->
-                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, fos)
-                    }
-                    if (scaled !== bitmap) scaled.recycle()
-                    bitmap.recycle()
-
-                    val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(webViewUrl)}')", null)
+                val media = DiaryMediaManager.importImage(context, imageUri)
+                if (media != null) {
+                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(media.displayWebUrl)}')", null)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -453,7 +426,7 @@ fun EditorScreen(
     LaunchedEffect(Unit) {
         jsBridge.events.collect { event ->
             when (event) {
-                "image" -> imageLauncher.launch("image/*")
+                "image" -> imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 "video" -> videoLauncher.launch("video/*")
                 "audio" -> audioLauncher.launch("audio/*")
             }
@@ -1272,7 +1245,9 @@ fun EditorScreen(
                             "divider" -> webView?.evaluateJavascript("insertDivider()", null)
                         }
                     },
-                    onImageInsert = { imageLauncher.launch("image/*") },
+                    onImageInsert = {
+                        imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
                     onHideKeyboard = {
                         val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                         imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)

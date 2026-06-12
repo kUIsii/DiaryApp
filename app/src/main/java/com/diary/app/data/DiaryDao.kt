@@ -327,6 +327,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_images")
     suspend fun getAllImages(): List<DiaryImage>
 
+    @Query("SELECT * FROM diary_images")
+    fun getAllImagesFlow(): Flow<List<DiaryImage>>
+
     // Trash queries
     @Query("SELECT * FROM trash_entries ORDER BY deletedAt DESC")
     fun getTrashEntries(): Flow<List<TrashEntry>>

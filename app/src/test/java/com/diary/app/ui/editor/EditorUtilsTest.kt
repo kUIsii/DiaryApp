@@ -273,6 +273,15 @@ class EditorUtilsTest {
     }
 
     @Test
+    fun `webview asset helper uses the same appassets domain as inserted media urls`() {
+        val source = File("src/main/java/com/diary/app/ui/components/WebViewAssetHelper.kt").readText()
+
+        assertTrue(source.contains("setDomain(AUTHORITY)"))
+        assertTrue(source.contains("https://$"))
+        assertTrue(source.contains("AUTHORITY"))
+    }
+
+    @Test
     fun `editor asset clear formatting removes inline styles at caret`() {
         val html = File("src/main/assets/editor.html").readText()
 

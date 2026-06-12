@@ -72,6 +72,7 @@ import com.diary.app.ui.experimental.ExperimentalFeaturesScreen
 import com.diary.app.ui.experimental.resolveMainScreenSwipeTarget
 import com.diary.app.ui.favorites.FavoritesScreen
 import com.diary.app.ui.home.HomeScreen
+import com.diary.app.ui.media.MediaLibraryScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
 import com.diary.app.ui.review.DiaryReviewScreen
@@ -108,6 +109,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "设置", Icons.Default.Home)
     object Backup : Screen("backup", "备份", Icons.Default.Home)
     object Favorites : Screen("favorites", "收藏夹", Icons.Default.Home)
+    object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Home)
     object Trash : Screen("trash", "回收站", Icons.Default.Home)
     object CountDown : Screen("countdown", "倒数日", Icons.Default.Home)
 }
@@ -213,6 +215,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
                     onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
+                    onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
                     onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) }
                 )
             }
@@ -271,6 +274,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.Favorites.route) {
                 FavoritesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.MediaLibrary.route) {
+                MediaLibraryScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )

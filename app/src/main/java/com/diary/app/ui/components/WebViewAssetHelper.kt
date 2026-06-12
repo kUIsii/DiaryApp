@@ -22,6 +22,7 @@ object WebViewAssetHelper {
         if (!mediaDir.exists()) mediaDir.mkdirs()
 
         return WebViewAssetLoader.Builder()
+            .setDomain(AUTHORITY)
             .addPathHandler(
                 "/assets/",
                 WebViewAssetLoader.AssetsPathHandler(context)
