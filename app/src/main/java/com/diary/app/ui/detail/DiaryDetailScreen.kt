@@ -111,6 +111,7 @@ fun DiaryDetailScreen(
 
     val detailJsBridge = remember { DetailJsBridge() }
     var webView by remember { mutableStateOf<WebView?>(null) }
+    var webViewContentHeight by remember { mutableFloatStateOf(0f) }
     var contentReady by remember { mutableStateOf(false) }
 
     // 图片查看器状态
@@ -125,6 +126,20 @@ fun DiaryDetailScreen(
         detailJsBridge.imageClicks.collect { event ->
             imageViewerUrls = event.allUrls
             imageViewerIndex = event.allUrls.indexOf(event.clickedUrl).coerceAtLeast(0)
+        }
+    }
+
+    // 监听 WebView 内容高度
+    val densityValue = LocalDensity.current.density
+    LaunchedEffect(Unit) {
+        detailJsBridge.contentHeight.collect { heightPx ->
+            val newHeight = heightPx / densityValue + 8f
+            if (newHeight > webViewContentHeight) {
+                webViewContentHeight = newHeight
+            }
+            if (!contentReady && heightPx > 0) {
+                contentReady = true
+            }
         }
     }
 
@@ -295,128 +310,131 @@ fun DiaryDetailScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp)
                     ) {
-                        // Single card: header + tags + content
+                        // Header (title + date + mood/weather/tags in one row)
+                        DetailHeaderCompact(
+                            entry = currentEntry,
+                            tags = tags,
+                            textColor = textColor,
+                            textSecondary = textSecondary
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Content in GlassCard
                         GlassCard(
                             cornerRadius = 16.dp,
                             innerPadding = 0.dp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                // Header + tags (fixed at top)
-                                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                                    DetailHeaderCompact(
-                                        entry = currentEntry,
-                                        textColor = textColor,
-                                        textSecondary = textSecondary
-                                    )
-                                    if (tags.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        DetailTags(tags = tags)
+                            Box {
+                                if (!contentReady) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "加载中...",
+                                            fontSize = 13.sp,
+                                            color = textSecondary.copy(alpha = 0.4f)
+                                        )
                                     }
                                 }
 
-                                // Content WebView (fills remaining space, scrolls internally)
-                                Box(modifier = Modifier.weight(1f)) {
-                                    if (!contentReady) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "加载中...",
-                                                fontSize = 13.sp,
-                                                color = textSecondary.copy(alpha = 0.4f)
-                                            )
-                                        }
-                                    }
-
-                                    AndroidView(
-                                        factory = { ctx ->
-                                            WebView(ctx).apply {
-                                                webViewClient = object : WebViewClient() {
-                                                    override fun onPageFinished(view: WebView?, url: String?) {
-                                                        super.onPageFinished(view, url)
-                                                        evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
-                                                        if (currentEntry.content.isNotBlank()) {
-                                                            try {
-                                                                var safeContent = currentEntry.content.replace(
-                                                                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
-                                                                ) { match ->
-                                                                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
-                                                                }
-                                                                if (safeContent.length > maxContentSize) {
-                                                                    val fallback = currentEntry.plainText.take(5000)
-                                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
-                                                                } else {
-                                                                    val encoded = android.util.Base64.encodeToString(
-                                                                        safeContent.toByteArray(Charsets.UTF_8),
-                                                                        android.util.Base64.NO_WRAP
-                                                                    )
-                                                                    evaluateJavascript("setContentFromBase64('$encoded')", null)
-                                                                }
-                                                            } catch (e: Exception) {
-                                                                e.printStackTrace()
+                                AndroidView(
+                                    factory = { ctx ->
+                                        WebView(ctx).apply {
+                                            isVerticalScrollBarEnabled = false
+                                            overScrollMode = WebView.OVER_SCROLL_NEVER
+                                            webViewClient = object : WebViewClient() {
+                                                override fun onPageFinished(view: WebView?, url: String?) {
+                                                    super.onPageFinished(view, url)
+                                                    evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+                                                    if (currentEntry.content.isNotBlank()) {
+                                                        try {
+                                                            var safeContent = currentEntry.content.replace(
+                                                                Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                                                            ) { match ->
+                                                                "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                                                            }
+                                                            if (safeContent.length > maxContentSize) {
                                                                 val fallback = currentEntry.plainText.take(5000)
                                                                 evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                                            } else {
+                                                                val encoded = android.util.Base64.encodeToString(
+                                                                    safeContent.toByteArray(Charsets.UTF_8),
+                                                                    android.util.Base64.NO_WRAP
+                                                                )
+                                                                evaluateJavascript("setContentFromBase64('$encoded')", null)
                                                             }
-                                                        } else if (currentEntry.plainText.isNotBlank()) {
+                                                        } catch (e: Exception) {
+                                                            e.printStackTrace()
                                                             val fallback = currentEntry.plainText.take(5000)
                                                             evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                         }
-                                                        evaluateJavascript("setFontSize($fontSizePx)", null)
-                                                        contentReady = true
+                                                    } else if (currentEntry.plainText.isNotBlank()) {
+                                                        val fallback = currentEntry.plainText.take(5000)
+                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                     }
-                                                    override fun shouldInterceptRequest(
-                                                        view: WebView?,
-                                                        request: android.webkit.WebResourceRequest?
-                                                    ): android.webkit.WebResourceResponse? {
-                                                        val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
-                                                        if (assetResponse != null) return assetResponse
-                                                        val reqUrl = request?.url?.toString() ?: return null
-                                                        if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
-                                                            try {
-                                                                val path = reqUrl.removePrefix("file://")
-                                                                val file = java.io.File(path)
-                                                                if (file.exists() && file.canRead()) {
-                                                                    val mime = when {
-                                                                        path.endsWith(".mp4") -> "video/mp4"
-                                                                        path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
-                                                                        path.endsWith(".png") -> "image/png"
-                                                                        path.endsWith(".webp") -> "image/webp"
-                                                                        else -> "image/jpeg"
-                                                                    }
-                                                                    return android.webkit.WebResourceResponse(mime, null, file.inputStream())
-                                                                }
-                                                            } catch (_: Exception) {}
-                                                        }
-                                                        return super.shouldInterceptRequest(view, request)
-                                                    }
+                                                    evaluateJavascript("setFontSize($fontSizePx)", null)
                                                 }
-                                                settings.javaScriptEnabled = true
-                                                settings.domStorageEnabled = true
-                                                settings.allowFileAccess = true
-                                                settings.allowContentAccess = true
-                                                settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                                                settings.setSupportZoom(true)
-                                                settings.builtInZoomControls = true
-                                                settings.displayZoomControls = false
-                                                settings.loadWithOverviewMode = true
-                                                settings.useWideViewPort = true
-                                                setBackgroundColor(0)
-                                                addJavascriptInterface(detailJsBridge, "DiaryBridge")
-                                                loadUrl("file:///android_asset/viewer.html")
-                                                webView = this
+                                                override fun shouldInterceptRequest(
+                                                    view: WebView?,
+                                                    request: android.webkit.WebResourceRequest?
+                                                ): android.webkit.WebResourceResponse? {
+                                                    val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
+                                                    if (assetResponse != null) return assetResponse
+                                                    val reqUrl = request?.url?.toString() ?: return null
+                                                    if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                                        try {
+                                                            val path = reqUrl.removePrefix("file://")
+                                                            val file = java.io.File(path)
+                                                            if (file.exists() && file.canRead()) {
+                                                                val mime = when {
+                                                                    path.endsWith(".mp4") -> "video/mp4"
+                                                                    path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                                    path.endsWith(".png") -> "image/png"
+                                                                    path.endsWith(".webp") -> "image/webp"
+                                                                    else -> "image/jpeg"
+                                                                }
+                                                                return android.webkit.WebResourceResponse(mime, null, file.inputStream())
+                                                            }
+                                                        } catch (_: Exception) {}
+                                                    }
+                                                    return super.shouldInterceptRequest(view, request)
+                                                }
                                             }
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .alpha(if (contentReady) 1f else 0f)
-                                    )
-                                }
+                                            settings.javaScriptEnabled = true
+                                            settings.domStorageEnabled = true
+                                            settings.allowFileAccess = true
+                                            settings.allowContentAccess = true
+                                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                                            settings.setSupportZoom(true)
+                                            settings.builtInZoomControls = true
+                                            settings.displayZoomControls = false
+                                            settings.loadWithOverviewMode = true
+                                            settings.useWideViewPort = true
+                                            setBackgroundColor(0)
+                                            addJavascriptInterface(detailJsBridge, "DiaryBridge")
+                                            loadUrl("file:///android_asset/viewer.html")
+                                            webView = this
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (webViewContentHeight > 0f) {
+                                                Modifier.height(webViewContentHeight.dp)
+                                            } else {
+                                                Modifier.heightIn(min = 100.dp)
+                                            }
+                                        )
+                                        .alpha(if (contentReady) 1f else 0f)
+                                )
                             }
                         }
 
@@ -475,9 +493,11 @@ fun DiaryDetailScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetailHeaderCompact(
     entry: DiaryEntry,
+    tags: List<Tag>,
     textColor: Color,
     textSecondary: Color
 ) {
@@ -491,6 +511,7 @@ private fun DetailHeaderCompact(
     val titleText = entry.title.trim().takeUnless { it.isNullOrEmpty() }
     val hasMoodOrWeather = entry.moodLevel != null || entry.weather != null
     val locationText = entry.location?.trim().takeUnless { it.isNullOrEmpty() }
+    val hasMeta = hasMoodOrWeather || locationText != null || tags.isNotEmpty()
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -519,116 +540,126 @@ private fun DetailHeaderCompact(
             textAlign = TextAlign.Center
         )
 
-        // Mood + weather
-        if (hasMoodOrWeather) {
+        // Meta row: mood + weather + location + tags
+        if (hasMeta) {
             Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                // Mood
                 if (entry.moodLevel != null) {
                     val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
                     val moodLabel = moodLabelForLevel(entry.moodLevel)
-                    Icon(
-                        imageVector = moodIcon,
-                        contentDescription = moodLabel,
-                        tint = moodTint.copy(alpha = 0.7f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = moodLabel,
-                        fontSize = 12.sp,
-                        color = moodTint.copy(alpha = 0.7f)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = moodLabel,
+                            tint = moodTint.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = moodLabel,
+                            fontSize = 12.sp,
+                            color = moodTint.copy(alpha = 0.7f)
+                        )
+                    }
                 }
 
-                if (entry.moodLevel != null && entry.weather != null) {
-                    Spacer(modifier = Modifier.width(12.dp))
+                if (entry.moodLevel != null && (entry.weather != null || locationText != null || tags.isNotEmpty())) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "|",
                         fontSize = 12.sp,
                         color = textSecondary.copy(alpha = 0.3f)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
+                // Weather
                 if (entry.weather != null) {
                     val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                    Icon(
-                        imageVector = weatherIcon,
-                        contentDescription = entry.weather,
-                        tint = weatherTint.copy(alpha = 0.7f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = entry.weather,
-                        fontSize = 12.sp,
-                        color = weatherTint.copy(alpha = 0.7f)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = entry.weather,
+                            tint = weatherTint.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = entry.weather,
+                            fontSize = 12.sp,
+                            color = weatherTint.copy(alpha = 0.7f)
+                        )
+                    }
                 }
-            }
-        }
 
-        // Location
-        if (locationText != null) {
-            Spacer(modifier = Modifier.height(if (hasMoodOrWeather) 6.dp else 2.dp))
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "位置",
-                    tint = textSecondary.copy(alpha = 0.45f),
-                    modifier = Modifier
-                        .size(14.dp)
-                        .padding(top = 1.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = locationText,
-                    fontSize = 12.sp,
-                    color = textSecondary.copy(alpha = 0.5f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-            }
-        }
-    }
-}
+                if (entry.weather != null && (locationText != null || tags.isNotEmpty())) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "|",
+                        fontSize = 12.sp,
+                        color = textSecondary.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DetailTags(tags: List<Tag>) {
-    FlowRow(
-        modifier = Modifier.padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        tags.forEach { tag ->
-            val tagColor = Color(tag.color)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(tagColor.copy(alpha = 0.08f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(tagColor.copy(alpha = 0.6f))
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(
-                    text = tag.name,
-                    fontSize = 12.sp,
-                    color = tagColor.copy(alpha = 0.7f)
-                )
+                // Location
+                if (locationText != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "位置",
+                            tint = textSecondary.copy(alpha = 0.45f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = locationText,
+                            fontSize = 12.sp,
+                            color = textSecondary.copy(alpha = 0.5f),
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                if (locationText != null && tags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "|",
+                        fontSize = 12.sp,
+                        color = textSecondary.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                // Tags
+                tags.forEach { tag ->
+                    val tagColor = Color(tag.color)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(tagColor.copy(alpha = 0.08f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(tagColor.copy(alpha = 0.6f))
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = tag.name,
+                            fontSize = 11.sp,
+                            color = tagColor.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
         }
     }

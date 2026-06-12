@@ -56,7 +56,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -90,10 +93,20 @@ fun StatsScreen(
             onDismissRequest = { selectedDate = null; selectedEntries = emptyList() },
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
-                Text(
-                    text = "${date.monthValue}月${date.dayOfMonth}日",
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column {
+                    Text(
+                        text = "${date.monthValue}月${date.dayOfMonth}日",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (!isLoadingEntries && selectedEntries.isNotEmpty()) {
+                        Text(
+                            text = "共 ${selectedEntries.size} 篇日记",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
             },
             text = {
                 if (isLoadingEntries) {
@@ -101,20 +114,53 @@ fun StatsScreen(
                 } else if (selectedEntries.isEmpty()) {
                     Text("当天没有日记", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        selectedEntries.forEach { entry ->
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        selectedEntries.forEachIndexed { index, entry ->
+                            if (index > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .height(0.5.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+                                        )
+                                )
+                            }
                             Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = formatEntryTime(entry.createdAt),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                    entry.moodLevel?.let { level ->
+                                        val iconData = moodIconForLevel(level)
+                                        Icon(
+                                            imageVector = iconData.icon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = iconData.tint.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = entry.title.ifBlank { "无标题" },
                                     fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 if (entry.plainText.isNotBlank()) {
                                     Text(
-                                        text = entry.plainText.take(100) + if (entry.plainText.length > 100) "..." else "",
+                                        text = entry.plainText.take(80) + if (entry.plainText.length > 80) "..." else "",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 3
+                                        maxLines = 2,
+                                        lineHeight = 16.sp
                                     )
                                 }
                             }
@@ -848,16 +894,20 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                 for (i in 0 until 7) {
                     val day = week.getOrNull(i)
                     if (day != null) {
+                        val bgColor = when {
+                            day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
+                            day.count == 1 -> primaryColor.copy(alpha = 0.5f)
+                            day.count == 2 -> primaryColor.copy(alpha = 0.7f)
+                            day.count >= 3 -> primaryColor
+                            else -> surfaceVariant.copy(alpha = 0.4f)
+                        }
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(36.dp)
                                 .padding(2.dp)
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(
-                                    if (day.count > 0) primaryColor
-                                    else surfaceVariant.copy(alpha = 0.4f)
-                                )
+                                .background(bgColor)
                                 .clickable { onDayClick(day.date) },
                             contentAlignment = Alignment.Center
                         ) {
@@ -868,6 +918,15 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                                 color = if (day.count > 0) Color.White
                                         else MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (day.count > 1) {
+                                Text(
+                                    text = "${day.count}",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 1.dp)
+                                )
+                            }
                         }
                     } else {
                         Box(
@@ -993,4 +1052,10 @@ private fun TagRow(
             textAlign = TextAlign.End
         )
     }
+}
+
+private fun formatEntryTime(timestamp: Long): String {
+    val dateTime = Instant.ofEpochMilli(timestamp)
+        .atZone(ZoneId.systemDefault()).toLocalDateTime()
+    return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 }
