@@ -8,7 +8,6 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -212,6 +211,27 @@ fun EditorScreen(
     var isApplyingProgrammaticContent by remember { mutableStateOf(false) }
     var metadataVersion by remember { mutableIntStateOf(0) }
     var isExitingEditor by remember { mutableStateOf(false) }
+    var pendingImageWebUrl by remember { mutableStateOf<String?>(null) }
+
+    fun insertImageIntoEditor(imageWebUrl: String) {
+        val currentWebView = webView
+        if (!isWebViewReady || currentWebView == null) {
+            pendingImageWebUrl = imageWebUrl
+            return
+        }
+        currentWebView.evaluateJavascript("insertMedia('image', '${escapeForJs(imageWebUrl)}')") { result ->
+            if (result == "true") {
+                pendingImageWebUrl = null
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "图片插入失败，请重试",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
+        }
+    }
 
     // Writing duration
     val writingDuration by viewModel.writingDuration.collectAsState()
@@ -333,6 +353,13 @@ fun EditorScreen(
         }
     }
 
+    LaunchedEffect(isWebViewReady, pendingImageWebUrl) {
+        val imageWebUrl = pendingImageWebUrl
+        if (isWebViewReady && imageWebUrl != null) {
+            insertImageIntoEditor(imageWebUrl)
+        }
+    }
+
     LaunchedEffect(editorFontSize, isWebViewReady) {
         if (isWebViewReady) {
             webView?.evaluateJavascript("setFontSize($editorFontSize)", null)
@@ -374,15 +401,28 @@ fun EditorScreen(
     }
 
     // Media pickers - save images to local files for reliable display
-    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
+    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
                 val media = DiaryMediaManager.importImage(context, imageUri)
                 if (media != null) {
-                    webView?.evaluateJavascript("insertMedia('image', '${escapeForJs(media.displayWebUrl)}')", null)
+                    insertImageIntoEditor(media.displayWebUrl)
+                } else {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "无法读取这张图片，请换一张试试",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "图片插入失败，请重试",
+                        duration = SnackbarDuration.Short
+                    )
+                }
             }
         }
     }
@@ -426,7 +466,7 @@ fun EditorScreen(
     LaunchedEffect(Unit) {
         jsBridge.events.collect { event ->
             when (event) {
-                "image" -> imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                "image" -> imageLauncher.launch("image/*")
                 "video" -> videoLauncher.launch("video/*")
                 "audio" -> audioLauncher.launch("audio/*")
             }
@@ -1246,7 +1286,7 @@ fun EditorScreen(
                         }
                     },
                     onImageInsert = {
-                        imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        imageLauncher.launch("image/*")
                     },
                     onHideKeyboard = {
                         val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager

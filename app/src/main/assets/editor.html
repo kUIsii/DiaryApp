@@ -583,16 +583,21 @@
                     } else {
                         finalizeMediaInsert(nextIndex);
                     }
+                    return true;
                 } else if (type === 'video') {
                     quill.insertEmbed(r.index, 'video', url);
                     finalizeMediaInsert(r.index + 1);
+                    return true;
                 } else if (type === 'audio') {
                     quill.insertText(r.index, ' ');
                     quill.insertText(r.index + 1, '音频文件', 'link', url);
                     finalizeMediaInsert(r.index + 2);
+                    return true;
                 }
+                return false;
             } catch(e) {
                 console.error('insertMedia error:', e);
+                return false;
             }
         }
         function insertLink() {

@@ -387,4 +387,30 @@ class EditorUtilsTest {
         assertTrue(html.contains("var bottomThreshold = editorVisibleBottom - 2;"))
         assertTrue(html.contains("var topThreshold = editorVisibleTop + (force ? 2 : 0);"))
     }
+
+    @Test
+    fun `editor image insert uses generic content picker for wider device compatibility`() {
+        val source = File("src/main/java/com/diary/app/ui/editor/EditorScreen.kt").readText()
+
+        assertTrue(source.contains("ActivityResultContracts.GetContent()) { uri: Uri? ->"))
+        assertTrue(source.contains("imageLauncher.launch(\"image/*\")"))
+        assertFalse(source.contains("PickVisualMediaRequest"))
+    }
+
+    @Test
+    fun `editor media insertion reports success or failure to kotlin`() {
+        val html = File("src/main/assets/editor.html").readText()
+
+        assertTrue(html.contains("function insertMedia(type, url)"))
+        assertTrue(html.contains("return true;"))
+        assertTrue(html.contains("return false;"))
+    }
+
+    @Test
+    fun `editor queues selected images until webview is ready`() {
+        val source = File("src/main/java/com/diary/app/ui/editor/EditorScreen.kt").readText()
+
+        assertTrue(source.contains("pendingImageWebUrl"))
+        assertTrue(source.contains("LaunchedEffect(isWebViewReady, pendingImageWebUrl)"))
+    }
 }
