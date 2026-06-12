@@ -111,7 +111,6 @@ fun DiaryDetailScreen(
 
     val detailJsBridge = remember { DetailJsBridge() }
     var webView by remember { mutableStateOf<WebView?>(null) }
-    var webViewContentHeight by remember { mutableFloatStateOf(0f) }
     var contentReady by remember { mutableStateOf(false) }
 
     // 图片查看器状态
@@ -126,20 +125,6 @@ fun DiaryDetailScreen(
         detailJsBridge.imageClicks.collect { event ->
             imageViewerUrls = event.allUrls
             imageViewerIndex = event.allUrls.indexOf(event.clickedUrl).coerceAtLeast(0)
-        }
-    }
-
-    // 监听 WebView 内容高度 (use max to only grow, never shrink)
-    val densityValue = LocalDensity.current.density
-    LaunchedEffect(Unit) {
-        detailJsBridge.contentHeight.collect { heightPx ->
-            val newHeight = heightPx / densityValue + 8f // small buffer to prevent cutoff
-            if (newHeight > webViewContentHeight) {
-                webViewContentHeight = newHeight
-            }
-            if (!contentReady && heightPx > 0) {
-                contentReady = true
-            }
         }
     }
 
@@ -304,146 +289,134 @@ fun DiaryDetailScreen(
                     visible = contentVisible,
                     enter = fadeIn(tween(400))
                 ) {
+                    val maxContentSize = 2 * 1024 * 1024
+                    val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp)
                     ) {
-                        // Header: title as visual anchor
-                        DetailHeader(
-                            entry = currentEntry,
-                            textColor = textColor,
-                            textSecondary = textSecondary
-                        )
-
-                        // Tags with breathing space
-                        if (tags.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            DetailTags(tags = tags)
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Content WebView in GlassCard
-                        val maxContentSize = 2 * 1024 * 1024
-                        val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
-
+                        // Single card: header + tags + content
                         GlassCard(
                             cornerRadius = 16.dp,
                             innerPadding = 0.dp,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
                         ) {
-                            Box {
-                                // Placeholder while content loads
-                                if (!contentReady) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "加载中...",
-                                            fontSize = 13.sp,
-                                            color = textSecondary.copy(alpha = 0.4f)
-                                        )
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Header + tags (fixed at top)
+                                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                                    DetailHeaderCompact(
+                                        entry = currentEntry,
+                                        textColor = textColor,
+                                        textSecondary = textSecondary
+                                    )
+                                    if (tags.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        DetailTags(tags = tags)
                                     }
                                 }
 
-                                AndroidView(
-                                    factory = { ctx ->
-                                        WebView(ctx).apply {
-                                            isVerticalScrollBarEnabled = false
-                                            overScrollMode = WebView.OVER_SCROLL_NEVER
-                                            webViewClient = object : WebViewClient() {
-                                                override fun onPageFinished(view: WebView?, url: String?) {
-                                                    super.onPageFinished(view, url)
-                                                    evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
-                                                    if (currentEntry.content.isNotBlank()) {
-                                                        try {
-                                                            var safeContent = currentEntry.content.replace(
-                                                                Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
-                                                            ) { match ->
-                                                                "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
-                                                            }
-                                                            if (safeContent.length > maxContentSize) {
+                                // Content WebView (fills remaining space, scrolls internally)
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (!contentReady) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "加载中...",
+                                                fontSize = 13.sp,
+                                                color = textSecondary.copy(alpha = 0.4f)
+                                            )
+                                        }
+                                    }
+
+                                    AndroidView(
+                                        factory = { ctx ->
+                                            WebView(ctx).apply {
+                                                webViewClient = object : WebViewClient() {
+                                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                                        super.onPageFinished(view, url)
+                                                        evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
+                                                        if (currentEntry.content.isNotBlank()) {
+                                                            try {
+                                                                var safeContent = currentEntry.content.replace(
+                                                                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                                                                ) { match ->
+                                                                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                                                                }
+                                                                if (safeContent.length > maxContentSize) {
+                                                                    val fallback = currentEntry.plainText.take(5000)
+                                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                                                } else {
+                                                                    val encoded = android.util.Base64.encodeToString(
+                                                                        safeContent.toByteArray(Charsets.UTF_8),
+                                                                        android.util.Base64.NO_WRAP
+                                                                    )
+                                                                    evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                                                }
+                                                            } catch (e: Exception) {
+                                                                e.printStackTrace()
                                                                 val fallback = currentEntry.plainText.take(5000)
                                                                 evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
-                                                            } else {
-                                                                val encoded = android.util.Base64.encodeToString(
-                                                                    safeContent.toByteArray(Charsets.UTF_8),
-                                                                    android.util.Base64.NO_WRAP
-                                                                )
-                                                                evaluateJavascript("setContentFromBase64('$encoded')", null)
                                                             }
-                                                        } catch (e: Exception) {
-                                                            e.printStackTrace()
+                                                        } else if (currentEntry.plainText.isNotBlank()) {
                                                             val fallback = currentEntry.plainText.take(5000)
                                                             evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                         }
-                                                    } else if (currentEntry.plainText.isNotBlank()) {
-                                                        val fallback = currentEntry.plainText.take(5000)
-                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                                        evaluateJavascript("setFontSize($fontSizePx)", null)
+                                                        contentReady = true
                                                     }
-                                                    evaluateJavascript("setFontSize($fontSizePx)", null)
-                                                }
-                                                override fun shouldInterceptRequest(
-                                                    view: WebView?,
-                                                    request: android.webkit.WebResourceRequest?
-                                                ): android.webkit.WebResourceResponse? {
-                                                    val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
-                                                    if (assetResponse != null) return assetResponse
-                                                    val reqUrl = request?.url?.toString() ?: return null
-                                                    if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
-                                                        try {
-                                                            val path = reqUrl.removePrefix("file://")
-                                                            val file = java.io.File(path)
-                                                            if (file.exists() && file.canRead()) {
-                                                                val mime = when {
-                                                                    path.endsWith(".mp4") -> "video/mp4"
-                                                                    path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
-                                                                    path.endsWith(".png") -> "image/png"
-                                                                    path.endsWith(".webp") -> "image/webp"
-                                                                    else -> "image/jpeg"
+                                                    override fun shouldInterceptRequest(
+                                                        view: WebView?,
+                                                        request: android.webkit.WebResourceRequest?
+                                                    ): android.webkit.WebResourceResponse? {
+                                                        val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
+                                                        if (assetResponse != null) return assetResponse
+                                                        val reqUrl = request?.url?.toString() ?: return null
+                                                        if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
+                                                            try {
+                                                                val path = reqUrl.removePrefix("file://")
+                                                                val file = java.io.File(path)
+                                                                if (file.exists() && file.canRead()) {
+                                                                    val mime = when {
+                                                                        path.endsWith(".mp4") -> "video/mp4"
+                                                                        path.endsWith(".mp3") || path.endsWith(".aac") -> "audio/mpeg"
+                                                                        path.endsWith(".png") -> "image/png"
+                                                                        path.endsWith(".webp") -> "image/webp"
+                                                                        else -> "image/jpeg"
+                                                                    }
+                                                                    return android.webkit.WebResourceResponse(mime, null, file.inputStream())
                                                                 }
-                                                                return android.webkit.WebResourceResponse(mime, null, file.inputStream())
-                                                            }
-                                                        } catch (_: Exception) {}
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                        return super.shouldInterceptRequest(view, request)
                                                     }
-                                                    return super.shouldInterceptRequest(view, request)
                                                 }
+                                                settings.javaScriptEnabled = true
+                                                settings.domStorageEnabled = true
+                                                settings.allowFileAccess = true
+                                                settings.allowContentAccess = true
+                                                settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                                                settings.setSupportZoom(true)
+                                                settings.builtInZoomControls = true
+                                                settings.displayZoomControls = false
+                                                settings.loadWithOverviewMode = true
+                                                settings.useWideViewPort = true
+                                                setBackgroundColor(0)
+                                                addJavascriptInterface(detailJsBridge, "DiaryBridge")
+                                                loadUrl("file:///android_asset/viewer.html")
+                                                webView = this
                                             }
-                                            settings.javaScriptEnabled = true
-                                            settings.domStorageEnabled = true
-                                            settings.allowFileAccess = true
-                                            settings.allowContentAccess = true
-                                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                                            settings.setSupportZoom(true)
-                                            settings.builtInZoomControls = true
-                                            settings.displayZoomControls = false
-                                            settings.loadWithOverviewMode = true
-                                            settings.useWideViewPort = true
-                                            setBackgroundColor(0)
-                                            addJavascriptInterface(detailJsBridge, "DiaryBridge")
-                                            loadUrl("file:///android_asset/viewer.html")
-                                            webView = this
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .then(
-                                            if (webViewContentHeight > 0f) {
-                                                Modifier.height(webViewContentHeight.dp)
-                                            } else {
-                                                Modifier.heightIn(min = 100.dp)
-                                            }
-                                        )
-                                        .alpha(if (contentReady) 1f else 0f),
-                                    update = { webView ->
-                                        webView.isVerticalScrollBarEnabled = false
-                                    }
-                                )
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .alpha(if (contentReady) 1f else 0f)
+                                    )
+                                }
                             }
                         }
 
@@ -456,9 +429,9 @@ fun DiaryDetailScreen(
                             plainText = currentEntry.plainText
                         )
 
-                        // Related entries (same day in previous years)
+                        // Related entries
                         if (relatedEntries.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                             RelatedEntriesSection(
                                 entries = relatedEntries,
                                 onEntryClick = { onNavigateToDetail(it.id) },
@@ -466,8 +439,8 @@ fun DiaryDetailScreen(
                             )
                         }
 
-                        // Bottom action bar in GlassCard
-                        Spacer(modifier = Modifier.height(16.dp))
+                        // Bottom action bar
+                        Spacer(modifier = Modifier.height(12.dp))
                         GlassCard(
                             cornerRadius = 16.dp,
                             innerPadding = 0.dp,
@@ -482,7 +455,7 @@ fun DiaryDetailScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
@@ -503,7 +476,7 @@ fun DiaryDetailScreen(
 }
 
 @Composable
-private fun DetailHeader(
+private fun DetailHeaderCompact(
     entry: DiaryEntry,
     textColor: Color,
     textSecondary: Color
@@ -520,12 +493,10 @@ private fun DetailHeader(
     val locationText = entry.location?.trim().takeUnless { it.isNullOrEmpty() }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title - visual anchor
+        // Title
         if (titleText != null) {
             Text(
                 text = titleText,
@@ -537,10 +508,10 @@ private fun DetailHeader(
                 textAlign = TextAlign.Center,
                 maxLines = 3
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // Date + weekday + time on one line
+        // Date + weekday + time
         Text(
             text = "$dateText  $dayOfWeek  $timeText",
             fontSize = 13.sp,
@@ -548,9 +519,9 @@ private fun DetailHeader(
             textAlign = TextAlign.Center
         )
 
-        // Mood + weather on one line
+        // Mood + weather
         if (hasMoodOrWeather) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -600,9 +571,9 @@ private fun DetailHeader(
             }
         }
 
-        // Location - with extra top spacing if previous section exists
+        // Location
         if (locationText != null) {
-            Spacer(modifier = Modifier.height(if (hasMoodOrWeather) 8.dp else 4.dp))
+            Spacer(modifier = Modifier.height(if (hasMoodOrWeather) 6.dp else 2.dp))
             Row(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.Center,
