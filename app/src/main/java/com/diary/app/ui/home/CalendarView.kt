@@ -13,6 +13,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -99,13 +101,125 @@ fun CalendarView(
             .then(borderModifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Navigation row with mode toggle
+            // Title at top
+            Text(
+                text = if (calendarMode == CalendarMode.MONTH) {
+                    "${currentMonth.year}年${currentMonth.monthValue}月"
+                } else {
+                    "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
+                },
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = onBackground,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Day of week headers
+            Row(modifier = Modifier.fillMaxWidth()) {
+                listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { _, day ->
+                    Text(
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 12.sp,
+                        color = onSurfaceVariant.copy(alpha = 0.5f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Date grid with swipe gesture and animation
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(calendarMode) {
+                        detectHorizontalDragGestures { _, dragAmount ->
+                            val threshold = 50.dp.toPx()
+                            if (dragAmount < -threshold) {
+                                // Swipe left → next
+                                val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
+                                    currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
+                                } else {
+                                    currentWeekStart.plusDays(6) >= today
+                                }
+                                if (!isAtCurrent) {
+                                    if (calendarMode == CalendarMode.MONTH) {
+                                        currentMonth = currentMonth.plusMonths(1)
+                                    } else {
+                                        currentWeekStart = currentWeekStart.plusWeeks(1)
+                                    }
+                                }
+                            } else if (dragAmount > threshold) {
+                                // Swipe right → previous
+                                if (calendarMode == CalendarMode.MONTH) {
+                                    currentMonth = currentMonth.minusMonths(1)
+                                } else {
+                                    currentWeekStart = currentWeekStart.minusWeeks(1)
+                                }
+                            }
+                        }
+                    }
+            ) {
+                AnimatedContent(
+                    targetState = calendarMode,
+                    transitionSpec = {
+                        if (targetState == CalendarMode.WEEK) {
+                            (slideInVertically(animationSpec = tween(300)) { height -> height } +
+                                    fadeIn(animationSpec = tween(300))) togetherWith
+                                    (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
+                                            fadeOut(animationSpec = tween(300)))
+                        } else {
+                            (slideInVertically(animationSpec = tween(300)) { height -> -height } +
+                                    fadeIn(animationSpec = tween(300))) togetherWith
+                                    (slideOutVertically(animationSpec = tween(300)) { height -> height } +
+                                            fadeOut(animationSpec = tween(300)))
+                        }
+                    },
+                    label = "calendarMode"
+                ) { mode ->
+                    if (mode == CalendarMode.MONTH) {
+                        MonthView(
+                            currentMonth = currentMonth,
+                            entryDates = entryDates,
+                            dayInfoMap = dayInfoMap,
+                            selectedDate = selectedDate,
+                            today = today,
+                            onDateSelected = onDateSelected,
+                            primary = primary
+                        )
+                    } else {
+                        WeekView(
+                            weekStart = currentWeekStart,
+                            entryDates = entryDates,
+                            dayInfoMap = dayInfoMap,
+                            selectedDate = selectedDate,
+                            today = today,
+                            onDateSelected = onDateSelected,
+                            primary = primary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Bottom: left arrow + mode toggle + right arrow
+            val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
+                currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
+            } else {
+                currentWeekStart.plusDays(6) >= today
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Previous button
+                // Left arrow
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -130,24 +244,26 @@ fun CalendarView(
                     )
                 }
 
-                // Title
-                Text(
-                    text = if (calendarMode == CalendarMode.MONTH) {
-                        "${currentMonth.year}年${currentMonth.monthValue}月"
-                    } else {
-                        "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
-                    },
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = onBackground
-                )
-
-                // Next button
-                val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
-                    currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
-                } else {
-                    currentWeekStart.plusDays(6) >= today
+                // Mode toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ModeToggleButton(
+                        icon = Icons.Default.ViewWeek,
+                        label = "周",
+                        isSelected = calendarMode == CalendarMode.WEEK,
+                        onClick = { onModeChange(CalendarMode.WEEK) }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    ModeToggleButton(
+                        icon = Icons.Default.CalendarViewMonth,
+                        label = "月",
+                        isSelected = calendarMode == CalendarMode.MONTH,
+                        onClick = { onModeChange(CalendarMode.MONTH) }
+                    )
                 }
+
+                // Right arrow
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -172,89 +288,6 @@ fun CalendarView(
                         contentDescription = "下一个",
                         tint = onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Mode toggle buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ModeToggleButton(
-                    icon = Icons.Default.ViewWeek,
-                    label = "周",
-                    isSelected = calendarMode == CalendarMode.WEEK,
-                    onClick = { onModeChange(CalendarMode.WEEK) }
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                ModeToggleButton(
-                    icon = Icons.Default.CalendarViewMonth,
-                    label = "月",
-                    isSelected = calendarMode == CalendarMode.MONTH,
-                    onClick = { onModeChange(CalendarMode.MONTH) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Day of week headers
-            Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("日", "一", "二", "三", "四", "五", "六").forEachIndexed { _, day ->
-                    Text(
-                        text = day,
-                        modifier = Modifier.weight(1f),
-                        fontSize = 12.sp,
-                        color = onSurfaceVariant.copy(alpha = 0.5f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Date grid with animation
-            AnimatedContent(
-                targetState = calendarMode,
-                transitionSpec = {
-                    if (targetState == CalendarMode.WEEK) {
-                        // 切换到周视图：向上滑入
-                        (slideInVertically(animationSpec = tween(300)) { height -> height } +
-                                fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
-                                        fadeOut(animationSpec = tween(300)))
-                    } else {
-                        // 切换到月视图：向下滑入
-                        (slideInVertically(animationSpec = tween(300)) { height -> -height } +
-                                fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutVertically(animationSpec = tween(300)) { height -> height } +
-                                        fadeOut(animationSpec = tween(300)))
-                    }
-                },
-                label = "calendarMode"
-            ) { mode ->
-                if (mode == CalendarMode.MONTH) {
-                    MonthView(
-                        currentMonth = currentMonth,
-                        entryDates = entryDates,
-                        dayInfoMap = dayInfoMap,
-                        selectedDate = selectedDate,
-                        today = today,
-                        onDateSelected = onDateSelected,
-                        primary = primary
-                    )
-                } else {
-                    WeekView(
-                        weekStart = currentWeekStart,
-                        entryDates = entryDates,
-                        dayInfoMap = dayInfoMap,
-                        selectedDate = selectedDate,
-                        today = today,
-                        onDateSelected = onDateSelected,
-                        primary = primary
                     )
                 }
             }
