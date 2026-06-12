@@ -351,6 +351,9 @@ fun DiaryDetailScreen(
                                 AndroidView(
                                     factory = { ctx ->
                                         WebView(ctx).apply {
+                                            // Disable internal scrolling - let outer scroll handle it
+                                            isVerticalScrollBarEnabled = false
+                                            overScrollMode = WebView.OVER_SCROLL_NEVER
                                             webViewClient = object : WebViewClient() {
                                                 override fun onPageFinished(view: WebView?, url: String?) {
                                                     super.onPageFinished(view, url)
@@ -428,13 +431,17 @@ fun DiaryDetailScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .then(
-                                            if (webViewContentHeight > 0.dp.value) {
-                                                Modifier.heightIn(min = 100.dp, max = webViewContentHeight.dp)
+                                            if (webViewContentHeight > 0f) {
+                                                Modifier.height(webViewContentHeight.dp)
                                             } else {
                                                 Modifier.heightIn(min = 100.dp)
                                             }
                                         )
-                                        .alpha(if (contentReady) 1f else 0f)
+                                        .alpha(if (contentReady) 1f else 0f),
+                                    update = { webView ->
+                                        // Disable scrolling on update too
+                                        webView.isVerticalScrollBarEnabled = false
+                                    }
                                 )
                             }
                         }
@@ -508,6 +515,7 @@ private fun DetailHeader(
     val dateText = "${entryDate.year}年${entryDate.monthValue}月${entryDate.dayOfMonth}日"
     val dayOfWeek = entryDate.format(DateTimeFormatter.ofPattern("EEEE", Locale.CHINESE))
     val timeText = entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+    val titleText = entry.title.trim().takeUnless { it.isNullOrEmpty() }
 
     Column(
         modifier = Modifier
@@ -515,17 +523,30 @@ private fun DetailHeader(
             .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Date - visual anchor, prominent
+        // Title - visual anchor
+        if (titleText != null) {
+            Text(
+                text = titleText,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.3.sp
+                ),
+                color = textColor,
+                textAlign = TextAlign.Center,
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Date
         Text(
             text = dateText,
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            ),
-            color = textColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor.copy(alpha = 0.75f),
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Day of week + time
         Text(

@@ -84,10 +84,22 @@ fun LocationSelector(
 
     // Edit location dialog
     if (showEditDialog && selectedLocation != null) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("编辑位置名称") },
-            text = {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showEditDialog = false }
+        ) {
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "编辑位置名称",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = editName,
                     onValueChange = { editName = it },
@@ -95,19 +107,26 @@ fun LocationSelector(
                     placeholder = { Text("输入位置名称") },
                     singleLine = true
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (editName.isNotBlank()) {
-                        onLocationSelected(editName.trim(), latitude, longitude)
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showEditDialog = false }) {
+                        Text("取消")
                     }
-                    showEditDialog = false
-                }) { Text("确认") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("取消") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = {
+                        if (editName.isNotBlank()) {
+                            onLocationSelected(editName.trim(), latitude, longitude)
+                        }
+                        showEditDialog = false
+                    }) {
+                        Text("确认")
+                    }
+                }
             }
-        )
+        }
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(

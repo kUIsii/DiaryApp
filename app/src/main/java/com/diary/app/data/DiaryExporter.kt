@@ -433,7 +433,7 @@ object DiaryExporter {
 
     /**
      * Simple delta-to-html for export (no JS needed).
-     * Handles basic text formatting, images, and block elements.
+     * Handles basic text formatting, images, lists, and block elements.
      */
     private fun deltaToHtmlForExport(content: String): String {
         if (content.isBlank()) return ""
@@ -442,7 +442,9 @@ object DiaryExporter {
             val delta = gson.fromJson(content, DeltaForExport::class.java)
             if (delta?.ops == null) return escapeHtml(content)
 
-            val sb = StringBuilder()
+            // First pass: build blocks
+            data class Block(val html: String, val attrs: Map<String, Any>?)
+            val blocks = mutableListOf<Block>()
             var currentBlock = StringBuilder()
             var blockAttrs: Map<String, Any>? = null
 
@@ -453,7 +455,7 @@ object DiaryExporter {
                     val lines = text.split("\n")
                     for (j in lines.indices) {
                         if (j > 0) {
-                            sb.append(wrapBlockForExport(currentBlock.toString(), blockAttrs))
+                            blocks.add(Block(currentBlock.toString(), blockAttrs))
                             currentBlock = StringBuilder()
                             blockAttrs = null
                         }
@@ -472,8 +474,39 @@ object DiaryExporter {
                 }
             }
             if (currentBlock.isNotEmpty()) {
-                sb.append(wrapBlockForExport(currentBlock.toString(), blockAttrs))
+                blocks.add(Block(currentBlock.toString(), blockAttrs))
             }
+
+            // Second pass: group consecutive list items
+            val sb = StringBuilder()
+            var listBuffer = mutableListOf<String>()
+            var listType: String? = null
+
+            fun flushList() {
+                if (listBuffer.isEmpty()) return
+                val tag = if (listType == "ordered") "ol" else "ul"
+                sb.append("<$tag>")
+                listBuffer.forEach { sb.append("<li>$it</li>") }
+                sb.append("</$tag>")
+                listBuffer = mutableListOf()
+                listType = null
+            }
+
+            for (block in blocks) {
+                val currentListType = block.attrs?.get("list") as? String
+                if (currentListType != null) {
+                    if (listType != null && listType != currentListType) {
+                        flushList()
+                    }
+                    listType = currentListType
+                    listBuffer.add(block.html)
+                } else {
+                    flushList()
+                    sb.append(wrapBlockForExport(block.html, block.attrs))
+                }
+            }
+            flushList()
+
             sb.toString()
         } catch (e: Exception) {
             escapeHtml(content)
@@ -506,9 +539,6 @@ object DiaryExporter {
         }
         if (attrs["code-block"] == true) return "<pre><code>$innerHtml</code></pre>"
         if (attrs["blockquote"] == true) return "<blockquote>$innerHtml</blockquote>"
-        val list = attrs["list"] as? String
-        if (list == "ordered") return "<p>$innerHtml</p>"
-        if (list == "bullet") return "<p>$innerHtml</p>"
         return "<p>$innerHtml</p>"
     }
 
