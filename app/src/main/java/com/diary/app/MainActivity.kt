@@ -81,6 +81,7 @@ class MainActivity : FragmentActivity() {
                 var updateNotes by remember { mutableStateOf("") }
                 var updateUrl by remember { mutableStateOf("") }
                 var isDownloading by remember { mutableStateOf(false) }
+                var downloadProgress by remember { mutableStateOf(-1f) }
                 var hasChecked by remember { mutableStateOf(false) }
                 val pendingNavigation by navigateTo
 
@@ -277,20 +278,29 @@ class MainActivity : FragmentActivity() {
                             versionName = updateVersion,
                             releaseNotes = updateNotes,
                             isDownloading = isDownloading,
+                            downloadProgress = downloadProgress,
                             onConfirm = {
                                 isDownloading = true
+                                downloadProgress = -1f
                                 val fileName = "DiaryApp-v$updateVersion.apk"
                                 scope.launch {
                                     try {
                                         ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
                                             .collect { state ->
                                                 when (state) {
+                                                    is DownloadState.Progress -> {
+                                                        downloadProgress = if (state.totalBytes > 0) {
+                                                            state.bytesDownloaded.toFloat() / state.totalBytes
+                                                        } else -1f
+                                                    }
                                                     is DownloadState.Completed -> {
                                                         isDownloading = false
+                                                        downloadProgress = -1f
                                                         showUpdateDialog = false
                                                     }
                                                     is DownloadState.Failed -> {
                                                         isDownloading = false
+                                                        downloadProgress = -1f
                                                         showUpdateDialog = false
                                                         Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
                                                     }
@@ -298,6 +308,7 @@ class MainActivity : FragmentActivity() {
                                             }
                                     } catch (e: Exception) {
                                         isDownloading = false
+                                        downloadProgress = -1f
                                         showUpdateDialog = false
                                         Toast.makeText(context, "更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }

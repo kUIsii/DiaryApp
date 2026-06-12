@@ -19,6 +19,9 @@ class DetailJsBridge {
     private val _imageClicks = MutableSharedFlow<ImageClickEvent>(extraBufferCapacity = 1)
     val imageClicks: SharedFlow<ImageClickEvent> = _imageClicks.asSharedFlow()
 
+    private val _contentHeight = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    val contentHeight: SharedFlow<Int> = _contentHeight.asSharedFlow()
+
     @JavascriptInterface
     fun onImageClick(clickedUrl: String, allUrlsJson: String) {
         try {
@@ -27,6 +30,13 @@ class DetailJsBridge {
             _imageClicks.tryEmit(ImageClickEvent(clickedUrl, urls))
         } catch (_: Exception) {
             _imageClicks.tryEmit(ImageClickEvent(clickedUrl, listOf(clickedUrl)))
+        }
+    }
+
+    @JavascriptInterface
+    fun onContentHeight(heightPx: Int) {
+        if (heightPx > 0) {
+            _contentHeight.tryEmit(heightPx)
         }
     }
 }

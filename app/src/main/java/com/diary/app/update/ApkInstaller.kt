@@ -56,10 +56,19 @@ object ApkInstaller {
                                 emit(DownloadState.Failed("下载失败"))
                                 return@flow
                             }
+                            else -> {
+                                val bytesDownloaded = it.getLong(
+                                    it.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                                )
+                                val totalBytes = it.getLong(
+                                    it.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                                )
+                                emit(DownloadState.Progress(bytesDownloaded, totalBytes))
+                            }
                         }
                     }
                 }
-                delay(1000)
+                delay(500)
             }
         } catch (e: Exception) {
             emit(DownloadState.Failed("下载出错: ${e.message}"))
@@ -106,6 +115,7 @@ object ApkInstaller {
 }
 
 sealed class DownloadState {
+    data class Progress(val bytesDownloaded: Long, val totalBytes: Long) : DownloadState()
     data class Completed(val file: File) : DownloadState()
     data class Failed(val message: String) : DownloadState()
 }

@@ -118,23 +118,30 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         val timeText = entryTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
 
         val moodLabel = currentEntry.moodLevel?.let { moodLabelForLevel(it) }
-
         val weatherLabel = currentEntry.weather?.let { weatherLabelFor(it) }
+        val locationText = currentEntry.location?.trim().takeUnless { it.isNullOrEmpty() }
 
         val sb = StringBuilder()
+
+        // Title
+        if (currentEntry.title.isNotBlank()) {
+            sb.appendLine(currentEntry.title)
+            sb.appendLine()
+        }
+
         sb.appendLine("$dateText $timeText")
 
-        val metaLine = listOfNotNull(
+        val metaParts = listOfNotNull(
             moodLabel?.let { "心情: $it" },
-            weatherLabel?.let { "天气: $it" }
-        ).joinToString(" | ")
-        if (metaLine.isNotEmpty()) {
-            sb.appendLine(metaLine)
+            weatherLabel?.let { "天气: $it" },
+            locationText?.let { "地点: $it" }
+        )
+        if (metaParts.isNotEmpty()) {
+            sb.appendLine(metaParts.joinToString(" | "))
         }
 
         sb.appendLine()
 
-        // Use the stored plainText field instead of parsing delta JSON
         if (currentEntry.plainText.isNotBlank()) {
             sb.appendLine(currentEntry.plainText)
         }
@@ -195,5 +202,11 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         val currentEntry = _entry.value ?: return null
         val entryTags = _tags.value
         return DiaryExporter.exportSingleAsMarkdown(context, currentEntry, entryTags.map { it.name })
+    }
+
+    suspend fun exportAsHtml(context: Context): String? {
+        val currentEntry = _entry.value ?: return null
+        val currentTags = _tags.value
+        return DiaryExporter.exportSingleAsHtml(context, currentEntry, currentTags.map { it.name })
     }
 }

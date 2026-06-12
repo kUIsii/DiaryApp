@@ -179,6 +179,7 @@ fun ProfileScreen(
     var updateNotes by remember { mutableStateOf("") }
     var updateUrl by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(-1f) }
     var isForceUpdate by remember { mutableStateOf(false) }
     val fontSizeOptions = listOf(
         FontSizeOption("tiny", "极小", 10),
@@ -256,20 +257,27 @@ fun ProfileScreen(
             versionName = updateVersion,
             releaseNotes = updateNotes,
             isDownloading = isDownloading,
+            downloadProgress = downloadProgress,
             isForceUpdate = isForceUpdate,
             onConfirm = {
                 isDownloading = true
+                downloadProgress = -1f
                 val fileName = "DiaryApp-v$updateVersion.apk"
                 scope.launch {
                     try {
                         ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
                             .collect { state ->
                                 when (state) {
-                                    is DownloadState.Completed -> { isDownloading = false; showUpdateDialog = false }
-                                    is DownloadState.Failed -> { isDownloading = false; showUpdateDialog = false; Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show() }
+                                    is DownloadState.Progress -> {
+                                        downloadProgress = if (state.totalBytes > 0) {
+                                            state.bytesDownloaded.toFloat() / state.totalBytes
+                                        } else -1f
+                                    }
+                                    is DownloadState.Completed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false }
+                                    is DownloadState.Failed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show() }
                                 }
                             }
-                    } catch (e: Exception) { isDownloading = false; showUpdateDialog = false; Toast.makeText(context, context.getString(R.string.profile_update_failed_msg, e.message ?: ""), Toast.LENGTH_SHORT).show() }
+                    } catch (e: Exception) { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, context.getString(R.string.profile_update_failed_msg, e.message ?: ""), Toast.LENGTH_SHORT).show() }
                 }
             },
             onDismiss = { showUpdateDialog = false }

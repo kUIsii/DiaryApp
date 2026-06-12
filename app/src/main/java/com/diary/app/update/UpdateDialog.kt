@@ -53,6 +53,7 @@ fun UpdateDialog(
     versionName: String,
     releaseNotes: String,
     isDownloading: Boolean,
+    downloadProgress: Float = -1f,
     isForceUpdate: Boolean = false,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
@@ -167,7 +168,7 @@ fun UpdateDialog(
                             // Download progress
                             if (isDownloading) {
                                 Spacer(modifier = Modifier.height(20.dp))
-                                GlassDownloadProgress()
+                                GlassDownloadProgress(progress = downloadProgress)
                             }
 
                             // Action buttons
@@ -232,15 +233,21 @@ fun UpdateDialog(
 }
 
 @Composable
-private fun GlassDownloadProgress() {
+private fun GlassDownloadProgress(progress: Float = -1f) {
     val accentGradient = Brush.horizontalGradient(
         listOf(DarkAccentStart, DarkAccentEnd)
     )
-    val progress by animateFloatAsState(
-        targetValue = 0.75f,
-        animationSpec = tween(2000),
+    val displayProgress = if (progress in 0f..1f) progress else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = displayProgress,
+        animationSpec = tween(durationMillis = 300),
         label = "downloadProgress"
     )
+    val percentText = if (progress in 0f..1f) {
+        "${(progress * 100).toInt()}%"
+    } else {
+        "准备中..."
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -255,7 +262,7 @@ private fun GlassDownloadProgress() {
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(fraction = progress)
+                    .fillMaxWidth(fraction = animatedProgress)
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
                     .background(accentGradient)
@@ -263,7 +270,7 @@ private fun GlassDownloadProgress() {
         }
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "正在下载更新包...",
+            text = "正在下载更新包 $percentText",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )

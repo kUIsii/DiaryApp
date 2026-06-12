@@ -355,6 +355,196 @@ object DiaryExporter {
         return saveBitmapToFile(context, bitmap, fileName)
     }
 
+    fun exportSingleAsHtml(context: Context, entry: DiaryEntry, tags: List<String> = emptyList()): String {
+        val entryDate = Instant.ofEpochMilli(entry.createdAt)
+            .atZone(ZoneId.systemDefault()).toLocalDateTime()
+        val dateText = entryDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm"))
+        val dayOfWeek = entryDate.format(DateTimeFormatter.ofPattern("EEEE", java.util.Locale.CHINESE))
+
+        val moodLabel = entry.moodLevel?.let { moodLabelForLevel(it) }
+        val weatherLabel = entry.weather?.let { weatherLabelFor(it) }
+        val locationText = entry.location?.trim().takeUnless { it.isNullOrEmpty() }
+
+        // Convert delta to HTML using the same logic as viewer.html
+        val bodyHtml = deltaToHtmlForExport(entry.content)
+
+        // Embed local images as base64
+        val embeddedHtml = embedLocalImages(context, bodyHtml)
+
+        val sb = StringBuilder()
+        sb.appendLine("<!DOCTYPE html>")
+        sb.appendLine("<html lang='zh-CN'>")
+        sb.appendLine("<head>")
+        sb.appendLine("<meta charset='UTF-8'>")
+        sb.appendLine("<meta name='viewport' content='width=device-width, initial-scale=1.0'>")
+        sb.appendLine("<title>${escapeHtml(dateText)}</title>")
+        sb.appendLine("<style>")
+        sb.appendLine("body { font-family: Georgia, 'Noto Serif SC', serif; max-width: 680px; margin: 0 auto; padding: 32px 20px; color: #2D2D3A; background: #FAFAF8; line-height: 1.9; }")
+        sb.appendLine("h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }")
+        sb.appendLine(".meta { color: #6B6B80; font-size: 13px; margin-bottom: 24px; }")
+        sb.appendLine(".meta span { margin-right: 12px; }")
+        sb.appendLine(".content { font-size: 16px; }")
+        sb.appendLine(".content img { max-width: 100%; border-radius: 8px; margin: 8px 0; }")
+        sb.appendLine(".content blockquote { border-left: 3px solid #6B8DB5; padding: 12px 16px; margin: 12px 0; background: rgba(107,141,181,0.05); border-radius: 0 8px 8px 0; }")
+        sb.appendLine(".content pre { background: rgba(0,0,0,0.04); padding: 12px; border-radius: 8px; overflow-x: auto; }")
+        sb.appendLine(".content code { font-family: 'SF Mono', monospace; font-size: 14px; }")
+        sb.appendLine(".tags { margin-top: 24px; }")
+        sb.appendLine(".tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; }")
+        sb.appendLine(".footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E6E1; color: #8A96A8; font-size: 12px; text-align: center; }")
+        sb.appendLine("</style>")
+        sb.appendLine("</head>")
+        sb.appendLine("<body>")
+
+        sb.appendLine("<h1>${escapeHtml(dateText)}</h1>")
+        sb.appendLine("<div class='meta'>")
+        sb.appendLine("<span>$dayOfWeek</span>")
+        moodLabel?.let { sb.appendLine("<span>心情: ${escapeHtml(it)}</span>") }
+        weatherLabel?.let { sb.appendLine("<span>天气: ${escapeHtml(it)}</span>") }
+        locationText?.let { sb.appendLine("<span>地点: ${escapeHtml(it)}</span>") }
+        sb.appendLine("</div>")
+
+        sb.appendLine("<div class='content'>$embeddedHtml</div>")
+
+        if (tags.isNotEmpty()) {
+            sb.appendLine("<div class='tags'>")
+            tags.forEach { tag ->
+                sb.appendLine("<span class='tag'>${escapeHtml(tag)}</span>")
+            }
+            sb.appendLine("</div>")
+        }
+
+        sb.appendLine("<div class='footer'>日记本 App</div>")
+        sb.appendLine("</body>")
+        sb.appendLine("</html>")
+
+        val html = sb.toString()
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        val fileName = "diary_${timestamp}.html"
+
+        return saveToFile(context, fileName, html, "text/html")
+    }
+
+    private fun escapeHtml(text: String): String {
+        return text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+    }
+
+    /**
+     * Simple delta-to-html for export (no JS needed).
+     * Handles basic text formatting, images, and block elements.
+     */
+    private fun deltaToHtmlForExport(content: String): String {
+        if (content.isBlank()) return ""
+        return try {
+            val gson = com.google.gson.Gson()
+            val delta = gson.fromJson(content, DeltaForExport::class.java)
+            if (delta?.ops == null) return escapeHtml(content)
+
+            val sb = StringBuilder()
+            var currentBlock = StringBuilder()
+            var blockAttrs: Map<String, Any>? = null
+
+            for (op in delta.ops) {
+                val insert = op.insert ?: continue
+                if (insert is String) {
+                    val text = insert.replace("\\n", "\n").replace("\\r\\n", "\n").replace("\\r", "\n")
+                    val lines = text.split("\n")
+                    for (j in lines.indices) {
+                        if (j > 0) {
+                            sb.append(wrapBlockForExport(currentBlock.toString(), blockAttrs))
+                            currentBlock = StringBuilder()
+                            blockAttrs = null
+                        }
+                        if (lines[j].isNotEmpty()) {
+                            currentBlock.append(wrapInlineForExport(lines[j], op.attributes))
+                        }
+                        if (j < lines.size - 1) {
+                            blockAttrs = op.attributes?.mapValues { it.value as? Any ?: "" }
+                        }
+                    }
+                } else if (insert is Map<*, *>) {
+                    val imgSrc = insert["image"]
+                    if (imgSrc is String) {
+                        currentBlock.append("<img src='${escapeHtml(imgSrc)}' />")
+                    }
+                }
+            }
+            if (currentBlock.isNotEmpty()) {
+                sb.append(wrapBlockForExport(currentBlock.toString(), blockAttrs))
+            }
+            sb.toString()
+        } catch (e: Exception) {
+            escapeHtml(content)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun wrapInlineForExport(text: String, attrs: Map<String, Any>?): String {
+        if (attrs.isNullOrEmpty()) return escapeHtml(text)
+        var html = escapeHtml(text)
+        if (attrs["bold"] == true) html = "<strong>$html</strong>"
+        if (attrs["italic"] == true) html = "<em>$html</em>"
+        if (attrs["underline"] == true) html = "<u>$html</u>"
+        if (attrs["strike"] == true) html = "<s>$html</s>"
+        if (attrs["code"] == true) html = "<code>$html</code>"
+        val link = attrs["link"] as? String
+        if (link != null) html = "<a href='${escapeHtml(link)}'>$html</a>"
+        val color = attrs["color"] as? String
+        if (color != null) html = "<span style='color:$color'>$html</span>"
+        return html
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun wrapBlockForExport(innerHtml: String, attrs: Map<String, Any>?): String {
+        if (attrs.isNullOrEmpty()) return "<p>$innerHtml</p>"
+        val header = (attrs["header"] as? Double)?.toInt()
+        if (header != null) {
+            val level = header.coerceIn(1, 3)
+            return "<h$level>$innerHtml</h$level>"
+        }
+        if (attrs["code-block"] == true) return "<pre><code>$innerHtml</code></pre>"
+        if (attrs["blockquote"] == true) return "<blockquote>$innerHtml</blockquote>"
+        val list = attrs["list"] as? String
+        if (list == "ordered") return "<p>$innerHtml</p>"
+        if (list == "bullet") return "<p>$innerHtml</p>"
+        return "<p>$innerHtml</p>"
+    }
+
+    /**
+     * Embed local images as base64 data URIs in HTML.
+     */
+    private fun embedLocalImages(context: Context, html: String): String {
+        val imgRegex = Regex("""src=['"](https://appassets/[^'"]+)['"]""")
+        return imgRegex.replace(html) { match ->
+            val webViewUrl = match.groupValues[1]
+            val localPath = webViewUrl
+                .removePrefix("https://appassets/")
+                .let { "${context.filesDir.absolutePath}/$it" }
+            try {
+                val file = java.io.File(localPath)
+                if (file.exists() && file.length() < 5 * 1024 * 1024) {
+                    val bytes = file.readBytes()
+                    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                    val mime = when {
+                        localPath.endsWith(".png") -> "image/png"
+                        localPath.endsWith(".webp") -> "image/webp"
+                        else -> "image/jpeg"
+                    }
+                    "src='data:$mime;base64,$base64'"
+                } else {
+                    match.value
+                }
+            } catch (e: Exception) {
+                match.value
+            }
+        }
+    }
+
+    private class DeltaForExport(val ops: List<OpForExport>?)
+    private class OpForExport(val insert: Any?, val attributes: Map<String, Any>?)
+
     fun exportSingleAsMarkdown(context: Context, entry: DiaryEntry, tags: List<String> = emptyList()): String {
         val entryDate = Instant.ofEpochMilli(entry.createdAt)
             .atZone(ZoneId.systemDefault()).toLocalDateTime()
