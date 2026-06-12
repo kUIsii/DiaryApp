@@ -469,22 +469,29 @@
 
             document.getElementById('content').addEventListener('load', function(e) {
                 if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
+                    // 图片/视频加载后多次报告高度
                     setTimeout(reportContentHeight, 100);
+                    setTimeout(reportContentHeight, 500);
+                    setTimeout(reportContentHeight, 1000);
                 }
             }, true);
 
-            // 图片加载完成后重新报告
+            // 内容加载后多次报告高度，确保图片等异步内容被计入
             var origSetContent = window.setContent;
             var origSetContentFromBase64 = window.setContentFromBase64;
             window.setContent = function(deltaJSON) {
                 origSetContent(deltaJSON);
                 setTimeout(reportContentHeight, 100);
                 setTimeout(reportContentHeight, 500);
+                setTimeout(reportContentHeight, 1000);
+                setTimeout(reportContentHeight, 2000);
             };
             window.setContentFromBase64 = function(base64) {
                 origSetContentFromBase64(base64);
                 setTimeout(reportContentHeight, 100);
                 setTimeout(reportContentHeight, 500);
+                setTimeout(reportContentHeight, 1000);
+                setTimeout(reportContentHeight, 2000);
             };
         })();
 
