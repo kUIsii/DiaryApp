@@ -218,10 +218,6 @@ class AnnualReportViewModel(application: Application) : AndroidViewModel(applica
         // Longest streak
         val longestStreak = computeLongestStreak(dates)
 
-        // 新增：照片相关的统计 - 需要异步获取，现在简化处理
-        // 为了同步处理，我们将创建一个临时方法来获取照片数据
-        val photoStats = getPhotoStatsForYear(entries, zone, year)
-
         return AnnualReport(
             year = year,
             totalEntries = entries.size,

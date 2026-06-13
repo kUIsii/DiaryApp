@@ -6,8 +6,10 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Mood
@@ -34,7 +37,7 @@ import androidx.compose.material.icons.filled.ShortText
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.WeatherSunny
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -82,7 +85,7 @@ private val weatherEmoji = mapOf(
     "雪" to "❄", "雾" to "🌫", "风" to "🌬"
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AnnualReportScreen(
     onNavigateBack: () -> Unit,
@@ -189,7 +192,7 @@ fun AnnualReportScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(with(LocalDensity.current) { (6.dp * isSelected).toDp() })
+                                    .size(6.dp * isSelected)
                                     .background(
                                         if (pagerState.currentPage == index)
                                             MaterialTheme.colorScheme.primary
@@ -366,7 +369,8 @@ private fun MoodJourneyCard(report: AnnualReport) {
                 text = "全年平均心情：${moodLabels[avgMood.toInt().coerceIn(1, 5)]}",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             val maxMood = report.monthlyMood.filterNotNull().maxOrNull()?.toInt() ?: 1
@@ -374,7 +378,8 @@ private fun MoodJourneyCard(report: AnnualReport) {
                 text = "最高月度心情：${moodLabels[maxMood.coerceIn(1, 5)]}",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -446,7 +451,8 @@ private fun ProductiveMonthCard(report: AnnualReport) {
             text = "最高产的是 ${monthLabels[maxMonth]}，写了 ${report.monthlyCount[maxMonth]} 篇",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
         )
     }
 }
@@ -480,7 +486,6 @@ private fun NightWriterCard(report: AnnualReport) {
                     startAngle = 135f,
                     sweepAngle = 270f,
                     useCenter = false,
-                    strokeWidth = 12f,
                     style = Stroke(width = 12f)
                 )
                 // Animated value arc
@@ -489,7 +494,6 @@ private fun NightWriterCard(report: AnnualReport) {
                     startAngle = 135f,
                     sweepAngle = 270f * (animatedRatio / 100f).coerceIn(0f, 1f),
                     useCenter = false,
-                    strokeWidth = 12f,
                     style = Stroke(width = 12f)
                 )
             }
@@ -515,7 +519,8 @@ private fun NightWriterCard(report: AnnualReport) {
                 text = "最晚写到了 ${report.latestEntryTime.hour}:${String.format("%02d", report.latestEntryTime.minute)}",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
             if (report.latestEntryTitle.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -525,7 +530,8 @@ private fun NightWriterCard(report: AnnualReport) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
                 )
             }
         }
@@ -593,7 +599,8 @@ private fun LongestEntryCard(report: AnnualReport) {
                 text = report.longestEntryDate.format(formatter),
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -616,7 +623,8 @@ private fun SilenceCard(report: AnnualReport) {
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = primary,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         } else {
             Box(
@@ -645,7 +653,8 @@ private fun SilenceCard(report: AnnualReport) {
                     text = "${report.silenceStart.format(formatter)} — ${report.silenceEnd.format(formatter)}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
                 )
             }
         }
@@ -693,7 +702,7 @@ private fun HappiestDayCard(report: AnnualReport) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (report.happiestDate != null) {
@@ -773,14 +782,16 @@ private fun WritingHabitCard(report: AnnualReport) {
             text = "最常在「${report.mostActiveTime}」写作",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "最喜欢在「${report.mostActiveDay}」动笔",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
         )
     }
 }
@@ -791,7 +802,7 @@ private fun EarlyBirdCard(report: AnnualReport) {
     CardScaffold(
         title = "你的清晨时光",
         subtitle = "你最早开始记录的一天",
-        icon = Icons.Default.WeatherSunny
+        icon = Icons.Default.WbSunny
     ) {
         val primary = MaterialTheme.colorScheme.primary
         val formatter = remember { DateTimeFormatter.ofPattern("M月d日") }
@@ -809,7 +820,6 @@ private fun EarlyBirdCard(report: AnnualReport) {
                         startAngle = 135f,
                         sweepAngle = 270f,
                         useCenter = false,
-                        strokeWidth = 12f,
                         style = Stroke(width = 12f)
                     )
                 }
@@ -835,7 +845,8 @@ private fun EarlyBirdCard(report: AnnualReport) {
                 text = "比大多数人醒得都早呢！",
                 fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
 
             if (report.earliestEntryTitle.isNotBlank()) {
@@ -846,7 +857,8 @@ private fun EarlyBirdCard(report: AnnualReport) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
                 )
             }
         } else {
@@ -854,7 +866,8 @@ private fun EarlyBirdCard(report: AnnualReport) {
                 text = "暂无记录",
                 fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -875,7 +888,8 @@ private fun TagStyleCard(report: AnnualReport) {
                 text = "还没有使用过标签",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         } else {
             report.topTags.forEachIndexed { i, tag ->
@@ -892,15 +906,16 @@ private fun TagStyleCard(report: AnnualReport) {
                         color = primary.copy(alpha = 0.5f),
                         modifier = Modifier.width(24.dp)
                     )
+                    val tagColor = Color(tag.color.toULong())
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = tag.color.copy(alpha = 0.12f)
+                        color = tagColor.copy(alpha = 0.12f)
                     ) {
                         Text(
                             text = tag.name,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = tag.color,
+                            color = tagColor,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }
@@ -922,7 +937,7 @@ private fun WeatherMoodCard(report: AnnualReport) {
     CardScaffold(
         title = "天气与心情",
         subtitle = "不同天气下的情绪",
-        icon = Icons.Default.WeatherSunny
+        icon = Icons.Default.WbSunny
     ) {
         val primary = MaterialTheme.colorScheme.primary
 
@@ -931,7 +946,8 @@ private fun WeatherMoodCard(report: AnnualReport) {
                 text = "还没有足够的天气数据",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         } else {
             report.weatherMood.forEach { wm ->
@@ -1024,14 +1040,16 @@ private fun MostProductiveDayCard(report: AnnualReport) {
                     text = "${report.mostProductiveDate.format(formatter)} 这一天",
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "一定有很多事情值得记录吧",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
                 )
             }
         } else {
@@ -1039,7 +1057,8 @@ private fun MostProductiveDayCard(report: AnnualReport) {
                 text = "每天平均一篇，稳步前行",
                 fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -1051,7 +1070,7 @@ private fun PhotoStoryCard(report: AnnualReport) {
     CardScaffold(
         title = "照片记忆",
         subtitle = "你拍摄的回忆片段",
-        icon = Icons.Default.PhotoCamera
+        icon = Icons.Default.Collections
     ) {
         val primary = MaterialTheme.colorScheme.primary
 
@@ -1101,7 +1120,7 @@ private fun PhotoStoryCard(report: AnnualReport) {
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
-                    Icons.Default.PhotoCamera,
+                    Icons.Default.Collections,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                     modifier = Modifier.size(48.dp)
@@ -1296,6 +1315,6 @@ private fun CardScaffold(
     }
 }
 
-private fun Long.toLocaleString(): String {
+private fun Int.toLocaleString(): String {
     return this.toString().reversed().chunked(3).joinToString(",").reversed()
 }
