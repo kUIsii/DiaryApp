@@ -116,14 +116,25 @@ object DiaryMediaManager {
         jpegQuality: Int = 78
     ): ImportedDiaryMedia? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openInputStream()?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        val firstStream = openInputStream()
+        android.util.Log.d("DiaryMediaManager", "First openInputStream: $firstStream")
+        if (firstStream == null) {
+            android.util.Log.e("DiaryMediaManager", "openInputStream returned null on first call")
+            return null
+        }
+        firstStream.use { BitmapFactory.decodeStream(it, null, bounds) }
+        android.util.Log.d("DiaryMediaManager", "Decoded bounds: ${bounds.outWidth}x${bounds.outHeight}")
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
         val options = BitmapFactory.Options().apply {
             inSampleSize = calculateImageSampleSize(bounds.outWidth, bounds.outHeight, maxDimension)
             inPreferredConfig = Bitmap.Config.RGB_565
         }
-        val decoded = openInputStream()?.use { BitmapFactory.decodeStream(it, null, options) } ?: return null
+        val secondStream = openInputStream()
+        android.util.Log.d("DiaryMediaManager", "Second openInputStream: $secondStream")
+        val decoded = secondStream?.use { BitmapFactory.decodeStream(it, null, options) }
+        android.util.Log.d("DiaryMediaManager", "Decoded bitmap: $decoded")
+        if (decoded == null) return null
         val displayBitmap = scaleBitmapIfNeeded(decoded, maxDimension)
         val thumbBitmap = scaleBitmapIfNeeded(displayBitmap, thumbDimension)
 

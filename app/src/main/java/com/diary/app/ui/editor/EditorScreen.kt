@@ -394,7 +394,11 @@ fun EditorScreen(
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             try {
+                android.util.Log.d("EditorScreen", "Image URI: $imageUri, scheme: ${imageUri.scheme}, path: ${imageUri.path}")
+                val canOpen = try { context.contentResolver.openInputStream(imageUri)?.use { true } } catch (e: Exception) { android.util.Log.e("EditorScreen", "Cannot open input stream", e); false }
+                android.util.Log.d("EditorScreen", "Can open input stream: $canOpen")
                 val media = DiaryMediaManager.importImage(context, imageUri)
+                android.util.Log.d("EditorScreen", "importImage result: $media")
                 if (media != null) {
                     insertImageIntoEditor(media.displayWebUrl)
                 } else {
@@ -406,10 +410,11 @@ fun EditorScreen(
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("EditorScreen", "Image import exception", e)
                 e.printStackTrace()
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message = "图片插入失败，请重试",
+                        message = "图片插入失败: ${e.message}",
                         duration = SnackbarDuration.Short
                     )
                 }
