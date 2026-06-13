@@ -4,45 +4,56 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.RestoreFromTrash
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,92 +64,289 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCapsule: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
+    onNavigateToMonthlyReport: (Int, Int) -> Unit = { _, _ -> },
+    onNavigateToAnnualReport: () -> Unit = {},
     viewModel: NotificationViewModel = viewModel()
 ) {
-    val notifications by viewModel.notifications.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     GradientBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0),
-            topBar = {
-                TopAppBar(
-                    title = { Text("消息") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
-                    )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 标题栏
+            NotificationTopBar(
+                showTrash = uiState.showTrash,
+                onNavigateBack = onNavigateBack,
+                onToggleTrash = { viewModel.toggleTrashView() }
+            )
+
+            if (uiState.showTrash) {
+                // 回收站视图
+                TrashView(
+                    trashedItems = uiState.trashedNotifications,
+                    onRestore = { viewModel.restoreNotification(it) },
+                    onPermanentDelete = { viewModel.permanentDeleteNotification(it) },
+                    onEmptyTrash = { viewModel.emptyTrash() },
+                    onNavigateToCapsule = onNavigateToCapsule,
+                    onNavigateToDetail = onNavigateToDetail,
+                    onNavigateToMonthlyReport = onNavigateToMonthlyReport,
+                    onNavigateToAnnualReport = onNavigateToAnnualReport
                 )
-            }
-        ) { innerPadding ->
-            if (notifications.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    EmptyState(
-                        icon = Icons.Default.Notifications,
-                        title = "暂时没有新消息",
-                        subtitle = "有值得关注的事会出现在这里"
+            } else {
+                // 分类 Tab
+                CategoryTabRow(
+                    selectedCategory = uiState.selectedCategory,
+                    onCategorySelected = { viewModel.selectCategory(it) }
+                )
+
+                // 筛选后的通知
+                val filteredNotifications = if (uiState.selectedCategory == NotificationCategory.ALL) {
+                    uiState.notifications
+                } else {
+                    uiState.notifications.filter { it.category == uiState.selectedCategory }
+                }
+
+                if (filteredNotifications.isEmpty()) {
+                    EmptyNotificationsView(category = uiState.selectedCategory)
+                } else {
+                    NotificationList(
+                        notifications = filteredNotifications,
+                        onTrash = { viewModel.trashNotification(it) },
+                        onNavigateToCapsule = onNavigateToCapsule,
+                        onNavigateToDetail = onNavigateToDetail,
+                        onNavigateToMonthlyReport = onNavigateToMonthlyReport,
+                        onNavigateToAnnualReport = onNavigateToAnnualReport
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item { Spacer(modifier = Modifier.height(4.dp)) }
+            }
+        }
+    }
+}
 
-                    itemsIndexed(
-                        items = notifications,
-                        key = { _, item -> item.id }
-                    ) { index, item ->
-                        val enterDelay = (index * 60).coerceAtMost(400)
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
-                        ) {
-                            NotificationCard(
-                                item = item,
-                                onClick = {
-                                    when (item) {
-                                        is CapsuleUnlockNotification -> onNavigateToCapsule(item.capsule.id)
-                                        is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
-                                        is AnnualReportNotification -> {
-                                            // 可以在这里添加导航到年度报告的逻辑
-                                            // 目前先留空，因为可能需要在Navigation中添加路由
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            )
+// region 标题栏
+
+@Composable
+private fun NotificationTopBar(
+    showTrash: Boolean,
+    onNavigateBack: () -> Unit,
+    onToggleTrash: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Icon(
+                Icons.Default.ArrowBack,
+                contentDescription = "返回",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = if (showTrash) "回收站" else "消息",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(
+            onClick = onToggleTrash,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(
+                    if (showTrash) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    else Color.Transparent
+                )
+        ) {
+            Icon(
+                imageVector = if (showTrash) Icons.Default.Notifications else Icons.Default.RestoreFromTrash,
+                contentDescription = if (showTrash) "返回消息" else "回收站",
+                tint = if (showTrash) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// endregion
+
+// region 分类 Tab
+
+@Composable
+private fun CategoryTabRow(
+    selectedCategory: NotificationCategory,
+    onCategorySelected: (NotificationCategory) -> Unit
+) {
+    val categories = NotificationCategory.entries
+    val scrollState = rememberScrollState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        categories.forEach { category ->
+            val isSelected = category == selectedCategory
+            CategoryTab(
+                label = category.label,
+                isSelected = isSelected,
+                onClick = { onCategorySelected(category) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryTab(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val textColor = if (isSelected) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = backgroundColor,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+    }
+}
+
+// endregion
+
+// region 通知列表
+
+@Composable
+private fun NotificationList(
+    notifications: List<NotificationItem>,
+    onTrash: (String) -> Unit,
+    onNavigateToCapsule: (Long) -> Unit,
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateToMonthlyReport: (Int, Int) -> Unit,
+    onNavigateToAnnualReport: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        itemsIndexed(
+            items = notifications,
+            key = { _, item -> item.id }
+        ) { index, item ->
+            val enterDelay = (index * 60).coerceAtMost(400)
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
+                        slideInVertically(
+                            animationSpec = tween(300, delayMillis = enterDelay),
+                            initialOffsetY = { it / 5 }
+                        )
+            ) {
+                NotificationCardWithMenu(
+                    item = item,
+                    onTrash = { onTrash(item.id) },
+                    onClick = {
+                        when (item) {
+                            is CapsuleUnlockNotification -> onNavigateToCapsule(item.capsule.id)
+                            is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
+                            is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
+                            is AnnualReportNotification -> onNavigateToAnnualReport()
+                            else -> {}
                         }
                     }
-
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
-                }
+                )
             }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
+// endregion
+
+// region 通知卡片
+
+@Composable
+private fun NotificationCardWithMenu(
+    item: NotificationItem,
+    onTrash: () -> Unit,
+    onClick: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val clickable = item is CapsuleUnlockNotification ||
+            item is OnThisDayNotification ||
+            item is MonthlyReportNotification ||
+            item is AnnualReportNotification
+
+    Box {
+        NotificationCard(
+            item = item,
+            onClick = if (clickable) onClick else ({}),
+            clickable = clickable,
+            onLongClick = { showMenu = true }
+        )
+
+        // 长按菜单
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("移到回收站") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                onClick = {
+                    showMenu = false
+                    onTrash()
+                }
+            )
         }
     }
 }
@@ -146,18 +354,309 @@ fun NotificationScreen(
 @Composable
 private fun NotificationCard(
     item: NotificationItem,
+    onClick: () -> Unit,
+    clickable: Boolean,
+    onLongClick: () -> Unit
+) {
+    val (icon, iconColor, title, subtitle) = getNotificationStyle(item)
+    val timeText = formatTimestamp(item.timestamp)
+
+    GlassCard(
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(enabled = clickable, onClick = onClick)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 左侧图标
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = iconColor.copy(alpha = 0.12f)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.padding(10.dp).size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            // 中间文字
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            // 右侧时间
+            Text(
+                text = timeText,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+// endregion
+
+// region 回收站
+
+@Composable
+private fun TrashView(
+    trashedItems: List<NotificationItem>,
+    onRestore: (String) -> Unit,
+    onPermanentDelete: (String) -> Unit,
+    onEmptyTrash: () -> Unit,
+    onNavigateToCapsule: (Long) -> Unit,
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateToMonthlyReport: (Int, Int) -> Unit,
+    onNavigateToAnnualReport: () -> Unit
+) {
+    if (trashedItems.isEmpty()) {
+        EmptyTrashView()
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                itemsIndexed(
+                    items = trashedItems,
+                    key = { _, item -> item.id }
+                ) { index, item ->
+                    val enterDelay = (index * 60).coerceAtMost(400)
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
+                                slideInVertically(
+                                    animationSpec = tween(300, delayMillis = enterDelay),
+                                    initialOffsetY = { it / 5 }
+                                )
+                    ) {
+                        TrashedNotificationCard(
+                            item = item,
+                            onRestore = { onRestore(item.id) },
+                            onPermanentDelete = { onPermanentDelete(item.id) },
+                            onClick = {
+                                when (item) {
+                                    is CapsuleUnlockNotification -> onNavigateToCapsule(item.capsule.id)
+                                    is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
+                                    is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
+                                    is AnnualReportNotification -> onNavigateToAnnualReport()
+                                    else -> {}
+                                }
+                            }
+                        )
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+
+            // 底部清空按钮
+            if (trashedItems.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TextButton(onClick = onEmptyTrash) {
+                        Icon(
+                            Icons.Default.DeleteForever,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "清空回收站",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrashedNotificationCard(
+    item: NotificationItem,
+    onRestore: () -> Unit,
+    onPermanentDelete: () -> Unit,
     onClick: () -> Unit
 ) {
-    val (icon, iconColor, title, subtitle) = when (item) {
+    val (icon, iconColor, title, subtitle) = getNotificationStyle(item)
+    val clickable = item is CapsuleUnlockNotification ||
+            item is OnThisDayNotification ||
+            item is MonthlyReportNotification ||
+            item is AnnualReportNotification
+
+    GlassCard(
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(enabled = clickable, onClick = onClick)
+    ) {
+        Column {
+            // 通知内容
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = iconColor.copy(alpha = 0.12f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(10.dp).size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 操作按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onRestore) {
+                    Icon(
+                        Icons.Default.Restore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "恢复",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onPermanentDelete) {
+                    Icon(
+                        Icons.Default.DeleteForever,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "永久删除",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// endregion
+
+// region 空状态
+
+@Composable
+private fun EmptyNotificationsView(category: NotificationCategory) {
+    val (title, subtitle) = when (category) {
+        NotificationCategory.ALL -> "暂时没有新消息" to "有值得关注的事会出现在这里"
+        NotificationCategory.MONTHLY_REPORT -> "没有月报通知" to "当月有日记数据时会生成月报"
+        NotificationCategory.ANNUAL_REPORT -> "没有年报通知" to "每年12月25日后会生成年度报告"
+        NotificationCategory.TIME_CAPSULE -> "没有胶囊通知" to "时间胶囊到期时会出现在这里"
+        NotificationCategory.MILESTONE -> "没有里程碑通知" to "达成写作里程碑时会通知你"
+        NotificationCategory.ON_THIS_DAY -> "没有今日回顾" to "往年今天写的日记会出现在这里"
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        EmptyState(
+            icon = Icons.Default.Notifications,
+            title = title,
+            subtitle = subtitle
+        )
+    }
+}
+
+@Composable
+private fun EmptyTrashView() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        EmptyState(
+            icon = Icons.Default.Delete,
+            title = "回收站是空的",
+            subtitle = "删除的通知会暂时保留在这里"
+        )
+    }
+}
+
+// endregion
+
+// region 辅助函数
+
+private fun getNotificationStyle(item: NotificationItem): NotificationStyle {
+    return when (item) {
         is CapsuleUnlockNotification -> NotificationStyle(
             icon = Icons.Default.LockOpen,
-            iconColor = MaterialTheme.colorScheme.primary,
+            iconColor = Color(0xFF6750A4),
             title = "时间胶囊已到期",
             subtitle = "你有一封信到了可以打开的日子"
         )
         is OnThisDayNotification -> NotificationStyle(
             icon = Icons.Default.History,
-            iconColor = MaterialTheme.colorScheme.tertiary,
+            iconColor = Color(0xFF7B61FF),
             title = "${item.yearsAgo} 年前的今天",
             subtitle = if (item.entry.title.isNotBlank()) item.entry.title
             else item.entry.plainText.take(40)
@@ -175,51 +674,34 @@ private fun NotificationCard(
             subtitle = "坚持记录，保持习惯"
         )
         is AnnualReportNotification -> NotificationStyle(
-            icon = Icons.Default.History,
-            iconColor = Color(0xFF4A90E2), // 蓝色表示年度总结
+            icon = Icons.Default.Assessment,
+            iconColor = Color(0xFF4A90E2),
             title = "${item.year} 年度报告已生成",
             subtitle = "回顾过去一年的点滴记录，点击查看年度总结"
         )
+        is MonthlyReportNotification -> NotificationStyle(
+            icon = Icons.Default.Assessment,
+            iconColor = Color(0xFF4A90E2),
+            title = "${item.month}月写作报告",
+            subtitle = "本月写了 ${item.entryCount} 篇日记，共 ${item.wordCount} 字"
+        )
     }
+}
 
-    val clickable = item is CapsuleUnlockNotification || item is OnThisDayNotification
+private fun formatTimestamp(timestamp: Long): String {
+    val instant = Instant.ofEpochMilli(timestamp)
+    val zonedDateTime = instant.atZone(ZoneId.systemDefault())
+    val now = Instant.now().atZone(ZoneId.systemDefault())
 
-    GlassCard(
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = clickable, onClick = onClick)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = iconColor.copy(alpha = 0.12f)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.padding(10.dp).size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+    return when {
+        zonedDateTime.toLocalDate() == now.toLocalDate() -> {
+            zonedDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        }
+        zonedDateTime.year == now.year -> {
+            zonedDateTime.format(DateTimeFormatter.ofPattern("M月d日"))
+        }
+        else -> {
+            zonedDateTime.format(DateTimeFormatter.ofPattern("yy/M/d"))
         }
     }
 }
@@ -230,3 +712,5 @@ private data class NotificationStyle(
     val title: String,
     val subtitle: String
 )
+
+// endregion

@@ -85,6 +85,8 @@ import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.ui.timeline.TimelineScreen
 import com.diary.app.ui.todo.TodoScreen
 import com.diary.app.ui.trash.TrashScreen
+import com.diary.app.ui.monthlyreport.MonthlyReportScreen
+import com.diary.app.ui.annualreport.AnnualReportScreen
 import com.diary.app.update.ChangelogScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
@@ -122,6 +124,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
     }
     object Notifications : Screen("notifications", "消息", Icons.Default.Home)
+    object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.Home) {
+        fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
+    }
+    object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.Home)
 }
 
 data class BottomNavItem(
@@ -309,7 +315,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 NotificationScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCapsule = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToMonthlyReport = { year, month -> navController.navigate(Screen.MonthlyReport.createRoute(year, month)) },
+                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
                 )
             }
             composable(Screen.TimeCapsule.route) {
@@ -347,6 +355,26 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.ExperimentalFeatures.route) {
                 ExperimentalFeaturesScreen(onNavigateBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Screen.MonthlyReport.route,
+                arguments = listOf(
+                    navArgument("year") { type = NavType.IntType },
+                    navArgument("month") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val year = backStackEntry.arguments?.getInt("year") ?: 2026
+                val month = backStackEntry.arguments?.getInt("month") ?: 1
+                MonthlyReportScreen(
+                    year = year,
+                    month = month,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.AnnualReport.route) {
+                AnnualReportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable(

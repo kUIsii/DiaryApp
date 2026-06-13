@@ -5,14 +5,31 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryPreview
+import com.diary.app.data.NotificationEntity
 import com.diary.app.data.TimeCapsule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+
+// region 分类枚举
+
+enum class NotificationCategory(val label: String) {
+    ALL("全部"),
+    MONTHLY_REPORT("月报"),
+    ANNUAL_REPORT("年报"),
+    TIME_CAPSULE("胶囊"),
+    MILESTONE("里程碑"),
+    ON_THIS_DAY("今日回顾")
+}
+
+// endregion
+
+// region NotificationItem sealed class
 
 sealed class NotificationItem {
     abstract val id: String
@@ -51,96 +68,275 @@ data class AnnualReportNotification(
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
 
+data class MonthlyReportNotification(
+    val year: Int,
+    val month: Int,
+    val entryCount: Int,
+    val wordCount: Int,
+    override val id: String = "monthly_${year}_$month",
+    override val timestamp: Long = System.currentTimeMillis()
+) : NotificationItem()
+
+// endregion
+
+// region 分类映射
+
+val NotificationItem.category: NotificationCategory
+    get() = when (this) {
+        is CapsuleUnlockNotification -> NotificationCategory.TIME_CAPSULE
+        is OnThisDayNotification -> NotificationCategory.ON_THIS_DAY
+        is MilestoneNotification -> NotificationCategory.MILESTONE
+        is StreakNotification -> NotificationCategory.MILESTONE
+        is AnnualReportNotification -> NotificationCategory.ANNUAL_REPORT
+        is MonthlyReportNotification -> NotificationCategory.MONTHLY_REPORT
+    }
+
+// endregion
+
+// region UI State
+
+data class NotificationUiState(
+    val notifications: List<NotificationItem> = emptyList(),
+    val selectedCategory: NotificationCategory = NotificationCategory.ALL,
+    val unreadCount: Int = 0,
+    val isLoading: Boolean = true,
+    val showTrash: Boolean = false,
+    val trashedNotifications: List<NotificationItem> = emptyList()
+)
+
+// endregion
+
+// region ViewModel
+
 class NotificationViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
 
+    private val _uiState = MutableStateFlow(NotificationUiState())
+    val uiState: StateFlow<NotificationUiState> = _uiState.asStateFlow()
+
+    // 保留旧接口兼容（NotificationScreen 目前使用 notifications）
     private val _notifications = MutableStateFlow<List<NotificationItem>>(emptyList())
     val notifications: StateFlow<List<NotificationItem>> = _notifications.asStateFlow()
 
     init {
+        // 同步 uiState 到 notifications 兼容旧接口
+        viewModelScope.launch {
+            _uiState.collect { state ->
+                _notifications.value = if (state.showTrash) state.trashedNotifications
+                else filterByCategory(state.notifications, state.selectedCategory)
+            }
+        }
         loadNotifications()
     }
 
+    // region 公开方法
+
     fun loadNotifications() {
         viewModelScope.launch {
-            val items = mutableListOf<NotificationItem>()
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
             val now = LocalDate.now()
             val zone = ZoneId.systemDefault()
-            val todayMillis = now.atStartOfDay(zone).toInstant().toEpochMilli()
-            val tomorrowMillis = now.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
 
-            // 1. Check for annual report availability (starting from December 25th)
-            if (now.monthValue == 12 && now.dayOfMonth >= 25) {
-                val currentYear = now.year
-                // Check if user has diary entries for this year to generate a report
-                val allPreviews = dao.getAllPreviewsOnce()
-                val yearEntries = allPreviews.filter { entry ->
-                    val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
-                    date.year == currentYear
-                }
+            // 1. 从数据库读取已有通知
+            val existingEntities = dao.getAllNotifications().first()
+            val existingIds = existingEntities.map { it.id }.toSet()
 
-                if (yearEntries.isNotEmpty()) {
-                    items.add(
-                        AnnualReportNotification(
-                            year = currentYear,
-                            id = "annual_$currentYear",
-                            timestamp = todayMillis
-                        )
-                    )
-                }
+            // 2. 读取被删除的通知 ID，避免重复生成
+            val trashedEntities = dao.getTrashedNotifications().first()
+            val trashedIds = trashedEntities.map { it.id }.toSet()
+
+            // 3. 动态生成新通知
+            val generated = generateNotifications(now, zone)
+            val newEntities = generated
+                .filter { it.id !in existingIds && it.id !in trashedIds }
+                .map { it.toEntity() }
+
+            // 4. 新通知插入数据库
+            if (newEntities.isNotEmpty()) {
+                dao.insertNotifications(newEntities)
             }
 
-            // 2. Capsule unlock notifications
-            val capsules = dao.getAllCapsulesOnce()
-            val unreadUnlocked = capsules.filter { capsule ->
-                capsule.unlockDate < tomorrowMillis && !capsule.isRead
-            }
-            unreadUnlocked.forEach { capsule ->
-                items.add(CapsuleUnlockNotification(capsule))
-            }
+            // 5. 重新从数据库读取（包含新插入的）
+            val allEntities = dao.getAllNotifications().first()
+            val unreadCount = allEntities.count { !it.isRead }.coerceAtLeast(0)
 
-            // 3. On This Day
-            val onThisDayEntries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
-            onThisDayEntries.forEach { entry ->
-                val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(zone).toLocalDate()
-                if (entryDate.year < now.year) {
-                    items.add(OnThisDayNotification(entry, now.year - entryDate.year))
-                }
-            }
+            // 6. 转换为 UI 模型
+            val allItems = allEntities.mapNotNull { it.toNotificationItem() }
+            val trashedItems = trashedEntities.mapNotNull { it.toNotificationItem() }
 
-            // 4. Milestones
-            val allPreviews = dao.getAllPreviewsOnce()
-            val totalCount = allPreviews.size
-            val milestones = listOf(10, 50, 100, 200, 300, 500, 1000)
-            val highestMilestone = milestones.lastOrNull { totalCount >= it }
-            if (highestMilestone != null) {
-                // Check if this milestone was recently crossed
-                // (simple: just show the highest achieved milestone if total is close)
-                val nextMilestone = milestones.firstOrNull { it > totalCount }
-                if (nextMilestone == null || totalCount - highestMilestone < 10) {
-                    items.add(
-                        MilestoneNotification(
-                            title = "第 $highestMilestone 篇日记",
-                            subtitle = "你已经写了 $totalCount 篇日记，继续记录吧"
-                        )
-                    )
-                }
-            }
-
-            // 5. Streak milestones
-            val entryDates = allPreviews.map { entry ->
-                Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
-            }.toSet()
-            val streak = computeStreak(entryDates)
-            val streakMilestones = listOf(7, 14, 30, 50, 100, 365)
-            val achievedStreak = streakMilestones.lastOrNull { streak >= it }
-            if (achievedStreak != null) {
-                items.add(StreakNotification(achievedStreak))
-            }
-
-            _notifications.value = items.sortedByDescending { it.timestamp }
+            _uiState.value = _uiState.value.copy(
+                notifications = allItems.sortedByDescending { it.timestamp },
+                trashedNotifications = trashedItems.sortedByDescending { it.timestamp },
+                unreadCount = unreadCount,
+                isLoading = false
+            )
         }
+    }
+
+    fun selectCategory(category: NotificationCategory) {
+        _uiState.value = _uiState.value.copy(selectedCategory = category)
+    }
+
+    fun trashNotification(id: String) {
+        viewModelScope.launch {
+            dao.trashNotification(id)
+            // 从当前列表移除，加入回收站
+            val current = _uiState.value
+            val item = current.notifications.find { it.id == id }
+            if (item != null) {
+                val unreadDelta = if (dao.getNotificationById(id)?.isRead == false) 1 else 0
+                _uiState.value = current.copy(
+                    notifications = current.notifications.filter { it.id != id },
+                    trashedNotifications = (listOf(item) + current.trashedNotifications)
+                        .sortedByDescending { it.timestamp },
+                    unreadCount = (current.unreadCount - unreadDelta).coerceAtLeast(0)
+                )
+            }
+        }
+    }
+
+    fun restoreNotification(id: String) {
+        viewModelScope.launch {
+            dao.restoreNotification(id)
+            val current = _uiState.value
+            val item = current.trashedNotifications.find { it.id == id }
+            if (item != null) {
+                val unreadDelta = if (dao.getNotificationById(id)?.isRead == false) 1 else 0
+                _uiState.value = current.copy(
+                    notifications = (listOf(item) + current.notifications)
+                        .sortedByDescending { it.timestamp },
+                    trashedNotifications = current.trashedNotifications.filter { it.id != id },
+                    unreadCount = current.unreadCount + unreadDelta
+                )
+            }
+        }
+    }
+
+    fun permanentDeleteNotification(id: String) {
+        viewModelScope.launch {
+            dao.deleteNotification(id)
+            val current = _uiState.value
+            _uiState.value = current.copy(
+                trashedNotifications = current.trashedNotifications.filter { it.id != id }
+            )
+        }
+    }
+
+    fun emptyTrash() {
+        viewModelScope.launch {
+            val ids = _uiState.value.trashedNotifications.map { it.id }
+            ids.forEach { dao.deleteNotification(it) }
+            _uiState.value = _uiState.value.copy(trashedNotifications = emptyList())
+        }
+    }
+
+    fun markAsRead(id: String) {
+        viewModelScope.launch {
+            dao.markNotificationRead(id)
+            val current = _uiState.value
+            val unread = (current.unreadCount - 1).coerceAtLeast(0)
+            _uiState.value = current.copy(unreadCount = unread)
+        }
+    }
+
+    fun toggleTrashView() {
+        val current = _uiState.value
+        _uiState.value = current.copy(showTrash = !current.showTrash)
+    }
+
+    // endregion
+
+    // region 通知生成
+
+    private suspend fun generateNotifications(
+        now: LocalDate,
+        zone: ZoneId
+    ): List<NotificationItem> {
+        val items = mutableListOf<NotificationItem>()
+        val todayMillis = now.atStartOfDay(zone).toInstant().toEpochMilli()
+        val tomorrowMillis = now.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+
+        // 1. 年度报告（12月25日起）
+        if (now.monthValue == 12 && now.dayOfMonth >= 25) {
+            val allPreviews = dao.getAllPreviewsOnce()
+            val yearEntries = allPreviews.filter { entry ->
+                val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                date.year == now.year
+            }
+            if (yearEntries.isNotEmpty()) {
+                items.add(
+                    AnnualReportNotification(
+                        year = now.year,
+                        id = "annual_${now.year}",
+                        timestamp = todayMillis
+                    )
+                )
+            }
+        }
+
+        // 2. 胶囊到期通知
+        val capsules = dao.getAllCapsulesOnce()
+        capsules.filter { it.unlockDate < tomorrowMillis && !it.isRead }.forEach { capsule ->
+            items.add(CapsuleUnlockNotification(capsule))
+        }
+
+        // 3. 今日回顾
+        val onThisDayEntries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
+        onThisDayEntries.forEach { entry ->
+            val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+            if (entryDate.year < now.year) {
+                items.add(OnThisDayNotification(entry, now.year - entryDate.year))
+            }
+        }
+
+        // 4. 里程碑
+        val allPreviews = dao.getAllPreviewsOnce()
+        val totalCount = allPreviews.size
+        val milestones = listOf(10, 50, 100, 200, 300, 500, 1000)
+        val highestMilestone = milestones.lastOrNull { totalCount >= it }
+        if (highestMilestone != null) {
+            val nextMilestone = milestones.firstOrNull { it > totalCount }
+            if (nextMilestone == null || totalCount - highestMilestone < 10) {
+                items.add(
+                    MilestoneNotification(
+                        title = "第 $highestMilestone 篇日记",
+                        subtitle = "你已经写了 $totalCount 篇日记，继续记录吧"
+                    )
+                )
+            }
+        }
+
+        // 5. 连续写作里程碑
+        val entryDates = allPreviews.map { entry ->
+            Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+        }.toSet()
+        val streak = computeStreak(entryDates)
+        val streakMilestones = listOf(7, 14, 30, 50, 100, 365)
+        val achievedStreak = streakMilestones.lastOrNull { streak >= it }
+        if (achievedStreak != null) {
+            items.add(StreakNotification(achievedStreak))
+        }
+
+        // 6. 月度报告（当月有日记数据时）
+        val monthStart = now.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val monthEntries = dao.getPreviewsByDateRange(monthStart, monthEnd)
+        if (monthEntries.isNotEmpty()) {
+            val wordCount = monthEntries.sumOf { it.plainText.length }
+            items.add(
+                MonthlyReportNotification(
+                    year = now.year,
+                    month = now.monthValue,
+                    entryCount = monthEntries.size,
+                    wordCount = wordCount,
+                    id = "monthly_${now.year}_${now.monthValue}",
+                    timestamp = todayMillis
+                )
+            )
+        }
+
+        return items
     }
 
     private fun computeStreak(dates: Set<LocalDate>): Int {
@@ -155,4 +351,174 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
         }
         return streak
     }
+
+    // endregion
+
+    // region Entity <-> NotificationItem 转换
+
+    private fun NotificationItem.toEntity(): NotificationEntity {
+        val (type, title, subtitle, iconType, colorHex, relatedId) = when (this) {
+            is CapsuleUnlockNotification -> NotificationMeta(
+                type = "capsule",
+                title = "时间胶囊已到期",
+                subtitle = "你有一封信到了可以打开的日子",
+                iconType = "lock_open",
+                colorHex = 0xFF6750A4,
+                relatedId = capsule.id
+            )
+            is OnThisDayNotification -> NotificationMeta(
+                type = "on_this_day",
+                title = "${yearsAgo} 年前的今天",
+                subtitle = if (entry.title.isNotBlank()) entry.title else entry.plainText.take(40),
+                iconType = "history",
+                colorHex = 0xFF7B61FF,
+                relatedId = entry.id
+            )
+            is MilestoneNotification -> NotificationMeta(
+                type = "milestone",
+                title = title,
+                subtitle = subtitle,
+                iconType = "emoji_events",
+                colorHex = 0xFFD4A017,
+                relatedId = null
+            )
+            is StreakNotification -> NotificationMeta(
+                type = "streak",
+                title = "连续写作 $days 天",
+                subtitle = "坚持记录，保持习惯",
+                iconType = "local_fire_department",
+                colorHex = 0xFFE86833,
+                relatedId = null
+            )
+            is AnnualReportNotification -> NotificationMeta(
+                type = "annual_report",
+                title = "${year} 年度报告已生成",
+                subtitle = "回顾过去一年的点滴记录，点击查看年度总结",
+                iconType = "history",
+                colorHex = 0xFF4A90E2,
+                relatedId = null
+            )
+            is MonthlyReportNotification -> NotificationMeta(
+                type = "monthly_report",
+                title = "${month}月写作报告",
+                subtitle = "本月写了 ${entryCount} 篇日记，共 ${wordCount} 字",
+                iconType = "assessment",
+                colorHex = 0xFF4A90E2,
+                relatedId = null
+            )
+        }
+        return NotificationEntity(
+            id = id,
+            type = type,
+            title = title,
+            subtitle = subtitle,
+            iconType = iconType,
+            colorHex = colorHex,
+            relatedId = relatedId,
+            createdAt = timestamp
+        )
+    }
+
+    private fun NotificationEntity.toNotificationItem(): NotificationItem? {
+        return when (type) {
+            "capsule" -> {
+                val capsuleId = relatedId ?: return null
+                CapsuleUnlockNotification(
+                    capsule = TimeCapsule(
+                        id = capsuleId,
+                        title = title,
+                        content = "",
+                        createdAt = createdAt,
+                        unlockDate = createdAt,
+                        isRead = isRead
+                    ),
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            "on_this_day" -> {
+                val entryId = relatedId ?: return null
+                OnThisDayNotification(
+                    entry = DiaryPreview(
+                        id = entryId,
+                        title = title.removeSuffix(" 年前的今天").substringAfter(" ").ifBlank { "" },
+                        plainText = subtitle,
+                        moodLevel = null,
+                        weather = null,
+                        location = null,
+                        latitude = null,
+                        longitude = null,
+                        isFavorite = false,
+                        createdAt = createdAt,
+                        updatedAt = createdAt
+                    ),
+                    yearsAgo = title.removeSuffix(" 年前的今天").toIntOrNull() ?: 1,
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            "milestone" -> MilestoneNotification(
+                title = title,
+                subtitle = subtitle,
+                id = id,
+                timestamp = createdAt
+            )
+            "streak" -> {
+                val days = title.removePrefix("连续写作 ").removeSuffix(" 天").toIntOrNull() ?: 0
+                StreakNotification(days = days, id = id, timestamp = createdAt)
+            }
+            "annual_report" -> {
+                val year = title.removeSuffix(" 年度报告已生成").toIntOrNull() ?: return null
+                AnnualReportNotification(year = year, id = id, timestamp = createdAt)
+            }
+            "monthly_report" -> {
+                val regex = Regex("(\\d+)月写作报告")
+                val match = regex.find(title) ?: return null
+                val month = match.groupValues[1].toIntOrNull() ?: return null
+                val countRegex = Regex("本月写了 (\\d+) 篇日记，共 (\\d+) 字")
+                val countMatch = countRegex.find(subtitle)
+                val entryCount = countMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val wordCount = countMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
+                // 从 id 推断 year: "monthly_2026_6"
+                val parts = id.split("_")
+                val year = if (parts.size >= 2) parts[1].toIntOrNull() ?: LocalDate.now().year
+                else LocalDate.now().year
+                MonthlyReportNotification(
+                    year = year,
+                    month = month,
+                    entryCount = entryCount,
+                    wordCount = wordCount,
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            else -> null
+        }
+    }
+
+    // endregion
+
+    // region 辅助
+
+    private fun filterByCategory(
+        items: List<NotificationItem>,
+        category: NotificationCategory
+    ): List<NotificationItem> {
+        if (category == NotificationCategory.ALL) return items
+        return items.filter { it.category == category }
+    }
+
+    /** 内部元数据，用于 toEntity() 避免重复解构 */
+    private data class NotificationMeta(
+        val type: String,
+        val title: String,
+        val subtitle: String,
+        val iconType: String,
+        val colorHex: Long,
+        val relatedId: Long?
+    )
+
+    // endregion
 }
+
+// endregion
