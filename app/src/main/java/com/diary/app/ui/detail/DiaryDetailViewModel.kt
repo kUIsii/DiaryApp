@@ -106,6 +106,8 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    suspend fun getRandomEntryId(): Long? = dao.getRandomEntryId()
+
     fun getShareText(): String? {
         val currentEntry = _entry.value ?: return null
         val currentTags = _tags.value

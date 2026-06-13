@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -50,6 +51,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -93,6 +96,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
+    val scope = rememberCoroutineScope()
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -258,6 +262,20 @@ fun HomeScreen(
                 expanded = showFunctionMenu,
                 onDismiss = { showFunctionMenu = false },
                 items = listOf(
+                    FunctionMenuItem(
+                        id = "random",
+                        title = "随机回顾",
+                        icon = Icons.Default.Shuffle,
+                        onClick = {
+                            showFunctionMenu = false
+                            scope.launch {
+                                val randomId = viewModel.getRandomEntryId()
+                                if (randomId != null) {
+                                    onNavigateToDetail(randomId)
+                                }
+                            }
+                        }
+                    ),
                     FunctionMenuItem(
                         id = "experimental",
                         title = "实验功能",

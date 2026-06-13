@@ -127,6 +127,10 @@ interface DiaryDao {
     """)
     fun getAllDiaryTagPairs(): Flow<List<DiaryTagPair>>
 
+    // Random entry
+    @Query("SELECT id FROM diary_entries ORDER BY RANDOM() LIMIT 1")
+    suspend fun getRandomEntryId(): Long?
+
     // One-shot queries for export
     @Query("SELECT * FROM diary_entries ORDER BY createdAt DESC")
     suspend fun getAllEntriesOnce(): List<DiaryEntry>

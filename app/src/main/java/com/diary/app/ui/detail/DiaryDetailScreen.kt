@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -462,6 +463,44 @@ fun DiaryDetailScreen(
                                 onEntryClick = { onNavigateToDetail(it.id) },
                                 textSecondary = textSecondary
                             )
+                        }
+
+                        // Random entry button
+                        Spacer(modifier = Modifier.height(8.dp))
+                        GlassCard(
+                            cornerRadius = 16.dp,
+                            innerPadding = 0.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        val randomId = viewModel.getRandomEntryId()
+                                        if (randomId != null) {
+                                            onNavigateToDetail(randomId)
+                                        }
+                                    }
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shuffle,
+                                    contentDescription = null,
+                                    tint = textColor.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "换一篇随机回顾",
+                                    fontSize = 14.sp,
+                                    color = textColor.copy(alpha = 0.6f)
+                                )
+                            }
                         }
 
                         // Bottom action bar

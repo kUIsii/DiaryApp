@@ -404,6 +404,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    suspend fun getRandomEntryId(): Long? = dao.getRandomEntryId()
+
     private fun computeStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0
         var streak = 0

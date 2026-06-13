@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
@@ -29,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import java.io.File
@@ -46,6 +50,7 @@ fun ImageViewerScreen(
 ) {
     if (imageUrls.isEmpty()) return
 
+    val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(
         initialPage = initialIndex.coerceIn(0, imageUrls.lastIndex),
         pageCount = { imageUrls.size }
@@ -89,8 +94,67 @@ fun ImageViewerScreen(
             }
         }
 
-        // 页码指示器（多张图片时显示）
+        // 左右箭头（多张图片时显示）
         if (imageUrls.size > 1) {
+            // 左箭头
+            if (pagerState.currentPage > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 4.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                            }
+                        },
+                        modifier = Modifier
+                            .background(
+                                Color.Black.copy(alpha = 0.3f),
+                                shape = MaterialTheme.shapes.small
+                            )
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = "上一张",
+                            tint = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            // 右箭头
+            if (pagerState.currentPage < imageUrls.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 4.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        },
+                        modifier = Modifier
+                            .background(
+                                Color.Black.copy(alpha = 0.3f),
+                                shape = MaterialTheme.shapes.small
+                            )
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "下一张",
+                            tint = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            // 页码指示器
             Box(
                 modifier = Modifier
                     .fillMaxSize()
