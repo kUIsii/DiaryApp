@@ -442,6 +442,37 @@ fun DiaryDetailScreen(
                                             .wrapContentHeight()
                                             .alpha(if (contentReady) 1f else 0f)
                                     )
+
+                                    // Reload content when entry changes (for random review)
+                                    LaunchedEffect(currentEntry.id) {
+                                        val wv = webView ?: return@LaunchedEffect
+                                        if (currentEntry.content.isNotBlank()) {
+                                            try {
+                                                var safeContent = currentEntry.content.replace(
+                                                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                                                ) { match ->
+                                                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                                                }
+                                                safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)
+                                                if (safeContent.length > maxContentSize) {
+                                                    val fallback = currentEntry.plainText.take(5000)
+                                                    wv.evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                                } else {
+                                                    val encoded = android.util.Base64.encodeToString(
+                                                        safeContent.toByteArray(Charsets.UTF_8),
+                                                        android.util.Base64.NO_WRAP
+                                                    )
+                                                    wv.evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                                }
+                                            } catch (e: Exception) {
+                                                val fallback = currentEntry.plainText.take(5000)
+                                                wv.evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                            }
+                                        } else if (currentEntry.plainText.isNotBlank()) {
+                                            val fallback = currentEntry.plainText.take(5000)
+                                            wv.evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                        }
+                                    }
                                 }
 
                                 // Timestamps
@@ -476,7 +507,9 @@ fun DiaryDetailScreen(
                                     scope.launch {
                                         val randomId = viewModel.getRandomEntryId()
                                         if (randomId != null) {
-                                            onNavigateToDetail(randomId)
+                                            contentReady = false
+                                            webViewContentHeight = 0f
+                                            viewModel.loadEntry(randomId)
                                         }
                                     }
                                 }
