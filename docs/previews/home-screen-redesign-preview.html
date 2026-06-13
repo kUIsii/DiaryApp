@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>首页重设计预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: white; font-size: 12px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px 20px 20px; color: white; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+        .content { padding: 16px; overflow-y: auto; height: calc(100% - 44px - 76px - 60px); }
+
+        /* Weekly Summary */
+        .weekly-summary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 16px; padding: 16px; color: white; margin-bottom: 16px; }
+        .weekly-summary h3 { font-size: 14px; font-weight: 500; opacity: 0.9; }
+        .weekly-summary .stats { display: flex; justify-content: space-between; margin-top: 12px; }
+        .weekly-summary .stat-item { text-align: center; }
+        .weekly-summary .stat-num { font-size: 24px; font-weight: 700; }
+        .weekly-summary .stat-label { font-size: 11px; opacity: 0.8; }
+        .mood-trend { display: flex; gap: 4px; margin-top: 12px; }
+        .mood-bar { flex: 1; height: 24px; border-radius: 4px; background: rgba(255,255,255,0.3); position: relative; }
+        .mood-fill { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 4px; background: rgba(255,255,255,0.8); }
+
+        /* On This Day */
+        .on-this-day { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 16px; padding: 16px; color: white; margin-bottom: 16px; }
+        .on-this-day h3 { font-size: 14px; font-weight: 500; }
+        .memory-card { background: rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; margin-top: 10px; backdrop-filter: blur(10px); }
+        .memory-card .year { font-size: 12px; opacity: 0.8; }
+        .memory-card .title { font-size: 15px; font-weight: 600; margin-top: 4px; }
+        .memory-card .preview { font-size: 12px; opacity: 0.9; margin-top: 4px; line-height: 1.4; }
+
+        /* Calendar */
+        .calendar { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .calendar-header h3 { font-size: 16px; }
+        .calendar-header .nav { display: flex; gap: 8px; }
+        .calendar-header .nav button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #eee; background: white; cursor: pointer; }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+        .weekdays span { text-align: center; font-size: 11px; color: #999; }
+        .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; position: relative; }
+        .day.has-entry::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background: #667eea; }
+        .day.today { background: #667eea; color: white; }
+        .day.selected { background: #f0f0f0; }
+
+        /* Entry Cards */
+        .entry-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .entry-card .date { font-size: 12px; color: #999; }
+        .entry-card .title { font-size: 15px; font-weight: 600; margin-top: 4px; color: #333; }
+        .entry-card .preview { font-size: 13px; color: #666; margin-top: 6px; line-height: 1.5; }
+        .entry-card .meta { display: flex; gap: 8px; margin-top: 8px; }
+        .entry-card .tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #f0f0f0; color: #666; }
+        .mood-emoji { font-size: 16px; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #999; }
+        .nav-item.active { color: #667eea; }
+        .nav-item .icon { font-size: 20px; }
+
+        /* FAB */
+        .fab { position: absolute; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 16px rgba(102,126,234,0.4); cursor: pointer; }
+
+        .badge { display: inline-block; background: #667eea; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+    <div class="header">
+        <h1>日记</h1>
+        <p>共 128 天有记录</p>
+    </div>
+
+    <div class="content">
+        <!-- Weekly Summary Card -->
+        <div class="weekly-summary">
+            <h3>本周概览</h3>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-num">5</div>
+                    <div class="stat-label">日记数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">4.2</div>
+                    <div class="stat-label">平均心情</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">3.2k</div>
+                    <div class="stat-label">总字数</div>
+                </div>
+            </div>
+            <div class="mood-trend">
+                <div class="mood-bar"><div class="mood-fill" style="height:60%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:80%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:40%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:90%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:70%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:50%"></div></div>
+                <div class="mood-bar"><div class="mood-fill" style="height:85%"></div></div>
+            </div>
+        </div>
+
+        <!-- On This Day Card -->
+        <div class="on-this-day">
+            <h3>历史今天</h3>
+            <div class="memory-card">
+                <div class="year">1 年前</div>
+                <div class="title">第一次去海边</div>
+                <div class="preview">今天和朋友们一起去了海边，看到了很美的日落...</div>
+            </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="calendar">
+            <div class="calendar-header">
+                <h3>2026年6月</h3>
+                <div class="nav">
+                    <button>&lt;</button>
+                    <button>&gt;</button>
+                </div>
+            </div>
+            <div class="weekdays">
+                <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="days">
+                <div class="day"></div><div class="day">1</div><div class="day">2</div>
+                <div class="day has-entry">3</div><div class="day">4</div><div class="day has-entry">5</div>
+                <div class="day">6</div><div class="day has-entry">7</div><div class="day">8</div>
+                <div class="day has-entry">9</div><div class="day has-entry">10</div><div class="day today">11</div>
+                <div class="day">12</div><div class="day">13</div><div class="day">14</div>
+                <div class="day">15</div><div class="day">16</div><div class="day">17</div>
+                <div class="day">18</div><div class="day">19</div><div class="day">20</div>
+                <div class="day">21</div><div class="day">22</div><div class="day">23</div>
+                <div class="day">24</div><div class="day">25</div><div class="day">26</div>
+                <div class="day">27</div><div class="day">28</div><div class="day">29</div>
+                <div class="day">30</div>
+            </div>
+        </div>
+
+        <!-- Entry Cards -->
+        <div class="entry-card">
+            <div class="date">今天 14:32</div>
+            <div class="title">周末的咖啡馆</div>
+            <div class="preview">找了一家新开的咖啡馆，拿铁很好喝，环境也很安静...</div>
+            <div class="meta">
+                <span class="mood-emoji">😊</span>
+                <span class="tag">咖啡</span>
+                <span class="tag">周末</span>
+            </div>
+        </div>
+
+        <div class="entry-card">
+            <div class="date">昨天 22:15</div>
+            <div class="title">读完了《百年孤独》</div>
+            <div class="preview">终于读完了这本书，马尔克斯的魔幻现实主义真的很震撼...</div>
+            <div class="meta">
+                <span class="mood-emoji">🤔</span>
+                <span class="tag">阅读</span>
+                <span class="tag">感悟</span>
+            </div>
+        </div>
+
+        <div class="entry-card">
+            <div class="date">6月9日 08:30</div>
+            <div class="title">晨跑五公里</div>
+            <div class="preview">今天早起跑步，天气很好，心情也变好了...</div>
+            <div class="meta">
+                <span class="mood-emoji">💪</span>
+                <span class="tag">运动</span>
+                <span class="tag">早起</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab">+</div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <span class="icon">🏠</span>
+            <span>首页</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">📅</span>
+            <span>时间线</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">✅</span>
+            <span>待办</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">👤</span>
+            <span>我的</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

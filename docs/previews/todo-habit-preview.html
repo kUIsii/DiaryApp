@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待办与习惯系统预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: white; font-size: 12px; }
+        .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 16px 20px 20px; color: white; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header .tabs { display: flex; gap: 16px; margin-top: 12px; }
+        .header .tab { padding: 6px 12px; border-radius: 16px; font-size: 13px; cursor: pointer; }
+        .header .tab.active { background: rgba(255,255,255,0.3); }
+
+        .content { padding: 16px; overflow-y: auto; height: calc(100% - 44px - 76px - 60px); }
+
+        /* Habit Card */
+        .habit-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .habit-header { display: flex; justify-content: space-between; align-items: center; }
+        .habit-info { display: flex; align-items: center; gap: 12px; }
+        .habit-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .habit-icon.reading { background: #e3f2fd; }
+        .habit-icon.exercise { background: #e8f5e9; }
+        .habit-icon.meditation { background: #f3e5f5; }
+        .habit-icon.writing { background: #fff3e0; }
+        .habit-name { font-size: 15px; font-weight: 600; color: #333; }
+        .habit-streak { font-size: 12px; color: #999; margin-top: 2px; }
+        .habit-check { width: 28px; height: 28px; border-radius: 8px; border: 2px solid #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .habit-check.done { background: #4caf50; border-color: #4caf50; color: white; }
+
+        /* Heatmap */
+        .heatmap { margin-top: 12px; }
+        .heatmap-title { font-size: 12px; color: #999; margin-bottom: 8px; }
+        .heatmap-grid { display: flex; gap: 2px; flex-wrap: wrap; }
+        .heatmap-cell { width: 14px; height: 14px; border-radius: 3px; background: #eee; }
+        .heatmap-cell.l1 { background: #c8e6c9; }
+        .heatmap-cell.l2 { background: #81c784; }
+        .heatmap-cell.l3 { background: #4caf50; }
+        .heatmap-cell.l4 { background: #2e7d32; }
+
+        /* Todo Section */
+        .section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .section-title .count { font-size: 12px; color: #999; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
+
+        .todo-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; gap: 12px; align-items: flex-start; }
+        .todo-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #ddd; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+        .todo-checkbox.checked { background: #4caf50; border-color: #4caf50; position: relative; }
+        .todo-checkbox.checked::after { content: '✓'; position: absolute; color: white; font-size: 14px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .todo-content { flex: 1; }
+        .todo-title { font-size: 14px; color: #333; }
+        .todo-title.completed { text-decoration: line-through; color: #999; }
+        .todo-meta { display: flex; gap: 8px; margin-top: 6px; }
+        .todo-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .todo-tag.priority-high { background: #ffebee; color: #c62828; }
+        .todo-tag.priority-medium { background: #fff3e0; color: #e65100; }
+        .todo-tag.due { background: #e3f2fd; color: #1565c0; }
+        .todo-subtask { margin-left: 12px; margin-top: 8px; padding-left: 12px; border-left: 2px solid #eee; }
+        .todo-subtask .todo-title { font-size: 13px; }
+
+        /* Add Button */
+        .add-btn { position: absolute; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 16px rgba(17,153,142,0.4); cursor: pointer; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #999; }
+        .nav-item.active { color: #11998e; }
+        .nav-item .icon { font-size: 20px; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+
+    <div class="header">
+        <h1>待办 & 习惯</h1>
+        <div class="tabs">
+            <span class="tab active">习惯</span>
+            <span class="tab">待办</span>
+            <span class="tab">统计</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Habit Cards -->
+        <div class="habit-card">
+            <div class="habit-header">
+                <div class="habit-info">
+                    <div class="habit-icon reading">📚</div>
+                    <div>
+                        <div class="habit-name">每日阅读</div>
+                        <div class="habit-streak">🔥 连续 12 天</div>
+                    </div>
+                </div>
+                <div class="habit-check done">✓</div>
+            </div>
+            <div class="heatmap">
+                <div class="heatmap-title">最近 30 天</div>
+                <div class="heatmap-grid">
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l1"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l1"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l1"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                    <div class="heatmap-cell l3"></div>
+                    <div class="heatmap-cell l1"></div>
+                    <div class="heatmap-cell l4"></div>
+                    <div class="heatmap-cell l2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="habit-card">
+            <div class="habit-header">
+                <div class="habit-info">
+                    <div class="habit-icon exercise">🏃</div>
+                    <div>
+                        <div class="habit-name">晨跑</div>
+                        <div class="habit-streak">🔥 连续 5 天 · 每周 3 次</div>
+                    </div>
+                </div>
+                <div class="habit-check">✓</div>
+            </div>
+        </div>
+
+        <div class="habit-card">
+            <div class="habit-header">
+                <div class="habit-info">
+                    <div class="habit-icon meditation">🧘</div>
+                    <div>
+                        <div class="habit-name">冥想</div>
+                        <div class="habit-streak">🔥 连续 8 天</div>
+                    </div>
+                </div>
+                <div class="habit-check done">✓</div>
+            </div>
+        </div>
+
+        <div class="habit-card">
+            <div class="habit-header">
+                <div class="habit-info">
+                    <div class="habit-icon writing">✍️</div>
+                    <div>
+                        <div class="habit-name">写日记</div>
+                        <div class="habit-streak">🔥 连续 128 天</div>
+                    </div>
+                </div>
+                <div class="habit-check done">✓</div>
+            </div>
+        </div>
+
+        <!-- Todo Section -->
+        <div style="margin-top: 24px;">
+            <div class="section-title">
+                今日待办
+                <span class="count">3</span>
+            </div>
+
+            <div class="todo-card">
+                <div class="todo-checkbox"></div>
+                <div class="todo-content">
+                    <div class="todo-title">完成项目报告</div>
+                    <div class="todo-meta">
+                        <span class="todo-tag priority-high">高优先级</span>
+                        <span class="todo-tag due">今天截止</span>
+                    </div>
+                    <div class="todo-subtask">
+                        <div class="todo-card">
+                            <div class="todo-checkbox checked"></div>
+                            <div class="todo-content">
+                                <div class="todo-title completed">收集数据</div>
+                            </div>
+                        </div>
+                        <div class="todo-card">
+                            <div class="todo-checkbox"></div>
+                            <div class="todo-content">
+                                <div class="todo-title">撰写分析部分</div>
+                            </div>
+                        </div>
+                        <div class="todo-card">
+                            <div class="todo-checkbox"></div>
+                            <div class="todo-content">
+                                <div class="todo-title">制作图表</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="todo-card">
+                <div class="todo-checkbox"></div>
+                <div class="todo-content">
+                    <div class="todo-title">给妈妈打电话</div>
+                    <div class="todo-meta">
+                        <span class="todo-tag priority-medium">中优先级</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="todo-card">
+                <div class="todo-checkbox checked"></div>
+                <div class="todo-content">
+                    <div class="todo-title completed">买咖啡豆</div>
+                    <div class="todo-meta">
+                        <span class="todo-tag due">已完成</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="add-btn">+</div>
+
+    <div class="bottom-nav">
+        <div class="nav-item">
+            <span class="icon">🏠</span>
+            <span>首页</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">📅</span>
+            <span>时间线</span>
+        </div>
+        <div class="nav-item active">
+            <span class="icon">✅</span>
+            <span>待办</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">👤</span>
+            <span>我的</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

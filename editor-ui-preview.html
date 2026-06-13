@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diary Editor UI Preview</title>
+  <style>
+    :root {
+      --bg: #eef5f2;
+      --paper: #fbfdfb;
+      --paper-dark: #101820;
+      --text: #18231f;
+      --muted: #6d7b74;
+      --faint: #9aa8a1;
+      --line: rgba(41, 69, 58, 0.082);
+      --line-strong: rgba(41, 69, 58, 0.16);
+      --accent: #4f8f7a;
+      --accent-soft: rgba(79, 143, 122, 0.12);
+      --warm: #c77e4b;
+      --border: rgba(48, 70, 61, 0.12);
+      --shadow: 0 22px 60px rgba(31, 49, 42, 0.16);
+      --line-height: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(255,255,255,0.9), transparent 24%),
+        linear-gradient(135deg, #eef5f2 0%, #f7f1e9 50%, #edf3f7 100%);
+      padding: 28px;
+    }
+
+    .preview-shell {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .preview-title {
+      margin: 0 0 18px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .preview-note {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .phones {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap: 28px;
+      align-items: start;
+    }
+
+    .phone-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding-left: 10px;
+    }
+
+    .phone {
+      position: relative;
+      width: min(100%, 390px);
+      height: 780px;
+      margin: 0 auto;
+      border-radius: 34px;
+      background: #0d1512;
+      padding: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .screen {
+      height: 100%;
+      overflow: hidden;
+      border-radius: 26px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.18)),
+        var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dark .screen {
+      background:
+        linear-gradient(180deg, rgba(32,48,58,0.72), rgba(12,18,24,0.88)),
+        #0b131a;
+      color: #e7efe9;
+    }
+
+    .topbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px 2px;
+      color: var(--muted);
+    }
+
+    .dark .topbar {
+      color: rgba(231,239,233,0.7);
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 18px;
+      background: transparent;
+      color: inherit;
+      display: grid;
+      place-items: center;
+      font-size: 19px;
+    }
+
+    .icon-btn.soft {
+      background: rgba(255,255,255,0.42);
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .dark .icon-btn.soft {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    .save {
+      border: 0;
+      border-radius: 18px;
+      padding: 8px 13px;
+      color: white;
+      background: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .header {
+      padding: 0 18px 8px;
+    }
+
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .dark .date-row {
+      color: rgba(231,239,233,0.62);
+    }
+
+    .dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 99px;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    .title-input {
+      border: 0;
+      background: transparent;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      font-family: Georgia, "Noto Serif SC", serif;
+      color: inherit;
+      font-size: 25px;
+      font-weight: 700;
+      line-height: 1.25;
+      outline: none;
+    }
+
+    .meta-strip {
+      margin: 7px 18px 8px;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.45);
+    }
+
+    .dark .meta-strip {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.045);
+    }
+
+    .meta-pill {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 14px;
+      padding: 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dark .meta-pill {
+      color: rgba(231,239,233,0.7);
+    }
+
+    .meta-pill.selected {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .dark .meta-pill.selected {
+      color: #8fd0bb;
+      background: rgba(143,208,187,0.13);
+    }
+
+    .meta-toggle {
+      margin-left: auto;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 14px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.6);
+    }
+
+    .dark .meta-toggle {
+      color: rgba(231,239,233,0.7);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .meta-expanded {
+      margin: 0 18px 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .meta-chip {
+      min-width: 0;
+      height: 34px;
+      border-radius: 17px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.42);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+    }
+
+    .dark .meta-chip {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.045);
+      color: rgba(231,239,233,0.72);
+    }
+
+    .meta-chip strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 650;
+    }
+
+    .meta-chip.location {
+      grid-column: 1 / -1;
+      justify-content: center;
+    }
+
+    .paper {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      margin: 0 10px;
+      border-radius: 18px 18px 0 0;
+      overflow: auto;
+      background:
+        linear-gradient(90deg, rgba(199,126,75,0.16) 0 1px, transparent 1px 100%) 28px 0 / 1px var(--line-height),
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent calc(var(--line-height) - 1px),
+          var(--line) calc(var(--line-height) - 1px),
+          var(--line) var(--line-height)
+        ),
+        var(--paper);
+      border: 1px solid rgba(255,255,255,0.72);
+      border-bottom: 0;
+    }
+
+    .paper::after {
+      content: "";
+      position: sticky;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: block;
+      height: 80px;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent, rgba(251,253,251,0.98));
+    }
+
+    .dark .paper {
+      background:
+        linear-gradient(90deg, rgba(199,126,75,0.2) 0 1px, transparent 1px 100%) 28px 0 / 1px var(--line-height),
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent calc(var(--line-height) - 1px),
+          rgba(255,255,255,0.052) calc(var(--line-height) - 1px),
+          rgba(255,255,255,0.052) var(--line-height)
+        ),
+        var(--paper-dark);
+      border-color: rgba(255,255,255,0.07);
+    }
+
+    .dark .paper::after {
+      background: linear-gradient(180deg, transparent, rgba(16,24,32,0.98));
+    }
+
+    .content {
+      min-height: 1160px;
+      padding: 19px 22px 160px 42px;
+      font-family: Georgia, "Noto Serif SC", serif;
+      font-size: 17px;
+      line-height: var(--line-height);
+      color: var(--text);
+    }
+
+    .dark .content {
+      color: #e7efe9;
+    }
+
+    .content p {
+      margin: 0 0 var(--line-height);
+    }
+
+    .cursor-line {
+      display: inline;
+      background: linear-gradient(180deg, transparent 62%, rgba(79,143,122,0.16) 62%);
+      border-radius: 4px;
+    }
+
+    .bottom-status {
+      height: 24px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(109,123,116,0.72);
+      font-size: 11px;
+    }
+
+    .dark .bottom-status {
+      color: rgba(231,239,233,0.42);
+    }
+
+    .toolbar {
+      margin: 0;
+      padding: 8px 10px 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(253,254,253,0.9);
+      backdrop-filter: blur(14px);
+    }
+
+    .dark .toolbar {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(12,18,24,0.9);
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .tool {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .dark .tool {
+      color: rgba(231,239,233,0.7);
+    }
+
+    .tool.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .tool.text {
+      width: auto;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .format-panel {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+    }
+
+    .panel-btn {
+      height: 38px;
+      border: 0;
+      border-radius: 12px;
+      background: rgba(79,143,122,0.09);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dark .panel-btn {
+      background: rgba(143,208,187,0.11);
+      color: #8fd0bb;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 16px;
+      }
+
+      .phones {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <h1 class="preview-title">编辑页视觉预览</h1>
+    <p class="preview-note">
+      这是独立预览稿，不修改 APP。重点展示：横线变成低干扰纸张线、元信息贴近标题、专注模式收干净、完整编辑模式仍保留工具入口。
+    </p>
+
+    <section class="phones">
+      <div class="phone-wrap">
+        <div class="label">专注写作：信息折叠，工具轻量</div>
+        <div class="phone">
+          <div class="screen">
+            <div class="topbar">
+              <button class="icon-btn">‹</button>
+              <div class="spacer"></div>
+              <button class="icon-btn soft">↶</button>
+              <button class="icon-btn soft">↷</button>
+              <button class="save">保存</button>
+            </div>
+
+            <header class="header">
+              <div class="date-row">
+                <span>2026年6月8日</span>
+                <span class="dot"></span>
+                <span>21:48</span>
+              </div>
+              <input class="title-input" value="今天的心绪像慢慢沉下来的光" />
+            </header>
+
+            <div class="meta-strip">
+              <div class="meta-pill selected">心情 愉快</div>
+              <div class="meta-pill selected">多云</div>
+              <div class="meta-pill">标签</div>
+              <div class="meta-pill">位置</div>
+              <button class="meta-toggle">⌄</button>
+            </div>
+
+            <section class="paper">
+              <article class="content">
+                <p>今天把编辑页重新想了一遍。真正需要的不是更多按钮，而是让每一层都知道自己该安静待在哪里。</p>
+                <p>横线只应该在我需要找回某一行的时候出现，不应该比文字更醒目。它像纸张的纹理，存在，但不催促。</p>
+                <p><span class="cursor-line">写到这里的时候，我希望光标附近有一点点定位感。</span>不用很重，只要让我知道当前行在哪。</p>
+                <p>元信息也不必像表单一样占据页面。心情、天气、标签、位置是日记的边注，不是正文的标题。</p>
+                <p>专注模式里，工具要能被找到，但不要站在正文旁边一直讲话。</p>
+              </article>
+            </section>
+
+            <div class="bottom-status">
+              <span>326字</span>
+              <span>已写 12 分钟</span>
+            </div>
+
+            <footer class="toolbar">
+              <div class="toolbar-row">
+                <button class="tool">⌄</button>
+                <button class="tool text">A-</button>
+                <button class="tool active text">16</button>
+                <button class="tool text">A+</button>
+                <div class="spacer"></div>
+                <button class="tool">✎</button>
+                <button class="tool">☰</button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <div class="label">完整编辑：元信息展开，工具仍克制</div>
+        <div class="phone dark">
+          <div class="screen">
+            <div class="topbar">
+              <button class="icon-btn">‹</button>
+              <div class="spacer"></div>
+              <button class="icon-btn soft">↶</button>
+              <button class="icon-btn soft">↷</button>
+              <button class="icon-btn soft">◉</button>
+              <button class="save">保存</button>
+            </div>
+
+            <header class="header">
+              <div class="date-row">
+                <span>2026年6月8日</span>
+                <span class="dot"></span>
+                <span>21:48</span>
+              </div>
+              <input class="title-input" value="夜里写一点东西" />
+            </header>
+
+            <div class="meta-expanded">
+              <div class="meta-chip"><span>心情</span><strong>平静</strong></div>
+              <div class="meta-chip"><span>天气</span><strong>雨天</strong></div>
+              <div class="meta-chip"><span>标签</span><strong>复盘 +2</strong></div>
+              <div class="meta-chip location"><span>位置</span><strong>上海 · 徐汇</strong></div>
+            </div>
+
+            <section class="paper">
+              <article class="content">
+                <p>深色模式下，线条需要更弱。它只负责给眼睛一个坐标，不负责制造纹理噪音。</p>
+                <p>完整编辑不是把所有东西摊开，而是让格式功能进入一个明确的编辑状态。</p>
+                <p>底部先给最常用的东西：字号、格式、列表、插入、颜色。更多内容再进子面板。</p>
+                <p>这样页面还是可以编辑富文本，但视觉重心仍然留给正文。</p>
+              </article>
+            </section>
+
+            <div class="bottom-status">
+              <span>184字</span>
+              <span>自动保存中</span>
+            </div>
+
+            <footer class="toolbar">
+              <div class="toolbar-row">
+                <button class="tool">⌄</button>
+                <button class="tool text">A-</button>
+                <button class="tool active text">16</button>
+                <button class="tool text">A+</button>
+                <div class="spacer"></div>
+                <button class="tool active">B</button>
+                <button class="tool">I</button>
+                <button class="tool">☷</button>
+                <button class="tool">＋</button>
+              </div>
+              <div class="format-panel">
+                <button class="panel-btn">标题</button>
+                <button class="panel-btn">列表</button>
+                <button class="panel-btn">图片</button>
+                <button class="panel-btn">颜色</button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

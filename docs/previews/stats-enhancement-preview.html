@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>统计增强功能预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: white; font-size: 12px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px 20px 20px; color: white; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header .period { display: flex; gap: 12px; margin-top: 12px; }
+        .header .period-item { padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+        .header .period-item.active { background: rgba(255,255,255,0.3); }
+
+        .content { padding: 16px; overflow-y: auto; height: calc(100% - 44px - 80px - 60px); }
+
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-card .label { font-size: 12px; color: #999; }
+        .stat-card .value { font-size: 24px; font-weight: 700; color: #333; margin-top: 4px; }
+        .stat-card .change { font-size: 11px; margin-top: 4px; }
+        .stat-card .change.up { color: #4caf50; }
+        .stat-card .change.down { color: #f44336; }
+
+        /* Mood Chart */
+        .chart-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .chart-card h3 { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 16px; }
+        .mood-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 8px; }
+        .mood-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .mood-bar .bar { width: 100%; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, #667eea, #764ba2); transition: height 0.5s ease; }
+        .mood-bar .label { font-size: 10px; color: #999; }
+        .mood-bar .emoji { font-size: 14px; }
+
+        /* Tag Cloud */
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .tag-item { padding: 6px 12px; border-radius: 16px; font-size: 12px; background: #f0f0f0; color: #666; cursor: pointer; transition: all 0.2s; }
+        .tag-item:hover { background: #667eea; color: white; }
+        .tag-item.size-1 { font-size: 11px; }
+        .tag-item.size-2 { font-size: 13px; }
+        .tag-item.size-3 { font-size: 15px; font-weight: 500; }
+
+        /* Writing Time Heatmap */
+        .heatmap-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .heatmap-card h3 { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 12px; }
+        .time-heatmap { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; }
+        .time-cell { aspect-ratio: 1; border-radius: 3px; background: #eee; }
+        .time-cell.l1 { background: #c8e6c9; }
+        .time-cell.l2 { background: #81c784; }
+        .time-cell.l3 { background: #4caf50; }
+        .time-cell.l4 { background: #2e7d32; }
+        .time-labels { display: flex; justify-content: space-between; margin-top: 8px; }
+        .time-labels span { font-size: 10px; color: #999; }
+
+        /* Streak Card */
+        .streak-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 16px; padding: 16px; color: white; margin-bottom: 16px; }
+        .streak-card h3 { font-size: 15px; font-weight: 500; opacity: 0.9; }
+        .streak-value { font-size: 36px; font-weight: 700; margin-top: 8px; }
+        .streak-label { font-size: 13px; opacity: 0.8; }
+        .streak-calendar { display: flex; gap: 4px; margin-top: 12px; }
+        .streak-day { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .streak-day.active { background: rgba(255,255,255,0.3); }
+        .streak-day.today { background: white; color: #f5576c; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #999; }
+        .nav-item.active { color: #667eea; }
+        .nav-item .icon { font-size: 20px; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+
+    <div class="header">
+        <h1>数据统计</h1>
+        <div class="period">
+            <span class="period-item active">本周</span>
+            <span class="period-item">本月</span>
+            <span class="period-item">本年</span>
+            <span class="period-item">全部</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">总日记数</div>
+                <div class="value">128</div>
+                <div class="change up">↑ 5 本周</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">总字数</div>
+                <div class="value">45.2k</div>
+                <div class="change up">↑ 3.2k 本周</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">平均心情</div>
+                <div class="value">4.2</div>
+                <div class="change up">↑ 0.3</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">连续天数</div>
+                <div class="value">12</div>
+                <div class="change up">🔥 最长!</div>
+            </div>
+        </div>
+
+        <!-- Mood Trend -->
+        <div class="chart-card">
+            <h3>心情趋势</h3>
+            <div class="mood-chart">
+                <div class="mood-bar">
+                    <div class="emoji">😊</div>
+                    <div class="bar" style="height:80%"></div>
+                    <div class="label">一</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">😌</div>
+                    <div class="bar" style="height:60%"></div>
+                    <div class="label">二</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">😄</div>
+                    <div class="bar" style="height:90%"></div>
+                    <div class="label">三</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">🤔</div>
+                    <div class="bar" style="height:50%"></div>
+                    <div class="label">四</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">😊</div>
+                    <div class="bar" style="height:75%"></div>
+                    <div class="label">五</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">💪</div>
+                    <div class="bar" style="height:85%"></div>
+                    <div class="label">六</div>
+                </div>
+                <div class="mood-bar">
+                    <div class="emoji">😴</div>
+                    <div class="bar" style="height:40%"></div>
+                    <div class="label">日</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Streak Card -->
+        <div class="streak-card">
+            <h3>连续写作</h3>
+            <div class="streak-value">12 天</div>
+            <div class="streak-label">继续保持!</div>
+            <div class="streak-calendar">
+                <div class="streak-day active">一</div>
+                <div class="streak-day active">二</div>
+                <div class="streak-day active">三</div>
+                <div class="streak-day active">四</div>
+                <div class="streak-day active">五</div>
+                <div class="streak-day active">六</div>
+                <div class="streak-day active">日</div>
+                <div class="streak-day active">一</div>
+                <div class="streak-day active">二</div>
+                <div class="streak-day active">三</div>
+                <div class="streak-day active">四</div>
+                <div class="streak-day today">五</div>
+            </div>
+        </div>
+
+        <!-- Writing Time Heatmap -->
+        <div class="heatmap-card">
+            <h3>写作时间分布</h3>
+            <div class="time-heatmap">
+                <div class="time-cell"></div><div class="time-cell"></div><div class="time-cell"></div><div class="time-cell"></div>
+                <div class="time-cell"></div><div class="time-cell"></div><div class="time-cell"></div><div class="time-cell"></div>
+                <div class="time-cell"></div><div class="time-cell"></div><div class="time-cell l1"></div><div class="time-cell l2"></div>
+                <div class="time-cell l1"></div><div class="time-cell"></div><div class="time-cell"></div><div class="time-cell l1"></div>
+                <div class="time-cell l2"></div><div class="time-cell l3"></div><div class="time-cell l4"></div><div class="time-cell l3"></div>
+                <div class="time-cell l2"></div><div class="time-cell l1"></div><div class="time-cell"></div><div class="time-cell"></div>
+            </div>
+            <div class="time-labels">
+                <span>0:00</span>
+                <span>6:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>23:00</span>
+            </div>
+        </div>
+
+        <!-- Tag Cloud -->
+        <div class="chart-card">
+            <h3>常用标签</h3>
+            <div class="tag-cloud">
+                <span class="tag-item size-3">咖啡</span>
+                <span class="tag-item size-2">阅读</span>
+                <span class="tag-item size-2">运动</span>
+                <span class="tag-item size-1">旅行</span>
+                <span class="tag-item size-3">周末</span>
+                <span class="tag-item size-1">美食</span>
+                <span class="tag-item size-2">感悟</span>
+                <span class="tag-item size-1">工作</span>
+                <span class="tag-item size-1">朋友</span>
+                <span class="tag-item size-2">早起</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <div class="nav-item">
+            <span class="icon">🏠</span>
+            <span>首页</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">📅</span>
+            <span>时间线</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">✅</span>
+            <span>待办</span>
+        </div>
+        <div class="nav-item active">
+            <span class="icon">📊</span>
+            <span>统计</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

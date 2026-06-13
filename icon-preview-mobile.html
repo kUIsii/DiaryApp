@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaryApp 图标预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F5F5F5;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .icon-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .icon-card h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #666;
+        }
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 12px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .icon-wrapper svg {
+            width: 60%;
+            height: 60%;
+        }
+        .label {
+            font-size: 12px;
+            color: #999;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 30px 0 15px;
+            padding-left: 10px;
+            border-left: 3px solid #6B8DB5;
+        }
+        .description {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .color-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .color-box {
+            flex: 1;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .selected {
+            border: 2px solid #6B8DB5;
+        }
+    </style>
+</head>
+<body>
+    <h1>DiaryApp 图标方案预览</h1>
+
+    <div class="section-title">方案 A: 雾蓝灰系列</div>
+    <div class="icon-grid">
+        <!-- A1: 柔和日记本 -->
+        <div class="icon-card selected">
+            <h3>A1: 柔和日记本</h3>
+            <div class="icon-wrapper" style="background: #FDFBF7;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="3" width="16" height="18" rx="2" fill="#8BA5C0"/>
+                    <rect x="6" y="5" width="12" height="14" rx="1" fill="#F8F9FC"/>
+                    <line x1="8" y1="9" x2="16" y2="9" stroke="#B8C8D8" stroke-width="1"/>
+                    <line x1="8" y1="12" x2="16" y2="12" stroke="#B8C8D8" stroke-width="1"/>
+                    <line x1="8" y1="15" x2="12" y2="15" stroke="#B8C8D8" stroke-width="1"/>
+                    <path d="M8 3 v6 l2 -1.5 l2 1.5 V3" fill="#C4A06B"/>
+                </svg>
+            </div>
+            <div class="label">推荐 - 柔和舒适</div>
+        </div>
+
+        <!-- A2: 雾蓝书本 -->
+        <div class="icon-card">
+            <h3>A2: 雾蓝书本</h3>
+            <div class="icon-wrapper" style="background: #EFF3F8;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="16" rx="2" fill="#6B8DB5"/>
+                    <rect x="5" y="6" width="14" height="12" rx="1" fill="white"/>
+                    <path d="M12 4 v16" stroke="#6B8DB5" stroke-width="1.5"/>
+                    <circle cx="8" cy="10" r="1" fill="#B5926B"/>
+                    <circle cx="8" cy="14" r="1" fill="#B5926B"/>
+                </svg>
+            </div>
+            <div class="label">经典书本</div>
+        </div>
+    </div>
+
+    <div class="section-title">方案 B: 苔藓绿系列</div>
+    <div class="icon-grid">
+        <!-- B1: 苔藓绿日记本 -->
+        <div class="icon-card">
+            <h3>B1: 苔藓绿日记本</h3>
+            <div class="icon-wrapper" style="background: #F6F7F4;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="3" width="16" height="18" rx="2" fill="#7BA06E"/>
+                    <rect x="6" y="5" width="12" height="14" rx="1" fill="#FDFCF8"/>
+                    <line x1="8" y1="9" x2="16" y2="9" stroke="#B8C8A8" stroke-width="1"/>
+                    <line x1="8" y1="12" x2="16" y2="12" stroke="#B8C8A8" stroke-width="1"/>
+                    <line x1="8" y1="15" x2="12" y2="15" stroke="#B8C8A8" stroke-width="1"/>
+                    <path d="M8 3 v6 l2 -1.5 l2 1.5 V3" fill="#C4A06B"/>
+                </svg>
+            </div>
+            <div class="label">自然清新</div>
+        </div>
+
+        <!-- B2: 苔藓绿书本 -->
+        <div class="icon-card">
+            <h3>B2: 苔藓绿书本</h3>
+            <div class="icon-wrapper" style="background: #EFF2EB;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="16" rx="2" fill="#7BA06E"/>
+                    <rect x="5" y="6" width="14" height="12" rx="1" fill="white"/>
+                    <path d="M12 4 v16" stroke="#7BA06E" stroke-width="1.5"/>
+                    <circle cx="8" cy="10" r="1" fill="#C4A06B"/>
+                    <circle cx="8" cy="14" r="1" fill="#C4A06B"/>
+                </svg>
+            </div>
+            <div class="label">温暖自然</div>
+        </div>
+    </div>
+
+    <div class="section-title">方案 C: 金色钢笔系列</div>
+    <div class="icon-grid">
+        <!-- C1: 经典钢笔 -->
+        <div class="icon-card">
+            <h3>C1: 经典钢笔</h3>
+            <div class="icon-wrapper" style="background: #FDFBF7;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="6" width="14" height="14" rx="1" stroke="#2D3748" stroke-width="1.5"/>
+                    <line x1="7" y1="10" x2="15" y2="10" stroke="#2D3748" stroke-width="1"/>
+                    <line x1="7" y1="13" x2="15" y2="13" stroke="#2D3748" stroke-width="1"/>
+                    <path d="M18 3 l-10 10" stroke="#B8860B" stroke-width="1.5"/>
+                    <path d="M18 3 l2 2 l-6 6 l-2 -2 z" fill="#B8860B"/>
+                </svg>
+            </div>
+            <div class="label">优雅书卷气</div>
+        </div>
+
+        <!-- C2: 钢笔+书签 -->
+        <div class="icon-card">
+            <h3>C2: 钢笔+书签</h3>
+            <div class="icon-wrapper" style="background: #FDFBF7;">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="5" y="4" width="14" height="16" rx="1" stroke="#2D3748" stroke-width="1.5"/>
+                    <path d="M5 4 l7 5 l7 -5" stroke="#B8860B" stroke-width="1.5" fill="none"/>
+                    <line x1="8" y1="12" x2="16" y2="12" stroke="#2D3748" stroke-width="1"/>
+                    <line x1="8" y1="15" x2="13" y2="15" stroke="#2D3748" stroke-width="1"/>
+                    <path d="M18 2 l-2 3" stroke="#B8860B" stroke-width="1.5"/>
+                </svg>
+            </div>
+            <div class="label">组合设计</div>
+        </div>
+    </div>
+
+    <div class="section-title">当前主题色参考</div>
+    <div class="description">
+        <strong>雾蓝灰主题:</strong>
+        <div class="color-row">
+            <div class="color-box" style="background: #6B8DB5;">主色</div>
+            <div class="color-box" style="background: #B5926B;">辅助色</div>
+            <div class="color-box" style="background: #8BA5C0;">柔和版</div>
+        </div>
+        <br>
+        <strong>苔藓绿主题:</strong>
+        <div class="color-row">
+            <div class="color-box" style="background: #7BA06E;">主色</div>
+            <div class="color-box" style="background: #C4A06B;">辅助色</div>
+            <div class="color-box" style="background: #8BC07A;">亮色版</div>
+        </div>
+    </div>
+
+    <div class="description">
+        <strong>选择方式:</strong> 告诉我你喜欢哪个方案（如 A1、B1、C1），我会立即更新图标。
+    </div>
+</body>
+</html>

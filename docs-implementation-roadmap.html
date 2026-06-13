@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DiaryApp 中文实施路线图</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2;
+            --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88);
+            --paper-2: rgba(255, 255, 255, 0.95);
+            --ink: #263543;
+            --muted: #66737f;
+            --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08);
+            --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48;
+            --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8;
+            --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73;
+            --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a;
+            --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672;
+            --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0;
+            --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252, 242, 221, 0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(121, 145, 168, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121, 145, 168, 0.08) 1px, transparent 1px);
+            background-size: 22px 22px;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+
+        .shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1560px;
+            margin: 0 auto;
+            padding: 28px 24px 88px;
+        }
+
+        .card {
+            background: var(--paper);
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .hero,
+        .overview,
+        .phase-card,
+        .module-card,
+        .doc-card,
+        .note-card,
+        .matrix-card,
+        .final-card {
+            padding: 26px 28px;
+        }
+
+        .hero-layout,
+        .overview-layout,
+        .matrix-grid,
+        .phase-grid,
+        .module-grid,
+        .doc-grid,
+        .final-grid,
+        .summary-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .hero-layout {
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            margin-bottom: 22px;
+        }
+
+        .overview-layout {
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            margin-bottom: 22px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 13px;
+            border-radius: 999px;
+            background: var(--brown-soft);
+            color: var(--brown);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        h1 {
+            margin: 18px 0 14px;
+            font-size: clamp(34px, 5vw, 54px);
+            line-height: 1.05;
+            font-family: Georgia, "Noto Serif SC", serif;
+            font-weight: 700;
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: 26px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 19px;
+            line-height: 1.3;
+        }
+
+        h4 {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.35;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.82;
+        }
+
+        .lead {
+            font-size: 15px;
+            max-width: 860px;
+        }
+
+        .lead + .lead {
+            margin-top: 10px;
+        }
+
+        .anchor-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .anchor-row a {
+            text-decoration: none;
+            color: var(--blue);
+            background: var(--blue-soft);
+            padding: 9px 13px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-top: 22px;
+        }
+
+        .stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(38, 53, 67, 0.06);
+        }
+
+        .stat strong {
+            display: block;
+            color: var(--ink);
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+
+        .stat span {
+            display: block;
+            color: var(--soft);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .side-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .mini-card,
+        .phase-pill,
+        .risk-badge,
+        .fit-badge,
+        .task-tile,
+        .note-box {
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(38, 53, 67, 0.07);
+        }
+
+        .mini-card {
+            padding: 16px;
+        }
+
+        .mini-card strong {
+            display: block;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .phase-pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .phase-pill,
+        .fit-badge,
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 11px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .pill-now,
+        .fit-high {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .pill-mid,
+        .fit-mid {
+            background: var(--amber-soft);
+            color: var(--amber);
+        }
+
+        .pill-later,
+        .fit-low {
+            background: var(--rose-soft);
+            color: var(--rose);
+        }
+
+        .pill-ref {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .section {
+            margin-bottom: 22px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .section-head p {
+            max-width: 900px;
+            font-size: 14px;
+        }
+
+        .matrix-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-bottom: 22px;
+        }
+
+        .matrix-card {
+            min-height: 100%;
+        }
+
+        .icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .icon-brown {
+            background: var(--brown-soft);
+            color: var(--brown);
+        }
+
+        .icon-blue {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .icon-green {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .icon-amber {
+            background: var(--amber-soft);
+            color: var(--amber);
+        }
+
+        .icon-rose {
+            background: var(--rose-soft);
+            color: var(--rose);
+        }
+
+        .icon-purple {
+            background: var(--purple-soft);
+            color: var(--purple);
+        }
+
+        .bullet-list {
+            margin: 14px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+        }
+
+        .bullet-list li {
+            margin: 8px 0;
+            line-height: 1.74;
+        }
+
+        .phase-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .phase-card {
+            margin-bottom: 18px;
+        }
+
+        .phase-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .phase-title {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .phase-step {
+            width: 42px;
+            height: 42px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(38, 53, 67, 0.07);
+            color: var(--ink);
+            font-weight: 800;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .phase-subtitle {
+            margin-top: 4px;
+            font-size: 14px;
+            color: var(--soft);
+        }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .task-tile {
+            padding: 18px;
+        }
+
+        .task-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .task-top h4 {
+            max-width: 82%;
+        }
+
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin: 10px 0 0;
+        }
+
+        .meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(38, 53, 67, 0.06);
+            color: var(--ink);
+        }
+
+        details {
+            border-radius: 16px;
+            border: 1px solid rgba(38, 53, 67, 0.08);
+            background: rgba(255, 255, 255, 0.56);
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .details-body {
+            padding: 0 16px 16px;
+            border-top: 1px solid rgba(38, 53, 67, 0.07);
+        }
+
+        .details-body p + p {
+            margin-top: 10px;
+        }
+
+        .details-body .bullet-list {
+            margin-top: 10px;
+        }
+
+        .module-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-bottom: 22px;
+        }
+
+        .module-card {
+            min-height: 100%;
+        }
+
+        .doc-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 22px;
+        }
+
+        .doc-card {
+            min-height: 100%;
+        }
+
+        .doc-card h4 {
+            margin-bottom: 8px;
+        }
+
+        .doc-card p {
+            font-size: 14px;
+        }
+
+        .note-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .note-card {
+            min-height: 100%;
+        }
+
+        .note-box {
+            padding: 14px 15px;
+            margin-top: 12px;
+        }
+
+        .final-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .final-card {
+            min-height: 100%;
+            background: var(--paper-2);
+        }
+
+        .final-card.now {
+            background:
+                linear-gradient(180deg, rgba(92, 143, 115, 0.12), rgba(255, 255, 255, 0.96));
+        }
+
+        .final-card.mid {
+            background:
+                linear-gradient(180deg, rgba(194, 139, 58, 0.12), rgba(255, 255, 255, 0.96));
+        }
+
+        .final-card.later {
+            background:
+                linear-gradient(180deg, rgba(191, 102, 114, 0.12), rgba(255, 255, 255, 0.96));
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            padding: 22px 24px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(38, 53, 67, 0.08);
+        }
+
+        .footer-note strong {
+            color: var(--ink);
+        }
+
+        @media (max-width: 1280px) {
+            .hero-layout,
+            .overview-layout,
+            .matrix-grid,
+            .module-grid,
+            .doc-grid,
+            .note-row,
+            .final-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .shell {
+                padding: 20px 14px 70px;
+            }
+
+            .hero,
+            .overview,
+            .phase-card,
+            .module-card,
+            .doc-card,
+            .note-card,
+            .matrix-card,
+            .final-card {
+                padding: 20px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-head,
+            .phase-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero-layout">
+            <article class="card hero">
+                <span class="eyebrow">
+                    <span class="material-symbols-rounded">route</span>
+                    中文实施版路线图
+                </span>
+                <h1>这份不是“继续解释文档”，而是直接告诉你 DiaryApp 接下来该怎么优化。</h1>
+                <p class="lead">
+                    这份页面只围绕最适合你当前 APP 的 4 份文档来重组内容：
+                    <strong>详情页重设计、首页与日历重设计、时间线与回顾重设计、备份安全统计重设计。</strong>
+                    我把它们从“资料”重新整理成“实施路线图”，按现在可做、中期适合做、以后再说拆开，并补上功能项、风险点和推荐落地方式。
+                </p>
+                <p class="lead">
+                    核心原则很简单：所有建议都必须服务于你现在这款 App 的真实方向，也就是
+                    <strong>日记核心体验优先、保持轻盈、增强记忆感、提升可靠性</strong>，
+                    而不是为了“功能多”去做大而散的系统。
+                </p>
+                <div class="summary-grid">
+                    <div class="stat">
+                        <strong>4</strong>
+                        <span>重组后的核心文档来源<br />只围绕当前真正有用的部分</span>
+                    </div>
+                    <div class="stat">
+                        <strong>3 段</strong>
+                        <span>实施阶段<br />现在可做 / 中期适合 / 以后再说</span>
+                    </div>
+                    <div class="stat">
+                        <strong>先稳后扩</strong>
+                        <span>主策略<br />先把日记链路做稳，再逐步增强</span>
+                    </div>
+                    <div class="stat">
+                        <strong>可直接讨论</strong>
+                        <span>输出目标<br />细到功能、风险和落地方向</span>
+                    </div>
+                </div>
+                <div class="anchor-row">
+                    <a href="#principles">实施原则</a>
+                    <a href="#phase-now">立即可做</a>
+                    <a href="#phase-mid">中期适合做</a>
+                    <a href="#phase-later">以后再说</a>
+                    <a href="#modules">模块地图</a>
+                    <a href="#docs">来源文档</a>
+                    <a href="#final">最终建议</a>
+                </div>
+            </article>
+
+            <div class="side-stack">
+                <section class="card note-card">
+                    <h2>这份路线图的核心判断</h2>
+                    <div class="mini-card">
+                        <strong>1. 不再做“资料阅读”层面的整理</strong>
+                        <p>这次只讨论对当前 APP 真正有实施价值的方向，不再停留在解释文档内容。</p>
+                    </div>
+                    <div class="mini-card">
+                        <strong>2. 先解决高频体验问题，再做增强</strong>
+                        <p>编辑、阅读、回顾、首页表达、备份可靠性，这些比大重构和大扩展更值。</p>
+                    </div>
+                    <div class="mini-card">
+                        <strong>3. 所有扩展都不能破坏“日记核心”</strong>
+                        <p>如果一个方向会让 APP 变得分散、复杂、维护成本暴涨，那它现在就不该优先。</p>
+                    </div>
+                </section>
+
+                <section class="card note-card">
+                    <h2>阶段分类标准</h2>
+                    <div class="phase-pill-row">
+                        <span class="phase-pill pill-now">立即可做</span>
+                        <span class="phase-pill pill-mid">中期适合做</span>
+                        <span class="phase-pill pill-later">以后再说</span>
+                        <span class="phase-pill pill-ref">作为参考保留</span>
+                    </div>
+                    <div class="note-box">
+                        <p>
+                            “立即可做”不代表最简单，而是指：<strong>对当前 APP 提升最大，且投入风险可控</strong>。
+                            “以后再说”也不代表没价值，而是说明它现在的时机不对，或者工程代价过高。
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="principles" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>实施原则</h2>
+                    <p>在开始列功能前，先把策略讲清楚。因为同一份文档里往往既有适合现在做的，也有暂时不该碰太深的内容。</p>
+                </div>
+            </div>
+
+            <div class="matrix-grid">
+                <article class="card matrix-card">
+                    <div class="icon-wrap icon-blue">
+                        <span class="material-symbols-rounded">center_focus_strong</span>
+                    </div>
+                    <h3>原则一：先做“每天都会碰到”的体验</h3>
+                    <p>
+                        优先处理编辑、预览、详情阅读、首页日历、回顾入口、备份恢复这些高频路径。因为这些问题一旦不顺，用户每天都会感知到。
+                    </p>
+                    <ul class="bullet-list">
+                        <li>详情页、首页、时间线、备份都属于高频使用或高信任模块。</li>
+                        <li>这类优化比“新功能很多”更能让用户觉得 APP 真的在变好。</li>
+                    </ul>
+                </article>
+
+                <article class="card matrix-card">
+                    <div class="icon-wrap icon-green">
+                        <span class="material-symbols-rounded">construction</span>
+                    </div>
+                    <h3>原则二：优先做低风险、独立可发布的改进</h3>
+                    <p>
+                        每个阶段都尽量选择“单独做完就能提升体验”的功能块，避免所有事情耦合成一次大重构。
+                    </p>
+                    <ul class="bullet-list">
+                        <li>例如分享、阅读模式、摘要卡、回收站自动清理、备份通知都适合独立推进。</li>
+                        <li>像编辑器整体迁移、完整云同步、复杂标签系统则不适合现在打包做。</li>
+                    </ul>
+                </article>
+
+                <article class="card matrix-card">
+                    <div class="icon-wrap icon-amber">
+                        <span class="material-symbols-rounded">balance</span>
+                    </div>
+                    <h3>原则三：增强记忆感，但不要把 APP 做散</h3>
+                    <p>
+                        你的 APP 最适合继续强化“回顾、情绪、纪念、私人记录”的价值，而不是快速扩成庞杂的生活管理器。
+                    </p>
+                    <ul class="bullet-list">
+                        <li>On This Day、时间线回顾、图片管理、情绪统计都很贴这个方向。</li>
+                        <li>完整 Todo/Habit 大重构、复杂知识组织、云平台化则暂时不该抢主线。</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section id="phase-now" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>第一阶段：立即可做</h2>
+                    <p>这一阶段的标准是：直接提升当前 APP 的核心体验，风险相对可控，而且做完一项就能感知到价值。</p>
+                </div>
+            </div>
+
+            <article class="card phase-card">
+                <div class="phase-head">
+                    <div class="phase-title">
+                        <div class="phase-step">1</div>
+                        <div>
+                            <h3>先把“读、看、回顾、备份”这些关键链路做顺</h3>
+                            <div class="phase-subtitle">适合最近一到两个大版本持续推进，尽量拆成独立可发布的小块</div>
+                        </div>
+                    </div>
+                    <div class="phase-pill-row">
+                        <span class="phase-pill pill-now">当前最推荐</span>
+                        <span class="phase-pill pill-now">风险可控</span>
+                        <span class="phase-pill pill-ref">最贴真实使用</span>
+                    </div>
+                </div>
+
+                <div class="task-grid">
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>详情页增加分享入口与分享面板</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            当前详情页已有部分分享/导出能力，但入口不清晰。这个改动不触底层结构，却能显著提升“日记内容可带走、可纪念、可传播”的感知。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：详情页文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：1-2 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 在详情页底部操作栏加入明确的分享按钮，弹出底部面板，分为文字分享、图片分享、Markdown/导出入口。</p>
+                                <ul class="bullet-list">
+                                    <li>先做清晰入口和基础预览，不必一开始就做复杂模板系统。</li>
+                                    <li>优先保证和现有详情页风格一致，避免另起一套设计语言。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 分享逻辑可能和现有导出逻辑耦合，需要先梳理 ViewModel 接口，避免 UI 加好了但行为不统一。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>详情页阅读模式</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            这项不是炫技，而是让“查看日记”从普通页面变成更舒服的阅读体验，尤其适合长日记、晚间阅读和回顾场景。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：详情页文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：1-2 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 先做最核心的 3 项：即时主题生效、字体大小调节、沉浸式阅读开关。先别把它设计成一个过大的系统。</p>
+                                <ul class="bullet-list">
+                                    <li>最值得优先解决的是深色模式闪动与字体无法就地调整的问题。</li>
+                                    <li>阅读模式入口可以放在顶部工具栏，不要藏太深。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> WebView 和 Compose 状态同步要稳定，避免切换模式时出现闪烁、布局跳变或设置不持久。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>首页加入摘要卡与 On This Day 卡片</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            这是最适合立刻提升首页价值的一项。比起直接大改首页结构，先把“周摘要”和“往年今日”放到首页，是更稳也更有感知的路线。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：首页文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：2-4 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 先不大改数据层，只调整首页组织方式。把周摘要放上面，把 On This Day 作为条件显示卡插在日历和当日列表之间。</p>
+                                <ul class="bullet-list">
+                                    <li>这是文档中建议的低风险首个 PR 方向，也很适合你的节奏。</li>
+                                    <li>如果做得好，首页会立刻更像“日记入口”而不是“日期加列表”。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 首页信息变多后容易挤，所以要注意默认折叠与信息密度，不能一股脑堆成仪表盘。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>首页卡片长按菜单与滑动操作</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            这类操作增强不会改变你的产品方向，但能明显改善“管理日记”的效率，包括收藏、删除、分享、进入多选等。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：首页文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：2-4 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 先做长按菜单，再做轻量滑动操作。长按可以作为统一的高级入口，滑动只保留最常用的 1-2 个动作。</p>
+                                <ul class="bullet-list">
+                                    <li>推荐优先保留收藏和删除/移入回收站，避免手势过多。</li>
+                                    <li>长按菜单可以顺便成为未来多选模式入口。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 首页已有点击跳详情、滚动等交互，新增滑动后要注意误触和动画层级。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>回收站自动清理 + 只读预览</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            这是非常现实的“可靠性补强”。当前回收站如果只是显示 30 天文字而不自动清理，或者删前无法确认内容，就会显得逻辑不完整。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：时间线文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：1-2 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 用 WorkManager 实现每日自动清理过期回收站条目，同时允许点开回收站卡片进入只读详情页预览。</p>
+                                <ul class="bullet-list">
+                                    <li>先做自动清理和预览就已经非常有价值，不必马上上批量操作。</li>
+                                    <li>这会明显提升“删除之后我仍然放心”的安全感。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 真删逻辑如果联动图片、附件或标签，要先梳理清理范围，避免数据库删了但文件没删，或者反过来误删。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>备份管理底座：自动备份、加密、失败可见</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            对私人日记来说，这一组能力的重要程度甚至高于很多视觉优化。它决定了用户敢不敢长期把内容放在你的 APP 里。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：备份安全文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：6-9 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 第一批只做 3 件事：WorkManager 调度自动备份、备份文件加密、备份失败明确通知。先把本地备份可靠性打牢。</p>
+                                <ul class="bullet-list">
+                                    <li>不要一开始就冲云备份，那会把复杂度拉高很多。</li>
+                                    <li>你的“备份管理”界面也应该以这 3 项为基础展开。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 自动任务在不同 ROM 的执行稳定性要验证；加密要考虑密钥管理；失败通知要避免骚扰但也不能静默吞掉异常。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>锁定超时设置 + 基础隐私增强</h4>
+                            <span class="fit-badge fit-mid">中高价值</span>
+                        </div>
+                        <p>
+                            这类功能不是最显眼，但特别符合日记类 APP 的信任属性。尤其锁定超时非常实用，能降低频繁解锁带来的烦躁感。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：备份安全文档</span>
+                            <span class="meta-chip">建议阶段：立即做</span>
+                            <span class="meta-chip">预估：2-3 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 优先支持锁定超时、`FLAG_SECURE` 隐私保护、PIN 加盐存储。先把隐私体验做得“够用而稳”。</p>
+                                <ul class="bullet-list">
+                                    <li>锁定超时是对高频使用最友好的安全改良。</li>
+                                    <li>FLAG_SECURE 的收益很直接，投入也小。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 安全设置影响全局使用体验，必须保证状态同步一致，避免“明明设了却没生效”这类信任问题。</p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section id="phase-mid" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>第二阶段：中期适合做</h2>
+                    <p>这一阶段适合在第一阶段核心体验更稳之后推进，主要用于增强“内容积累后的体验”和“长期使用的舒适度”。</p>
+                </div>
+            </div>
+
+            <article class="card phase-card">
+                <div class="phase-head">
+                    <div class="phase-title">
+                        <div class="phase-step">2</div>
+                        <div>
+                            <h3>增强“记忆感”和“长期使用体验”</h3>
+                            <div class="phase-subtitle">适合在当前核心链路稳定之后持续推进，让 DiaryApp 更像一个会陪伴积累的产品</div>
+                        </div>
+                    </div>
+                    <div class="phase-pill-row">
+                        <span class="phase-pill pill-mid">中期主力</span>
+                        <span class="phase-pill pill-ref">提升记忆价值</span>
+                        <span class="phase-pill pill-ref">开始涉及数据层优化</span>
+                    </div>
+                </div>
+
+                <div class="task-grid">
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>首页搜索与筛选升级</h4>
+                            <span class="fit-badge fit-mid">中高价值</span>
+                        </div>
+                        <p>
+                            当日记越来越多时，首页如果仍然只能点日期看列表，效率会开始下降。这个阶段可以逐步把搜索、筛选和排序能力移到首页主场景。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：首页文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：4-8 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 先做筛选面板，再做 FTS5。也就是说，先把 UI 交互模式跑通，再升级搜索引擎和数据层。</p>
+                                <ul class="bullet-list">
+                                    <li>这样做更稳，也便于逐步验证用户是否真的需要复杂搜索。</li>
+                                    <li>FTS5 非常值得做，但它已经触及数据库迁移，不建议和太多 UI 改动一起上。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 数据库迁移、搜索高亮、筛选条件叠加的组合复杂度会明显上升。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>时间线分页 + 月份快速跳转 + 月摘要卡</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            当内容数量开始增多时，这一组功能会决定时间线还是否好用。它是“积累多了之后”的真正体验拐点。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：时间线文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：2.5-4 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 先做 Paging 和月份快速跳转，再补月摘要卡和视觉精修。顺序不要反过来。</p>
+                                <ul class="bullet-list">
+                                    <li>先解决性能和导航问题，用户最能感知。</li>
+                                    <li>月份摘要卡是锦上添花，但也很适合你产品的回顾气质。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> Timeline 逻辑和分组展示耦合度高，Paging 引入后，分组和分隔符要重新梳理。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>图片管理体系：压缩、缩略图、全局图库</h4>
+                            <span class="fit-badge fit-high">高价值</span>
+                        </div>
+                        <p>
+                            如果你的日记里会放图片，这组能力会越来越重要。它不是“附加功能”，而是稳定性、存储、回顾体验三者交汇的关键模块。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：时间线文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：3-4 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 顺序应该是：先压缩与缩略图，再做文件清理，最后做全局图库。不要先做图库再补底层。</p>
+                                <ul class="bullet-list">
+                                    <li>先稳住存储和性能，再做“好看、好逛”的相册体验。</li>
+                                    <li>图片一多之后，全局图库会非常有记忆价值。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 图片处理容易引入文件残留、缩略图失效、迁移兼容等问题，必须把文件生命周期管理清楚。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>导出增强：PDF / HTML / 选择性导出</h4>
+                            <span class="fit-badge fit-mid">中高价值</span>
+                        </div>
+                        <p>
+                            导出能力很适合日记产品，因为它会增强“内容属于我”的感觉。尤其 PDF 和 HTML，在纪念感和可迁移性上都很实用。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：详情页文档 + 备份文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：4-7 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 优先 PDF 和 HTML，先不要急着把 DOCX 做成正式格式。PDF 可用于留存，HTML 可用于开放查看，已经很够用。</p>
+                                <ul class="bullet-list">
+                                    <li>详情页导出和全局导出要尽量统一体验，不要两套规则。</li>
+                                    <li>选择性导出更适合在收藏、时间线或备份管理里延伸。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> WebView 导出和内容样式一致性、长内容分页、图片带入等都需要验证。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>年热力图与轻量统计增强</h4>
+                            <span class="fit-badge fit-mid">中高价值</span>
+                        </div>
+                        <p>
+                            统计页最怕做得很重却没有感情。对你来说，更合适的是让统计页服务“回顾自己”，而不是变成分析后台。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：备份安全文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：5-8 天</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 优先做年热力图、月度柱状交互、基础心情趋势。先让用户一眼看懂自己写了多少、什么时候写、情绪大致如何变化。</p>
+                                <ul class="bullet-list">
+                                    <li>年热力图是高感知且很符合日记产品的统计表达。</li>
+                                    <li>不要一开始就追求非常多图表类型，否则容易做重。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 图表太多会让页面显得像分析面板，反而削弱 DiaryApp 的情绪温度。</p>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>On This Day 进阶版：通知、Widget、Memory Lane</h4>
+                            <span class="fit-badge fit-mid">中高价值</span>
+                        </div>
+                        <p>
+                            这组功能非常有“陪伴感”，但应该放在首页内嵌卡做好之后再继续推进。否则会变成一个很美但用户接触不到的功能群。
+                        </p>
+                        <div class="task-meta">
+                            <span class="meta-chip">来源：时间线文档</span>
+                            <span class="meta-chip">建议阶段：中期</span>
+                            <span class="meta-chip">预估：4 天左右</span>
+                        </div>
+                        <details>
+                            <summary><span>展开看实施建议与风险</span><span>点击展开</span></summary>
+                            <div class="details-body">
+                                <p><strong>推荐落地方式：</strong> 顺序应该是：先首页卡片，再通知，再 Widget，最后才是更偏仪式感的 Memory Lane 模式。</p>
+                                <ul class="bullet-list">
+                                    <li>这样用户能先理解这个功能，再接受它变成主动提醒。</li>
+                                    <li>Memory Lane 很有感觉，但一定不要早于基础入口建设。</li>
+                                </ul>
+                                <p><strong>风险点：</strong> 通知打扰、Widget 维护成本、Memory Lane 场景频率偏低，这些都需要靠使用频率验证。</p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section id="phase-later" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>第三阶段：以后再说</h2>
+                    <p>这些方向不是没价值，而是当前时机不对，或者成本与风险暂时不划算。保留想法可以，但不建议近期抢主线。</p>
+                </div>
+            </div>
+
+            <article class="card phase-card">
+                <div class="phase-head">
+                    <div class="phase-title">
+                        <div class="phase-step">3</div>
+                        <div>
+                            <h3>放在未来考虑的“高成本 / 大边界”方向</h3>
+                            <div class="phase-subtitle">这些更适合作为未来版本探索，不适合现在和核心链路争资源</div>
+                        </div>
+                    </div>
+                    <div class="phase-pill-row">
+                        <span class="phase-pill pill-later">暂缓</span>
+                        <span class="phase-pill pill-later">高风险</span>
+                        <span class="phase-pill pill-ref">长期路线保留</span>
+                    </div>
+                </div>
+
+                <div class="task-grid">
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>详情页左右滑动切换文章</h4>
+                            <span class="fit-badge fit-low">以后再说</span>
+                        </div>
+                        <p>
+                            这是一个很吸引人的功能，但它会影响导航模型、上下文来源、预加载策略和详情页状态管理，不适合在其他基础问题还没完全稳住时推进。
+                        </p>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>完整首页分页 / SQL 级过滤 / 全链路数据层重构</h4>
+                            <span class="fit-badge fit-low">以后再说</span>
+                        </div>
+                        <p>
+                            这些方向长期一定有价值，但它们会把首页、DAO、搜索、分组逻辑一起卷进来。更适合在首页信息架构和搜索交互先稳定后再做。
+                        </p>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>云备份 / 增量备份 / SQLCipher 整体升级</h4>
+                            <span class="fit-badge fit-low">以后再说</span>
+                        </div>
+                        <p>
+                            这些都很重要，但属于第二层可靠性建设。当前更关键的是先把本地备份、加密和恢复链路做稳，再谈远端同步和更复杂的数据安全系统。
+                        </p>
+                    </div>
+
+                    <div class="task-tile">
+                        <div class="task-top">
+                            <h4>高级统计和复杂对比分析</h4>
+                            <span class="fit-badge fit-low">以后再说</span>
+                        </div>
+                        <p>
+                            比如复杂比较分析、波动指数、极多维图表等，这些并不是 DiaryApp 当前最关键的情感价值来源，容易做重。
+                        </p>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section id="modules" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>当前 APP 的优化方向地图</h2>
+                    <p>如果从“继续优化当前 APP”而不是“继续研究文档”的角度看，接下来最直接的方向大概就是下面这 6 类。</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <article class="card module-card">
+                    <div class="icon-wrap icon-blue"><span class="material-symbols-rounded">article</span></div>
+                    <h3>1. 阅读体验升级</h3>
+                    <p>包括阅读模式、分享、导出、图片查看、详情页展示一致性。这些方向最容易直接提升“这篇日记看起来舒服不舒服”。</p>
+                </article>
+
+                <article class="card module-card">
+                    <div class="icon-wrap icon-green"><span class="material-symbols-rounded">calendar_month</span></div>
+                    <h3>2. 首页变成真正入口</h3>
+                    <p>让首页承担摘要、回顾、搜索入口和日历表达，而不是只当一个日历上面加当天列表。</p>
+                </article>
+
+                <article class="card module-card">
+                    <div class="icon-wrap icon-brown"><span class="material-symbols-rounded">history</span></div>
+                    <h3>3. 时间线更适合积累型使用</h3>
+                    <p>当用户有几百篇之后，时间线是否还能顺手看，是产品成熟度的重要体现。</p>
+                </article>
+
+                <article class="card module-card">
+                    <div class="icon-wrap icon-amber"><span class="material-symbols-rounded">backup</span></div>
+                    <h3>4. 备份与恢复建立信任</h3>
+                    <p>自动备份、加密、失败可见、恢复稳定，是私人日记 APP 的信任底层。</p>
+                </article>
+
+                <article class="card module-card">
+                    <div class="icon-wrap icon-purple"><span class="material-symbols-rounded">query_stats</span></div>
+                    <h3>5. 统计服务“回顾自己”</h3>
+                    <p>统计不该只为炫图表，而该帮助用户理解自己的记录频率、时间和情绪变化。</p>
+                </article>
+
+                <article class="card module-card">
+                    <div class="icon-wrap icon-rose"><span class="material-symbols-rounded">security</span></div>
+                    <h3>6. 隐私与安全保持克制但可靠</h3>
+                    <p>锁定超时、隐私模式、PIN 增强这些功能看起来不显眼，但会影响用户是否愿意长期依赖你。</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="docs" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>这份路线图主要来自哪 4 份文档</h2>
+                    <p>这里不是重复解释，而是告诉你它们分别给这份路线图提供了什么方向。</p>
+                </div>
+            </div>
+
+            <div class="doc-grid">
+                <article class="card doc-card">
+                    <h4>detail-page-redesign.md</h4>
+                    <p>提供了详情页阅读、分享、导出、阅读模式、图片查看、WebView 整合优化的主思路。</p>
+                </article>
+                <article class="card doc-card">
+                    <h4>home-screen-redesign-proposal.md</h4>
+                    <p>提供了首页日历、摘要卡、On This Day 首页化、搜索筛选、快捷操作和首页布局策略。</p>
+                </article>
+                <article class="card doc-card">
+                    <h4>timeline-review-redesign.md</h4>
+                    <p>提供了时间线分页、月摘要、回收站增强、图片管理、On This Day 进阶和收藏增强方向。</p>
+                </article>
+                <article class="card doc-card">
+                    <h4>backup-security-stats-redesign-proposal.md</h4>
+                    <p>提供了备份、安全、导出、统计和更新稳定性这套“支撑层”方向。</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <div>
+                    <h2>几个非常重要的取舍提醒</h2>
+                    <p>这些提醒是我觉得最值得你明天重点看的部分，因为它们决定了后面是否会走弯路。</p>
+                </div>
+            </div>
+
+            <div class="note-row">
+                <article class="card note-card">
+                    <div class="icon-wrap icon-amber"><span class="material-symbols-rounded">warning</span></div>
+                    <h3>不要因为编辑器问题，就马上跳到大迁移</h3>
+                    <p>现在这份路线图故意没有把“换编辑器”放进主线，是因为当前更值得先稳定外围体验和日记主流程。</p>
+                </article>
+
+                <article class="card note-card">
+                    <div class="icon-wrap icon-green"><span class="material-symbols-rounded">moving</span></div>
+                    <h3>尽量做“独立可发布”的小步升级</h3>
+                    <p>比如分享、阅读模式、回收站预览、摘要卡，这些单项做完就能发布，不需要等大版本打包。</p>
+                </article>
+
+                <article class="card note-card">
+                    <div class="icon-wrap icon-blue"><span class="material-symbols-rounded">favorite</span></div>
+                    <h3>DiaryApp 最值得强化的是“记忆价值”</h3>
+                    <p>也就是回顾、情绪、纪念、私密、安全感。只要记住这一点，很多要不要做的选择都会变简单。</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="final" class="section">
+            <div class="section-head">
+                <div>
+                    <h2>最终建议</h2>
+                    <p>如果把后续优化压缩成三个层级，我建议这样理解就够了。</p>
+                </div>
+            </div>
+
+            <div class="final-grid">
+                <article class="card final-card now">
+                    <h3>现在就该做</h3>
+                    <ul class="bullet-list">
+                        <li>详情页分享入口</li>
+                        <li>详情页阅读模式</li>
+                        <li>首页摘要卡和 On This Day 卡片</li>
+                        <li>首页长按 / 滑动操作</li>
+                        <li>回收站自动清理和只读预览</li>
+                        <li>自动备份、加密、失败通知</li>
+                        <li>锁定超时和基础隐私增强</li>
+                    </ul>
+                </article>
+
+                <article class="card final-card mid">
+                    <h3>稳定后继续做</h3>
+                    <ul class="bullet-list">
+                        <li>首页搜索和筛选升级</li>
+                        <li>时间线分页与月份跳转</li>
+                        <li>图片压缩、缩略图、图库</li>
+                        <li>PDF / HTML / 选择性导出</li>
+                        <li>年热力图和轻量统计</li>
+                        <li>On This Day 通知 / Widget / Memory Lane</li>
+                    </ul>
+                </article>
+
+                <article class="card final-card later">
+                    <h3>暂时别急</h3>
+                    <ul class="bullet-list">
+                        <li>详情页左右滑动切换文章</li>
+                        <li>首页全量分页和重型数据层重构</li>
+                        <li>云备份 / 增量备份 / SQLCipher 整体升级</li>
+                        <li>复杂统计和大仪表盘</li>
+                        <li>任何会让 APP 快速“做散”的扩展</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section class="footer-note">
+            <p>
+                <strong>如果你明天看完觉得这份路线图方向对了，最自然的下一步就是：</strong>
+                把“现在就该做”的这一组，再继续拆成真正的开发清单，按照版本节奏排序，比如
+                `v1：阅读与首页增强`、`v2：回收站与备份稳定`、`v3：时间线与图片体系`。
+            </p>
+        </section>
+    </div>
+</body>
+</html>

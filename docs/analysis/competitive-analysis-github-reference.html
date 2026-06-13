@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>竞品分析与 GitHub 参考</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--purple-soft); color: var(--purple); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .section-gap { margin-top: 32px; }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .table-wrap { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.6); border-bottom: 2px solid var(--line-strong); font-weight: 700; color: var(--ink); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+        .app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .app-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .app-card h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .app-card h3 .material-symbols-rounded { font-size: 22px; }
+        .star-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--amber-soft); color: var(--amber); }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .tag { display: inline-flex; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--line); color: var(--muted); }
+        .tag.green { background: var(--green-soft); color: var(--green); }
+        .tag.blue { background: var(--blue-soft); color: var(--blue); }
+        .tag.amber { background: var(--amber-soft); color: var(--amber); }
+        .tag.rose { background: var(--rose-soft); color: var(--rose); }
+        .lib-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .lib-card { padding: 18px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .lib-card h3 { font-size: 16px; margin-bottom: 4px; }
+        .note-box { padding: 16px 20px; border-radius: var(--radius-md); background: var(--green-soft); border: 1px solid rgba(92,143,115,0.2); margin-top: 16px; }
+        .note-box p { color: var(--green); font-size: 13px; }
+        .note-box.amber { background: var(--amber-soft); border-color: rgba(194,139,58,0.2); }
+        .note-box.amber p { color: var(--amber); }
+        .note-box.rose { background: var(--rose-soft); border-color: rgba(191,102,114,0.2); }
+        .note-box.rose p { color: var(--rose); }
+        @media (max-width: 900px) { .app-grid, .lib-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">analytics</span>
+            竞品分析
+        </span>
+        <h1>竞品分析与 GitHub 参考</h1>
+        <p class="lead">基于 GitHub 开源项目的深度调研，分析同类日记应用的功能实现、技术选型和架构模式，为 DiaryApp 的优化提供参考。</p>
+        <div class="anchor-row">
+            <a href="#apps">开源日记应用</a>
+            <a href="#components">组件库参考</a>
+            <a href="#comparison">功能对比矩阵</a>
+            <a href="#takeaways">关键结论</a>
+        </div>
+    </div>
+
+    <!-- Open Source Diary Apps -->
+    <div id="apps" class="card section-gap">
+        <h2>开源日记/笔记应用</h2>
+        <p class="lead">GitHub 上与 DiaryApp 技术栈相近的高星项目，按 Stars 排序。</p>
+
+        <div class="app-grid">
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--amber)">star</span>
+                    MyBrain
+                    <span class="star-badge">2,011 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">All-in-one 生产力应用：日记、任务、日历、笔记、书签。使用 Jetpack Glance 实现桌面小组件。</p>
+                <div class="tag-row">
+                    <span class="tag green">Compose</span>
+                    <span class="tag green">Room</span>
+                    <span class="tag green">Glance</span>
+                    <span class="tag blue">MVI</span>
+                    <span class="tag blue">多模块</span>
+                    <span class="tag amber">心情图表</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/mhss1/MyBrain &middot; GPL-3.0</p>
+            </div>
+
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--blue)">edit_note</span>
+                    OpenNote-Compose
+                    <span class="star-badge">776 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">功能最丰富的 Compose 笔记应用。支持 Markdown、LaTeX、Mermaid 图表、PDF/HTML 导出。</p>
+                <div class="tag-row">
+                    <span class="tag green">Compose</span>
+                    <span class="tag green">Room</span>
+                    <span class="tag amber">Markdown</span>
+                    <span class="tag amber">LaTeX</span>
+                    <span class="tag blue">Material You</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/YangDai2003/OpenNote-Compose</p>
+            </div>
+
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--green)">devices</span>
+                    Kori
+                    <span class="star-badge">326 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">OpenNote 作者的新项目。Compose Multiplatform 跨平台笔记应用，支持 Android/iOS/Desktop。</p>
+                <div class="tag-row">
+                    <span class="tag green">CMP</span>
+                    <span class="tag green">Room</span>
+                    <span class="tag amber">AI Agent</span>
+                    <span class="tag blue">跨平台</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/YangDai2003/Kori</p>
+            </div>
+
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--purple)">auto_stories</span>
+                    Superdiary
+                    <span class="star-badge">95 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">纯 Kotlin/Compose Multiplatform 日记应用。AI 日记功能、Dashboard 视图、完善的测试策略。</p>
+                <div class="tag-row">
+                    <span class="tag green">CMP</span>
+                    <span class="tag amber">AI</span>
+                    <span class="tag blue">Dashboard</span>
+                    <span class="tag rose">测试完善</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/rafsanjani/superdiary &middot; MIT</p>
+            </div>
+
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--blue)">view_timeline</span>
+                    Journal
+                    <span class="star-badge">41 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">Paging3 + Room 集成的最佳参考。多模块架构、Robot 模式 UI 测试、Mock HTTP 服务器。</p>
+                <div class="tag-row">
+                    <span class="tag green">Compose</span>
+                    <span class="tag green">Paging3</span>
+                    <span class="tag green">Room</span>
+                    <span class="tag blue">Hilt</span>
+                    <span class="tag rose">UI 测试</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/mrabelwahed/Journal</p>
+            </div>
+
+            <div class="app-card">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--rose)">mood</span>
+                    Mood Journal
+                    <span class="star-badge">13 stars</span>
+                </h3>
+                <p style="font-size:13px;margin-top:6px">心情日记应用。Clean Architecture + MVVM，自定义日期选择、日记提示、图片附件、分享功能。</p>
+                <div class="tag-row">
+                    <span class="tag green">Compose</span>
+                    <span class="tag green">Room</span>
+                    <span class="tag amber">Hilt</span>
+                    <span class="tag blue">Clean Arch</span>
+                </div>
+                <p style="font-size:12px;margin-top:10px;color:var(--soft)">github.com/SakshamSharma2026/Mood-Journal</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component Libraries -->
+    <div id="components" class="card section-gap">
+        <h2>关键组件库参考</h2>
+        <p class="lead">DiaryApp 各功能模块可参考的开源组件和实现方案。</p>
+
+        <h3 style="margin-top:20px">富文本编辑器</h3>
+        <div class="lib-grid">
+            <div class="lib-card">
+                <h3>compose-rich-editor <span class="star-badge">1,793</span></h3>
+                <p style="font-size:12px;margin-top:6px">Compose 原生富文本编辑器。纯 Kotlin 实现，无 WebView 依赖。支持 HTML 和 Markdown。Android/iOS/Desktop/Web 全平台。</p>
+                <div class="tag-row">
+                    <span class="tag green">推荐</span>
+                    <span class="tag blue">原生 Compose</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>cascade-editor <span class="star-badge">128</span></h3>
+                <p style="font-size:12px;margin-top:6px">块级编辑器，类似 Notion/Craft 的编辑模型。Compose Multiplatform 支持。</p>
+                <div class="tag-row">
+                    <span class="tag amber">块级编辑</span>
+                    <span class="tag blue">CMP</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>TipTap (Web)</h3>
+                <p style="font-size:12px;margin-top:6px">基于 ProseMirror 的 Web 编辑器。IME 支持好，扩展性强。但无 Android 原生集成案例，需 WebView 桥接。</p>
+                <div class="tag-row">
+                    <span class="tag amber">需 WebView</span>
+                    <span class="tag rose">无 Android 案例</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:24px">Paging3 + Room</h3>
+        <div class="lib-grid">
+            <div class="lib-card">
+                <h3>TvFlix <span class="star-badge">412</span></h3>
+                <p style="font-size:12px;margin-top:6px">Paging3 + Room + Compose 的最佳实践参考。Clean Architecture，完善的单元测试。</p>
+                <div class="tag-row">
+                    <span class="tag green">推荐参考</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>TMDb-Paging3 <span class="star-badge">59</span></h3>
+                <p style="font-size:12px;margin-top:6px">专门演示 Paging3 + Compose + Room 的模块化示例项目。</p>
+                <div class="tag-row">
+                    <span class="tag blue">教学示例</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>Journal <span class="star-badge">41</span></h3>
+                <p style="font-size:12px;margin-top:6px">日记场景下的 Paging3 + Room 集成。最贴近 DiaryApp 的使用场景。</p>
+                <div class="tag-row">
+                    <span class="tag green">场景匹配</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:24px">桌面小组件 (Glance)</h3>
+        <div class="lib-grid">
+            <div class="lib-card">
+                <h3>Smartspacer <span class="star-badge">3,374</span></h3>
+                <p style="font-size:12px;margin-top:6px">最流行的 Glance 小组件项目。自定义 Android At a Glance，无需 Root。</p>
+                <div class="tag-row">
+                    <span class="tag green">高级参考</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>WidgetsTutorial <span class="star-badge">40</span></h3>
+                <p style="font-size:12px;margin-top:6px">Glance 小组件开发教程。从基础到进阶的完整课程。</p>
+                <div class="tag-row">
+                    <span class="tag blue">学习教程</span>
+                </div>
+            </div>
+            <div class="lib-card">
+                <h3>MyBrain Widgets</h3>
+                <p style="font-size:12px;margin-top:6px">MyBrain 的日历小组件实现。日记应用场景下的 Glance 参考。</p>
+                <div class="tag-row">
+                    <span class="tag green">场景匹配</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:24px">日历组件</h3>
+        <div class="lib-grid">
+            <div class="lib-card">
+                <h3>kizitonwose/Calendar <span class="star-badge">5,545</span></h3>
+                <p style="font-size:12px;margin-top:6px">Android/KMP 日历库的事实标准。高度可定制，支持 Compose。被众多日历应用采用。</p>
+                <div class="tag-row">
+                    <span class="tag green">推荐</span>
+                    <span class="tag green">Compose</span>
+                    <span class="tag blue">KMP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Matrix -->
+    <div id="comparison" class="card section-gap">
+        <h2>功能对比矩阵</h2>
+        <p class="lead">DiaryApp 与主流开源日记应用的功能对比。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>功能</th>
+                        <th>DiaryApp</th>
+                        <th>MyBrain</th>
+                        <th>OpenNote</th>
+                        <th>Superdiary</th>
+                        <th>Journal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>富文本编辑</strong></td>
+                        <td style="color:var(--amber)">Quill.js (WebView)</td>
+                        <td style="color:var(--amber)">Markdown</td>
+                        <td style="color:var(--green)">Markdown+LaTeX</td>
+                        <td style="color:var(--muted)">基础</td>
+                        <td style="color:var(--muted)">基础</td>
+                    </tr>
+                    <tr>
+                        <td><strong>心情追踪</strong></td>
+                        <td style="color:var(--green)">1-6 级 + 10 种心情</td>
+                        <td style="color:var(--green)">心情图表</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--amber)">AI 分析</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>日历视图</strong></td>
+                        <td style="color:var(--green)">自定义 CalendarView</td>
+                        <td style="color:var(--green)">日历小组件</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>分页加载</strong></td>
+                        <td style="color:var(--rose)">全量加载</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--green)">Paging3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>全文搜索</strong></td>
+                        <td style="color:var(--amber)">LIKE 查询</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--green)">支持</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--muted)">未确认</td>
+                    </tr>
+                    <tr>
+                        <td><strong>桌面小组件</strong></td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--green)">Glance</td>
+                        <td style="color:var(--green)">支持</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>习惯追踪</strong></td>
+                        <td style="color:var(--green)">HabitRecord 实体</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据库加密</strong></td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--amber)">生物认证</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>云备份</strong></td>
+                        <td style="color:var(--amber)">本地备份</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--rose)">无</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>导出格式</strong></td>
+                        <td style="color:var(--amber)">备份 ZIP</td>
+                        <td style="color:var(--muted)">无</td>
+                        <td style="color:var(--green)">TXT/MD/PDF/HTML</td>
+                        <td style="color:var(--muted)">未确认</td>
+                        <td style="color:var(--muted)">未确认</td>
+                    </tr>
+                    <tr>
+                        <td><strong>统计分析</strong></td>
+                        <td style="color:var(--green)">StatsScreen</td>
+                        <td style="color:var(--green)">心情图表</td>
+                        <td style="color:var(--amber)">字数统计</td>
+                        <td style="color:var(--amber)">AI 分析</td>
+                        <td style="color:var(--rose)">无</td>
+                    </tr>
+                    <tr>
+                        <td><strong>多模块架构</strong></td>
+                        <td style="color:var(--rose)">单模块</td>
+                        <td style="color:var(--green)">多模块</td>
+                        <td style="color:var(--amber)">单模块</td>
+                        <td style="color:var(--green)">多模块</td>
+                        <td style="color:var(--green)">多模块</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div id="takeaways" class="card section-gap">
+        <h2>关键结论与建议</h2>
+        <p class="lead">基于竞品调研，DiaryApp 的优势、差距和改进方向。</p>
+
+        <div class="note-box" style="margin-top:20px">
+            <p><strong>DiaryApp 的独特优势：</strong>心情追踪系统（10 种心情 + 1-6 级）在开源日记应用中最为完善。习惯追踪（HabitRecord）是独有的差异化功能。日历视图在同类应用中也较少见。</p>
+        </div>
+
+        <div class="note-box amber" style="margin-top:12px">
+            <p><strong>最大差距 - 架构：</strong>DiaryApp 是唯一的单模块架构。MyBrain、Superdiary、Journal 都采用多模块 Clean Architecture。单模块导致 DiaryDao 拥有 80+ 方法，HomeViewModel 拥有 15+ StateFlow，耦合度高。</p>
+        </div>
+
+        <div class="note-box rose" style="margin-top:12px">
+            <p><strong>最大差距 - 编辑器：</strong>Quill.js + WebView 方案在 Android 社区几乎无参考案例。compose-rich-editor (1,793 stars) 是 Compose 生态的主流选择。TipTap 在 Android 端也无成功案例。建议中期评估 compose-rich-editor 迁移可行性。</p>
+        </div>
+
+        <h3 style="margin-top:24px">优先改进方向</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>优先级</th>
+                        <th>改进项</th>
+                        <th>参考项目</th>
+                        <th>预期收益</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="color:var(--rose);font-weight:700">P0</td>
+                        <td>Paging3 分页加载</td>
+                        <td>Journal, TvFlix</td>
+                        <td>解决全量加载的性能瓶颈</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--rose);font-weight:700">P0</td>
+                        <td>展示已计算数据 (weeklySummary, moodTrend)</td>
+                        <td>MyBrain Dashboard</td>
+                        <td>零成本提升首页价值</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--amber);font-weight:700">P1</td>
+                        <td>Glance 桌面小组件</td>
+                        <td>MyBrain, Smartspacer</td>
+                        <td>提升用户粘性和便捷性</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--amber);font-weight:700">P1</td>
+                        <td>多模块架构拆分</td>
+                        <td>MyBrain, Journal</td>
+                        <td>降低耦合，提升可维护性</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--green);font-weight:700">P2</td>
+                        <td>FTS5 全文搜索</td>
+                        <td>OpenNote</td>
+                        <td>搜索性能和准确性提升</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--green);font-weight:700">P2</td>
+                        <td>PDF/Markdown 导出</td>
+                        <td>OpenNote</td>
+                        <td>用户数据可移植性</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--soft);font-weight:700">P3</td>
+                        <td>编辑器迁移 (compose-rich-editor)</td>
+                        <td>compose-rich-editor</td>
+                        <td>彻底解决 WebView IME 问题</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

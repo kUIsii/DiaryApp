@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日历心情方案预览</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --paper: rgba(255, 251, 246, 0.9);
+            --ink: #25303c;
+            --muted: #68707c;
+            --accent: #bb7b4b;
+            --accent-soft: rgba(187, 123, 75, 0.12);
+            --today: #4d8fd2;
+            --selected: #476983;
+            --mood-1: #6f7ea4;
+            --mood-2: #8f83bb;
+            --mood-3: #56a3a6;
+            --mood-4: #e59d5c;
+            --mood-5: #d7726d;
+            --mood-6: #e25d78;
+            --shadow: 0 22px 56px rgba(60, 40, 26, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 34%),
+                linear-gradient(135deg, #eee3d2, #f8f3ec 44%, #ebe1d4);
+            padding: 28px;
+        }
+
+        .shell {
+            max-width: 1480px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .card {
+            background: var(--paper);
+            border: 1px solid rgba(255, 255, 255, 0.68);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .intro,
+        .legend,
+        .notes {
+            padding: 24px 28px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        h1 {
+            margin: 16px 0 12px;
+            font-size: clamp(30px, 4vw, 44px);
+            line-height: 1.08;
+            font-family: Georgia, "Noto Serif SC", serif;
+            font-weight: 700;
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .intro p,
+        .variant p,
+        .notes li {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.78;
+            font-size: 14px;
+        }
+
+        .intro p + p {
+            margin-top: 10px;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(37, 48, 60, 0.05);
+        }
+
+        .legend-item .material-symbols-rounded {
+            font-size: 20px;
+        }
+
+        .legend-item strong {
+            display: block;
+            font-size: 13px;
+        }
+
+        .legend-item span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .variants {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .variant {
+            padding: 20px;
+        }
+
+        .variant.focus {
+            border: 1px solid rgba(187, 123, 75, 0.16);
+            box-shadow: 0 26px 58px rgba(70, 47, 28, 0.14);
+        }
+
+        .variant-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .variant-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .variant-mark {
+            width: 28px;
+            height: 28px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+            background: rgba(71, 105, 131, 0.12);
+            color: var(--selected);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--selected);
+            background: rgba(71, 105, 131, 0.1);
+        }
+
+        .variant p {
+            min-height: 74px;
+            margin-bottom: 16px;
+        }
+
+        .calendar {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.56)),
+                repeating-linear-gradient(
+                    180deg,
+                    transparent 0 31px,
+                    rgba(37, 48, 60, 0.03) 31px 32px
+                );
+            border-radius: 22px;
+            border: 1px solid rgba(37, 48, 60, 0.06);
+            padding: 16px;
+        }
+
+        .calendar-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .calendar-head strong {
+            color: var(--ink);
+            font-size: 15px;
+        }
+
+        .weekdays,
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .weekdays {
+            margin-bottom: 8px;
+        }
+
+        .weekdays span {
+            text-align: center;
+            color: rgba(37, 48, 60, 0.45);
+            font-size: 11px;
+        }
+
+        .day {
+            --wash: transparent;
+            --bar-color: rgba(71, 105, 131, 0.55);
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 18px;
+            padding: 6px 4px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 3px;
+            color: rgba(37, 48, 60, 0.88);
+            background: var(--wash);
+            overflow: hidden;
+        }
+
+        .day.empty {
+            opacity: 0;
+        }
+
+        .day.today {
+            box-shadow: inset 0 0 0 1px rgba(77, 143, 210, 0.18);
+            background: rgba(77, 143, 210, 0.08);
+        }
+
+        .day.selected {
+            background: rgba(71, 105, 131, 0.88);
+            color: #fff;
+        }
+
+        .day.has-badge {
+            padding-top: 9px;
+        }
+
+        .day-number {
+            position: relative;
+            z-index: 2;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .day-number.grow-1 {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .day-number.grow-2 {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .day-number.grow-3 {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .icon-wrap {
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            line-height: 1;
+            position: relative;
+            z-index: 2;
+        }
+
+        .mini-icon {
+            font-family: "Material Symbols Rounded";
+            font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 20;
+            font-size: 12px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bar-row {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            margin-top: 1px;
+            min-height: 3px;
+        }
+
+        .bar {
+            width: 7px;
+            height: 3px;
+            border-radius: 999px;
+            background: var(--bar-color);
+        }
+
+        .bar.soft {
+            opacity: 0.8;
+        }
+
+        .bar.strong {
+            width: 8px;
+            height: 4px;
+        }
+
+        .selected .bar {
+            background: rgba(255, 255, 255, 0.84);
+        }
+
+        .count-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            min-width: 15px;
+            height: 15px;
+            padding: 0 4px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 800;
+            line-height: 1;
+            color: #fff;
+            background: rgba(37, 48, 60, 0.78);
+            z-index: 3;
+        }
+
+        .selected .count-badge {
+            background: rgba(255, 255, 255, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .count-chip {
+            margin-top: 1px;
+            padding: 1px 5px;
+            border-radius: 999px;
+            font-size: 8px;
+            font-weight: 800;
+            color: rgba(37, 48, 60, 0.75);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .selected .count-chip {
+            background: rgba(255, 255, 255, 0.16);
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .ring {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            position: relative;
+            z-index: 2;
+        }
+
+        .ring::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            border: 1.5px solid rgba(var(--mood-rgb), var(--ring-alpha));
+        }
+
+        .selected .ring::before {
+            border-color: rgba(255, 255, 255, 0.42);
+        }
+
+        .stack {
+            position: relative;
+            width: 20px;
+            height: 12px;
+            margin-top: 1px;
+        }
+
+        .stack .mini-icon {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.86);
+            border-radius: 999px;
+        }
+
+        .selected .stack .mini-icon {
+            background: transparent;
+        }
+
+        .stack .mini-icon.second {
+            top: 4px;
+            left: calc(50% + 5px);
+        }
+
+        .overflow {
+            font-size: 8px;
+            font-weight: 800;
+            color: rgba(71, 105, 131, 0.92);
+        }
+
+        .selected .overflow,
+        .selected .mini-icon,
+        .selected .day-number {
+            color: #fff;
+        }
+
+        .notes ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .notes li + li {
+            margin-top: 8px;
+        }
+
+        .notes strong {
+            color: var(--ink);
+        }
+
+        .m1 { color: var(--mood-1); }
+        .m2 { color: var(--mood-2); }
+        .m3 { color: var(--mood-3); }
+        .m4 { color: var(--mood-4); }
+        .m5 { color: var(--mood-5); }
+        .m6 { color: var(--mood-6); }
+
+        @media (max-width: 1180px) {
+            .hero,
+            .variants {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 16px;
+            }
+
+            .legend-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div class="card intro">
+                <div class="eyebrow">Calendar Mood Preview</div>
+                <h1>把目标收紧成一件事：简练，但还能看出主心情和篇数</h1>
+                <p>
+                    你刚刚的方向其实已经很接近答案了：
+                    用背景色表达当天主心情，再用底部短条表达这天写得多不多。
+                    这一页我把这个思路做成两张重点方案，放在最前面。
+                </p>
+                <p>
+                    后面保留几张旧方案做对照，方便你判断到底是“背景 + 短条”更顺，
+                    还是原来那种 icon、角标、数字的方式更容易接受。
+                </p>
+            </div>
+
+            <aside class="card legend">
+                <h2>当前心情 icon 对照</h2>
+                <div class="legend-grid" id="legend"></div>
+            </aside>
+        </section>
+
+        <section class="variants">
+            <article class="card variant focus">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">A</span>
+                        <h2>背景主心情 + 数量短条</h2>
+                    </div>
+                    <span class="pill">主推</span>
+                </div>
+                <p>
+                    背景只负责告诉你这天整体偏什么心情，底部短条只负责告诉你写得多不多。
+                    规则很简单：1 篇 1 条，2 篇 2 条，3 篇及以上 3 条。
+                </p>
+                <div class="calendar" data-variant="toneBars"></div>
+            </article>
+
+            <article class="card variant focus">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">B</span>
+                        <h2>背景主心情 + 强化短条</h2>
+                    </div>
+                    <span class="pill">稍强一点</span>
+                </div>
+                <p>
+                    也是背景看主心情、短条看数量，但 3 篇及以上会让最后一条更粗一点，
+                    让“今天写得很多”更容易一眼被看见。
+                </p>
+                <div class="calendar" data-variant="toneBarsStrong"></div>
+            </article>
+
+            <article class="card variant">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">C</span>
+                        <h2>主 icon + 右上数量角标</h2>
+                    </div>
+                    <span class="pill">清晰</span>
+                </div>
+                <p>
+                    这还是最直白的老方案之一。优点是信息最明确，缺点是视觉存在感会更强，
+                    没有“背景 + 短条”那种安静感。
+                </p>
+                <div class="calendar" data-variant="badge"></div>
+            </article>
+
+            <article class="card variant">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">D</span>
+                        <h2>主心情背景 + 小计数</h2>
+                    </div>
+                    <span class="pill">折中</span>
+                </div>
+                <p>
+                    如果你觉得短条仍然有点抽象，这个方案会温和一点：
+                    背景看主心情，底部只保留一个很轻的小计数提示。
+                </p>
+                <div class="calendar" data-variant="wash"></div>
+            </article>
+
+            <article class="card variant">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">E</span>
+                        <h2>主 icon + 底部短条</h2>
+                    </div>
+                    <span class="pill">旧对照</span>
+                </div>
+                <p>
+                    和你现在喜欢的方向只差一个背景色，所以适合当对照看。
+                    如果你觉得加了背景后反而变花，就可以回到这种更轻的形式。
+                </p>
+                <div class="calendar" data-variant="bars"></div>
+            </article>
+
+            <article class="card variant">
+                <div class="variant-head">
+                    <div class="variant-label">
+                        <span class="variant-mark">F</span>
+                        <h2>双 icon + +N</h2>
+                    </div>
+                    <span class="pill">多心情</span>
+                </div>
+                <p>
+                    这个依然更适合表达“这天情绪很多样”，但不是最简练。
+                    留在这里主要是帮你确认自己是不是真的想放弃“混合心情”的展示。
+                </p>
+                <div class="calendar" data-variant="legacy"></div>
+            </article>
+        </section>
+
+        <section class="card notes">
+            <h2>我的建议</h2>
+            <ul>
+                <li><strong>如果你想尽量简练，还要保留主心情和篇数：</strong> 先重点看 A 和 B 就够了。</li>
+                <li><strong>A 更稳：</strong> 规则最简单，理解成本最低，也最不容易用久了觉得乱。</li>
+                <li><strong>B 更有“数量感”：</strong> 但也会比 A 多一点视觉存在感。</li>
+                <li><strong>如果你看完发现背景已经足够表达心情：</strong> 那正式版甚至可以不再放 icon，只保留背景和短条。</li>
+            </ul>
+        </section>
+    </div>
+
+    <script>
+        const moods = {
+            1: { label: "沮丧", icon: "mood_bad", className: "m1", rgb: "111, 126, 164" },
+            2: { label: "低落", icon: "sentiment_dissatisfied", className: "m2", rgb: "143, 131, 187" },
+            3: { label: "平静", icon: "sentiment_neutral", className: "m3", rgb: "86, 163, 166" },
+            4: { label: "开心", icon: "mood", className: "m4", rgb: "229, 157, 92" },
+            5: { label: "愉快", icon: "sentiment_satisfied", className: "m5", rgb: "215, 114, 109" },
+            6: { label: "兴奋", icon: "sentiment_very_satisfied", className: "m6", rgb: "226, 93, 120" }
+        };
+
+        const samples = {
+            2: [4],
+            5: [5, 5, 5],
+            8: [3, 5],
+            10: [6, 6, 6, 5, 5],
+            13: [1, 2],
+            15: [4, 4, 4, 4, 5],
+            18: [3],
+            21: [5, 6, 6, 4],
+            23: [1, 1, 2],
+            26: [2, 3, 4, 5, 6],
+            28: [4, 5],
+            30: [2]
+        };
+
+        const variantTitles = {
+            toneBars: "方案 A",
+            toneBarsStrong: "方案 B",
+            badge: "方案 C",
+            wash: "方案 D",
+            bars: "方案 E",
+            legacy: "方案 F"
+        };
+
+        const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+
+        function getMoodMeta(levels) {
+            const counts = new Map();
+            levels.forEach((level) => counts.set(level, (counts.get(level) || 0) + 1));
+            const ordered = [...counts.entries()]
+                .sort((a, b) => b[1] - a[1] || b[0] - a[0])
+                .map(([level]) => level);
+            return {
+                count: levels.length,
+                ordered,
+                dominant: ordered[0] || null,
+                hidden: Math.max(ordered.length - 2, 0)
+            };
+        }
+
+        function countTier(count) {
+            if (count >= 3) return 3;
+            if (count === 2) return 2;
+            return count > 0 ? 1 : 0;
+        }
+
+        function countAlpha(count) {
+            return Math.min(0.1 + count * 0.045, 0.26).toFixed(3);
+        }
+
+        function countWeightClass(count) {
+            if (count >= 5) return "grow-3";
+            if (count >= 3) return "grow-2";
+            return "grow-1";
+        }
+
+        function icon(level, selected) {
+            const mood = moods[level];
+            if (!mood) return "";
+            return `<span class="mini-icon material-symbols-rounded ${selected ? "" : mood.className}">${mood.icon}</span>`;
+        }
+
+        function renderLegacy(meta, selected) {
+            if (!meta.count) return "";
+            const visible = meta.ordered.slice(0, 2);
+            return `
+                <div class="icon-wrap">
+                    ${visible.map((level) => icon(level, selected)).join("")}
+                    ${meta.hidden > 0 ? `<span class="overflow">+${meta.hidden}</span>` : ""}
+                </div>
+            `;
+        }
+
+        function renderBars(meta, selected) {
+            if (!meta.count) return "";
+            const tier = countTier(meta.count);
+            return `
+                <div class="icon-wrap">${icon(meta.dominant, selected)}</div>
+                <div class="bar-row">
+                    ${Array.from({ length: tier }).map(() => `<span class="bar"></span>`).join("")}
+                </div>
+            `;
+        }
+
+        function renderBadge(meta, selected) {
+            if (!meta.count) return "";
+            return `
+                <span class="count-badge">${meta.count}</span>
+                <div class="icon-wrap">${icon(meta.dominant, selected)}</div>
+            `;
+        }
+
+        function renderWash(meta, selected) {
+            if (!meta.count) return "";
+            return `
+                <div class="icon-wrap">${icon(meta.dominant, selected)}</div>
+                <div class="count-chip">${meta.count} 篇</div>
+            `;
+        }
+
+        function renderToneBars(meta, selected, emphasize) {
+            if (!meta.count) return "";
+            const tier = countTier(meta.count);
+            return `
+                <div class="bar-row">
+                    ${Array.from({ length: tier }).map((_, index) => {
+                        const last = index === tier - 1;
+                        const cls = emphasize && tier === 3 && last ? "bar strong" : "bar soft";
+                        return `<span class="${cls}"></span>`;
+                    }).join("")}
+                </div>
+            `;
+        }
+
+        function renderFooter(variant, meta, selected) {
+            if (variant === "toneBars") return renderToneBars(meta, selected, false);
+            if (variant === "toneBarsStrong") return renderToneBars(meta, selected, true);
+            if (variant === "badge") return renderBadge(meta, selected);
+            if (variant === "wash") return renderWash(meta, selected);
+            if (variant === "bars") return renderBars(meta, selected);
+            return renderLegacy(meta, selected);
+        }
+
+        function renderLegend() {
+            const legend = document.getElementById("legend");
+            Object.entries(moods).forEach(([level, mood]) => {
+                const item = document.createElement("div");
+                item.className = "legend-item";
+                item.innerHTML = `
+                    <span class="material-symbols-rounded ${mood.className}">${mood.icon}</span>
+                    <div>
+                        <strong>${mood.label}</strong>
+                        <span>Level ${level}</span>
+                    </div>
+                `;
+                legend.appendChild(item);
+            });
+        }
+
+        function renderCalendar(container, variant) {
+            const head = `
+                <div class="calendar-head">
+                    <strong>${variantTitles[variant]} · 2026 年 6 月</strong>
+                    <span>示例含 1、2、3、4、5 篇不同情况</span>
+                </div>
+                <div class="weekdays">
+                    ${weekdays.map((day) => `<span>${day}</span>`).join("")}
+                </div>
+            `;
+
+            const startOffset = 1;
+            let grid = '<div class="grid">';
+
+            for (let i = 0; i < startOffset; i++) {
+                grid += '<div class="day empty"></div>';
+            }
+
+            for (let day = 1; day <= 30; day++) {
+                const levels = samples[day] || [];
+                const meta = getMoodMeta(levels);
+                const isToday = day === 10;
+                const isSelected = day === 21;
+                const dominantMood = meta.dominant ? moods[meta.dominant] : null;
+                const usesBackground = ["toneBars", "toneBarsStrong", "wash"].includes(variant);
+                const dayClasses = [
+                    "day",
+                    isToday ? "today" : "",
+                    isSelected ? "selected" : "",
+                    meta.count && variant === "badge" ? "has-badge" : ""
+                ].filter(Boolean).join(" ");
+
+                const washStyle = usesBackground && dominantMood
+                    ? `--wash: rgba(${dominantMood.rgb}, ${countAlpha(meta.count)}); --bar-color: rgba(${dominantMood.rgb}, 0.92);`
+                    : dominantMood
+                        ? `--bar-color: rgba(${dominantMood.rgb}, 0.88);`
+                        : "";
+
+                const growClass = variant === "toneBarsStrong" ? countWeightClass(meta.count) : "grow-1";
+
+                grid += `
+                    <div class="${dayClasses}" style="${washStyle}">
+                        <div class="day-number ${growClass}">${day}</div>
+                        ${renderFooter(variant, meta, isSelected)}
+                    </div>
+                `;
+            }
+
+            grid += "</div>";
+            container.innerHTML = head + grid;
+        }
+
+        renderLegend();
+        document.querySelectorAll(".calendar").forEach((node) => {
+            renderCalendar(node, node.dataset.variant);
+        });
+    </script>
+</body>
+</html>

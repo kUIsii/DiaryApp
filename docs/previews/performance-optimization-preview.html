@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>性能优化 Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #fafafa;
+    border-radius: 40px;
+    border: 8px solid #1a1a1a;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .status-bar {
+    height: 44px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .status-bar-left { font-size: 14px; font-weight: 700; }
+  .status-bar-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .battery {
+    width: 22px; height: 10px;
+    border: 1.5px solid #1a1a1a;
+    border-radius: 2px;
+    position: relative;
+    display: inline-block;
+  }
+  .battery::after {
+    content: "";
+    position: absolute;
+    right: -4px; top: 2px;
+    width: 2px; height: 4px;
+    background: #1a1a1a;
+    border-radius: 0 1px 1px 0;
+  }
+  .battery-fill {
+    width: 70%; height: 100%;
+    background: #1a1a1a;
+    border-radius: 1px;
+  }
+  .screen {
+    height: calc(100% - 44px);
+    overflow-y: auto;
+    background: #f5f5f7;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+  .header {
+    background: #ffffff;
+    padding: 16px 20px;
+    border-bottom: 0.5px solid #e5e5e7;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: #86868b;
+    margin-top: 2px;
+  }
+  .content { padding: 16px; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #86868b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+  .section-title:first-child { margin-top: 0; }
+  .metric-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .metric-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .metric-change {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .metric-before {
+    font-size: 13px;
+    color: #ff3b30;
+    text-decoration: line-through;
+    font-weight: 500;
+  }
+  .metric-arrow {
+    font-size: 11px;
+    color: #86868b;
+  }
+  .metric-after {
+    font-size: 15px;
+    font-weight: 700;
+    color: #34c759;
+  }
+  .metric-bar-wrap {
+    margin-top: 10px;
+    background: #f0f0f2;
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .metric-bar-before {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    border-radius: 6px;
+    opacity: 0.25;
+  }
+  .metric-bar-after {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    border-radius: 6px;
+  }
+  .metric-desc {
+    font-size: 11px;
+    color: #86868b;
+    margin-top: 6px;
+  }
+
+  /* Chart section */
+  .chart-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 14px;
+  }
+  .chart-bars { display: flex; flex-direction: column; gap: 12px; }
+  .chart-row { display: flex; align-items: center; gap: 10px; }
+  .chart-label {
+    width: 72px;
+    font-size: 11px;
+    color: #636366;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .chart-track {
+    flex: 1;
+    height: 22px;
+    background: #f5f5f7;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .chart-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    min-width: 36px;
+    transition: width 0.6s ease;
+  }
+  .chart-fill.red { background: linear-gradient(90deg, #ff6b6b, #ff3b30); }
+  .chart-fill.green { background: linear-gradient(90deg, #5eef8c, #34c759); }
+
+  /* DB section */
+  .db-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .db-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .db-row:last-child { margin-bottom: 0; }
+  .db-col {
+    flex: 1;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .db-col-before {
+    background: #fff5f5;
+    border: 1px solid #ffe0e0;
+  }
+  .db-col-after {
+    background: #f0faf3;
+    border: 1px solid #d4f0dc;
+  }
+  .db-col-title {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .db-col-before .db-col-title { color: #ff3b30; }
+  .db-col-after .db-col-title { color: #34c759; }
+  .db-item {
+    font-size: 11px;
+    color: #48484a;
+    line-height: 1.6;
+    padding-left: 10px;
+    position: relative;
+  }
+  .db-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 7px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+  }
+  .db-col-before .db-item::before { background: #ff3b30; }
+  .db-col-after .db-item::before { background: #34c759; }
+
+  /* WorkManager */
+  .wm-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .wm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #f0f0f2;
+  }
+  .wm-item:last-child { border-bottom: none; }
+  .wm-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .wm-icon-blue { background: linear-gradient(135deg, #5ac8fa, #007aff); }
+  .wm-icon-purple { background: linear-gradient(135deg, #bf5af2, #8944ab); }
+  .wm-icon-orange { background: linear-gradient(135deg, #ffcc02, #ff9f0a); }
+  .wm-info { flex: 1; }
+  .wm-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .wm-desc {
+    font-size: 11px;
+    color: #86868b;
+    margin-top: 1px;
+  }
+  .wm-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .wm-tag-unique { background: #e8f5ee; color: #34c759; }
+  .wm-tag-periodic { background: #eef1ff; color: #5856d6; }
+  .wm-tag-flex { background: #fff8e6; color: #ff9f0a; }
+
+  /* Progress checklist */
+  .progress-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+  }
+  .check-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .check-done { background: #34c759; }
+  .check-done::after {
+    content: "";
+    width: 6px; height: 9px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg);
+    margin-top: -2px;
+  }
+  .check-doing { background: #fff; border: 2px solid #007aff; }
+  .check-doing::after {
+    content: "";
+    width: 6px; height: 6px;
+    background: #007aff;
+    border-radius: 50%;
+  }
+  .check-todo { background: #fff; border: 2px solid #c7c7cc; }
+  .check-info { flex: 1; }
+  .check-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .check-item.dim .check-title { color: #86868b; }
+  .check-sub {
+    font-size: 11px;
+    color: #86868b;
+    margin-top: 2px;
+  }
+  .check-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .status-done { background: #e8f5ee; color: #34c759; }
+  .status-doing { background: #eef1ff; color: #007aff; }
+  .status-todo { background: #f5f5f7; color: #86868b; }
+
+  /* Progress bar at bottom */
+  .overall-bar-wrap {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .overall-bar-track {
+    flex: 1;
+    height: 6px;
+    background: #f0f0f2;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .overall-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #34c759, #30d158);
+    border-radius: 3px;
+    width: 45%;
+  }
+  .overall-pct {
+    font-size: 13px;
+    font-weight: 700;
+    color: #34c759;
+    width: 36px;
+    text-align: right;
+  }
+
+  .bottom-spacer { height: 24px; }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="status-bar-left">9:41</span>
+    <span class="status-bar-right">
+      <span>5G</span>
+      <span><span class="battery"><span class="battery-fill"></span></span></span>
+    </span>
+  </div>
+  <div class="screen">
+    <div class="header">
+      <h1>性能优化</h1>
+      <div class="header-sub">数据库查询与界面渲染优化方案</div>
+    </div>
+    <div class="content">
+
+      <!-- Performance Metrics -->
+      <div class="section-title">核心性能指标</div>
+
+      <div class="metric-card">
+        <div class="metric-row">
+          <span class="metric-label">列表加载</span>
+          <div class="metric-change">
+            <span class="metric-before">1200ms</span>
+            <span class="metric-arrow">--</span>
+            <span class="metric-after">180ms</span>
+          </div>
+        </div>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-before" style="width:100%;background:#ff3b30;"></div>
+          <div class="metric-bar-after" style="width:15%;background:#34c759;"></div>
+        </div>
+        <div class="metric-desc">Paging3 分页加载 + DiffUtil 增量更新</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-row">
+          <span class="metric-label">搜索速度</span>
+          <div class="metric-change">
+            <span class="metric-before">850ms</span>
+            <span class="metric-arrow">--</span>
+            <span class="metric-after">45ms</span>
+          </div>
+        </div>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-before" style="width:100%;background:#ff3b30;"></div>
+          <div class="metric-bar-after" style="width:5.3%;background:#34c759;"></div>
+        </div>
+        <div class="metric-desc">FTS5 全文搜索引擎替代 LIKE 模糊匹配</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-row">
+          <span class="metric-label">内存占用</span>
+          <div class="metric-change">
+            <span class="metric-after">降低 40%</span>
+          </div>
+        </div>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-before" style="width:100%;background:#ff9f0a;"></div>
+          <div class="metric-bar-after" style="width:60%;background:#34c759;"></div>
+        </div>
+        <div class="metric-desc">图片懒加载 + 大对象回收 + Bitmap 采样压缩</div>
+      </div>
+
+      <!-- Before/After Bar Chart -->
+      <div class="section-title">优化前后对比</div>
+      <div class="chart-card">
+        <div class="chart-title">查询耗时对比 (ms)</div>
+        <div class="chart-bars">
+          <div class="chart-row">
+            <div class="chart-label">列表查询</div>
+            <div class="chart-track">
+              <div class="chart-fill red" style="width:100%;">1200</div>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label"></div>
+            <div class="chart-track">
+              <div class="chart-fill green" style="width:15%;">180</div>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label">全文搜索</div>
+            <div class="chart-track">
+              <div class="chart-fill red" style="width:71%;">850</div>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label"></div>
+            <div class="chart-track">
+              <div class="chart-fill green" style="width:3.8%;">45</div>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label">日期筛选</div>
+            <div class="chart-track">
+              <div class="chart-fill red" style="width:50%;">600</div>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label"></div>
+            <div class="chart-track">
+              <div class="chart-fill green" style="width:6%;">72</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database Query Optimization -->
+      <div class="section-title">数据库查询优化</div>
+      <div class="db-card">
+        <div class="db-row">
+          <div class="db-col db-col-before">
+            <div class="db-col-title">当前方案</div>
+            <div class="db-item">LIKE '%关键词%' 全表扫描</div>
+            <div class="db-item">strftime 阻塞索引命中</div>
+            <div class="db-item">无复合索引, ORDER BY 慢</div>
+            <div class="db-item">单次查询返回全量数据</div>
+          </div>
+          <div class="db-col db-col-after">
+            <div class="db-col-title">优化后</div>
+            <div class="db-item">FTS5 全文搜索索引</div>
+            <div class="db-item">预计算时间戳列 + 索引</div>
+            <div class="db-item">(date, mood, id) 复合索引</div>
+            <div class="db-item">PagingSource 流式加载</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WorkManager -->
+      <div class="section-title">后台任务调度</div>
+      <div class="wm-card">
+        <div class="wm-item">
+          <div class="wm-icon wm-icon-blue">备</div>
+          <div class="wm-info">
+            <div class="wm-name">自动备份</div>
+            <div class="wm-desc">每日 02:00 增量备份至本地</div>
+          </div>
+          <span class="wm-tag wm-tag-periodic">周期任务</span>
+        </div>
+        <div class="wm-item">
+          <div class="wm-icon wm-icon-purple">索</div>
+          <div class="wm-info">
+            <div class="wm-name">FTS 索引维护</div>
+            <div class="wm-desc">写入后异步重建搜索索引</div>
+          </div>
+          <span class="wm-tag wm-tag-unique">唯一任务</span>
+        </div>
+        <div class="wm-item">
+          <div class="wm-icon wm-icon-orange">清</div>
+          <div class="wm-info">
+            <div class="wm-name">缓存清理</div>
+            <div class="wm-desc">存储超限时自动清理旧缓存</div>
+          </div>
+          <span class="wm-tag wm-tag-flex">弹性任务</span>
+        </div>
+      </div>
+
+      <!-- Optimization Progress -->
+      <div class="section-title">优化进度</div>
+      <div class="progress-card">
+        <div class="check-item">
+          <div class="check-dot check-done"></div>
+          <div class="check-info">
+            <div class="check-title">Paging3 分页加载集成</div>
+            <div class="check-sub">替换原有 RecyclerView 全量加载</div>
+          </div>
+          <span class="check-status status-done">已完成</span>
+        </div>
+        <div class="check-item">
+          <div class="check-dot check-done"></div>
+          <div class="check-info">
+            <div class="check-title">FTS5 全文搜索索引</div>
+            <div class="check-sub">创建虚拟表并迁移历史数据</div>
+          </div>
+          <span class="check-status status-done">已完成</span>
+        </div>
+        <div class="check-item">
+          <div class="check-dot check-doing"></div>
+          <div class="check-info">
+            <div class="check-title">数据库复合索引优化</div>
+            <div class="check-sub">分析慢查询日志, 添加联合索引</div>
+          </div>
+          <span class="check-status status-doing">进行中</span>
+        </div>
+        <div class="check-item">
+          <div class="check-dot check-doing"></div>
+          <div class="check-info">
+            <div class="check-title">图片内存优化</div>
+            <div class="check-sub">Coil 采样率调整 + 大图回收策略</div>
+          </div>
+          <span class="check-status status-doing">进行中</span>
+        </div>
+        <div class="check-item dim">
+          <div class="check-dot check-todo"></div>
+          <div class="check-info">
+            <div class="check-title">WorkManager 后台任务框架</div>
+            <div class="check-sub">统一备份/索引/清理的调度策略</div>
+          </div>
+          <span class="check-status status-todo">待开始</span>
+        </div>
+        <div class="check-item dim">
+          <div class="check-dot check-todo"></div>
+          <div class="check-info">
+            <div class="check-title">启动耗时优化</div>
+            <div class="check-sub">延迟初始化 + SplashScreen 预加载</div>
+          </div>
+          <span class="check-status status-todo">待开始</span>
+        </div>
+
+        <div class="overall-bar-wrap">
+          <div class="overall-bar-track">
+            <div class="overall-bar-fill"></div>
+          </div>
+          <span class="overall-pct">45%</span>
+        </div>
+      </div>
+
+      <div class="bottom-spacer"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

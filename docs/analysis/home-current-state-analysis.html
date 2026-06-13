@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>首页模块当前状态分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        h4 { margin: 0; font-size: 16px; line-height: 1.35; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .stat { padding: 16px; border-radius: 18px; background: rgba(255,255,255,0.68); border: 1px solid rgba(38,53,67,0.06); }
+        .stat strong { display: block; color: var(--ink); font-size: 24px; margin-bottom: 6px; }
+        .stat span { display: block; color: var(--soft); font-size: 12px; line-height: 1.6; }
+        .section-gap { margin-top: 32px; }
+        .code-block { background: rgba(38,53,67,0.04); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 20px; margin: 14px 0; overflow-x: auto; }
+        .code-block code { background: none; padding: 0; font-size: 13px; line-height: 1.7; font-family: "Cascadia Code", "Fira Code", monospace; color: var(--ink); }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .feature-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .feature-card h3 { display: flex; align-items: center; gap: 10px; }
+        .feature-card h3 .material-symbols-rounded { font-size: 22px; }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .status-done { background: var(--green-soft); color: var(--green); }
+        .status-partial { background: var(--amber-soft); color: var(--amber); }
+        .status-missing { background: var(--rose-soft); color: var(--rose); }
+        .issue-list { list-style: none; padding: 0; margin: 12px 0 0; }
+        .issue-list li { padding: 10px 14px; margin-bottom: 8px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(38,53,67,0.06); font-size: 13px; color: var(--muted); }
+        .issue-list li strong { color: var(--ink); }
+        .note-box { padding: 16px 20px; border-radius: var(--radius-md); background: var(--amber-soft); border: 1px solid rgba(194,139,58,0.2); margin-top: 16px; }
+        .note-box p { color: var(--amber); font-size: 13px; }
+        .improve-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .improve-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .priority-high { border-left: 4px solid var(--rose); }
+        .priority-mid { border-left: 4px solid var(--amber); }
+        .priority-low { border-left: 4px solid var(--green); }
+        .table-wrap { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.6); border-bottom: 2px solid var(--line-strong); font-weight: 700; color: var(--ink); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+        @media (max-width: 900px) { .feature-grid, .improve-grid { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } .shell { padding: 16px 12px 60px; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">home</span>
+            代码分析
+        </span>
+        <h1>首页模块当前状态</h1>
+        <p class="lead">基于 <code>HomeScreen.kt</code> (742行)、<code>HomeViewModel.kt</code>、<code>CalendarView.kt</code>、<code>HomeMultiSelectState.kt</code> 的深度分析。当前版本 v2.61.48-experimental。</p>
+        <div class="anchor-row">
+            <a href="#structure">代码结构</a>
+            <a href="#features">功能清单</a>
+            <a href="#issues">问题诊断</a>
+            <a href="#improvements">优化建议</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="summary-grid">
+        <div class="stat">
+            <strong>742</strong>
+            <span>HomeScreen.kt 行数</span>
+        </div>
+        <div class="stat">
+            <strong>~350</strong>
+            <span>HomeViewModel.kt 行数</span>
+        </div>
+        <div class="stat">
+            <strong>4</strong>
+            <span>新增批量操作功能</span>
+        </div>
+        <div class="stat">
+            <strong>7</strong>
+            <span>导航目标 Screen</span>
+        </div>
+    </div>
+
+    <!-- Code Structure -->
+    <div id="structure" class="card section-gap">
+        <h2>代码结构</h2>
+        <p class="lead">HomeScreen 是应用的主入口，包含日历视图、日记列表、功能菜单等核心组件。</p>
+
+        <div class="code-block">
+<code>// HomeScreen.kt 结构概览
+@Composable
+fun HomeScreen(
+    onNavigateToDetail: (Long) -> Unit,      // → DiaryDetailScreen
+    onNavigateToEditor: (Long?) -> Unit,      // → EditorScreen
+    onNavigateToReview: () -> Unit,           // → DiaryReviewScreen
+    onNavigateToFavorites: () -> Unit,        // → FavoritesScreen
+    onNavigateToTrash: () -> Unit,            // → TrashScreen
+    onNavigateToCountDown: () -> Unit,        // → CountDownScreen
+    onNavigateToTimeline: () -> Unit,         // → TimelineScreen
+    onNavigateToStats: () -> Unit,            // → StatsScreen
+    onNavigateToExperimentalFeatures: () -> Unit, // → ExperimentalFeatures
+    viewModel: HomeViewModel = viewModel()
+)
+
+// 主要组件:
+// 1. 页面标题 + 功能菜单按钮
+// 2. CalendarView (周/月切换)
+// 3. SelectedDateHeader (选中日期 + 批量操作)
+// 4. EntryCard 列表 (LazyColumn)
+// 5. FAB 新建按钮
+// 6. FunctionMenu 下拉菜单</code>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>组件</th>
+                        <th>行数</th>
+                        <th>职责</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>HomeScreen</code></td>
+                        <td>~400</td>
+                        <td>主 Composable，组合所有子组件</td>
+                        <td><span class="status-badge status-done">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>CalendarView</code></td>
+                        <td>~200</td>
+                        <td>周/月日历切换，日期选择</td>
+                        <td><span class="status-badge status-done">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>EntryCard</code></td>
+                        <td>~100</td>
+                        <td>日记条目卡片，显示标题/预览/标签</td>
+                        <td><span class="status-badge status-done">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>SelectedDateHeader</code></td>
+                        <td>~60</td>
+                        <td>日期标题 + 批量操作按钮</td>
+                        <td><span class="status-badge status-done">新增</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>FAB</code></td>
+                        <td>~30</td>
+                        <td>浮动新建按钮</td>
+                        <td><span class="status-badge status-done">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>HomeMultiSelectState</code></td>
+                        <td>29</td>
+                        <td>多选状态管理 (data class)</td>
+                        <td><span class="status-badge status-done">新增</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div id="features" class="card section-gap">
+        <h2>功能清单</h2>
+        <p class="lead">当前已实现的功能和最近新增的特性。</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">check_circle</span> 日历视图</h3>
+                <ul class="issue-list">
+                    <li><strong>周/月切换</strong> - AnimatedContent 动画过渡</li>
+                    <li><strong>心情指示器</strong> - 日期下方显示心情颜色点</li>
+                    <li><strong>多心情支持</strong> - 同日多条日记显示混合心情</li>
+                    <li><strong>左右导航</strong> - 箭头切换月份/周</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">check_circle</span> 日记列表</h3>
+                <ul class="issue-list">
+                    <li><strong>按日期过滤</strong> - 点击日历日期显示当天日记</li>
+                    <li><strong>动画入场</strong> - fadeIn + slideInVertically 延迟动画</li>
+                    <li><心情/天气/标签</strong> - EntryCard 显示完整元数据</li>
+                    <li><strong>长按多选</strong> - 批量收藏/删除操作</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">check_circle</span> 批量操作 (新增)</h3>
+                <ul class="issue-list">
+                    <li><strong>多选模式</strong> - 长按进入，点击切换选中</li>
+                    <li><strong>批量收藏</strong> - 一键收藏选中的日记</li>
+                    <li><strong>批量删除</strong> - 确认对话框 + 软删除到回收站</li>
+                    <li><strong>视觉反馈</strong> - 选中卡片高亮显示</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">check_circle</span> 功能菜单</h3>
+                <ul class="issue-list">
+                    <li><strong>实验功能</strong> - 新增入口到 ExperimentalFeatures</li>
+                    <li><strong>统计</strong> - 跳转到 StatsScreen</li>
+                    <li><strong>倒数日</strong> - 跳转到 CountDownScreen</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issues -->
+    <div id="issues" class="card section-gap">
+        <h2>问题诊断</h2>
+        <p class="lead">当前代码中存在的性能和架构问题。</p>
+
+        <div class="feature-grid">
+            <div class="feature-card" style="border-left: 4px solid var(--rose)">
+                <h3><span class="material-symbols-rounded" style="color:var(--rose)">warning</span> 性能问题</h3>
+                <ul class="issue-list">
+                    <li><strong>全量加载</strong> - <code>getAllPreviews()</code> 加载所有日记到内存，1000+ 条时内存压力大</li>
+                    <li><strong>Kotlin 过滤</strong> - 日期/标签/心情过滤在 Kotlin 层完成，非 SQL 层</li>
+                    <li><strong>重复计算</strong> - <code>dayInfoMap</code 每次 allEntries 变化都重新计算</li>
+                    <li><strong>无分页</strong> - LazyColumn 加载全部数据，无懒加载</li>
+                </ul>
+            </div>
+
+            <div class="feature-card" style="border-left: 4px solid var(--amber)">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">info</span> 架构问题</h3>
+                <ul class="issue-list">
+                    <li><strong>ViewModel 膨胀</strong> - HomeViewModel 包含 15+ 个 StateFlow</li>
+                    <li><strong>搜索缺失</strong> - 搜索功能仅在 TimelineScreen 存在</li>
+                    <li><strong>无"历史今天"</strong> - onThisDayEntries 存在但未在首页展示</li>
+                    <li><strong>无周报摘要</strong> - weeklySummary 数据已计算但未渲染</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="note-box">
+            <p><strong>关键发现：</strong>HomeViewModel 已经计算了 <code>weeklySummary</code>、<code>moodTrend</code>、<code>onThisDayEntries</code> 等数据，但 HomeScreen 并未使用这些数据。这是一个低成本高收益的优化机会。</p>
+        </div>
+    </div>
+
+    <!-- Improvements -->
+    <div id="improvements" class="card section-gap">
+        <h2>优化建议</h2>
+        <p class="lead">按优先级排序的改进方案。</p>
+
+        <div class="improve-grid">
+            <div class="improve-card priority-high">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-missing">P0</span>
+                    引入 Paging3
+                </h3>
+                <p style="font-size:13px;margin-top:10px">将 <code>getAllPreviews()</code> 替换为 <code>PagingSource</code>，实现分页加载。首屏只加载 30 条，滚动时懒加载更多。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 2天 | 影响: HomeViewModel + HomeScreen</p>
+            </div>
+
+            <div class="improve-card priority-high">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-missing">P0</span>
+                    添加首页搜索
+                </h3>
+                <p style="font-size:13px;margin-top:10px">在日历下方添加搜索栏，支持全文搜索 + 心情/天气/标签过滤。复用 TimelineScreen 的搜索逻辑。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 1天 | 影响: HomeScreen + HomeViewModel</p>
+            </div>
+
+            <div class="improve-card priority-mid">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-partial">P1</span>
+                    展示已有数据
+                </h3>
+                <p style="font-size:13px;margin-top:10px">将已计算但未使用的 <code>weeklySummary</code>、<code>moodTrend</code>、<code>onThisDayEntries</code> 渲染到首页。低成本高收益。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 1天 | 影响: HomeScreen</p>
+            </div>
+
+            <div class="improve-card priority-mid">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-partial">P1</span>
+                    HorizontalPager 日历
+                </h3>
+                <p style="font-size:13px;margin-top:10px">用 <code>HorizontalPager</code> 替换箭头导航，支持左右滑动切换月份/周。提升日历交互体验。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 1天 | 影响: CalendarView</p>
+            </div>
+
+            <div class="improve-card priority-low">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-done">P2</span>
+                    左滑操作
+                </h3>
+                <p style="font-size:13px;margin-top:10px">EntryCard 支持左滑显示收藏/删除按钮。使用 <code>SwipeToDismiss</code> 或自定义手势。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 1天 | 影响: EntryCard</p>
+            </div>
+
+            <div class="improve-card priority-low">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="status-badge status-done">P2</span>
+                    情绪热力图
+                </h3>
+                <p style="font-size:13px;margin-top:10px">在月视图日期下方添加微型热力图条，显示当月心情分布。使用 <code>Canvas</code> 绘制。</p>
+                <p style="font-size:12px;color:var(--soft);margin-top:8px">预计工作量: 0.5天 | 影响: CalendarView</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

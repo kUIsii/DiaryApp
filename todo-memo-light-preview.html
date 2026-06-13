@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>待办与备忘轻量方向预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Georgia, "Noto Serif SC", "Source Han Serif SC", serif;
+            background: #F5F7FA;
+            color: #2C3344;
+            min-height: 100vh;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #F5F7FA;
+        }
+
+        .header {
+            padding: 0 20px 16px;
+            background: #F5F7FA;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2C3344;
+            letter-spacing: 0.3px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #8A96A8;
+            margin-top: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .tab-container {
+            display: flex;
+            margin: 0 20px 16px;
+            background: #EFF3F8;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #5A6577;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .tab.active {
+            background: #FFFFFF;
+            color: #6B8DB5;
+            box-shadow: 0 2px 8px rgba(107, 141, 181, 0.15);
+        }
+
+        .page {
+            display: none;
+            padding: 0 20px 100px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(130, 150, 180, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2C3344;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #8A96A8;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .progress-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: linear-gradient(135deg, #F8FAFF 0%, #F0F4FA 100%);
+            border-radius: 14px;
+        }
+
+        .progress-ring {
+            width: 88px;
+            height: 88px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 8;
+        }
+
+        .progress-ring .bg {
+            stroke: #E8EDF4;
+        }
+
+        .progress-ring .progress {
+            stroke: #6B8DB5;
+            stroke-linecap: round;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #6B8DB5;
+            line-height: 1;
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: #8A96A8;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .progress-info {
+            flex: 1;
+        }
+
+        .progress-info .title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2C3344;
+            margin-bottom: 6px;
+        }
+
+        .progress-info .desc {
+            font-size: 14px;
+            color: #5A6577;
+            line-height: 1.5;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .checkin-list,
+        .group-list {
+            margin-top: 16px;
+        }
+
+        .checkin-item,
+        .todo-item,
+        .memo-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: #F8FAFF;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .checkin-item:last-child,
+        .todo-item:last-child,
+        .memo-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .checkin-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 14px;
+            font-size: 18px;
+            background: #E8EDF4;
+            color: #6B8DB5;
+            flex-shrink: 0;
+        }
+
+        .checkin-icon.health { background: #E8F5E9; color: #6ABF8A; }
+        .checkin-icon.study { background: #E3F2FD; color: #7BA7E0; }
+        .checkin-icon.work { background: #FFF3E0; color: #E8A84C; }
+
+        .checkin-info,
+        .todo-content,
+        .memo-content-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .checkin-name,
+        .todo-text,
+        .memo-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2C3344;
+            margin-bottom: 4px;
+        }
+
+        .checkin-streak,
+        .todo-meta,
+        .memo-meta,
+        .mini-text {
+            font-size: 12px;
+            color: #8A96A8;
+            line-height: 1.5;
+        }
+
+        .checkin-streak span {
+            color: #B5926B;
+            font-weight: 600;
+        }
+
+        .checkin-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #D0D8E4;
+            background: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6ABF8A;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .checkin-btn.checked {
+            background: #6ABF8A;
+            border-color: #6ABF8A;
+            color: #FFFFFF;
+        }
+
+        .group {
+            margin-bottom: 18px;
+        }
+
+        .group:last-child {
+            margin-bottom: 0;
+        }
+
+        .group-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .group-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #5A6577;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .group-count {
+            font-size: 12px;
+            color: #8A96A8;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .todo-badge,
+        .memo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .todo-badge.today {
+            background: rgba(107, 141, 181, 0.14);
+            color: #6B8DB5;
+        }
+
+        .todo-badge.soon {
+            background: rgba(232, 168, 76, 0.16);
+            color: #C1882E;
+        }
+
+        .todo-badge.done {
+            background: rgba(106, 191, 138, 0.18);
+            color: #4E9A6B;
+        }
+
+        .memo-badge.pin {
+            background: rgba(107, 141, 181, 0.14);
+            color: #6B8DB5;
+        }
+
+        .memo-badge.idea {
+            background: rgba(181, 146, 107, 0.16);
+            color: #9D7751;
+        }
+
+        .todo-actions,
+        .memo-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-btn,
+        .text-btn {
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #E8EDF4;
+            color: #5A6577;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .text-btn {
+            padding: 7px 10px;
+            border-radius: 10px;
+            background: #EEF3F9;
+            color: #6B8DB5;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .text-btn.light {
+            background: #F4F6F9;
+            color: #6F7A8A;
+        }
+
+        .memo-item {
+            align-items: flex-start;
+            border-left: 3px solid #6B8DB5;
+        }
+
+        .memo-text {
+            font-size: 14px;
+            color: #5A6577;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .hint-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .hint-pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #F4F7FB;
+            color: #6C7788;
+            font-size: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .note-card {
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFF5D6 100%);
+            border: 1px solid rgba(232, 168, 76, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .note-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #B5926B;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-title::before {
+            content: "";
+            width: 4px;
+            height: 16px;
+            background: #E8A84C;
+            border-radius: 2px;
+        }
+
+        .note-text {
+            font-size: 13px;
+            color: #8A7050;
+            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 2px dashed #D0D8E4;
+            border-radius: 12px;
+            font-size: 15px;
+            color: #8A96A8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .add-btn:hover {
+            border-color: #6B8DB5;
+            color: #6B8DB5;
+            background: rgba(107, 141, 181, 0.05);
+        }
+
+        .safe-bottom {
+            height: 34px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-bar"></div>
+
+    <div class="header">
+        <div class="header-title" id="header-title">待办</div>
+        <div class="header-subtitle" id="header-subtitle">只保留截止、完成和今天要做的事</div>
+    </div>
+
+    <div class="tab-container">
+        <div class="tab" onclick="switchTab('checkin')">打卡</div>
+        <div class="tab active" onclick="switchTab('todo')">待办</div>
+        <div class="tab" onclick="switchTab('memo')">备忘</div>
+    </div>
+
+    <div class="page" id="checkin-page">
+        <div class="card">
+            <div class="progress-section">
+                <div class="progress-ring">
+                    <svg width="88" height="88">
+                        <circle class="bg" cx="44" cy="44" r="36"></circle>
+                        <circle class="progress" cx="44" cy="44" r="36" stroke-dasharray="226" stroke-dashoffset="98"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <div class="progress-number">2/3</div>
+                        <div class="progress-label">今天</div>
+                    </div>
+                </div>
+                <div class="progress-info">
+                    <div class="title">打卡继续保持轻量</div>
+                    <div class="desc">保留你现在熟悉的节奏，只看今天完成了几项，不往复杂方向扩展。</div>
+                </div>
+            </div>
+
+            <div class="checkin-list">
+                <div class="checkin-item">
+                    <div class="checkin-icon health">水</div>
+                    <div class="checkin-info">
+                        <div class="checkin-name">喝水</div>
+                        <div class="checkin-streak">连续 <span>12</span> 天</div>
+                    </div>
+                    <div class="checkin-btn checked">✓</div>
+                </div>
+
+                <div class="checkin-item">
+                    <div class="checkin-icon study">读</div>
+                    <div class="checkin-info">
+                        <div class="checkin-name">阅读 30 分钟</div>
+                        <div class="checkin-streak">连续 <span>5</span> 天</div>
+                    </div>
+                    <div class="checkin-btn checked">✓</div>
+                </div>
+
+                <div class="checkin-item">
+                    <div class="checkin-icon work">动</div>
+                    <div class="checkin-info">
+                        <div class="checkin-name">运动</div>
+                        <div class="checkin-streak">连续 <span>3</span> 天</div>
+                    </div>
+                    <div class="checkin-btn"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note-card">
+            <div class="note-title">打卡方向</div>
+            <div class="note-text">这部分维持现有思路，只强调“今天做没做”和连续记录，不和待办、备忘混在一起。</div>
+        </div>
+
+        <button class="add-btn">+ 添加打卡项</button>
+    </div>
+
+    <div class="page active" id="todo-page">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">待办只看三件事</div>
+                    <div class="card-subtitle">今天、即将到期、已完成</div>
+                </div>
+            </div>
+
+            <div class="group">
+                <div class="group-title">
+                    <div class="group-name">今天</div>
+                    <div class="group-count">2 项</div>
+                </div>
+                <div class="group-list">
+                    <div class="todo-item">
+                        <div class="todo-badge today">今天</div>
+                        <div class="todo-content">
+                            <div class="todo-text">整理周会要点</div>
+                            <div class="todo-meta">截止 今天 18:00</div>
+                        </div>
+                        <div class="todo-actions">
+                            <button class="action-btn">✎</button>
+                            <button class="action-btn">✓</button>
+                        </div>
+                    </div>
+
+                    <div class="todo-item">
+                        <div class="todo-badge today">今天</div>
+                        <div class="todo-content">
+                            <div class="todo-text">给房东回复消息</div>
+                            <div class="todo-meta">截止 今天 21:00</div>
+                        </div>
+                        <div class="todo-actions">
+                            <button class="action-btn">✎</button>
+                            <button class="action-btn">✓</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group">
+                <div class="group-title">
+                    <div class="group-name">即将到期</div>
+                    <div class="group-count">1 项</div>
+                </div>
+                <div class="group-list">
+                    <div class="todo-item">
+                        <div class="todo-badge soon">明天</div>
+                        <div class="todo-content">
+                            <div class="todo-text">提交报销材料</div>
+                            <div class="todo-meta">截止 6 月 11 日</div>
+                        </div>
+                        <div class="todo-actions">
+                            <button class="action-btn">✎</button>
+                            <button class="action-btn">✓</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group">
+                <div class="group-title">
+                    <div class="group-name">已完成</div>
+                    <div class="group-count">1 项</div>
+                </div>
+                <div class="group-list">
+                    <div class="todo-item">
+                        <div class="todo-badge done">完成</div>
+                        <div class="todo-content">
+                            <div class="todo-text">买洗衣液</div>
+                            <div class="todo-meta">上午 10:15 已完成</div>
+                        </div>
+                        <div class="todo-actions">
+                            <button class="action-btn">↺</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hint-row">
+                <div class="hint-pill">新建时只填内容 + 截止日期</div>
+                <div class="hint-pill">不加优先级、不加复杂分类</div>
+            </div>
+        </div>
+
+        <div class="note-card">
+            <div class="note-title">待办方向</div>
+            <div class="note-text">待办继续围绕“有截止时间的事”。页面里优先展示今天和快到期的内容，避免做成项目管理工具。</div>
+        </div>
+
+        <button class="add-btn">+ 添加待办</button>
+    </div>
+
+    <div class="page" id="memo-page">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">备忘就是随手记</div>
+                    <div class="card-subtitle">快速记录、置顶、转待办</div>
+                </div>
+            </div>
+
+            <div class="group">
+                <div class="group-title">
+                    <div class="group-name">置顶</div>
+                    <div class="group-count">1 条</div>
+                </div>
+                <div class="group-list">
+                    <div class="memo-item">
+                        <div class="memo-badge pin">置顶</div>
+                        <div class="memo-content-wrap">
+                            <div class="memo-title">快递取件码</div>
+                            <div class="memo-text">丰巢 5-2-1847，晚上回去顺手拿。</div>
+                            <div class="memo-meta">今天 10:32 记录</div>
+                        </div>
+                        <div class="memo-actions">
+                            <button class="text-btn">转待办</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group">
+                <div class="group-title">
+                    <div class="group-name">最近记录</div>
+                    <div class="group-count">2 条</div>
+                </div>
+                <div class="group-list">
+                    <div class="memo-item">
+                        <div class="memo-badge idea">想法</div>
+                        <div class="memo-content-wrap">
+                            <div class="memo-title">周末想试试新的早餐搭配</div>
+                            <div class="memo-text">鸡蛋三明治加黑咖啡，做法简单一点就行。</div>
+                            <div class="memo-meta">今天 09:18 记录</div>
+                        </div>
+                        <div class="memo-actions">
+                            <button class="text-btn light">置顶</button>
+                        </div>
+                    </div>
+
+                    <div class="memo-item">
+                        <div class="memo-badge idea">提醒</div>
+                        <div class="memo-content-wrap">
+                            <div class="memo-title">妈妈生日</div>
+                            <div class="memo-text">下周三记得提前订蛋糕，如果需要处理就再转成待办。</div>
+                            <div class="memo-meta">昨天 20:46 记录</div>
+                        </div>
+                        <div class="memo-actions">
+                            <button class="text-btn">转待办</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hint-row">
+                <div class="hint-pill">默认只写一段话</div>
+                <div class="hint-pill">需要行动时再转待办</div>
+            </div>
+        </div>
+
+        <div class="note-card">
+            <div class="note-title">备忘方向</div>
+            <div class="note-text">备忘不强调完成状态，它更像一个轻量的“先记下来”。只有当一条备忘真的变成要处理的事，再一键转到待办。</div>
+        </div>
+
+        <button class="add-btn">+ 添加备忘</button>
+    </div>
+
+    <div class="safe-bottom"></div>
+
+    <script>
+        const tabMeta = {
+            checkin: {
+                title: "打卡",
+                subtitle: "保持现在的节奏，只关注今天是否完成"
+            },
+            todo: {
+                title: "待办",
+                subtitle: "只保留截止、完成和今天要做的事"
+            },
+            memo: {
+                title: "备忘",
+                subtitle: "记录小事和想法，需要处理时再转待办"
+            }
+        };
+
+        function switchTab(tab) {
+            const tabs = ["checkin", "todo", "memo"];
+
+            document.querySelectorAll(".tab").forEach((item, index) => {
+                item.classList.toggle("active", tabs[index] === tab);
+            });
+
+            document.querySelectorAll(".page").forEach((page) => {
+                page.classList.remove("active");
+            });
+
+            document.getElementById(tab + "-page").classList.add("active");
+            document.getElementById("header-title").textContent = tabMeta[tab].title;
+            document.getElementById("header-subtitle").textContent = tabMeta[tab].subtitle;
+        }
+    </script>
+</body>
+</html>

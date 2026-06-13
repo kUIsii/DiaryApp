@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>性能优化指南</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .section-gap { margin-top: 32px; }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .code-block { background: rgba(38,53,67,0.04); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 20px; margin: 14px 0; overflow-x: auto; }
+        .code-block code { background: none; padding: 0; font-size: 13px; line-height: 1.7; font-family: "Cascadia Code", "Fira Code", monospace; color: var(--ink); }
+        .table-wrap { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.6); border-bottom: 2px solid var(--line-strong); font-weight: 700; color: var(--ink); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+        .finding-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .finding-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .finding-card h3 { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+        .severity { display: inline-flex; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+        .severity.high { background: var(--rose-soft); color: var(--rose); }
+        .severity.medium { background: var(--amber-soft); color: var(--amber); }
+        .severity.low { background: var(--blue-soft); color: var(--blue); }
+        .file-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--line); color: var(--muted); margin-top: 8px; }
+        .note-box { padding: 16px 20px; border-radius: var(--radius-md); background: var(--rose-soft); border: 1px solid rgba(191,102,114,0.2); margin-top: 16px; }
+        .note-box p { color: var(--rose); font-size: 13px; }
+        .note-box.green { background: var(--green-soft); border-color: rgba(92,143,115,0.2); }
+        .note-box.green p { color: var(--green); }
+        .note-box.amber { background: var(--amber-soft); border-color: rgba(194,139,58,0.2); }
+        .note-box.amber p { color: var(--amber); }
+        .impact-bar { height: 6px; border-radius: 3px; margin-top: 8px; }
+        .impact-bar.high { background: linear-gradient(90deg, var(--rose), var(--rose-soft)); }
+        .impact-bar.medium { background: linear-gradient(90deg, var(--amber), var(--amber-soft)); }
+        .impact-bar.low { background: linear-gradient(90deg, var(--blue), var(--blue-soft)); }
+        @media (max-width: 900px) { .finding-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">speed</span>
+            性能分析
+        </span>
+        <h1>性能优化指南</h1>
+        <p class="lead">基于对 DiaryDao、HomeViewModel、TimelineScreen、DiaryDatabase 的深度代码分析，识别出 11 个性能问题并提供具体修复方案。</p>
+        <div class="anchor-row">
+            <a href="#high">高优先级</a>
+            <a href="#medium">中优先级</a>
+            <a href="#low">低优先级</a>
+            <a href="#summary">总结矩阵</a>
+        </div>
+    </div>
+
+    <!-- HIGH Priority -->
+    <div id="high" class="card section-gap">
+        <h2>高优先级问题</h2>
+        <p class="lead">直接影响用户体验的性能瓶颈，建议优先修复。</p>
+
+        <div class="finding-grid">
+            <div class="finding-card">
+                <h3>
+                    <span class="severity high">HIGH</span>
+                    全量加载无分页
+                </h3>
+                <p style="font-size:13px;margin-top:8px"><code>getAllPreviews()</code> 将整个 diary_entries 表加载到内存。HomeViewModel、TimelineViewModel、StatsViewModel 各自持有独立副本 = 3 份全量数据。</p>
+                <div class="code-block">
+<code>// DiaryDao.kt:18-19
+@Query("SELECT id, title, plainText, ...
+    FROM diary_entries ORDER BY createdAt DESC")
+fun getAllPreviews(): Flow&lt;List&lt;DiaryPreview&gt;&gt;
+
+// 问题: 2000 条日记 = 3 份 x 2000 个对象
+// 内存: O(N) x 3 个 ViewModel</code>
+                </div>
+                <div class="code-block">
+<code>// 修复: 引入 Paging3
+implementation("androidx.paging:paging-compose:3.2.1")
+
+@Query("SELECT ... FROM diary_entries
+    ORDER BY createdAt DESC")
+fun getAllPreviewsPaged(): PagingSource&lt;Int, DiaryPreview&gt;
+
+// ViewModel:
+val entries = Pager(PagingConfig(pageSize = 20)) {
+    dao.getAllPreviewsPaged()
+}.flow.cachedIn(viewModelScope)</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt + build.gradle.kts</div>
+                <div class="impact-bar high"></div>
+                <p style="font-size:12px;margin-top:6px;color:var(--soft)">内存: O(N) &rarr; O(page_size)，初始加载时间大幅缩短</p>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity high">HIGH</span>
+                    LIKE 全表扫描搜索
+                </h3>
+                <p style="font-size:13px;margin-top:8px"><code>LIKE '%query%'</code> 无法使用 B-tree 索引，每次搜索都是 O(N) 全表扫描。</p>
+                <div class="code-block">
+<code>// DiaryDao.kt:54-58
+WHERE plainText LIKE '%' || :query || '%'
+
+// 问题: 1000 条日记 = 每次搜索读取 1000 行
+// 快速打字时每秒触发多次</code>
+                </div>
+                <div class="code-block">
+<code>// 修复: FTS5 全文搜索
+CREATE VIRTUAL TABLE diary_entries_fts
+    USING fts5(title, plainText,
+    content='diary_entries', content_rowid='id')
+
+-- 自动同步触发器
+CREATE TRIGGER diary_entries_ai AFTER INSERT
+    ON diary_entries BEGIN
+    INSERT INTO diary_entries_fts(rowid, title, plainText)
+    VALUES (new.id, new.title, new.plainText);
+END
+
+-- 查询: O(log N)
+WHERE id IN (SELECT rowid FROM diary_entries_fts
+    WHERE diary_entries_fts MATCH :query)</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt + DiaryDatabase.kt</div>
+                <div class="impact-bar high"></div>
+                <p style="font-size:12px;margin-top:6px;color:var(--soft)">搜索: O(N) 全表扫描 &rarr; O(log N) 索引查找</p>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity high">HIGH</span>
+                    strftime 阻止索引使用
+                </h3>
+                <p style="font-size:13px;margin-top:8px">"历史今天"查询在 WHERE 中对 createdAt 调用 strftime()，导致索引失效，每次全表扫描。</p>
+                <div class="code-block">
+<code>-- DiaryDao.kt:261-303 (4 个查询)
+WHERE CAST(strftime('%m',
+    createdAt / 1000, 'unixepoch', 'localtime')
+    AS INTEGER) = :month
+AND CAST(strftime('%d', ...) AS INTEGER) = :day
+
+-- 问题: 函数包裹列名，索引无法使用
+-- 每次 "历史今天" 都扫描全表</code>
+                </div>
+                <div class="code-block">
+<code>-- 修复: 预计算列 + 索引
+ALTER TABLE diary_entries
+    ADD COLUMN createdMonthDay TEXT DEFAULT ''
+
+UPDATE diary_entries SET createdMonthDay =
+    printf('%02d-%02d',
+        CAST(strftime('%m', createdAt / 1000,
+            'unixepoch', 'localtime') AS INTEGER),
+        CAST(strftime('%d', createdAt / 1000,
+            'unixepoch', 'localtime') AS INTEGER))
+
+CREATE INDEX index_diary_entries_monthDay
+    ON diary_entries (createdMonthDay)
+
+-- 查询变为索引查找:
+WHERE createdMonthDay =
+    printf('%02d-%02d', :month, :day)</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt + DiaryDatabase.kt</div>
+                <div class="impact-bar high"></div>
+                <p style="font-size:12px;margin-top:6px;color:var(--soft)">"历史今天": 全表扫描 &rarr; 索引精确查找 1-5 条</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEDIUM Priority -->
+    <div id="medium" class="card section-gap">
+        <h2>中优先级问题</h2>
+        <p class="lead">影响响应效率和 CPU 占用，但不直接导致卡顿。</p>
+
+        <div class="finding-grid">
+            <div class="finding-card">
+                <h3>
+                    <span class="severity medium">MED</span>
+                    搜索无 debounce
+                </h3>
+                <p style="font-size:13px;margin-top:8px">每次按键立即触发 combine 管道，对所有条目执行 <code>contains()</code> 过滤。快速打字时每秒 10-15 次 O(N) 过滤。</p>
+                <div class="code-block">
+<code>// HomeViewModel.kt:267-312
+// 修复: 添加 debounce
+_searchQuery
+    .debounce(300L)
+    .distinctUntilChanged()
+
+// 效果: 打字期间从 10-15次/秒
+// 降至 3-4次/秒</code>
+                </div>
+                <div class="file-tag">HomeViewModel.kt</div>
+                <div class="impact-bar medium"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity medium">MED</span>
+                    4 次独立全列表遍历
+                </h3>
+                <p style="font-size:13px;margin-top:8px">dayInfoMap、stats、weeklySummary、selectedEntries 各自独立遍历 allEntries。一次数据变更触发 4 次全量计算。</p>
+                <div class="code-block">
+<code>// 修复: 合并为单次遍历
+data class HomeDerivedData(
+    val dayInfoMap: Map&lt;LocalDate, DayInfo&gt;,
+    val stats: HomeStats,
+    val weeklySummary: WeeklySummary,
+)
+
+// 单次 combine + 单次遍历
+val derivedData = combine(allEntries, entryDates)
+    { entries, dates -> ... }
+    .stateIn(...)
+
+// CPU 工作量减少 ~75%</code>
+                </div>
+                <div class="file-tag">HomeViewModel.kt</div>
+                <div class="impact-bar medium"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity medium">MED</span>
+                    3 个 ViewModel 重复 tagsMap
+                </h3>
+                <p style="font-size:13px;margin-top:8px">HomeViewModel、TimelineViewModel、FavoritesViewModel 各自独立订阅 <code>getAllDiaryTagPairs()</code>，重复构建 Map。</p>
+                <div class="code-block">
+<code>// 修复: 提升到 Repository 层缓存
+// 或使用共享 Flow
+class DiaryRepository(private val dao: DiaryDao) {
+    val tagsMap: Flow&lt;Map&lt;Long, List&lt;TagInfo&gt;&gt;&gt; =
+        dao.getAllDiaryTagPairs()
+            .map { pairs -> ... }
+            .shareIn(scope, SharingStarted.WhileSubscribed(5000))
+}
+
+// 3 个 ViewModel 共享同一份数据</code>
+                </div>
+                <div class="file-tag">HomeViewModel.kt + TimelineViewModel.kt + FavoritesViewModel.kt</div>
+                <div class="impact-bar medium"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity medium">MED</span>
+                    3 个 DB 查询串行执行
+                </h3>
+                <p style="font-size:13px;margin-top:8px"><code>loadReviewEntries()</code> 中 3 个独立查询顺序执行，总耗时 = 三者之和。</p>
+                <div class="code-block">
+<code>// HomeViewModel.kt:128-158
+// 修复: async 并发执行
+val weekD = async { dao.getByDateRange(w1, w2) }
+val monthD = async { dao.getByDateRange(m1, m2) }
+val yearD = async { dao.getByMonthDay(m, d) }
+
+// 总耗时 = max(三者) 而非 sum(三者)
+// 通常提速 2-3x</code>
+                </div>
+                <div class="file-tag">HomeViewModel.kt</div>
+                <div class="impact-bar medium"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOW Priority -->
+    <div id="low" class="card section-gap">
+        <h2>低优先级问题</h2>
+        <p class="lead">影响较小或仅在特定场景下触发，可在重构时顺带修复。</p>
+
+        <div class="finding-grid">
+            <div class="finding-card">
+                <h3>
+                    <span class="severity low">LOW</span>
+                    getAllTimestamps 全量加载
+                </h3>
+                <p style="font-size:13px;margin-top:8px"><code>SELECT createdAt FROM diary_entries</code> 加载所有时间戳到内存，仅用于计算日历圆点。</p>
+                <div class="code-block">
+<code>-- 修复: SQL 层去重
+SELECT DISTINCT CAST(strftime('%Y-%m-%d',
+    createdAt / 1000, 'unixepoch', 'localtime')
+    AS TEXT) FROM diary_entries
+
+-- 内存: O(N) Longs &rarr; O(D) Strings
+-- D = 唯一日期数，远小于 N</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt</div>
+                <div class="impact-bar low"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity low">LOW</span>
+                    onOpen 每次删除索引
+                </h3>
+                <p style="font-size:13px;margin-top:8px">DiaryDatabase.kt:185-189 的 onOpen 回调每次启动都执行 <code>DROP INDEX</code>，疑似历史遗留。</p>
+                <div class="code-block">
+<code>// DiaryDatabase.kt:185-189
+override fun onOpen(db: SupportSQLiteDatabase) {
+    // 每次启动都删除这个索引!
+    db.execSQL("DROP INDEX IF EXISTS
+        index_countdown_items_targetDate")
+}
+
+// 修复: 移除此回调
+// 如需删除，在 migration 中一次性完成</code>
+                </div>
+                <div class="file-tag">DiaryDatabase.kt</div>
+                <div class="impact-bar low"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity low">LOW</span>
+                    缺少 todo 复合索引
+                </h3>
+                <p style="font-size:13px;margin-top:8px">todo_items 的 ORDER BY 模式 (isPinned, isCompleted, priority, sortOrder, createdAt) 无匹配的复合索引。</p>
+                <div class="code-block">
+<code>CREATE INDEX index_todo_items_list_order
+ON todo_items (parentId, isPinned, isCompleted,
+    priority, sortOrder, createdAt)
+
+-- 消除每次查询的临时 B-tree 排序</code>
+                </div>
+                <div class="file-tag">DiaryDatabase.kt</div>
+                <div class="impact-bar low"></div>
+            </div>
+
+            <div class="finding-card">
+                <h3>
+                    <span class="severity low">LOW</span>
+                    批量删除无事务
+                </h3>
+                <p style="font-size:13px;margin-top:8px">多选删除 K 条日记执行 3K 次独立数据库调用，无 @Transaction 包装。</p>
+                <div class="code-block">
+<code>// 修复: @Transaction 批量操作
+@Transaction
+suspend fun deleteEntriesBatch(
+    entries: List&lt;DiaryEntry&gt;
+) {
+    entries.forEach { entry ->
+        insertTrashEntry(toTrashEntry(entry))
+        deleteTagsForDiary(entry.id)
+        deleteEntry(entry)
+    }
+}
+// N 个事务 &rarr; 1 个事务</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt + HomeViewModel.kt</div>
+                <div class="impact-bar low"></div>
+            </div>
+        </div>
+
+        <div class="note-box amber" style="margin-top:16px">
+            <p><strong>额外发现：</strong><code>getOnThisDayEntries</code> 使用 SELECT * 包含了完整的 content 字段 (Delta JSON, 通常 100KB+)，但结果仅用于展示摘要。应改用 <code>getOnThisDayPreviews</code> (DiaryDao.kt:271-279)。</p>
+        </div>
+    </div>
+
+    <!-- Summary Matrix -->
+    <div id="summary" class="card section-gap">
+        <h2>总结矩阵</h2>
+        <p class="lead">按优先级排序的所有发现，附预期收益和实现成本。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>优先级</th>
+                        <th>问题</th>
+                        <th>位置</th>
+                        <th>修复方案</th>
+                        <th>预期收益</th>
+                        <th>成本</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="severity high">HIGH</span></td>
+                        <td>全量加载无分页</td>
+                        <td>DiaryDao:18</td>
+                        <td>Paging3</td>
+                        <td>内存 O(N)&rarr;O(page)</td>
+                        <td>2天</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity high">HIGH</span></td>
+                        <td>LIKE 全表扫描</td>
+                        <td>DiaryDao:54</td>
+                        <td>FTS5</td>
+                        <td>搜索 O(N)&rarr;O(logN)</td>
+                        <td>1天</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity high">HIGH</span></td>
+                        <td>strftime 阻止索引</td>
+                        <td>DiaryDao:261</td>
+                        <td>预计算列</td>
+                        <td>"历史今天" 索引查找</td>
+                        <td>0.5天</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity medium">MED</span></td>
+                        <td>搜索无 debounce</td>
+                        <td>HomeVM:267</td>
+                        <td>debounce(300ms)</td>
+                        <td>CPU 减少 3-4x</td>
+                        <td>0.5小时</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity medium">MED</span></td>
+                        <td>4 次独立遍历</td>
+                        <td>HomeVM:172-257</td>
+                        <td>合并为单次</td>
+                        <td>CPU 减少 ~75%</td>
+                        <td>1天</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity medium">MED</span></td>
+                        <td>3x tagsMap 重复</td>
+                        <td>3 个 ViewModel</td>
+                        <td>共享 Flow</td>
+                        <td>减少 2/3 冗余处理</td>
+                        <td>0.5天</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity medium">MED</span></td>
+                        <td>串行 DB 查询</td>
+                        <td>HomeVM:128</td>
+                        <td>async 并发</td>
+                        <td>2-3x 提速</td>
+                        <td>0.5小时</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity low">LOW</span></td>
+                        <td>getAllTimestamps</td>
+                        <td>DiaryDao:69</td>
+                        <td>SQL DISTINCT</td>
+                        <td>内存减少</td>
+                        <td>0.5小时</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity low">LOW</span></td>
+                        <td>onOpen 删索引</td>
+                        <td>DiaryDB:185</td>
+                        <td>移除回调</td>
+                        <td>启动优化</td>
+                        <td>5分钟</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity low">LOW</span></td>
+                        <td>缺 todo 复合索引</td>
+                        <td>DiaryDB</td>
+                        <td>CREATE INDEX</td>
+                        <td>查询排序优化</td>
+                        <td>10分钟</td>
+                    </tr>
+                    <tr>
+                        <td><span class="severity low">LOW</span></td>
+                        <td>批量删除无事务</td>
+                        <td>HomeVM:396</td>
+                        <td>@Transaction</td>
+                        <td>N 事务&rarr;1 事务</td>
+                        <td>0.5小时</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="note-box green" style="margin-top:16px">
+            <p><strong>建议执行顺序：</strong>先做 debounce (5 分钟) 和 async 并发 (30 分钟) 这两个低成本高收益的修复。然后处理 3 个 HIGH 优先级问题 (FTS5、预计算列、Paging3)。最后在重构时顺带解决 LOW 优先级问题。</p>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>跨模块依赖分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    padding: 32px 16px;
+    line-height: 1.6;
+  }
+  .dashboard {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+  }
+  .header p {
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 32px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 4px solid #4f46e5;
+  }
+
+  /* Dependency Graph */
+  .graph-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    position: relative;
+    overflow: visible;
+  }
+  .graph-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 20px;
+    position: relative;
+  }
+  .module-card {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    transition: box-shadow 0.2s;
+  }
+  .module-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .module-card .module-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+  .module-card .module-tech {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+  }
+  .module-card .risk-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+  .risk-low {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .risk-mid {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .risk-high {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .module-card.layer-data { grid-column: 1 / -1; }
+
+  /* SVG Arrows overlay */
+  .graph-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .dep-line-clean {
+    stroke: #10b981;
+    stroke-width: 2;
+    fill: none;
+    marker-end: url(#arrow-green);
+  }
+  .dep-line-moderate {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 6 3;
+    marker-end: url(#arrow-amber);
+  }
+  .dep-line-tight {
+    stroke: #ef4444;
+    stroke-width: 2.5;
+    fill: none;
+    marker-end: url(#arrow-red);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #4b5563;
+  }
+  .legend-line {
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+  }
+  .legend-line.clean { background: #10b981; }
+  .legend-line.moderate {
+    background: repeating-linear-gradient(90deg, #f59e0b 0, #f59e0b 6px, transparent 6px, transparent 9px);
+    height: 3px;
+  }
+  .legend-line.tight { background: #ef4444; }
+
+  /* Coupling Matrix */
+  .matrix-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    overflow-x: auto;
+  }
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .matrix-table th, .matrix-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }
+  .matrix-table th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+  }
+  .matrix-table th.row-header {
+    text-align: right;
+    padding-right: 12px;
+    min-width: 90px;
+  }
+  .matrix-table td {
+    font-weight: 500;
+    border-radius: 4px;
+  }
+  .cell-self {
+    background: #f3f4f6;
+    color: #9ca3af;
+  }
+  .cell-none {
+    background: #f9fafb;
+    color: #d1d5db;
+  }
+  .cell-low {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .cell-mid {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .cell-high {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  /* Suggestion Cards */
+  .suggestion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .suggestion-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid #4f46e5;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .suggestion-card .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .suggestion-card .card-desc {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.7;
+  }
+  .suggestion-card .card-impact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: auto;
+  }
+  .impact-high { color: #059669; }
+  .impact-mid { color: #d97706; }
+  .impact-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .impact-dot.high { background: #059669; }
+  .impact-dot.mid { background: #d97706; }
+
+  /* Module Risk Summary */
+  .risk-summary {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .risk-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-module-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a2e;
+    min-width: 100px;
+  }
+  .risk-bar-wrapper {
+    flex: 1;
+    margin: 0 16px;
+    height: 8px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .risk-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+  }
+  .risk-bar.low { background: #10b981; }
+  .risk-bar.mid { background: #f59e0b; }
+  .risk-bar.high { background: #ef4444; }
+  .risk-score {
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+  }
+  .risk-score.low { color: #059669; }
+  .risk-score.mid { color: #d97706; }
+  .risk-score.high { color: #dc2626; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .graph-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .module-card.layer-data { grid-column: 1 / -1; }
+    .suggestion-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>跨模块依赖分析</h1>
+    <p>DiaryApp v2 架构依赖关系与耦合度评估</p>
+  </div>
+
+  <!-- Dependency Graph -->
+  <div class="section">
+    <div class="section-title">模块依赖关系图</div>
+    <div class="graph-container">
+      <div class="graph-grid" id="graphGrid">
+        <!-- Row 1: Data Layer (spans all) -->
+        <div class="module-card layer-data" id="mod-data">
+          <div class="module-name">数据层</div>
+          <div class="module-tech">Room DB / Repository</div>
+          <span class="risk-badge risk-mid">中等风险</span>
+        </div>
+        <!-- Row 2: Editor, Home, Timeline -->
+        <div class="module-card" id="mod-editor">
+          <div class="module-name">编辑器</div>
+          <div class="module-tech">WebView / Quill</div>
+          <span class="risk-badge risk-high">高风险</span>
+        </div>
+        <div class="module-card" id="mod-home">
+          <div class="module-name">首页</div>
+          <div class="module-tech">Compose</div>
+          <span class="risk-badge risk-mid">中等风险</span>
+        </div>
+        <div class="module-card" id="mod-timeline">
+          <div class="module-name">时间线</div>
+          <div class="module-tech">Compose</div>
+          <span class="risk-badge risk-low">低风险</span>
+        </div>
+        <!-- Row 3: Stats, Todo/Habit, Settings -->
+        <div class="module-card" id="mod-stats">
+          <div class="module-name">统计</div>
+          <div class="module-tech">Compose / Charts</div>
+          <span class="risk-badge risk-low">低风险</span>
+        </div>
+        <div class="module-card" id="mod-todo">
+          <div class="module-name">待办/习惯</div>
+          <div class="module-tech">Compose</div>
+          <span class="risk-badge risk-mid">中等风险</span>
+        </div>
+        <div class="module-card" id="mod-settings">
+          <div class="module-name">设置</div>
+          <div class="module-tech">Compose</div>
+          <span class="risk-badge risk-low">低风险</span>
+        </div>
+      </div>
+
+      <!-- SVG arrows -->
+      <svg class="graph-svg" id="graphSvg">
+        <defs>
+          <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+          </marker>
+          <marker id="arrow-amber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+          </marker>
+          <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ef4444"/>
+          </marker>
+        </defs>
+      </svg>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-line clean"></div>
+          <span>清晰依赖</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line moderate"></div>
+          <span>中等耦合</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line tight"></div>
+          <span>紧耦合/循环依赖</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupling Matrix -->
+  <div class="section">
+    <div class="section-title">耦合度矩阵</div>
+    <div class="matrix-wrapper">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="row-header">被依赖方 &rarr;<br/>依赖方 &darr;</th>
+            <th>数据层</th>
+            <th>编辑器</th>
+            <th>首页</th>
+            <th>时间线</th>
+            <th>统计</th>
+            <th>待办/习惯</th>
+            <th>设置</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th class="row-header">数据层</th>
+            <td class="cell-self">--</td>
+            <td class="cell-mid">3</td>
+            <td class="cell-low">2</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">2</td>
+            <td class="cell-low">1</td>
+          </tr>
+          <tr>
+            <th class="row-header">编辑器</th>
+            <td class="cell-high">5</td>
+            <td class="cell-self">--</td>
+            <td class="cell-mid">3</td>
+            <td class="cell-none">0</td>
+            <td class="cell-none">0</td>
+            <td class="cell-low">1</td>
+            <td class="cell-none">0</td>
+          </tr>
+          <tr>
+            <th class="row-header">首页</th>
+            <td class="cell-mid">3</td>
+            <td class="cell-mid">3</td>
+            <td class="cell-self">--</td>
+            <td class="cell-low">2</td>
+            <td class="cell-low">1</td>
+            <td class="cell-mid">3</td>
+            <td class="cell-low">1</td>
+          </tr>
+          <tr>
+            <th class="row-header">时间线</th>
+            <td class="cell-mid">3</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">1</td>
+            <td class="cell-self">--</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">1</td>
+            <td class="cell-none">0</td>
+          </tr>
+          <tr>
+            <th class="row-header">统计</th>
+            <td class="cell-mid">3</td>
+            <td class="cell-none">0</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">1</td>
+            <td class="cell-self">--</td>
+            <td class="cell-low">2</td>
+            <td class="cell-none">0</td>
+          </tr>
+          <tr>
+            <th class="row-header">待办/习惯</th>
+            <td class="cell-mid">3</td>
+            <td class="cell-low">1</td>
+            <td class="cell-mid">3</td>
+            <td class="cell-low">1</td>
+            <td class="cell-low">1</td>
+            <td class="cell-self">--</td>
+            <td class="cell-none">0</td>
+          </tr>
+          <tr>
+            <th class="row-header">设置</th>
+            <td class="cell-low">2</td>
+            <td class="cell-none">0</td>
+            <td class="cell-low">1</td>
+            <td class="cell-none">0</td>
+            <td class="cell-none">0</td>
+            <td class="cell-none">0</td>
+            <td class="cell-self">--</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Module Risk Summary -->
+  <div class="section">
+    <div class="section-title">模块风险指标</div>
+    <div class="risk-summary">
+      <div class="risk-row">
+        <span class="risk-module-name">数据层</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar mid" style="width:55%"></div></div>
+        <span class="risk-score mid">55</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">编辑器</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar high" style="width:82%"></div></div>
+        <span class="risk-score high">82</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">首页</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar mid" style="width:60%"></div></div>
+        <span class="risk-score mid">60</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">时间线</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar low" style="width:28%"></div></div>
+        <span class="risk-score low">28</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">统计</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar low" style="width:25%"></div></div>
+        <span class="risk-score low">25</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">待办/习惯</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar mid" style="width:50%"></div></div>
+        <span class="risk-score mid">50</span>
+      </div>
+      <div class="risk-row">
+        <span class="risk-module-name">设置</span>
+        <div class="risk-bar-wrapper"><div class="risk-bar low" style="width:18%"></div></div>
+        <span class="risk-score low">18</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refactoring Suggestions -->
+  <div class="section">
+    <div class="section-title">重构建议</div>
+    <div class="suggestion-grid">
+      <div class="suggestion-card">
+        <div class="card-title">抽取公共 Repository 层</div>
+        <div class="card-desc">
+          当前各模块直接访问 Room DAO，导致数据层耦合度过高。建议抽取统一的 Repository 接口层，各模块通过依赖注入获取数据服务，降低对具体数据库实现的依赖。
+        </div>
+        <div class="card-impact impact-high">
+          <span class="impact-dot high"></span>
+          预期影响: 高 -- 可降低数据层耦合度约 40%
+        </div>
+      </div>
+      <div class="suggestion-card">
+        <div class="card-title">统一事件总线</div>
+        <div class="card-desc">
+          模块间通过 LiveData/Flow 直接观察彼此状态，形成隐式依赖。引入统一事件总线（如 SharedFlow 封装），解耦模块间通信，使依赖关系显式化、可追踪。
+        </div>
+        <div class="card-impact impact-high">
+          <span class="impact-dot high"></span>
+          预期影响: 高 -- 消除首页与编辑器间的双向耦合
+        </div>
+      </div>
+      <div class="suggestion-card">
+        <div class="card-title">模块化 Navigation</div>
+        <div class="card-desc">
+          当前导航逻辑分散在各模块中，页面跳转硬编码目标路由。建议采用 Navigation Component 模块化方案，各模块声明自己的路由契约，通过 DeepLink 解耦页面间跳转。
+        </div>
+        <div class="card-impact impact-mid">
+          <span class="impact-dot mid"></span>
+          预期影响: 中 -- 改善首页/待办模块的路由耦合
+        </div>
+      </div>
+      <div class="suggestion-card">
+        <div class="card-title">共享 UI 组件库</div>
+        <div class="card-desc">
+          多个模块存在重复的卡片、列表项、输入框等 UI 组件。抽取为独立的 Compose 组件库，统一设计语言，减少代码重复，同时降低模块间的视觉耦合。
+        </div>
+        <div class="card-impact impact-mid">
+          <span class="impact-dot mid"></span>
+          预期影响: 中 -- 减少约 30% 的重复 UI 代码
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Draw dependency arrows after layout
+  function drawArrows() {
+    const svg = document.getElementById('graphSvg');
+    const grid = document.getElementById('graphGrid');
+    const container = svg.parentElement;
+    const containerRect = container.getBoundingClientRect();
+
+    // Set SVG size to match container
+    svg.setAttribute('width', container.scrollWidth);
+    svg.setAttribute('height', container.scrollHeight);
+
+    // Remove old paths
+    svg.querySelectorAll('path.dep-line').forEach(p => p.remove());
+
+    function getCenter(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left + r.width / 2 - containerRect.left,
+        y: r.top + r.height / 2 - containerRect.top
+      };
+    }
+    function getBottom(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left + r.width / 2 - containerRect.left,
+        y: r.bottom - containerRect.top
+      };
+    }
+    function getTop(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left + r.width / 2 - containerRect.left,
+        y: r.top - containerRect.top
+      };
+    }
+    function getLeft(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.left - containerRect.left, y: r.top + r.height / 2 - containerRect.top };
+    }
+    function getRight(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.right - containerRect.left, y: r.top + r.height / 2 - containerRect.top };
+    }
+
+    function curve(from, to, cls) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const cx1 = from.x + dx * 0.3;
+      const cy1 = from.y + dy * 0.1;
+      const cx2 = from.x + dx * 0.7;
+      const cy2 = to.y - dy * 0.1;
+      path.setAttribute('d', `M${from.x},${from.y} C${cx1},${cy1} ${cx2},${cy2} ${to.x},${to.y}`);
+      path.setAttribute('class', 'dep-line ' + cls);
+      svg.appendChild(path);
+    }
+
+    // Clean dependencies (green)
+    curve(getBottom('mod-data'), getTop('mod-timeline'), 'dep-line-clean');
+    curve(getBottom('mod-data'), getTop('mod-stats'), 'dep-line-clean');
+    curve(getRight('mod-stats'), getRight('mod-todo'), 'dep-line-clean');
+    curve(getBottom('mod-data'), getTop('mod-settings'), 'dep-line-clean');
+
+    // Moderate dependencies (amber)
+    curve(getBottom('mod-data'), getTop('mod-editor'), 'dep-line-moderate');
+    curve(getBottom('mod-data'), getTop('mod-home'), 'dep-line-moderate');
+    curve(getBottom('mod-data'), getTop('mod-todo'), 'dep-line-moderate');
+    curve(getLeft('mod-home'), getLeft('mod-timeline'), 'dep-line-moderate');
+    curve(getRight('mod-home'), getRight('mod-todo'), 'dep-line-moderate');
+
+    // Tight/circular dependencies (red)
+    curve(getBottom('mod-editor'), getTop('mod-home'), 'dep-line-tight');
+  }
+
+  window.addEventListener('load', drawArrows);
+  window.addEventListener('resize', drawArrows);
+</script>
+</body>
+</html>

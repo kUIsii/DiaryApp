@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据层与导航架构分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--brown-soft); color: var(--brown); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .stat { padding: 16px; border-radius: 18px; background: rgba(255,255,255,0.68); border: 1px solid rgba(38,53,67,0.06); }
+        .stat strong { display: block; color: var(--ink); font-size: 24px; margin-bottom: 6px; }
+        .stat span { display: block; color: var(--soft); font-size: 12px; line-height: 1.6; }
+        .section-gap { margin-top: 32px; }
+        .entity-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .entity-card { padding: 18px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .entity-card h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+        .entity-card h3 .material-symbols-rounded { font-size: 20px; }
+        .field-list { list-style: none; padding: 0; margin: 10px 0 0; }
+        .field-list li { padding: 4px 0; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
+        .field-list li:last-child { border-bottom: none; }
+        .field-list li code { font-size: 11px; }
+        .nav-flow { margin: 22px 0; padding: 24px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.6); border: 1px solid rgba(38,53,67,0.06); }
+        .nav-route { display: flex; align-items: center; gap: 12px; padding: 10px 16px; margin-bottom: 8px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(38,53,67,0.06); }
+        .nav-route .route-name { font-weight: 600; font-size: 14px; color: var(--ink); min-width: 180px; }
+        .nav-route .route-desc { font-size: 12px; color: var(--muted); }
+        .nav-route .route-icon { font-size: 18px; }
+        .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .feature-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .feature-card h3 { display: flex; align-items: center; gap: 10px; }
+        .feature-card h3 .material-symbols-rounded { font-size: 22px; }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .status-done { background: var(--green-soft); color: var(--green); }
+        .status-partial { background: var(--amber-soft); color: var(--amber); }
+        .status-missing { background: var(--rose-soft); color: var(--rose); }
+        .issue-list { list-style: none; padding: 0; margin: 12px 0 0; }
+        .issue-list li { padding: 10px 14px; margin-bottom: 8px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(38,53,67,0.06); font-size: 13px; color: var(--muted); }
+        .issue-list li strong { color: var(--ink); }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .table-wrap { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.6); border-bottom: 2px solid var(--line-strong); font-weight: 700; color: var(--ink); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+        @media (max-width: 900px) { .entity-grid, .feature-grid { grid-template-columns: repeat(2, 1fr); } .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .entity-grid, .summary-grid { grid-template-columns: 1fr; } .shell { padding: 16px 12px 60px; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">storage</span>
+            架构分析
+        </span>
+        <h1>数据层与导航架构</h1>
+        <p class="lead">Room 数据库 v13 的 Entity 设计、DAO 查询、Migration 链、以及 Navigation Compose 路由架构的深度分析。</p>
+        <div class="anchor-row">
+            <a href="#entities">Entity 设计</a>
+            <a href="#dao">DAO 查询</a>
+            <a href="#migrations">Migration 链</a>
+            <a href="#navigation">导航架构</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="summary-grid">
+        <div class="stat">
+            <strong>8</strong>
+            <span>Room Entity 表</span>
+        </div>
+        <div class="stat">
+            <strong>13</strong>
+            <span>数据库版本</span>
+        </div>
+        <div class="stat">
+            <strong>80+</strong>
+            <span>DAO 查询方法</span>
+        </div>
+        <div class="stat">
+            <strong>16</strong>
+            <span>导航路由</span>
+        </div>
+    </div>
+
+    <!-- Entities -->
+    <div id="entities" class="card section-gap">
+        <h2>Entity 设计</h2>
+        <p class="lead">Room 数据库包含 8 个 Entity，覆盖日记、标签、待办、习惯、回收站、倒数日等核心功能。</p>
+
+        <div class="entity-grid">
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--blue)">article</span> DiaryEntry</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>title: String</code> 标题</li>
+                    <li><code>content: String</code> Quill Delta JSON</li>
+                    <li><code>plainText: String</code> 纯文本(搜索/预览)</li>
+                    <li><code>moodLevel: Int?</code> 心情 1-6</li>
+                    <li><code>weather: String?</code> 天气</li>
+                    <li><code>location/lat/lng</code> 位置信息</li>
+                    <li><code>isFavorite: Boolean</code> 收藏</li>
+                    <li><code>createdAt/updatedAt</code> 时间戳</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">sell</span> Tag</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>name: String</code> 标签名</li>
+                    <li><code>color: Long</code> 颜色值</li>
+                    <li><code>isPreset: Boolean</code> 预设标签</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">link</span> DiaryTag</h3>
+                <ul class="field-list">
+                    <li><code>diaryId: Long</code> FK → DiaryEntry</li>
+                    <li><code>tagId: Long</code> FK → Tag</li>
+                    <li>多对多关联表</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">check_box</span> TodoItem</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>title/description</code> 内容</li>
+                    <li><code>isCompleted</code> 完成状态</li>
+                    <li><code>priority: Int</code> 优先级 0-3</li>
+                    <li><code>dueDate: Long?</code> 截止日期</li>
+                    <li><code>parentId: Long?</code> 父任务(子任务)</li>
+                    <li><code>category: String</code> task/habit</li>
+                    <li><code>recurringType</code> 重复类型</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">loop</span> HabitRecord</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>todoId: Long</code> FK → TodoItem</li>
+                    <li><code>recordDate: Long</code> 打卡日期</li>
+                    <li><code>note: String?</code> 备注</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--rose)">delete</span> TrashEntry</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>originalId: Long</code> 原始ID</li>
+                    <li>保留 DiaryEntry 所有字段</li>
+                    <li><code>deletedAt: Long</code> 删除时间</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--purple)">image</span> DiaryImage</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>entryId: Long</code> FK → DiaryEntry</li>
+                    <li><code>localPath: String</code> 本地路径</li>
+                    <li><code>sortOrder: Int</code> 排序</li>
+                </ul>
+            </div>
+
+            <div class="entity-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--brown)">timer</span> CountDownItem</h3>
+                <ul class="field-list">
+                    <li><code>id: Long</code> 主键自增</li>
+                    <li><code>title: String</code> 标题</li>
+                    <li><code>targetDate: Long</code> 目标日期</li>
+                    <li><code>isPinned: Boolean</code> 置顶</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DAO -->
+    <div id="dao" class="card section-gap">
+        <h2>DAO 查询分析</h2>
+        <p class="lead"><code>DiaryDao</code> 接口包含 80+ 个查询方法，是所有数据访问的单一入口。</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--blue)">search</span> 查询模式</h3>
+                <ul class="issue-list">
+                    <li><strong>Flow 响应式</strong> - 大部分查询返回 <code>Flow<List<T>></code></li>
+                    <li><strong>Suspend 单次</strong> - 导出/统计使用 <code>suspend fun</code></li>
+                    <li><strong>LIKE 搜索</strong> - <code>plainText LIKE '%' || :query || '%'</code></li>
+                    <li><strong>strftime 日期</strong> - 使用 SQLite strftime 提取月/日</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">warning</span> 问题点</h3>
+                <ul class="issue-list">
+                    <li><strong>单一接口</strong> - 80+ 方法在一个 DAO 中，职责过重</li>
+                    <li><strong>无分页</strong> - <code>getAllPreviews()</code> 返回全量数据</li>
+                    <li><strong>无 FTS</strong> - 搜索使用 LIKE，无全文索引</li>
+                    <li><strong>无聚合</strong> - 统计在 Kotlin 层计算，非 SQL</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>查询类别</th>
+                        <th>方法数</th>
+                        <th>返回类型</th>
+                        <th>使用模块</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>日记 CRUD</strong></td>
+                        <td>~15</td>
+                        <td>Flow/Suspend</td>
+                        <td>Home, Editor, Detail, Backup</td>
+                    </tr>
+                    <tr>
+                        <td><strong>搜索/过滤</strong></td>
+                        <td>~8</td>
+                        <td>Flow</td>
+                        <td>Home, Timeline, Favorites</td>
+                    </tr>
+                    <tr>
+                        <td><strong>标签管理</strong></td>
+                        <td>~12</td>
+                        <td>Flow/Suspend</td>
+                        <td>Home, Editor, Detail, Profile</td>
+                    </tr>
+                    <tr>
+                        <td><strong>待办/习惯</strong></td>
+                        <td>~20</td>
+                        <td>Flow/Suspend</td>
+                        <td>Todo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>回收站</strong></td>
+                        <td>~5</td>
+                        <td>Flow/Suspend</td>
+                        <td>Trash</td>
+                    </tr>
+                    <tr>
+                        <td><strong>统计/导出</strong></td>
+                        <td>~10</td>
+                        <td>Suspend</td>
+                        <td>Stats, Backup</td>
+                    </tr>
+                    <tr>
+                        <td><strong>倒数日</strong></td>
+                        <td>~5</td>
+                        <td>Flow/Suspend</td>
+                        <td>CountDown</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Migrations -->
+    <div id="migrations" class="card section-gap">
+        <h2>Migration 链</h2>
+        <p class="lead">从 v1 到 v13 的完整迁移链，每次版本升级都保持数据兼容。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>版本</th>
+                        <th>变更内容</th>
+                        <th>影响 Entity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>v1→v2</code></td>
+                        <td>占位迁移，无实际变更</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>v2→v3</code></td>
+                        <td>添加 <code>isFavorite</code> 字段</td>
+                        <td>DiaryEntry</td>
+                    </tr>
+                    <tr>
+                        <td><code>v3→v4</code></td>
+                        <td>创建 <code>todo_items</code> 表</td>
+                        <td>TodoItem</td>
+                    </tr>
+                    <tr>
+                        <td><code>v4→v5</code></td>
+                        <td>添加索引 (createdAt, isFavorite, moodLevel, dueDate, isCompleted)</td>
+                        <td>DiaryEntry, DiaryTag, TodoItem</td>
+                    </tr>
+                    <tr>
+                        <td><code>v5→v6</code></td>
+                        <td>添加 <code>category</code> 字段 (task/habit)</td>
+                        <td>TodoItem</td>
+                    </tr>
+                    <tr>
+                        <td><code>v6→v7</code></td>
+                        <td>添加 <code>reminderTime</code> 字段</td>
+                        <td>TodoItem</td>
+                    </tr>
+                    <tr>
+                        <td><code>v7→v8+</code></td>
+                        <td>添加 tags, images, trash, countdown, habit_records 等</td>
+                        <td>多个 Entity</td>
+                    </tr>
+                    <tr>
+                        <td><code>v13</code></td>
+                        <td>当前版本 - 8 个 Entity，完整索引</td>
+                        <td>所有</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div id="navigation" class="card section-gap">
+        <h2>导航架构</h2>
+        <p class="lead">使用 Navigation Compose 实现的底部导航 + 路由系统。</p>
+
+        <h3 style="margin-top:20px">底部导航栏 (4 Tab)</h3>
+        <div class="nav-flow">
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--blue)">home</span>
+                <span class="route-name">首页 Home</span>
+                <span class="route-desc">日记列表 + 日历视图</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--green)">calendar_month</span>
+                <span class="route-name">时间线 Timeline</span>
+                <span class="route-desc">按月分组的日记时间线</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--amber)">check_box</span>
+                <span class="route-name">待办 Todo</span>
+                <span class="route-desc">待办事项 + 习惯打卡</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--purple)">person</span>
+                <span class="route-name">我的 Profile</span>
+                <span class="route-desc">个人中心 + 设置</span>
+            </div>
+        </div>
+
+        <h3 style="margin-top:20px">二级路由</h3>
+        <div class="nav-flow">
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">edit_note</span>
+                <span class="route-name">editor?diaryId=&draftId=</span>
+                <span class="route-desc">编辑器 (支持新建/编辑/草稿)</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">visibility</span>
+                <span class="route-name">detail/{id}</span>
+                <span class="route-desc">日记详情页</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">bar_chart</span>
+                <span class="route-name">stats</span>
+                <span class="route-desc">统计页面</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">favorite</span>
+                <span class="route-name">favorites</span>
+                <span class="route-desc">收藏列表</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">delete</span>
+                <span class="route-name">trash</span>
+                <span class="route-desc">回收站</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">cloud_upload</span>
+                <span class="route-name">backup</span>
+                <span class="route-desc">备份管理</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">settings</span>
+                <span class="route-name">settings</span>
+                <span class="route-desc">应用设置</span>
+            </div>
+            <div class="nav-route">
+                <span class="material-symbols-rounded route-icon" style="color:var(--rose)">science</span>
+                <span class="route-name">experimental_features</span>
+                <span class="route-desc">实验功能中心</span>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card" style="border-left: 4px solid var(--amber)">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">info</span> 导航问题</h3>
+                <ul class="issue-list">
+                    <li><strong>URL 参数解析</strong> - Editor 路由使用 URL 参数，解析逻辑分散</li>
+                    <li><strong>返回栈管理</strong> - 多级返回时行为不一致</li>
+                    <li><strong>Deep Link</strong> - 不支持外部 Deep Link</li>
+                    <li><strong>动画</strong> - 页面切换动画不统一</li>
+                </ul>
+            </div>
+
+            <div class="feature-card" style="border-left: 4px solid var(--green)">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">check_circle</span> 优化建议</h3>
+                <ul class="issue-list">
+                    <li><strong>Type-safe Navigation</strong> - 使用 Kotlin Serialization 路由</li>
+                    <li><strong>统一动画</strong> - 所有页面使用相同的 enter/exit 动画</li>
+                    <li><strong>Deep Link</strong> - 支持 diary://entry/{id} 外部链接</li>
+                    <li><strong>导航状态保存</strong> - 配置变更时保存导航状态</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

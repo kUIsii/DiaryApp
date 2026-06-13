@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>编辑器迁移方案预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: white; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: #333; font-size: 12px; }
+        .nav-bar { height: 44px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #eee; }
+        .nav-bar .back { font-size: 20px; cursor: pointer; }
+        .nav-bar .save { color: #667eea; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+        .title-input { width: 100%; border: none; padding: 16px 20px 8px; font-size: 22px; font-weight: 700; outline: none; color: #333; }
+
+        .meta-bar { display: flex; gap: 8px; padding: 0 20px 12px; flex-wrap: wrap; }
+        .meta-chip { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; border: 1px solid #eee; background: white; color: #666; }
+        .meta-chip.active { border-color: #667eea; color: #667eea; }
+
+        .editor-toolbar { display: flex; gap: 4px; padding: 8px 16px; border-bottom: 1px solid #eee; overflow-x: auto; background: white; }
+        .toolbar-btn { width: 32px; height: 32px; border-radius: 8px; border: none; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666; }
+        .toolbar-btn:hover { background: #f0f0f0; }
+        .toolbar-btn.active { background: #667eea; color: white; }
+        .toolbar-divider { width: 1px; height: 24px; background: #eee; margin: 4px 4px; }
+
+        .editor-content { padding: 16px 20px; overflow-y: auto; height: calc(100% - 44px - 44px - 44px - 44px - 44px); font-size: 15px; line-height: 1.8; color: #444; }
+        .editor-content .paragraph { margin-bottom: 12px; }
+        .editor-content .heading { font-size: 20px; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .editor-content .quote { border-left: 3px solid #667eea; padding-left: 12px; color: #666; font-style: italic; }
+        .editor-content .code-block { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 13px; }
+        .editor-content .image-placeholder { background: #f0f0f0; border-radius: 12px; height: 160px; display: flex; align-items: center; justify-content: center; color: #999; margin: 12px 0; }
+        .editor-content .list-item { padding-left: 20px; position: relative; margin-bottom: 4px; }
+        .editor-content .list-item::before { content: '•'; position: absolute; left: 8px; color: #667eea; }
+
+        .cursor-line { border-left: 2px solid #667eea; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Comparison overlay */
+        .comparison { position: absolute; inset: 0; background: white; z-index: 100; display: none; }
+        .comparison.show { display: block; }
+        .comparison-header { padding: 16px; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .comparison-header h3 { font-size: 16px; }
+        .comparison-header .close { font-size: 20px; cursor: pointer; }
+        .comparison-content { display: flex; height: calc(100% - 56px); }
+        .comparison-side { flex: 1; padding: 16px; border-right: 1px solid #eee; overflow-y: auto; }
+        .comparison-side:last-child { border-right: none; }
+        .comparison-side h4 { font-size: 14px; color: #667eea; margin-bottom: 12px; }
+        .comparison-item { margin-bottom: 12px; padding: 12px; background: #f9f9f9; border-radius: 8px; }
+        .comparison-item .label { font-size: 12px; color: #999; }
+        .comparison-item .value { font-size: 13px; color: #333; margin-top: 4px; }
+        .comparison-item .status { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-top: 4px; }
+        .comparison-item .status.good { background: #e8f5e9; color: #2e7d32; }
+        .comparison-item .status.bad { background: #ffebee; color: #c62828; }
+        .comparison-item .status.medium { background: #fff3e0; color: #e65100; }
+
+        .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 44px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; }
+        .bottom-btn { font-size: 12px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+
+    <div class="nav-bar">
+        <span class="back">←</span>
+        <span class="save">保存</span>
+    </div>
+
+    <input class="title-input" type="text" value="周末的咖啡馆" />
+
+    <div class="meta-bar">
+        <span class="meta-chip active">😊 开心</span>
+        <span class="meta-chip">☀️ 晴天</span>
+        <span class="meta-chip">📍 上海</span>
+        <span class="meta-chip">+ 标签</span>
+    </div>
+
+    <div class="editor-toolbar">
+        <button class="toolbar-btn" title="撤销">↩</button>
+        <button class="toolbar-btn" title="重做">↪</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn active" title="粗体">B</button>
+        <button class="toolbar-btn" title="斜体"><i>I</i></button>
+        <button class="toolbar-btn" title="删除线"><s>S</s></button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" title="标题">H</button>
+        <button class="toolbar-btn" title="引用">"</button>
+        <button class="toolbar-btn" title="代码">&lt;/&gt;</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" title="无序列表">☰</button>
+        <button class="toolbar-btn" title="有序列表">1.</button>
+        <button class="toolbar-btn" title="任务列表">☑</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" title="图片">🖼</button>
+        <button class="toolbar-btn" title="视频">🎬</button>
+        <button class="toolbar-btn" title="分割线">—</button>
+    </div>
+
+    <div class="editor-content">
+        <div class="paragraph">找了一家新开的咖啡馆，拿铁很好喝，环境也很安静。窗外的梧桐树在阳光下摇曳，偶尔有几只麻雀停在枝头。</div>
+
+        <div class="heading">咖啡的味道</div>
+        <div class="paragraph">点了一杯燕麦拿铁，咖啡师的拉花很漂亮。第一口下去，浓郁的咖啡香和燕麦的甜味完美融合。</div>
+
+        <div class="quote">生活不是等待暴风雨过去，而是学会在雨中跳舞。</div>
+
+        <div class="image-placeholder">📷 点击添加图片</div>
+
+        <div class="paragraph">下午三点，阳光正好。咖啡馆里人不多：</div>
+
+        <div class="list-item">有人在看书</div>
+        <div class="list-item">有人在敲键盘</div>
+        <div class="list-item">有人只是发呆</div>
+
+        <div class="code-block">const cafe = "新开的咖啡馆";<br>const mood = "平静";</div>
+
+        <div class="paragraph">傍晚时分，咖啡馆的灯光渐渐亮起，暖黄色的光让整个空间更加温馨。<span class="cursor-line"></span></div>
+    </div>
+
+    <div class="bottom-bar">
+        <span class="bottom-btn" onclick="document.querySelector('.comparison').classList.toggle('show')">📊 方案对比</span>
+        <span class="bottom-btn">📷 图片</span>
+        <span class="bottom-btn">📎 附件</span>
+        <span class="bottom-btn">⚙️ 设置</span>
+    </div>
+
+    <!-- Comparison Overlay -->
+    <div class="comparison">
+        <div class="comparison-header">
+            <h3>编辑器方案对比</h3>
+            <span class="close" onclick="this.closest('.comparison').classList.remove('show')">✕</span>
+        </div>
+        <div class="comparison-content">
+            <div class="comparison-side">
+                <h4>当前: Quill.js</h4>
+                <div class="comparison-item">
+                    <div class="label">IME 支持</div>
+                    <div class="status bad">差</div>
+                    <div class="value">中文输入法冲突严重</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">光标管理</div>
+                    <div class="status bad">差</div>
+                    <div class="value">频繁跳转异常</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">性能</div>
+                    <div class="status medium">中</div>
+                    <div class="value">WebView 内存占用高</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">格式支持</div>
+                    <div class="status good">完整</div>
+                    <div class="value">支持所有富文本格式</div>
+                </div>
+            </div>
+            <div class="comparison-side">
+                <h4>推荐: TipTap</h4>
+                <div class="comparison-item">
+                    <div class="label">IME 支持</div>
+                    <div class="status good">好</div>
+                    <div class="value">ProseMirror 内核，IME 支持好</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">光标管理</div>
+                    <div class="status good">好</div>
+                    <div class="value">精确的光标控制</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">性能</div>
+                    <div class="status medium">中</div>
+                    <div class="value">仍需 WebView 环境</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="label">格式支持</div>
+                    <div class="status good">完整</div>
+                    <div class="value">扩展系统完善</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

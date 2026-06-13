@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计系统预览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 12px #111, 0 0 0 14px #333, 0 30px 80px rgba(0,0,0,0.5);
+  }
+
+  .status-bar {
+    height: 44px;
+    padding: 12px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .status-bar-icons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .status-bar-icons span {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .phone-content {
+    height: calc(812px - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .phone-content::-webkit-scrollbar { display: none; }
+
+  .page-header {
+    padding: 8px 20px 16px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    margin-top: 4px;
+    opacity: 0.5;
+  }
+
+  .section {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.4;
+    margin-bottom: 10px;
+  }
+
+  .section-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  /* Theme switcher */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .theme-card {
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+
+  .theme-card.active {
+    border-color: currentColor;
+  }
+
+  .theme-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .theme-card-desc {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .theme-card-check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .theme-card.active .theme-card-check {
+    opacity: 1;
+  }
+
+  .theme-card-dots {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .theme-card-dots span {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Color palette */
+  .color-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .color-swatch {
+    border-radius: 12px;
+    padding: 12px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .color-swatch-name {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .color-swatch-hex {
+    font-size: 10px;
+    opacity: 0.7;
+    font-family: "SF Mono", "Menlo", monospace;
+  }
+
+  /* Typography */
+  .typo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+
+  .typo-row:last-child { border-bottom: none; }
+
+  .typo-label {
+    font-size: 12px;
+    opacity: 0.5;
+    min-width: 60px;
+  }
+
+  .typo-spec {
+    font-size: 10px;
+    opacity: 0.35;
+    font-family: "SF Mono", "Menlo", monospace;
+    text-align: right;
+  }
+
+  /* Glass card */
+  .glass-card {
+    border-radius: 16px;
+    padding: 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-width: 1px;
+    border-style: solid;
+  }
+
+  .glass-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .glass-card-text {
+    font-size: 13px;
+    line-height: 1.6;
+    opacity: 0.7;
+  }
+
+  .glass-card-meta {
+    font-size: 11px;
+    opacity: 0.4;
+    margin-top: 10px;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary { color: #fff; }
+
+  .btn-secondary {
+    background: transparent;
+    border-width: 1.5px;
+    border-style: solid;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+  }
+
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 18px;
+  }
+
+  /* Chips */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  /* Input fields */
+  .input-group {
+    margin-bottom: 12px;
+  }
+
+  .input-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    opacity: 0.6;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    border-width: 1.5px;
+    border-style: solid;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+
+  .input-field::placeholder {
+    opacity: 0.3;
+  }
+
+  .input-field:focus {
+    border-width: 2px;
+  }
+
+  /* Spacing grid */
+  .spacing-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .spacing-bar {
+    height: 20px;
+    border-radius: 4px;
+    transition: all 0.3s;
+  }
+
+  .spacing-label {
+    font-size: 11px;
+    font-family: "SF Mono", "Menlo", monospace;
+    opacity: 0.5;
+    min-width: 36px;
+  }
+
+  .spacing-value {
+    font-size: 11px;
+    opacity: 0.35;
+    font-family: "SF Mono", "Menlo", monospace;
+  }
+
+  /* Mini phone preview */
+  .mini-phone-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0 8px;
+  }
+
+  .mini-phone {
+    width: 140px;
+    height: 280px;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    border-width: 3px;
+    border-style: solid;
+    transition: all 0.4s ease;
+  }
+
+  .mini-phone-notch {
+    width: 60px;
+    height: 14px;
+    border-radius: 0 0 10px 10px;
+    margin: 0 auto;
+  }
+
+  .mini-phone-status {
+    height: 20px;
+    padding: 3px 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 6px;
+    font-weight: 600;
+  }
+
+  .mini-phone-header {
+    padding: 6px 10px;
+  }
+
+  .mini-phone-title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mini-phone-subtitle {
+    font-size: 6px;
+    opacity: 0.5;
+    margin-top: 2px;
+  }
+
+  .mini-phone-cards {
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .mini-card {
+    border-radius: 8px;
+    padding: 8px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-width: 1px;
+    border-style: solid;
+  }
+
+  .mini-card-line {
+    height: 5px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+    opacity: 0.6;
+  }
+
+  .mini-card-line:last-child {
+    width: 60%;
+    opacity: 0.3;
+  }
+
+  .mini-phone-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 16px;
+  }
+
+  .mini-nav-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 6px;
+    opacity: 0.4;
+  }
+
+  .mini-nav-dot.active-nav {
+    opacity: 1;
+  }
+
+  .divider {
+    height: 1px;
+    margin: 0 20px 20px;
+    opacity: 0.08;
+  }
+
+  .bottom-spacer { height: 30px; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame" id="phoneFrame">
+  <div class="status-bar" id="statusBar">
+    <span>9:41</span>
+    <div class="status-bar-icons">
+      <span>...</span>
+      <span>WiFi</span>
+      <span>100%</span>
+    </div>
+  </div>
+
+  <div class="phone-content" id="phoneContent">
+    <div class="page-header">
+      <div class="page-title" id="pageTitle">设计系统</div>
+      <div class="page-subtitle" id="pageSubtitle">Design Tokens & Components</div>
+    </div>
+
+    <!-- Theme Switcher -->
+    <div class="section">
+      <div class="section-label" id="labelTheme">THEME MODE</div>
+      <div class="section-title" id="titleTheme">主题模式</div>
+      <div class="theme-grid" id="themeGrid">
+        <div class="theme-card active" data-theme="fogLight" onclick="setTheme('fogLight')">
+          <div class="theme-card-check" id="check_fogLight">&#10003;</div>
+          <div class="theme-card-name">雾蓝浅色</div>
+          <div class="theme-card-desc">默认日间主题</div>
+          <div class="theme-card-dots">
+            <span style="background:#5d83a8"></span>
+            <span style="background:#8ab4d6"></span>
+            <span style="background:#e8f0f6"></span>
+          </div>
+        </div>
+        <div class="theme-card" data-theme="fogDark" onclick="setTheme('fogDark')">
+          <div class="theme-card-check" id="check_fogDark">&#10003;</div>
+          <div class="theme-card-name">雾蓝暗色</div>
+          <div class="theme-card-desc">夜间护眼主题</div>
+          <div class="theme-card-dots">
+            <span style="background:#5d83a8"></span>
+            <span style="background:#3a5a7a"></span>
+            <span style="background:#1a2535"></span>
+          </div>
+        </div>
+        <div class="theme-card" data-theme="mossLight" onclick="setTheme('mossLight')">
+          <div class="theme-card-check" id="check_mossLight">&#10003;</div>
+          <div class="theme-card-name">苔绿浅色</div>
+          <div class="theme-card-desc">自然清新主题</div>
+          <div class="theme-card-dots">
+            <span style="background:#5c8f73"></span>
+            <span style="background:#8bb8a0"></span>
+            <span style="background:#e8f2ec"></span>
+          </div>
+        </div>
+        <div class="theme-card" data-theme="mossDark" onclick="setTheme('mossDark')">
+          <div class="theme-card-check" id="check_mossDark">&#10003;</div>
+          <div class="theme-card-name">苔绿暗色</div>
+          <div class="theme-card-desc">森林暗夜主题</div>
+          <div class="theme-card-dots">
+            <span style="background:#5c8f73"></span>
+            <span style="background:#3a6050"></span>
+            <span style="background:#1a2a22"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider" id="divider1"></div>
+
+    <!-- Color Palette -->
+    <div class="section">
+      <div class="section-label" id="labelColor">COLOR PALETTE</div>
+      <div class="section-title" id="titleColor">色彩体系</div>
+      <div class="color-grid" id="colorGrid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <div class="divider" id="divider2"></div>
+
+    <!-- Typography -->
+    <div class="section">
+      <div class="section-label" id="labelTypo">TYPOGRAPHY</div>
+      <div class="section-title" id="titleTypo">字体排版</div>
+      <div id="typoContainer">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <div class="divider" id="divider3"></div>
+
+    <!-- GlassCard Component -->
+    <div class="section">
+      <div class="section-label" id="labelGlass">GLASS CARD</div>
+      <div class="section-title" id="titleGlass">毛玻璃卡片</div>
+      <div class="glass-card" id="glassCard">
+        <div class="glass-card-title" id="glassTitle">今日随笔</div>
+        <div class="glass-card-text" id="glassText">阳光透过窗帘洒在书桌上，泡一杯清茶，记录下此刻的心情。生活不必波澜壮阔，平淡中的小确幸同样值得珍藏。</div>
+        <div class="glass-card-meta" id="glassMeta">2026年6月11日 / 14:32</div>
+      </div>
+    </div>
+
+    <div class="divider" id="divider4"></div>
+
+    <!-- Buttons -->
+    <div class="section">
+      <div class="section-label" id="labelBtn">BUTTONS</div>
+      <div class="section-title" id="titleBtn">按钮组件</div>
+      <div class="btn-row" id="btnRow1">
+        <button class="btn btn-primary" id="btnPrimary">主要按钮</button>
+        <button class="btn btn-secondary" id="btnSecondary">次要按钮</button>
+      </div>
+      <div class="btn-row" id="btnRow2">
+        <button class="btn btn-ghost" id="btnGhost">文字按钮</button>
+        <button class="btn btn-icon btn-primary" id="btnIcon1">+</button>
+        <button class="btn btn-icon btn-secondary" id="btnIcon2">&#9998;</button>
+      </div>
+    </div>
+
+    <div class="divider" id="divider5"></div>
+
+    <!-- Chips -->
+    <div class="section">
+      <div class="section-label" id="labelChip">CHIPS</div>
+      <div class="section-title" id="titleChip">标签胶囊</div>
+      <div class="chip-row" id="chipRow">
+        <span class="chip" id="chip1">心情</span>
+        <span class="chip" id="chip2">旅行</span>
+        <span class="chip" id="chip3">工作</span>
+        <span class="chip" id="chip4">阅读</span>
+        <span class="chip" id="chip5">音乐</span>
+      </div>
+    </div>
+
+    <div class="divider" id="divider6"></div>
+
+    <!-- Input Fields -->
+    <div class="section">
+      <div class="section-label" id="labelInput">INPUTS</div>
+      <div class="section-title" id="titleInput">输入框</div>
+      <div class="input-group">
+        <div class="input-label" id="inputLabel1">标题</div>
+        <input class="input-field" id="inputField1" type="text" placeholder="记录今天的心情...">
+      </div>
+      <div class="input-group">
+        <div class="input-label" id="inputLabel2">内容</div>
+        <input class="input-field" id="inputField2" type="text" placeholder="写下你的故事...">
+      </div>
+    </div>
+
+    <div class="divider" id="divider7"></div>
+
+    <!-- Spacing Grid -->
+    <div class="section">
+      <div class="section-label" id="labelSpacing">SPACING</div>
+      <div class="section-title" id="titleSpacing">间距系统 (4dp Grid)</div>
+      <div id="spacingContainer">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <div class="divider" id="divider8"></div>
+
+    <!-- Mini Phone Preview -->
+    <div class="section">
+      <div class="section-label" id="labelPreview">PREVIEW</div>
+      <div class="section-title" id="titlePreview">实时预览</div>
+      <div class="mini-phone-wrap">
+        <div class="mini-phone" id="miniPhone">
+          <div class="mini-phone-notch" id="miniNotch"></div>
+          <div class="mini-phone-status" id="miniStatus">
+            <span>9:41</span>
+            <span>...</span>
+          </div>
+          <div class="mini-phone-header">
+            <div class="mini-phone-title" id="miniTitle">日记</div>
+            <div class="mini-phone-subtitle" id="miniSubtitle">记录每一天</div>
+          </div>
+          <div class="mini-phone-cards" id="miniCards">
+            <div class="mini-card" id="miniCard1">
+              <div class="mini-card-line" id="miniLine1a"></div>
+              <div class="mini-card-line" id="miniLine1b"></div>
+            </div>
+            <div class="mini-card" id="miniCard2">
+              <div class="mini-card-line" id="miniLine2a"></div>
+              <div class="mini-card-line" id="miniLine2b"></div>
+            </div>
+            <div class="mini-card" id="miniCard3">
+              <div class="mini-card-line" id="miniLine3a"></div>
+              <div class="mini-card-line" id="miniLine3b"></div>
+            </div>
+          </div>
+          <div class="mini-phone-nav" id="miniNav">
+            <div class="mini-nav-dot active-nav" id="miniNav1"></div>
+            <div class="mini-nav-dot" id="miniNav2"></div>
+            <div class="mini-nav-dot" id="miniNav3"></div>
+            <div class="mini-nav-dot" id="miniNav4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-spacer"></div>
+  </div>
+</div>
+
+<script>
+var themes = {
+  fogLight: {
+    primary: '#5d83a8',
+    primaryLight: '#8ab4d6',
+    primarySurface: '#dce8f3',
+    secondary: '#7a9bb5',
+    surface: '#ffffff',
+    surfaceVariant: '#f5f8fb',
+    background: '#f0f4f8',
+    onPrimary: '#ffffff',
+    onSurface: '#1a2a3a',
+    onSurfaceVariant: '#5a7080',
+    outline: '#c8d8e8',
+    glassBg: 'rgba(255,255,255,0.55)',
+    glassBorder: 'rgba(255,255,255,0.6)',
+    chipBg: '#e8f0f6',
+    chipText: '#3a6080',
+    cardBg: '#ffffff',
+    shadow: 'rgba(93,131,168,0.12)',
+    phoneBg: '#f0f4f8',
+    statusBarColor: '#1a2a3a',
+    miniNotch: '#e0e8f0',
+    miniNavBg: 'rgba(255,255,255,0.85)',
+    themeCardBg: '#f5f8fb',
+    themeCardText: '#1a2a3a',
+    checkBg: '#5d83a8',
+    checkText: '#ffffff',
+    dividerColor: '#1a2a3a',
+    inputBg: '#ffffff',
+    inputBorder: '#d0dde8',
+    inputFocus: '#5d83a8',
+    spacingBar: '#8ab4d6'
+  },
+  fogDark: {
+    primary: '#5d83a8',
+    primaryLight: '#3a5a7a',
+    primarySurface: '#1e3045',
+    secondary: '#7a9bb5',
+    surface: '#1e2a38',
+    surfaceVariant: '#243445',
+    background: '#131e2a',
+    onPrimary: '#ffffff',
+    onSurface: '#d8e4ef',
+    onSurfaceVariant: '#8aa0b5',
+    outline: '#2a4055',
+    glassBg: 'rgba(30,42,56,0.65)',
+    glassBorder: 'rgba(93,131,168,0.2)',
+    chipBg: '#1e3045',
+    chipText: '#8ab4d6',
+    cardBg: '#1e2a38',
+    shadow: 'rgba(0,0,0,0.3)',
+    phoneBg: '#131e2a',
+    statusBarColor: '#d8e4ef',
+    miniNotch: '#2a3a4a',
+    miniNavBg: 'rgba(19,30,42,0.85)',
+    themeCardBg: '#1e2a38',
+    themeCardText: '#d8e4ef',
+    checkBg: '#5d83a8',
+    checkText: '#ffffff',
+    dividerColor: '#d8e4ef',
+    inputBg: '#1e2a38',
+    inputBorder: '#2a4055',
+    inputFocus: '#5d83a8',
+    spacingBar: '#3a5a7a'
+  },
+  mossLight: {
+    primary: '#5c8f73',
+    primaryLight: '#8bb8a0',
+    primarySurface: '#e2f0e8',
+    secondary: '#7aab90',
+    surface: '#ffffff',
+    surfaceVariant: '#f4f9f6',
+    background: '#eef5f0',
+    onPrimary: '#ffffff',
+    onSurface: '#1a2e22',
+    onSurfaceVariant: '#5a7865',
+    outline: '#c5ddd0',
+    glassBg: 'rgba(255,255,255,0.55)',
+    glassBorder: 'rgba(255,255,255,0.6)',
+    chipBg: '#e2f0e8',
+    chipText: '#3a6850',
+    cardBg: '#ffffff',
+    shadow: 'rgba(92,143,115,0.12)',
+    phoneBg: '#eef5f0',
+    statusBarColor: '#1a2e22',
+    miniNotch: '#ddeae2',
+    miniNavBg: 'rgba(255,255,255,0.85)',
+    themeCardBg: '#f4f9f6',
+    themeCardText: '#1a2e22',
+    checkBg: '#5c8f73',
+    checkText: '#ffffff',
+    dividerColor: '#1a2e22',
+    inputBg: '#ffffff',
+    inputBorder: '#c8ddd2',
+    inputFocus: '#5c8f73',
+    spacingBar: '#8bb8a0'
+  },
+  mossDark: {
+    primary: '#5c8f73',
+    primaryLight: '#3a6050',
+    primarySurface: '#1a3025',
+    secondary: '#7aab90',
+    surface: '#1a2820',
+    surfaceVariant: '#223328',
+    background: '#111e18',
+    onPrimary: '#ffffff',
+    onSurface: '#d0e4d8',
+    onSurfaceVariant: '#80a890',
+    outline: '#2a4535',
+    glassBg: 'rgba(26,40,32,0.65)',
+    glassBorder: 'rgba(92,143,115,0.2)',
+    chipBg: '#1a3025',
+    chipText: '#8bb8a0',
+    cardBg: '#1a2820',
+    shadow: 'rgba(0,0,0,0.3)',
+    phoneBg: '#111e18',
+    statusBarColor: '#d0e4d8',
+    miniNotch: '#263830',
+    miniNavBg: 'rgba(17,30,24,0.85)',
+    themeCardBg: '#1a2820',
+    themeCardText: '#d0e4d8',
+    checkBg: '#5c8f73',
+    checkText: '#ffffff',
+    dividerColor: '#d0e4d8',
+    inputBg: '#1a2820',
+    inputBorder: '#2a4535',
+    inputFocus: '#5c8f73',
+    spacingBar: '#3a6050'
+  }
+};
+
+var currentTheme = 'fogLight';
+
+function setTheme(name) {
+  currentTheme = name;
+  var t = themes[name];
+
+  // Theme cards
+  var cards = document.querySelectorAll('.theme-card');
+  for (var i = 0; i < cards.length; i++) {
+    var tn = cards[i].getAttribute('data-theme');
+    if (tn === name) {
+      cards[i].classList.add('active');
+      cards[i].style.borderColor = t.primary;
+      cards[i].style.background = t.primarySurface;
+      cards[i].querySelector('.theme-card-name').style.color = t.onSurface;
+      cards[i].querySelector('.theme-card-desc').style.color = t.onSurfaceVariant;
+    } else {
+      cards[i].classList.remove('active');
+      cards[i].style.borderColor = 'transparent';
+      cards[i].style.background = t.themeCardBg;
+      cards[i].querySelector('.theme-card-name').style.color = t.onSurface;
+      cards[i].querySelector('.theme-card-desc').style.color = t.onSurfaceVariant;
+    }
+  }
+
+  // Check marks
+  var checkIds = ['check_fogLight','check_fogDark','check_mossLight','check_mossDark'];
+  for (var j = 0; j < checkIds.length; j++) {
+    var el = document.getElementById(checkIds[j]);
+    if (checkIds[j] === 'check_' + name) {
+      el.style.background = t.checkBg;
+      el.style.color = t.checkText;
+    }
+  }
+
+  // Phone frame & content
+  document.getElementById('phoneFrame').style.background = t.phoneBg;
+  document.getElementById('statusBar').style.color = t.statusBarColor;
+
+  // Page header
+  document.getElementById('pageTitle').style.color = t.onSurface;
+  document.getElementById('pageSubtitle').style.color = t.onSurfaceVariant;
+
+  // Section labels & titles
+  var labels = document.querySelectorAll('.section-label');
+  for (var k = 0; k < labels.length; k++) labels[k].style.color = t.onSurfaceVariant;
+  var titles = document.querySelectorAll('.section-title');
+  for (var m = 0; m < titles.length; m++) titles[m].style.color = t.onSurface;
+
+  // Dividers
+  var dividers = document.querySelectorAll('.divider');
+  for (var d = 0; d < dividers.length; d++) dividers[d].style.background = t.dividerColor;
+
+  // Color palette
+  var colorData = [
+    { name: 'Primary', hex: t.primary, bg: t.primary, fg: t.onPrimary },
+    { name: 'Primary Light', hex: t.primaryLight, bg: t.primaryLight, fg: '#ffffff' },
+    { name: 'Primary Surface', hex: t.primarySurface, bg: t.primarySurface, fg: t.onSurface },
+    { name: 'Surface', hex: t.surface, bg: t.surface, fg: t.onSurface },
+    { name: 'Background', hex: t.background, bg: t.background, fg: t.onSurface },
+    { name: 'On Surface', hex: t.onSurface, bg: t.onSurface, fg: t.surface },
+    { name: 'Secondary', hex: t.secondary, bg: t.secondary, fg: '#ffffff' },
+    { name: 'Outline', hex: t.outline, bg: t.outline, fg: t.onSurface }
+  ];
+  var cg = document.getElementById('colorGrid');
+  cg.innerHTML = '';
+  for (var c = 0; c < colorData.length; c++) {
+    var cd = colorData[c];
+    cg.innerHTML += '<div class="color-swatch" style="background:' + cd.bg + ';color:' + cd.fg + '"><div class="color-swatch-name">' + cd.name + '</div><div class="color-swatch-hex">' + cd.hex + '</div></div>';
+  }
+
+  // Typography
+  var typoData = [
+    { label: '大标题', spec: '28px / Bold', size: 28, weight: 700, sample: '记录生活' },
+    { label: '标题', spec: '20px / SemiBold', size: 20, weight: 600, sample: '今日随笔' },
+    { label: '正文', spec: '15px / Regular', size: 15, weight: 400, sample: '阳光正好，微风不燥' },
+    { label: '注释', spec: '13px / Regular', size: 13, weight: 400, sample: '2026年6月11日' },
+    { label: '按钮', spec: '14px / SemiBold', size: 14, weight: 600, sample: '保存日记' },
+    { label: '标签', spec: '11px / Medium', size: 11, weight: 500, sample: 'DESIGN SYSTEM' }
+  ];
+  var tc = document.getElementById('typoContainer');
+  tc.innerHTML = '';
+  for (var t2 = 0; t2 < typoData.length; t2++) {
+    var td = typoData[t2];
+    tc.innerHTML += '<div class="typo-row" style="border-bottom-color:' + t.outline + '"><div><div class="typo-label" style="color:' + t.onSurfaceVariant + '">' + td.label + '</div><div style="font-size:' + td.size + 'px;font-weight:' + td.weight + ';color:' + t.onSurface + ';margin-top:4px">' + td.sample + '</div></div><div class="typo-spec" style="color:' + t.onSurfaceVariant + '">' + td.spec + '</div></div>';
+  }
+
+  // Glass card
+  var gc = document.getElementById('glassCard');
+  gc.style.background = t.glassBg;
+  gc.style.borderColor = t.glassBorder;
+  gc.style.boxShadow = '0 4px 20px ' + t.shadow;
+  document.getElementById('glassTitle').style.color = t.onSurface;
+  document.getElementById('glassText').style.color = t.onSurface;
+  document.getElementById('glassMeta').style.color = t.onSurfaceVariant;
+
+  // Buttons
+  document.getElementById('btnPrimary').style.background = t.primary;
+  document.getElementById('btnPrimary').style.color = t.onPrimary;
+  document.getElementById('btnSecondary').style.borderColor = t.primary;
+  document.getElementById('btnSecondary').style.color = t.primary;
+  document.getElementById('btnSecondary').style.background = 'transparent';
+  document.getElementById('btnGhost').style.color = t.primary;
+  document.getElementById('btnGhost').style.background = 'transparent';
+  document.getElementById('btnIcon1').style.background = t.primary;
+  document.getElementById('btnIcon1').style.color = t.onPrimary;
+  document.getElementById('btnIcon2').style.borderColor = t.primary;
+  document.getElementById('btnIcon2').style.color = t.primary;
+  document.getElementById('btnIcon2').style.background = 'transparent';
+
+  // Chips
+  var chipIds = ['chip1','chip2','chip3','chip4','chip5'];
+  for (var ch = 0; ch < chipIds.length; ch++) {
+    var chipEl = document.getElementById(chipIds[ch]);
+    chipEl.style.background = t.chipBg;
+    chipEl.style.color = t.chipText;
+  }
+
+  // Input fields
+  document.getElementById('inputField1').style.background = t.inputBg;
+  document.getElementById('inputField1').style.borderColor = t.inputBorder;
+  document.getElementById('inputField1').style.color = t.onSurface;
+  document.getElementById('inputField2').style.background = t.inputBg;
+  document.getElementById('inputField2').style.borderColor = t.inputBorder;
+  document.getElementById('inputField2').style.color = t.onSurface;
+  document.getElementById('inputLabel1').style.color = t.onSurfaceVariant;
+  document.getElementById('inputLabel2').style.color = t.onSurfaceVariant;
+
+  // Spacing grid
+  var spacings = [
+    { dp: '4dp', px: 4 },
+    { dp: '8dp', px: 8 },
+    { dp: '12dp', px: 12 },
+    { dp: '16dp', px: 16 },
+    { dp: '20dp', px: 20 },
+    { dp: '24dp', px: 24 },
+    { dp: '32dp', px: 32 },
+    { dp: '48dp', px: 48 }
+  ];
+  var spC = document.getElementById('spacingContainer');
+  spC.innerHTML = '';
+  for (var s = 0; s < spacings.length; s++) {
+    var sp = spacings[s];
+    spC.innerHTML += '<div class="spacing-row"><div class="spacing-label" style="color:' + t.onSurfaceVariant + '">' + sp.dp + '</div><div class="spacing-bar" style="width:' + (sp.px * 2.2) + 'px;background:' + t.spacingBar + '"></div><div class="spacing-value" style="color:' + t.onSurfaceVariant + '">' + sp.px + 'px</div></div>';
+  }
+
+  // Mini phone
+  var mp = document.getElementById('miniPhone');
+  mp.style.background = t.phoneBg;
+  mp.style.borderColor = t.outline;
+  document.getElementById('miniNotch').style.background = t.miniNotch;
+  document.getElementById('miniStatus').style.color = t.statusBarColor;
+  document.getElementById('miniTitle').style.color = t.onSurface;
+  document.getElementById('miniSubtitle').style.color = t.onSurfaceVariant;
+
+  // Mini cards
+  var miniCardIds = ['miniCard1','miniCard2','miniCard3'];
+  for (var mc = 0; mc < miniCardIds.length; mc++) {
+    var mcEl = document.getElementById(miniCardIds[mc]);
+    mcEl.style.background = t.glassBg;
+    mcEl.style.borderColor = t.glassBorder;
+  }
+  var miniLineIds = ['miniLine1a','miniLine1b','miniLine2a','miniLine2b','miniLine3a','miniLine3b'];
+  for (var ml = 0; ml < miniLineIds.length; ml++) {
+    document.getElementById(miniLineIds[ml]).style.background = t.onSurface;
+  }
+
+  // Mini nav
+  document.getElementById('miniNav').style.background = t.miniNavBg;
+  document.getElementById('miniNav1').style.background = t.primary;
+  var navOtherIds = ['miniNav2','miniNav3','miniNav4'];
+  for (var no2 = 0; no2 < navOtherIds.length; no2++) {
+    document.getElementById(navOtherIds[no2]).style.background = t.onSurfaceVariant;
+  }
+}
+
+// Initialize
+setTheme('fogLight');
+</script>
+
+</body>
+</html>

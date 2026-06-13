@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞品分析与参考 - Dashboard Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    padding: 32px 16px;
+    line-height: 1.6;
+  }
+  .dashboard {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 14px;
+    color: #6b7280;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid #6366f1;
+  }
+
+  /* Competitor Cards Grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+  }
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .card-icon.storypad { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .card-icon.june { background: linear-gradient(135deg, #f59e0b, #f97316); }
+  .card-icon.loop { background: linear-gradient(135deg, #10b981, #059669); }
+  .card-icon.dayone { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .card-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .card-tagline {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .card-features {
+    margin-bottom: 12px;
+  }
+  .card-features .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .card-features ul {
+    list-style: none;
+    padding: 0;
+  }
+  .card-features li {
+    font-size: 13px;
+    color: #374151;
+    padding: 3px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+  .card-features li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #d1d5db;
+  }
+  .card-learn {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+  }
+  .card-learn .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6366f1;
+    margin-bottom: 4px;
+  }
+  .card-learn p {
+    font-size: 12.5px;
+    color: #4b5563;
+  }
+
+  /* Feature Matrix */
+  .matrix-section {
+    margin-bottom: 36px;
+  }
+  .matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .matrix-table thead th {
+    background: #f8f9fb;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .matrix-table thead th:first-child {
+    text-align: left;
+    padding-left: 20px;
+  }
+  .matrix-table thead th.our-col {
+    color: #6366f1;
+    background: #eef2ff;
+  }
+  .matrix-table tbody td {
+    padding: 11px 14px;
+    font-size: 13.5px;
+    text-align: center;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+  }
+  .matrix-table tbody td:first-child {
+    text-align: left;
+    padding-left: 20px;
+    font-weight: 500;
+  }
+  .matrix-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .matrix-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  .check { color: #10b981; font-weight: 700; font-size: 16px; }
+  .cross { color: #d1d5db; font-size: 14px; }
+  .partial { color: #f59e0b; font-weight: 600; font-size: 14px; }
+  .our-cell { background: #f5f3ff; }
+
+  /* Takeaways */
+  .takeaways-section {
+    margin-bottom: 20px;
+  }
+  .takeaway-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .takeaway-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .takeaway-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #eef2ff;
+    color: #6366f1;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .takeaway-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+  }
+  .takeaway-desc {
+    font-size: 12.5px;
+    color: #6b7280;
+    line-height: 1.55;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>竞品分析与参考</h1>
+    <p>日记应用市场主要竞品功能对比与设计灵感提炼</p>
+  </div>
+
+  <!-- Competitor Cards -->
+  <div class="section-title">竞品概览</div>
+  <div class="cards-grid">
+
+    <!-- StoryPad -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon storypad">S</div>
+        <div>
+          <div class="card-name">StoryPad</div>
+          <div class="card-tagline">Material Design 3 日记应用</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="label">核心特色</div>
+        <ul>
+          <li>Material Design 3 设计语言</li>
+          <li>时间线视图，按日期自然浏览</li>
+          <li>本地优先，数据完全在设备端</li>
+          <li>标签系统与分类管理</li>
+        </ul>
+      </div>
+      <div class="card-learn">
+        <div class="label">值得借鉴</div>
+        <p>M3 组件体系的运用方式，时间线的流畅滚动体验，以及本地存储的隐私理念。</p>
+      </div>
+    </div>
+
+    <!-- June -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon June">J</div>
+        <div>
+          <div class="card-name">June</div>
+          <div class="card-tagline">极简心情日记</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="label">核心特色</div>
+        <ul>
+          <li>极简设计，界面极度克制</li>
+          <li>心情追踪，情绪可视化</li>
+          <li>Apple 风格动效与交互</li>
+          <li>快速记录，降低书写门槛</li>
+        </ul>
+      </div>
+      <div class="card-learn">
+        <div class="label">值得借鉴</div>
+        <p>极简美学的取舍智慧，心情选择器的交互方式，以及降低用户书写负担的设计思路。</p>
+      </div>
+    </div>
+
+    <!-- Loop Habit Tracker -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon loop">L</div>
+        <div>
+          <div class="card-name">Loop Habit Tracker</div>
+          <div class="card-tagline">开源习惯追踪器</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="label">核心特色</div>
+        <ul>
+          <li>习惯热力图，直观展示坚持情况</li>
+          <li>丰富的统计图表与趋势分析</li>
+          <li>完全开源，社区驱动</li>
+          <li>灵活的习惯频率设置</li>
+        </ul>
+      </div>
+      <div class="card-learn">
+        <div class="label">值得借鉴</div>
+        <p>热力图的数据呈现方式，习惯打卡的激励机制，以及统计图表的信息密度把控。</p>
+      </div>
+    </div>
+
+    <!-- Day One -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon dayone">D</div>
+        <div>
+          <div class="card-name">Day One</div>
+          <div class="card-tagline">多媒体日记标杆</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="label">核心特色</div>
+        <ul>
+          <li>多媒体日记，支持图文混排</li>
+          <li>自动元数据：天气、位置、活动</li>
+          <li>端到端加密，隐私安全</li>
+          <li>跨平台同步与时间线回顾</li>
+        </ul>
+      </div>
+      <div class="card-learn">
+        <div class="label">值得借鉴</div>
+        <p>自动元数据的丰富体验，多媒体内容的排版处理，以及"那年今日"的回顾功能设计。</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Feature Comparison Matrix -->
+  <div class="matrix-section">
+    <div class="section-title">功能对比矩阵</div>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>功能</th>
+          <th class="our-col">我们</th>
+          <th>StoryPad</th>
+          <th>June</th>
+          <th>Day One</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>日历视图</td>
+          <td class="our-cell"><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>心情追踪</td>
+          <td class="our-cell"><span class="partial">计划中</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>习惯打卡</td>
+          <td class="our-cell"><span class="check">&#10003;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+        </tr>
+        <tr>
+          <td>富文本编辑</td>
+          <td class="our-cell"><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>数据导出</td>
+          <td class="our-cell"><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="partial">基础</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>加密存储</td>
+          <td class="our-cell"><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>全文搜索</td>
+          <td class="our-cell"><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="partial">基础</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+        <tr>
+          <td>桌面小组件</td>
+          <td class="our-cell"><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span></td>
+          <td><span class="check">&#10003;</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Design Takeaways -->
+  <div class="takeaways-section">
+    <div class="section-title">设计灵感要点</div>
+    <div class="takeaway-grid">
+      <div class="takeaway-card">
+        <div class="takeaway-num">1</div>
+        <div class="takeaway-title">本地优先，隐私为本</div>
+        <div class="takeaway-desc">StoryPad 的本地存储策略值得参考。日记是极其私密的内容，将数据完全留在设备端，既能减少服务器成本，也能给用户更强的安全感。</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">2</div>
+        <div class="takeaway-title">降低书写门槛</div>
+        <div class="takeaway-desc">June 的心情选择器和快速记录方式有效降低了日记书写的启动成本。可以考虑引入心情标签、天气自动填充等轻量交互，让用户更容易开始动笔。</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">3</div>
+        <div class="takeaway-title">数据可视化激励</div>
+        <div class="takeaway-desc">Loop 的热力图和统计图表让习惯坚持变得可感知。在习惯打卡模块中融入类似的可视化反馈，能有效提升用户的持续使用动力。</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">4</div>
+        <div class="takeaway-title">自动元数据丰富体验</div>
+        <div class="takeaway-desc">Day One 自动记录天气、位置等上下文信息的方式，让日记内容更加立体。在权限允许的前提下，适度采集环境信息可以大幅提升记录的丰富度。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">竞品分析 Dashboard -- 仅供设计参考</div>
+
+</div>
+</body>
+</html>

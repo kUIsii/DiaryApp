@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页当前状态分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  .page-wrapper {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .page-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .page-subtitle {
+    color: #8888aa;
+    font-size: 13px;
+    margin-top: -18px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .phone-scene {
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ---- Phone Frame ---- */
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    border-radius: 44px;
+    border: 4px solid #333;
+    background: #f5f5f5;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 0 0 2px #1a1a1a;
+    flex-shrink: 0;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #222;
+  }
+  .status-bar .notch {
+    width: 120px;
+    height: 28px;
+    background: #111;
+    border-radius: 0 0 18px 18px;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .status-icons { display: flex; gap: 5px; align-items: center; font-size: 11px; }
+
+  /* Main scrollable area */
+  .screen-body {
+    height: calc(812px - 44px - 56px);
+    overflow-y: auto;
+    padding: 0 0 12px;
+    background: #f5f5f5;
+  }
+
+  /* Greeting */
+  .greeting-section {
+    padding: 20px 20px 14px;
+    background: #fff;
+  }
+  .greeting-time { font-size: 22px; font-weight: 700; color: #222; }
+  .greeting-date { font-size: 13px; color: #999; margin-top: 4px; }
+
+  /* Mood selector */
+  .mood-section {
+    padding: 14px 20px 16px;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+  }
+  .mood-label { font-size: 14px; color: #666; margin-bottom: 10px; font-weight: 500; }
+  .mood-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+  }
+  .mood-item {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #f7f7fa;
+    border: 2px solid #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #888;
+    cursor: default;
+  }
+  .mood-item.selected {
+    border-color: #5b7fff;
+    background: #eef2ff;
+    color: #5b7fff;
+  }
+  .mood-icon {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  /* Calendar */
+  .calendar-section {
+    margin: 12px 16px 0;
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 14px 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .cal-month { font-size: 15px; font-weight: 600; color: #333; }
+  .cal-nav { display: flex; gap: 14px; }
+  .cal-nav span { font-size: 16px; color: #aaa; cursor: default; }
+  .cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    margin-bottom: 6px;
+  }
+  .cal-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    gap: 2px 0;
+  }
+  .cal-day {
+    font-size: 13px;
+    color: #555;
+    padding: 6px 0;
+    border-radius: 8px;
+    cursor: default;
+    line-height: 1;
+  }
+  .cal-day.empty { color: transparent; }
+  .cal-day.today {
+    background: #5b7fff;
+    color: #fff;
+    font-weight: 600;
+  }
+  .cal-day.has-entry {
+    position: relative;
+  }
+  .cal-day.has-entry::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #5b7fff;
+    margin: 2px auto 0;
+  }
+  .cal-day.today.has-entry::after {
+    background: #fff;
+  }
+
+  /* Entry list */
+  .entries-section {
+    margin: 12px 16px 0;
+  }
+  .entries-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .entries-title { font-size: 15px; font-weight: 600; color: #333; }
+  .entries-more { font-size: 12px; color: #aaa; }
+  .entry-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .entry-date { font-size: 12px; color: #bbb; }
+  .entry-mood-tag {
+    font-size: 11px;
+    color: #5b7fff;
+    background: #eef2ff;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+  .entry-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 4px; }
+  .entry-preview { font-size: 13px; color: #999; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    height: 56px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: 4px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 10px;
+    color: #bbb;
+    cursor: default;
+    gap: 2px;
+  }
+  .nav-item.active { color: #5b7fff; }
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .nav-item.active .nav-icon {
+    background: #eef2ff;
+    color: #5b7fff;
+  }
+
+  /* ---- Annotation markers on phone ---- */
+  .marker {
+    position: absolute;
+    z-index: 10;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(231,76,60,0.5);
+    cursor: default;
+    line-height: 1;
+  }
+  .marker::after {
+    content: "";
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(231,76,60,0.3);
+    top: -5px;
+    left: -5px;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  .marker.warn { background: #e67e22; box-shadow: 0 2px 8px rgba(230,126,34,0.5); }
+  .marker.warn::after { border-color: rgba(230,126,34,0.3); }
+
+  /* Connector lines from markers to annotation panel */
+  .marker[data-id="1"] { top: 86px; right: 28px; }
+  .marker[data-id="2"] { top: 186px; left: 50px; }
+  .marker[data-id="3"] { top: 290px; right: 50px; }
+  .marker[data-id="4"] { top: 426px; left: 50px; }
+  .marker[data-id="5"] { bottom: 74px; right: 24px; }
+
+  /* ---- Legend Panel ---- */
+  .legend-panel {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .legend-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+  }
+  .legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .legend-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .legend-badge.warn { background: #e67e22; }
+  .legend-content { flex: 1; }
+  .legend-label { font-size: 14px; font-weight: 600; color: #eee; margin-bottom: 4px; }
+  .legend-desc { font-size: 12px; color: #888; line-height: 1.6; }
+
+  .severity-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .severity-tag.high { background: rgba(231,76,60,0.2); color: #e74c3c; }
+  .severity-tag.med { background: rgba(230,126,34,0.2); color: #e67e22; }
+
+  .legend-note {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    border: 1px solid #333;
+  }
+  .legend-note p {
+    font-size: 12px;
+    color: #777;
+    line-height: 1.7;
+  }
+  .legend-note strong { color: #aaa; }
+
+  /* Responsive */
+  @media (max-width: 780px) {
+    .phone-scene { flex-direction: column; align-items: center; }
+    .legend-panel { width: 375px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="page-title">首页当前状态分析</div>
+  <div class="page-subtitle">问题标注与体验痛点梳理</div>
+
+  <div class="phone-scene">
+    <!-- Phone -->
+    <div class="phone-frame">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="notch"></div>
+        <div class="status-icons"><span>Wi-Fi</span><span>100%</span></div>
+      </div>
+
+      <div class="screen-body">
+        <!-- Greeting -->
+        <div class="greeting-section">
+          <div class="greeting-time">下午好</div>
+          <div class="greeting-date">2026年6月11日 星期四</div>
+        </div>
+
+        <!-- Mood -->
+        <div class="mood-section">
+          <div class="mood-label">今日心情</div>
+          <div class="mood-row">
+            <div class="mood-item selected">
+              <div class="mood-icon">^_^</div>
+              <span>开心</span>
+            </div>
+            <div class="mood-item">
+              <div class="mood-icon">-_-</div>
+              <span>平静</span>
+            </div>
+            <div class="mood-item">
+              <div class="mood-icon">T_T</div>
+              <span>难过</span>
+            </div>
+            <div class="mood-item">
+              <div class="mood-icon">&gt;_&lt;</div>
+              <span>烦躁</span>
+            </div>
+            <div class="mood-item">
+              <div class="mood-icon">o_O</div>
+              <span>疲惫</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="calendar-section">
+          <div class="cal-header">
+            <div class="cal-month">2026年6月</div>
+            <div class="cal-nav"><span>&lt;</span><span>&gt;</span></div>
+          </div>
+          <div class="cal-weekdays">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+          </div>
+          <div class="cal-days">
+            <div class="cal-day empty">.</div><div class="cal-day empty">.</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div>
+            <div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day has-entry">9</div><div class="cal-day">10</div><div class="cal-day today has-entry">11</div><div class="cal-day">12</div>
+            <div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div>
+            <div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div>
+            <div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day empty">.</div><div class="cal-day empty">.</div><div class="cal-day empty">.</div>
+          </div>
+        </div>
+
+        <!-- Entry list -->
+        <div class="entries-section">
+          <div class="entries-header">
+            <div class="entries-title">最近日记</div>
+            <div class="entries-more">查看全部 &gt;</div>
+          </div>
+          <div class="entry-card">
+            <div class="entry-top">
+              <span class="entry-date">今天 14:30</span>
+              <span class="entry-mood-tag">开心</span>
+            </div>
+            <div class="entry-title">下午的咖啡时光</div>
+            <div class="entry-preview">今天下午和朋友去了新开的咖啡店，聊了很多最近的事情，感觉心情特别好...</div>
+          </div>
+          <div class="entry-card">
+            <div class="entry-top">
+              <span class="entry-date">昨天 22:15</span>
+              <span class="entry-mood-tag">平静</span>
+            </div>
+            <div class="entry-title">读完了那本书</div>
+            <div class="entry-preview">终于把拖延了两周的书读完了，最后几章的反转确实没想到，值得推荐...</div>
+          </div>
+          <div class="entry-card">
+            <div class="entry-top">
+              <span class="entry-date">6月9日 08:40</span>
+              <span class="entry-mood-tag">烦躁</span>
+            </div>
+            <div class="entry-title">早高峰的地铁</div>
+            <div class="entry-preview">今天地铁又延误了，到公司已经迟到十分钟，好在领导没说什么...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="bottom-nav">
+        <div class="nav-item active">
+          <div class="nav-icon">H</div>
+          <span>首页</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">T</div>
+          <span>时间线</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">+</div>
+          <span>写日记</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">S</div>
+          <span>统计</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">M</div>
+          <span>我的</span>
+        </div>
+      </div>
+
+      <!-- Annotation markers -->
+      <div class="marker" data-id="1">1</div>
+      <div class="marker warn" data-id="2">2</div>
+      <div class="marker" data-id="3">3</div>
+      <div class="marker warn" data-id="4">4</div>
+      <div class="marker warn" data-id="5">5</div>
+    </div>
+
+    <!-- Legend / Annotation Panel -->
+    <div class="legend-panel">
+      <div class="legend-title">问题标注</div>
+
+      <div class="legend-item">
+        <div class="legend-badge">1</div>
+        <div class="legend-content">
+          <div class="legend-label">无搜索入口 <span class="severity-tag high">高</span></div>
+          <div class="legend-desc">顶部区域完全没有搜索功能入口。用户无法通过关键词快速定位历史日记，只能手动翻找，随着日记数量增长体验急剧下降。</div>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-badge warn">2</div>
+        <div class="legend-content">
+          <div class="legend-label">心情选择无统计关联 <span class="severity-tag med">中</span></div>
+          <div class="legend-desc">心情选择器是孤立组件，选择后不与统计数据或日记内容产生关联。用户无法查看心情趋势，该功能形同虚设。</div>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-badge">3</div>
+        <div class="legend-content">
+          <div class="legend-label">日历组件无日记标记 <span class="severity-tag high">高</span></div>
+          <div class="legend-desc">日历网格上未标注哪些日期有日记记录。用户无法快速跳转到特定日期的日记，日历沦为纯日期展示，缺乏导航价值。</div>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-badge warn">4</div>
+        <div class="legend-content">
+          <div class="legend-label">列表未分页加载 <span class="severity-tag med">中</span></div>
+          <div class="legend-desc">日记列表采用一次性加载策略，没有分页或无限滚动机制。日记数量增多后会导致内存占用增大、列表卡顿、首屏加载变慢。</div>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-badge warn">5</div>
+        <div class="legend-content">
+          <div class="legend-label">无快捷操作 <span class="severity-tag med">中</span></div>
+          <div class="legend-desc">底部导航栏右侧没有浮动操作按钮(FAB)，用户缺少一键新建日记的快捷入口，需要先进入底部Tab再操作，增加操作步骤。</div>
+        </div>
+      </div>
+
+      <div class="legend-note">
+        <p><strong>总结:</strong> 当前首页存在 5 个主要体验问题。其中搜索入口缺失和日历无标记是最影响日常使用的核心痛点，建议在重构中优先解决。心情组件和列表加载策略属于结构性问题，需要配合数据层改造。</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

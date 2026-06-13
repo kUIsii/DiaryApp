@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内容渲染方案对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #fafafa;
+    border-radius: 40px;
+    border: 8px solid #1a1a1a;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .status-bar {
+    height: 44px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .status-bar-left { font-size: 14px; font-weight: 700; }
+  .status-bar-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .battery {
+    width: 22px; height: 10px;
+    border: 1.5px solid #1a1a1a;
+    border-radius: 2px;
+    position: relative;
+    display: inline-block;
+  }
+  .battery::after {
+    content: "";
+    position: absolute;
+    right: -4px; top: 2px;
+    width: 2px; height: 4px;
+    background: #1a1a1a;
+    border-radius: 0 1px 1px 0;
+  }
+  .battery-fill {
+    width: 70%; height: 100%;
+    background: #1a1a1a;
+    border-radius: 1px;
+  }
+  .screen {
+    height: calc(100% - 44px);
+    overflow-y: auto;
+    background: #f5f5f7;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+  .header {
+    background: #ffffff;
+    padding: 16px 20px;
+    border-bottom: 0.5px solid #e5e5e7;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: #86868b;
+    margin-top: 2px;
+  }
+  .content { padding: 16px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    gap: 2px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #86868b;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1.3;
+  }
+  .tab.active {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Approach badge */
+  .approach-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .badge-current { background: #fff3e0; color: #e65100; }
+  .badge-recommended { background: #e8f5e9; color: #2e7d32; }
+  .badge-alternative { background: #e3f2fd; color: #1565c0; }
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .badge-current .badge-dot { background: #e65100; }
+  .badge-recommended .badge-dot { background: #2e7d32; }
+  .badge-alternative .badge-dot { background: #1565c0; }
+
+  /* Rating */
+  .ratings {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .rating-item {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .rating-label {
+    font-size: 10px;
+    color: #86868b;
+    margin-bottom: 4px;
+  }
+  .rating-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+  }
+  .rating-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #e5e5e7;
+  }
+  .rating-dot.filled-green { background: #34c759; }
+  .rating-dot.filled-amber { background: #ff9f0a; }
+  .rating-dot.filled-red { background: #ff3b30; }
+
+  /* Sample content card */
+  .sample-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .sample-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #86868b;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* WebView rendering style */
+  .webview-render {
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fefefe;
+    position: relative;
+  }
+  .webview-render::before {
+    content: "WebView";
+    position: absolute;
+    top: -1px; right: 12px;
+    background: #f5f5f7;
+    color: #86868b;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 0 0 4px 4px;
+    border: 1px solid #e5e5e7;
+    border-top: none;
+  }
+  .webview-content {
+    font-family: "Times New Roman", serif;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.8;
+  }
+  .webview-content h2 {
+    font-size: 16px;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+  }
+  .webview-content p { margin-bottom: 8px; }
+  .webview-content strong { color: #1a1a1a; }
+  .webview-content ul {
+    margin: 6px 0 6px 18px;
+    font-size: 13px;
+  }
+  .webview-content li { margin-bottom: 3px; }
+  .webview-glitch {
+    color: #ff3b30;
+    font-size: 10px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: #fff5f5;
+    border-radius: 4px;
+    border-left: 2px solid #ff3b30;
+  }
+
+  /* Markwon rendering style */
+  .markwon-render {
+    padding: 0;
+    font-size: 14px;
+    color: #1a1a1a;
+    line-height: 1.75;
+  }
+  .markwon-render h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+  .markwon-render p {
+    margin-bottom: 10px;
+    color: #3a3a3c;
+  }
+  .markwon-render strong {
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .markwon-render em {
+    color: #636366;
+    font-style: italic;
+  }
+  .markwon-render ul {
+    margin: 8px 0 10px 18px;
+    color: #3a3a3c;
+  }
+  .markwon-render li { margin-bottom: 4px; }
+  .markwon-render blockquote {
+    border-left: 3px solid #007aff;
+    padding: 8px 12px;
+    margin: 10px 0;
+    background: #f5f8ff;
+    border-radius: 0 6px 6px 0;
+    color: #48484a;
+    font-size: 13px;
+  }
+  .markwon-native-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #34c759;
+    font-weight: 600;
+    margin-top: 8px;
+    padding: 3px 8px;
+    background: #f0faf3;
+    border-radius: 4px;
+  }
+
+  /* Compose rendering style */
+  .compose-render {
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+    font-size: 14px;
+    color: #1a1a1a;
+    line-height: 1.7;
+  }
+  .compose-h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .compose-body {
+    margin-bottom: 10px;
+    color: #3a3a3c;
+    font-size: 14px;
+  }
+  .compose-bold {
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .compose-italic {
+    color: #636366;
+    font-style: italic;
+  }
+  .compose-list {
+    margin: 8px 0 10px 16px;
+    color: #3a3a3c;
+  }
+  .compose-list-item {
+    margin-bottom: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .compose-bullet {
+    width: 5px; height: 5px;
+    background: #007aff;
+    border-radius: 50%;
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+  .compose-quote {
+    border-left: 3px solid #5856d6;
+    padding: 8px 12px;
+    margin: 10px 0;
+    background: #f8f7ff;
+    border-radius: 0 8px 8px 0;
+    color: #48484a;
+    font-size: 13px;
+  }
+  .compose-animated-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #5856d6;
+    font-weight: 600;
+    margin-top: 8px;
+    padding: 3px 8px;
+    background: #f3f0ff;
+    border-radius: 4px;
+  }
+
+  /* Issues / Pros-Cons */
+  .issues-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .issues-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+  .issue-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .issue-indicator {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .indicator-red { background: #ff3b30; }
+  .indicator-amber { background: #ff9f0a; }
+  .indicator-green { background: #34c759; }
+  .issue-text {
+    font-size: 12px;
+    color: #48484a;
+    line-height: 1.5;
+  }
+  .issue-text strong {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  /* Summary comparison */
+  .summary-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .summary-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .summary-table th {
+    font-size: 10px;
+    color: #86868b;
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 4px;
+    border-bottom: 1px solid #f0f0f2;
+  }
+  .summary-table td {
+    font-size: 11px;
+    color: #48484a;
+    padding: 8px 4px;
+    border-bottom: 0.5px solid #f5f5f7;
+    vertical-align: middle;
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table td:first-child {
+    font-weight: 600;
+    color: #1a1a1a;
+    width: 70px;
+  }
+  .cell-good { color: #34c759; font-weight: 600; }
+  .cell-warn { color: #ff9f0a; font-weight: 600; }
+  .cell-bad { color: #ff3b30; font-weight: 600; }
+
+  /* Recommendation banner */
+  .reco-banner {
+    background: linear-gradient(135deg, #e8f5e9, #f0faf3);
+    border: 1px solid #c8e6c9;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .reco-icon {
+    width: 28px; height: 28px;
+    background: #34c759;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .reco-icon-inner {
+    width: 10px; height: 14px;
+    border-right: 2.5px solid #fff;
+    border-bottom: 2.5px solid #fff;
+    transform: rotate(45deg);
+    margin-top: -3px;
+  }
+  .reco-text {
+    font-size: 12px;
+    color: #2e7d32;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .reco-text strong {
+    font-weight: 700;
+  }
+
+  /* Architecture diagram */
+  .arch-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .arch-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+  }
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .arch-node {
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 64px;
+  }
+  .arch-node-input { background: #eef1ff; color: #5856d6; }
+  .arch-node-process { background: #fff8e6; color: #c77c00; }
+  .arch-node-output { background: #e8f5e9; color: #2e7d32; }
+  .arch-node-warn { background: #fff3e0; color: #e65100; }
+  .arch-arrow {
+    font-size: 14px;
+    color: #c7c7cc;
+  }
+
+  .bottom-spacer { height: 24px; }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="status-bar-left">9:41</span>
+    <span class="status-bar-right">
+      <span>5G</span>
+      <span><span class="battery"><span class="battery-fill"></span></span></span>
+    </span>
+  </div>
+  <div class="screen">
+    <div class="header">
+      <h1>内容渲染方案</h1>
+      <div class="header-sub">Rich Text 从 WebView 迁移到原生渲染</div>
+    </div>
+    <div class="content">
+
+      <!-- Recommendation Banner -->
+      <div class="reco-banner">
+        <div class="reco-icon"><div class="reco-icon-inner"></div></div>
+        <div class="reco-text">推荐采用 <strong>Markdown + Markwon</strong> 方案: 原生渲染性能优异, IME 兼容性最佳, 迁移成本可控</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(0)">当前方案<br>Delta+WebView</div>
+        <div class="tab" onclick="switchTab(1)">推荐方案<br>Markdown+Markwon</div>
+        <div class="tab" onclick="switchTab(2)">备选方案<br>Compose原生</div>
+      </div>
+
+      <!-- Tab 1: Current - Delta + WebView -->
+      <div class="tab-panel active" id="panel-0">
+        <div class="approach-badge badge-current">
+          <span class="badge-dot"></span>
+          当前方案: Delta + WebView
+        </div>
+
+        <div class="ratings">
+          <div class="rating-item">
+            <div class="rating-label">渲染质量</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-amber"></span>
+              <span class="rating-dot filled-amber"></span>
+              <span class="rating-dot filled-amber"></span>
+              <span class="rating-dot"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">性能表现</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-red"></span>
+              <span class="rating-dot filled-red"></span>
+              <span class="rating-dot"></span>
+              <span class="rating-dot"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">IME兼容</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-red"></span>
+              <span class="rating-dot"></span>
+              <span class="margin-dot"></span>
+              <span class="rating-dot"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture -->
+        <div class="arch-card">
+          <div class="arch-title">渲染链路</div>
+          <div class="arch-flow">
+            <div class="arch-node arch-node-input">Delta JSON</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-warn">WebView</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-process">HTML/CSS</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-warn">GPU合成</div>
+          </div>
+        </div>
+
+        <div class="sample-card">
+          <div class="sample-title">渲染效果预览</div>
+          <div class="webview-render">
+            <div class="webview-content">
+              <h2>周末露营记</h2>
+              <p>今天和朋友们去了<span style="background:#fff9c4">千岛湖</span>露营, 天气非常好。</p>
+              <p><strong>准备清单:</strong></p>
+              <ul>
+                <li>帐篷和防潮垫</li>
+                <li>炊具和食材</li>
+                <li>急救药品</li>
+              </ul>
+              <p>晚上围着篝火聊天, 看到了满天繁星...</p>
+            </div>
+            <div class="webview-glitch">输入法光标偏移 / 回车延迟 200ms / 软键盘弹出抖动</div>
+          </div>
+        </div>
+
+        <div class="issues-card">
+          <div class="issues-title">已知问题</div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-red">!</div>
+            <div class="issue-text"><strong>IME 输入法问题:</strong> 光标定位漂移, 中文输入候选框错位, 回车有明显延迟</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-red">!</div>
+            <div class="issue-text"><strong>性能开销大:</strong> WebView 初始化约 300ms, 每次渲染需 JSON -- HTML 转换</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-amber">-</div>
+            <div class="issue-text"><strong>内存占用高:</strong> 独立 WebView 进程额外消耗 30-50MB 内存</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-amber">-</div>
+            <div class="issue-text"><strong>调试困难:</strong> WebView 内部错误难以捕获, Crash 日志不完整</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Recommended - Markdown + Markwon -->
+      <div class="tab-panel" id="panel-1">
+        <div class="approach-badge badge-recommended">
+          <span class="badge-dot"></span>
+          推荐方案: Markdown + Markwon
+        </div>
+
+        <div class="ratings">
+          <div class="rating-item">
+            <div class="rating-label">渲染质量</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">性能表现</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">IME兼容</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-title">渲染链路</div>
+          <div class="arch-flow">
+            <div class="arch-node arch-node-input">Markdown</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">Markwon</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">TextView</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">原生绘制</div>
+          </div>
+        </div>
+
+        <div class="sample-card">
+          <div class="sample-title">渲染效果预览</div>
+          <div class="markwon-render">
+            <h2>周末露营记</h2>
+            <p>今天和朋友们去了<strong>千岛湖</strong>露营, 天气非常好。</p>
+            <p><strong>准备清单:</strong></p>
+            <ul>
+              <li>帐篷和防潮垫</li>
+              <li>炊具和食材</li>
+              <li>急救药品</li>
+            </ul>
+            <blockquote>晚上围着篝火聊天, 看到了满天繁星, 久违的放松。</blockquote>
+            <div class="markwon-native-badge">原生 TextView 渲染 -- 零 WebView 开销</div>
+          </div>
+        </div>
+
+        <div class="issues-card">
+          <div class="issues-title">方案优势</div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>原生 IME 支持:</strong> 使用 EditText, 光标/输入法行为完全原生, 无兼容问题</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>渲染性能优异:</strong> 直接绘制到 Canvas, 首屏渲染 < 16ms, 内存占用极低</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>Markdown 生态成熟:</strong> Markwon 支持 GFM 扩展、表格、代码高亮、图片加载</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>纯文本存储:</strong> .md 文件体积小、可 Git 管理、方便搜索和迁移</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-amber">-</div>
+            <div class="issue-text"><strong>需要数据迁移:</strong> 现有 Delta JSON 需转换为 Markdown, 需编写迁移工具</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Alternative - Compose Native -->
+      <div class="tab-panel" id="panel-2">
+        <div class="approach-badge badge-alternative">
+          <span class="badge-dot"></span>
+          备选方案: Compose 原生渲染
+        </div>
+
+        <div class="ratings">
+          <div class="rating-item">
+            <div class="rating-label">渲染质量</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">性能表现</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+          <div class="rating-item">
+            <div class="rating-label">IME兼容</div>
+            <div class="rating-dots">
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot filled-green"></span>
+              <span class="rating-dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-title">渲染链路</div>
+          <div class="arch-flow">
+            <div class="arch-node arch-node-input">AnnotatedString</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">Text {}</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">Compose</div>
+            <span class="arch-arrow">--></span>
+            <div class="arch-node arch-node-output">Skia绘制</div>
+          </div>
+        </div>
+
+        <div class="sample-card">
+          <div class="sample-title">渲染效果预览</div>
+          <div class="compose-render">
+            <div class="compose-h2">周末露营记</div>
+            <div class="compose-body">今天和朋友们去了<span class="compose-bold">千岛湖</span>露营, 天气非常好。</div>
+            <div class="compose-body"><span class="compose-bold">准备清单:</span></div>
+            <div class="compose-list">
+              <div class="compose-list-item">
+                <div class="compose-bullet"></div>
+                <span>帐篷和防潮垫</span>
+              </div>
+              <div class="compose-list-item">
+                <div class="compose-bullet"></div>
+                <span>炊具和食材</span>
+              </div>
+              <div class="compose-list-item">
+                <div class="compose-bullet"></div>
+                <span>急救药品</span>
+              </div>
+            </div>
+            <div class="compose-quote">晚上围着篝火聊天, 看到了满天繁星, 久违的放松。</div>
+            <div class="compose-animated-note">支持 AnimatedContent 过渡动画</div>
+          </div>
+        </div>
+
+        <div class="issues-card">
+          <div class="issues-title">方案评估</div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>UI 一致性:</strong> 与 Compose 架构完全统一, 样式/主题/动画一体化管理</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-green">+</div>
+            <div class="issue-text"><strong>精确控制:</strong> 每个富文本元素都是独立 Composable, 可精确控制交互和样式</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-amber">-</div>
+            <div class="issue-text"><strong>开发成本高:</strong> 需自行实现 Markdown 解析器 + AnnotatedString 构建, 工作量大</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-amber">-</div>
+            <div class="issue-text"><strong>TextField 局限:</strong> Compose TextField 对复杂富文本编辑支持尚不完善</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-indicator indicator-red">!</div>
+            <div class="issue-text"><strong>不支持回退:</strong> 若当前页面是 View 体系, 混用 Compose 增加复杂度</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Comparison (always visible) -->
+      <div class="section-title" style="font-size:13px;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;margin-top:4px;">方案综合对比</div>
+      <div class="summary-card">
+        <table class="summary-table">
+          <tr>
+            <th>维度</th>
+            <th>Delta+WebView</th>
+            <th>Markdown+Markwon</th>
+            <th>Compose原生</th>
+          </tr>
+          <tr>
+            <td>首屏渲染</td>
+            <td class="cell-bad">300ms+</td>
+            <td class="cell-good">< 16ms</td>
+            <td class="cell-good">< 16ms</td>
+          </tr>
+          <tr>
+            <td>内存占用</td>
+            <td class="cell-bad">+30~50MB</td>
+            <td class="cell-good">+2~5MB</td>
+            <td class="cell-good">+3~6MB</td>
+          </tr>
+          <tr>
+            <td>IME兼容</td>
+            <td class="cell-bad">问题多</td>
+            <td class="cell-good">完美</td>
+            <td class="cell-good">良好</td>
+          </tr>
+          <tr>
+            <td>迁移成本</td>
+            <td class="cell-good">无需迁移</td>
+            <td class="cell-warn">中等</td>
+            <td class="cell-bad">高</td>
+          </tr>
+          <tr>
+            <td>可扩展性</td>
+            <td class="cell-warn">受限WebView</td>
+            <td class="cell-good">插件丰富</td>
+            <td class="cell-good">完全可控</td>
+          </tr>
+          <tr>
+            <td>生态成熟度</td>
+            <td class="cell-warn">Quill维护中</td>
+            <td class="cell-good">社区活跃</td>
+            <td class="cell-warn">快速迭代中</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Migration Path -->
+      <div class="section-title" style="font-size:13px;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;margin-top:4px;">迁移路径 (Markdown方案)</div>
+      <div class="issues-card">
+        <div class="issue-row">
+          <div class="issue-indicator" style="background:#007aff;color:#fff;font-size:9px;">1</div>
+          <div class="issue-text"><strong>编写转换器:</strong> Delta JSON --> Markdown, 处理内联样式和嵌入内容映射</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-indicator" style="background:#007aff;color:#fff;font-size:9px;">2</div>
+          <div class="issue-text"><strong>集成 Markwon:</strong> 添加依赖, 配置 GFM 扩展、图片加载、代码高亮</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-indicator" style="background:#007aff;color:#fff;font-size:9px;">3</div>
+          <div class="issue-text"><strong>实现编辑器:</strong> 基于 EditText + Markdown 语法快捷键, 支持实时预览</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-indicator" style="background:#007aff;color:#fff;font-size:9px;">4</div>
+          <div class="issue-text"><strong>批量迁移:</strong> 后台任务转换存量日记, 保留原文件做回退备份</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-indicator" style="background:#007aff;color:#fff;font-size:9px;">5</div>
+          <div class="issue-text"><strong>灰度发布:</strong> 先对新日记使用新渲染, 稳定后全量切换</div>
+        </div>
+      </div>
+
+      <div class="bottom-spacer"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(index) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === index);
+  });
+  document.querySelectorAll('.tab-panel').forEach((p, i) => {
+    p.classList.toggle('active', i === index);
+  });
+}
+</script>
+</body>
+</html>

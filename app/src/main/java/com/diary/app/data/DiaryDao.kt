@@ -171,6 +171,15 @@ interface DiaryDao {
     """)
     fun getTagUsage(): Flow<List<TagUsage>>
 
+    @Query("""
+        SELECT t.id as tagId, t.name, t.color, COUNT(*) as count
+        FROM diary_tag_cross_ref dt
+        INNER JOIN tags t ON dt.tagId = t.id
+        GROUP BY t.id
+        ORDER BY count DESC
+    """)
+    suspend fun getTagUsageOnce(): List<TagUsage>
+
     // Todo queries
     @Query("SELECT * FROM todo_items WHERE parentId IS NULL ORDER BY isPinned DESC, isCompleted ASC, priority DESC, sortOrder ASC, createdAt DESC")
     fun getAllTodos(): Flow<List<TodoItem>>

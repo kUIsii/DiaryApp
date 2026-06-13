@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>详情页重设计预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: white; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: #333; font-size: 12px; }
+        .nav-bar { height: 44px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #eee; }
+        .nav-bar .back { font-size: 20px; cursor: pointer; }
+        .nav-bar .actions { display: flex; gap: 16px; }
+        .nav-bar .action { font-size: 18px; cursor: pointer; color: #666; }
+
+        .content { padding: 20px; overflow-y: auto; height: calc(100% - 44px - 44px - 56px); }
+
+        .diary-header { margin-bottom: 20px; }
+        .diary-date { font-size: 13px; color: #999; }
+        .diary-title { font-size: 22px; font-weight: 700; color: #333; margin-top: 8px; line-height: 1.3; }
+        .diary-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .meta-tag { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: #f0f0f0; color: #666; }
+        .meta-tag.mood { background: #fff3e0; color: #e65100; }
+        .meta-tag.weather { background: #e3f2fd; color: #1565c0; }
+        .meta-tag.location { background: #e8f5e9; color: #2e7d32; }
+
+        .diary-body { line-height: 1.8; color: #444; font-size: 15px; }
+        .diary-body p { margin-bottom: 16px; }
+        .diary-body h2 { font-size: 18px; font-weight: 600; color: #333; margin: 24px 0 12px; }
+        .diary-body blockquote { border-left: 3px solid #667eea; padding-left: 12px; color: #666; font-style: italic; margin: 16px 0; }
+        .diary-body .image-container { margin: 16px 0; border-radius: 12px; overflow: hidden; }
+        .diary-body .image-container img { width: 100%; height: 200px; object-fit: cover; }
+        .diary-body code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+        .diary-body pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 12px; margin: 16px 0; overflow-x: auto; }
+        .diary-body pre code { background: none; color: inherit; }
+
+        .image-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 16px 0; }
+        .image-gallery .gallery-item { aspect-ratio: 1; border-radius: 12px; overflow: hidden; cursor: pointer; }
+        .image-gallery .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .image-gallery .gallery-item:hover img { transform: scale(1.05); }
+
+        .bottom-actions { position: absolute; bottom: 0; left: 0; right: 0; height: 56px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; padding: 0 20px; }
+        .action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 20px; border: none; background: #f5f5f5; cursor: pointer; font-size: 13px; color: #666; }
+        .action-btn:hover { background: #e8e8e8; }
+        .action-btn .icon { font-size: 16px; }
+
+        .share-modal { position: absolute; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 20px; transform: translateY(100%); transition: transform 0.3s; }
+        .share-modal.show { transform: translateY(0); }
+        .share-modal h3 { font-size: 16px; margin-bottom: 16px; text-align: center; }
+        .share-options { display: flex; justify-content: space-around; }
+        .share-option { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .share-option .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .share-option .label { font-size: 11px; color: #666; }
+        .share-option .icon.text { background: #e3f2fd; }
+        .share-option .icon.image { background: #e8f5e9; }
+        .share-option .icon.markdown { background: #f3e5f5; }
+
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: none; }
+        .overlay.show { display: block; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+
+    <div class="nav-bar">
+        <span class="back">←</span>
+        <div class="actions">
+            <span class="action">♡</span>
+            <span class="action">⋯</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="diary-header">
+            <div class="diary-date">2026年6月11日 周四 14:32</div>
+            <div class="diary-title">周末的咖啡馆</div>
+            <div class="diary-meta">
+                <span class="meta-tag mood">😊 开心</span>
+                <span class="meta-tag weather">☀️ 晴天</span>
+                <span class="meta-tag location">📍 上海</span>
+                <span class="meta-tag">咖啡</span>
+                <span class="meta-tag">周末</span>
+            </div>
+        </div>
+
+        <div class="diary-body">
+            <p>找了一家新开的咖啡馆，拿铁很好喝，环境也很安静。窗外的梧桐树在阳光下摇曳，偶尔有几只麻雀停在枝头。</p>
+
+            <h2>咖啡的味道</h2>
+            <p>点了一杯燕麦拿铁，咖啡师的拉花很漂亮。第一口下去，浓郁的咖啡香和燕麦的甜味完美融合。这种小确幸，就是生活的美好吧。</p>
+
+            <blockquote>生活不是等待暴风雨过去，而是学会在雨中跳舞。</blockquote>
+
+            <div class="image-gallery">
+                <div class="gallery-item"><div style="width:100%;height:100%;background:linear-gradient(135deg,#667eea,#764ba2);"></div></div>
+                <div class="gallery-item"><div style="width:100%;height:100%;background:linear-gradient(135deg,#f093fb,#f5576c);"></div></div>
+            </div>
+
+            <p>下午三点，阳光正好。咖啡馆里人不多，大多是像我一样来享受安静时光的人。有人在看书，有人在敲键盘，有人只是发呆。</p>
+
+            <h2>读书笔记</h2>
+            <p>今天带了《百年孤独》来看，读到了马尔克斯描写马孔多的那段。那种魔幻现实主义的笔触，让人仿佛置身于一个既熟悉又陌生的世界。</p>
+
+            <pre><code>// 今天的读书记录
+const book = "百年孤独";
+const progress = "75%";
+const mood = "沉思";</code></pre>
+
+            <p>傍晚时分，咖啡馆的灯光渐渐亮起，暖黄色的光让整个空间更加温馨。收拾东西准备回家，心里充满了平静和满足。</p>
+        </div>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="action-btn">
+            <span class="icon">✏️</span>
+            <span>编辑</span>
+        </button>
+        <button class="action-btn" onclick="document.querySelector('.share-modal').classList.toggle('show'); document.querySelector('.overlay').classList.toggle('show');">
+            <span class="icon">📤</span>
+            <span>分享</span>
+        </button>
+        <button class="action-btn">
+            <span class="icon">🗑️</span>
+            <span>删除</span>
+        </button>
+    </div>
+
+    <div class="overlay" onclick="document.querySelector('.share-modal').classList.remove('show'); this.classList.remove('show');"></div>
+
+    <div class="share-modal">
+        <h3>分享日记</h3>
+        <div class="share-options">
+            <div class="share-option">
+                <div class="icon text">📝</div>
+                <span class="label">文字分享</span>
+            </div>
+            <div class="share-option">
+                <div class="icon image">🖼️</div>
+                <span class="label">图片分享</span>
+            </div>
+            <div class="share-option">
+                <div class="icon markdown">📄</div>
+                <span class="label">Markdown</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>内容渲染引擎方案对比</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .section-gap { margin-top: 32px; }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .code-block { background: rgba(38,53,67,0.04); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 20px; margin: 14px 0; overflow-x: auto; }
+        .code-block code { background: none; padding: 0; font-size: 13px; line-height: 1.7; font-family: "Cascadia Code", "Fira Code", monospace; color: var(--ink); }
+        .table-wrap { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.6); border-bottom: 2px solid var(--line-strong); font-weight: 700; color: var(--ink); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+        .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .option-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .option-card.recommended { border: 2px solid var(--green); }
+        .option-card h3 { display: flex; align-items: center; gap: 10px; }
+        .rec-badge { display: inline-flex; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--green-soft); color: var(--green); }
+        .pros-cons { margin-top: 12px; }
+        .pros-cons h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .pros-cons ul { list-style: none; padding: 0; margin: 0; }
+        .pros-cons li { padding: 4px 0; font-size: 12px; color: var(--muted); }
+        .pros-cons li::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 8px; }
+        .pros li::before { background: var(--green); }
+        .cons li::before { background: var(--rose); }
+        .step-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .step-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .step-card h3 { display: flex; align-items: center; gap: 10px; }
+        .step-num { width: 28px; height: 28px; border-radius: 8px; background: var(--blue-soft); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+        .file-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--line); color: var(--muted); margin-top: 8px; }
+        .note-box { padding: 16px 20px; border-radius: var(--radius-md); background: var(--green-soft); border: 1px solid rgba(92,143,115,0.2); margin-top: 16px; }
+        .note-box p { color: var(--green); font-size: 13px; }
+        .note-box.amber { background: var(--amber-soft); border-color: rgba(194,139,58,0.2); }
+        .note-box.amber p { color: var(--amber); }
+        .note-box.rose { background: var(--rose-soft); border-color: rgba(191,102,114,0.2); }
+        .note-box.rose p { color: var(--rose); }
+        .flow-diagram { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; background: rgba(38,53,67,0.03); border-radius: var(--radius-md); margin: 16px 0; flex-wrap: wrap; }
+        .flow-box { padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; }
+        .flow-arrow { color: var(--soft); font-size: 20px; }
+        @media (max-width: 900px) { .option-grid, .step-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">view_quilt</span>
+            渲染方案
+        </span>
+        <h1>内容渲染引擎方案对比</h1>
+        <p class="lead">DiaryApp 当前使用 Quill.js Delta JSON + WebView 渲染。本文档对比 6 种渲染方案的可行性、迁移成本和性能表现。</p>
+        <div class="anchor-row">
+            <a href="#current">当前架构</a>
+            <a href="#options">方案对比</a>
+            <a href="#migration">迁移策略</a>
+            <a href="#extras">扩展能力</a>
+        </div>
+    </div>
+
+    <!-- Current Architecture -->
+    <div id="current" class="card section-gap">
+        <h2>当前渲染架构</h2>
+        <p class="lead">编辑器和查看器均基于 WebView，通过 JS Bridge 通信。</p>
+
+        <div class="flow-diagram">
+            <div class="flow-box" style="background:var(--purple-soft);color:var(--purple)">Quill.js 编辑器</div>
+            <span class="flow-arrow">&rarr;</span>
+            <div class="flow-box" style="background:var(--blue-soft);color:var(--blue)">Delta JSON</div>
+            <span class="flow-arrow">&rarr;</span>
+            <div class="flow-box" style="background:var(--amber-soft);color:var(--amber)">Room DB</div>
+            <span class="flow-arrow">&rarr;</span>
+            <div class="flow-box" style="background:var(--blue-soft);color:var(--blue)">Base64 编码</div>
+            <span class="flow-arrow">&rarr;</span>
+            <div class="flow-box" style="background:var(--green-soft);color:var(--green)">deltaToHtml()</div>
+            <span class="flow-arrow">&rarr;</span>
+            <div class="flow-box" style="background:var(--purple-soft);color:var(--purple)">WebView 渲染</div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>指标</th>
+                        <th>当前表现</th>
+                        <th>问题</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>冷启动</strong></td>
+                        <td>~300ms</td>
+                        <td>WebView 初始化 + viewer.html 加载 + Delta 解析</td>
+                    </tr>
+                    <tr>
+                        <td><strong>内存占用</strong></td>
+                        <td>30-50MB / WebView 实例</td>
+                        <td>编辑器 + 查看器各一个 WebView = 60-100MB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>内容限制</strong></td>
+                        <td>2MB (Base64)</td>
+                        <td>超大日记需 fallback 到 plainText</td>
+                    </tr>
+                    <tr>
+                        <td><strong>暗色模式</strong></td>
+                        <td>JS Bridge 调用</td>
+                        <td>主题切换有延迟，非即时</td>
+                    </tr>
+                    <tr>
+                        <td><strong>文字选择</strong></td>
+                        <td>WebView 内部选择</td>
+                        <td>与 Android 系统选择/分享不互通</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Options Comparison -->
+    <div id="options" class="card section-gap">
+        <h2>6 种渲染方案对比</h2>
+        <p class="lead">从零迁移到完全保留，逐一分析每种方案的可行性和代价。</p>
+
+        <div class="option-grid">
+            <div class="option-card recommended">
+                <h3>
+                    <span class="material-symbols-rounded" style="color:var(--green)">check_circle</span>
+                    方案 A: 保留 Delta + 缓存 HTML
+                    <span class="rec-badge">推荐</span>
+                </h3>
+                <p style="font-size:13px;margin-top:8px">在 Room 中新增 <code>renderedHtml</code> 列，预渲染 HTML 缓存，跳过每次查看时的 Delta 解析。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>零数据迁移风险</li>
+                        <li>冷启动从 300ms 降至 ~100ms</li>
+                        <li>保持所有现有格式支持</li>
+                        <li>实现成本最低 (0.5天)</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>WebView 内存开销不变</li>
+                        <li>仍需维护 deltaToHtml() JS</li>
+                        <li>HTML 缓存占用额外存储</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--blue)">text_fields</span> 方案 B: Markdown + Markwon</h3>
+                <p style="font-size:13px;margin-top:8px">存储 Markdown，用 Markwon 库原生渲染到 TextView。完全去除 WebView。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>原生渲染，无 WebView 开销</li>
+                        <li>内存 ~5MB，冷启动 &lt;50ms</li>
+                        <li>原生文字选择/分享</li>
+                        <li>Markdown 通用可移植</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>Delta→Markdown 有损转换</li>
+                        <li>丢失: 自定义颜色、背景色、对齐、缩进</li>
+                        <li>视频需独立实现 (ExoPlayer)</li>
+                        <li>需要重写编辑器</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">widgets</span> 方案 C: Compose 原生渲染</h3>
+                <p style="font-size:13px;margin-top:8px">解析 Delta JSON 为 Compose 组件树：Text、Image、Video、Divider 等。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>完全原生，与 Compose 生命周期集成</li>
+                        <li>原生暗色模式 (MaterialTheme)</li>
+                        <li>原生动画和过渡效果</li>
+                        <li>ExoPlayer 直接集成</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>AnnotatedString 不支持背景色、上标/下标</li>
+                        <li>需手写完整 Delta→Compose 解析器</li>
+                        <li>100+ 块级元素性能不如单 TextView</li>
+                        <li>实现成本极高 (2-3周)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--purple)">code</span> 方案 D: 混合渲染</h3>
+                <p style="font-size:13px;margin-top:8px">Markdown 存储，简单内容用 Compose Text 原生渲染，复杂块（代码高亮、LaTeX）回退 WebView。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>90% 内容原生渲染</li>
+                        <li>复杂格式保留完整 CSS/JS 支持</li>
+                        <li>渐进式迁移，可分步实施</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>两套渲染路径需维护</li>
+                        <li>WebView 高度测量在 Compose 中复杂</li>
+                        <li>原生/WebView 交界处有视觉接缝</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--brown)">html</span> 方案 E: 存储 HTML + WebView</h3>
+                <p style="font-size:13px;margin-top:8px">将 deltaToHtml() 输出存入 Room，查看时直接加载 HTML，跳过 Delta 解析。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>与方案 A 类似，冷启动提升</li>
+                        <li>HTML 可直接用于导出/分享</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>HTML 体积大于 Delta JSON</li>
+                        <li>编辑时需 HTML→Delta 转换</li>
+                        <li>HTML 注入风险需 sanitize</li>
+                        <li>WebView 开销不变</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--rose)">android</span> 方案 F: Html.fromHtml() 原生</h3>
+                <p style="font-size:13px;margin-top:8px">使用 Android 原生 Html.fromHtml() 渲染到 TextView。</p>
+                <div class="pros-cons">
+                    <h4 style="color:var(--green)">优势</h4>
+                    <ul class="pros">
+                        <li>零依赖，Android 原生 API</li>
+                        <li>最轻量</li>
+                    </ul>
+                    <h4 style="color:var(--rose);margin-top:10px">劣势</h4>
+                    <ul class="cons">
+                        <li>标签支持极有限（无视频、无代码块）</li>
+                        <li>各 Android 版本渲染不一致</li>
+                        <li>无法处理复杂布局</li>
+                        <li>不推荐用于富文本应用</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="note-box" style="margin-top:20px">
+            <p><strong>综合推荐：</strong>短期采用方案 A（缓存 HTML），投入产出比最高。中期评估方案 B（Markdown + Markwon）的迁移可行性。长期目标是方案 C（Compose 原生），但需等待 AnnotatedString 能力增强。</p>
+        </div>
+    </div>
+
+    <!-- Migration Strategy -->
+    <div id="migration" class="card section-gap">
+        <h2>推荐迁移路径</h2>
+        <p class="lead">分三阶段渐进式迁移，每阶段独立可交付。</p>
+
+        <div class="step-grid">
+            <div class="step-card">
+                <h3><span class="step-num">1</span> Phase 1: HTML 缓存 (0.5天)</h3>
+                <p style="font-size:13px;margin-top:10px">新增 <code>renderedHtml</code> 列，编辑保存时预渲染 HTML。</p>
+                <div class="code-block">
+<code>// DiaryDatabase Migration:
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE diary_entries " +
+            "ADD COLUMN renderedHtml TEXT DEFAULT ''"
+        )
+    }
+}
+
+// EditorScreen.kt - 保存时:
+val html = webView.evaluateJavascript(
+    "getRenderedHtml()", null
+)
+entry.copy(renderedHtml = html)
+
+// DiaryDetailScreen.kt - 查看时:
+if (entry.renderedHtml.isNotEmpty()) {
+    // 直接加载缓存的 HTML
+    loadDataWithBaseURL(
+        "file:///android_asset/",
+        entry.renderedHtml, ...
+    )
+} else {
+    // Fallback: 解析 Delta
+    evaluateJavascript(
+        "setContentFromBase64('$encoded')", null
+    )
+}</code>
+                </div>
+                <div class="file-tag">DiaryDatabase.kt + EditorScreen.kt + DiaryDetailScreen.kt</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">2</span> Phase 2: 存量数据迁移 (1天)</h3>
+                <p style="font-size:13px;margin-top:10px">后台批量转换已有日记的 HTML 缓存。</p>
+                <div class="code-block">
+<code>// DiaryApplication.kt - 启动时:
+CoroutineScope(Dispatchers.IO).launch {
+    val entries = diaryDao.getEntriesWithoutHtml()
+    entries.forEach { entry ->
+        val html = convertDeltaToHtml(entry.content)
+        diaryDao.updateRenderedHtml(entry.id, html)
+    }
+}
+
+// DiaryDao.kt 新增:
+@Query("SELECT * FROM diary_entries " +
+    "WHERE renderedHtml = '' OR renderedHtml IS NULL")
+suspend fun getEntriesWithoutHtml(): List&lt;DiaryEntry&gt;
+
+@Query("UPDATE diary_entries " +
+    "SET renderedHtml = :html WHERE id = :id")
+suspend fun updateRenderedHtml(id: Long, html: String)</code>
+                </div>
+                <div class="file-tag">DiaryApplication.kt + DiaryDao.kt</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">3</span> Phase 3: 评估 Markdown (中期)</h3>
+                <p style="font-size:13px;margin-top:10px">编写 Delta→Markdown 转换器，评估格式丢失程度。</p>
+                <div class="code-block">
+<code>// 需要测试的格式保真度:
+// [x] 粗体/斜体/删除线
+// [x] 标题 (h1-h6)
+// [x] 有序/无序列表
+// [x] 代码块
+// [x] 图片/视频引用
+// [ ] 自定义文字颜色     --> 丢失
+// [ ] 背景色            --> 丢失
+// [ ] 文字对齐          --> 丢失
+// [ ] 多级缩进          --> 部分丢失
+// [ ] 上标/下标         --> 丢失</code>
+                </div>
+                <div class="file-tag">DeltaToMarkdown.kt (新增)</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">4</span> Phase 4: Markwon 集成 (长期)</h3>
+                <p style="font-size:13px;margin-top:10px">如果 Phase 3 评估通过，集成 Markwon 实现原生渲染。</p>
+                <div class="code-block">
+<code>// build.gradle.kts:
+implementation("io.noties.markwon:core:4.6.2")
+implementation("io.noties.markwon:ext-strikethrough:4.6.2")
+implementation("io.noties.markwon:image-coil:4.6.2")
+
+// DiaryDetailScreen.kt:
+val markwon = Markwon.builder(context)
+    .usePlugin(StrikethroughPlugin.create())
+    .usePlugin(CoilImagesPlugin.create(context))
+    .build()
+
+// 替换 WebView:
+AndroidView(factory = { ctx ->
+    TextView(ctx).apply {
+        markwon.setMarkdown(this, entry.markdown)
+    }
+})</code>
+                </div>
+                <div class="file-tag">build.gradle.kts + DiaryDetailScreen.kt</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extra Capabilities -->
+    <div id="extras" class="card section-gap">
+        <h2>扩展能力: 代码高亮与 LaTeX</h2>
+        <p class="lead">当前 Delta 支持代码块，但无语法高亮。未来可能需要 LaTeX 支持。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>能力</th>
+                        <th>WebView 方案</th>
+                        <th>原生方案</th>
+                        <th>推荐</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>代码语法高亮</strong></td>
+                        <td>Prism.js (~200KB assets)</td>
+                        <td>highlight.js-kotlin 或自定义正则</td>
+                        <td style="color:var(--green)">Prism.js (简单)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LaTeX 数学公式</strong></td>
+                        <td>KaTeX (~300KB assets)</td>
+                        <td>JLatexMath (~3MB, 渲染为 Bitmap)</td>
+                        <td style="color:var(--green)">KaTeX (WebView)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mermaid 图表</strong></td>
+                        <td>Mermaid.js (WebView)</td>
+                        <td>无原生方案</td>
+                        <td style="color:var(--amber)">仅 WebView</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="note-box amber">
+            <p><strong>结论：</strong>如果 DiaryApp 需要代码高亮和 LaTeX，WebView 仍然是最实用的方案。这些功能在原生端实现成本高且效果有限。建议保持 WebView 作为"高级格式渲染器"，仅对简单内容使用原生渲染。</p>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -45,6 +45,12 @@ data class StreakNotification(
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
 
+data class AnnualReportNotification(
+    val year: Int,
+    override val id: String = "annual_$year",
+    override val timestamp: Long = System.currentTimeMillis()
+) : NotificationItem()
+
 class NotificationViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
 
@@ -63,7 +69,28 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             val todayMillis = now.atStartOfDay(zone).toInstant().toEpochMilli()
             val tomorrowMillis = now.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
 
-            // 1. Capsule unlock notifications
+            // 1. Check for annual report availability (starting from December 25th)
+            if (now.monthValue == 12 && now.dayOfMonth >= 25) {
+                val currentYear = now.year
+                // Check if user has diary entries for this year to generate a report
+                val allPreviews = dao.getAllPreviewsOnce()
+                val yearEntries = allPreviews.filter { entry ->
+                    val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                    date.year == currentYear
+                }
+
+                if (yearEntries.isNotEmpty()) {
+                    items.add(
+                        AnnualReportNotification(
+                            year = currentYear,
+                            id = "annual_$currentYear",
+                            timestamp = todayMillis
+                        )
+                    )
+                }
+            }
+
+            // 2. Capsule unlock notifications
             val capsules = dao.getAllCapsulesOnce()
             val unreadUnlocked = capsules.filter { capsule ->
                 capsule.unlockDate < tomorrowMillis && !capsule.isRead
@@ -72,7 +99,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 items.add(CapsuleUnlockNotification(capsule))
             }
 
-            // 2. On This Day
+            // 3. On This Day
             val onThisDayEntries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
             onThisDayEntries.forEach { entry ->
                 val entryDate = Instant.ofEpochMilli(entry.createdAt)
@@ -82,7 +109,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 }
             }
 
-            // 3. Milestones
+            // 4. Milestones
             val allPreviews = dao.getAllPreviewsOnce()
             val totalCount = allPreviews.size
             val milestones = listOf(10, 50, 100, 200, 300, 500, 1000)
@@ -101,7 +128,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 }
             }
 
-            // 4. Streak milestones
+            // 5. Streak milestones
             val entryDates = allPreviews.map { entry ->
                 Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
             }.toSet()

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiaryApp - Soft UI v3 设计预览</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
+<style>
+/* === Reset & Base === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* === Controls === */
+.controls {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(24,24,24,0.95); backdrop-filter: blur(12px);
+  padding: 10px 16px; display: flex; gap: 10px; align-items: center;
+  flex-wrap: wrap; box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+.controls label { color: #999; font-size: 11px; font-family: 'Inter', sans-serif; margin-right: 2px; }
+.controls select, .controls button {
+  background: #333; color: #ddd; border: 1px solid #555;
+  padding: 5px 10px; border-radius: 6px; font-size: 11px;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s; font-family: 'Inter', sans-serif;
+  min-height: 28px;
+}
+.controls button:hover { background: #444; }
+.controls .active-btn { background: #B8886A; border-color: #B8886A; color: #fff; }
+.controls .sep { width: 1px; height: 18px; background: #444; }
+
+body { padding-top: 52px; font-family: 'Noto Sans SC', sans-serif; min-height: 100vh; }
+
+/* ========================================
+   SCHEME A: 暖桃奶油
+   ======================================== */
+[data-scheme="A"] {
+  --bg1: #FDF8F5; --bg2: #FAF0EA; --bg3: #F5E8DF;
+  --surface: #FFFDFB; --surface-alt: #FFF5EE;
+  --text: #3D3232; --text-secondary: #8A7A72; --text-muted: #B0A098;
+  --accent: #D4896A; --accent-light: rgba(212,137,106,0.12);
+  --accent-2: #A8C4A2; --accent-2-light: rgba(168,196,162,0.12);
+  --accent-3: #C9A8D4; --accent-3-light: rgba(201,168,212,0.12);
+  --border: rgba(180,160,145,0.15); --border-hover: rgba(180,160,145,0.30);
+  --shadow-sm: 0 2px 8px rgba(140,120,105,0.06);
+  --shadow-md: 0 4px 16px rgba(140,120,105,0.08), 0 1px 4px rgba(140,120,105,0.04);
+  --shadow-lg: 0 8px 32px rgba(140,120,105,0.10), 0 2px 8px rgba(140,120,105,0.05);
+  --card-bg: #FFFDFB;
+  --nav-bg: rgba(253,248,245,0.94);
+  --deco-1: rgba(212,137,106,0.08);
+  --deco-2: rgba(168,196,162,0.08);
+  --tag-text: #B07A5E;
+  --chip-bg: #FAF3ED;
+  --m1: #D4896A; --m2: #A8C4A2; --m3: #C9A8D4; --m4: #E8C87A; --m5: #8EB8D4; --m6: #D4A0A0;
+  --cal-today: rgba(212,137,106,0.18);
+  --input-bg: #FAF3ED;
+  --star-color: #E8C87A;
+}
+[data-scheme="A"][data-mode="dark"] {
+  --bg1: #1C1917; --bg2: #231F1D; --bg3: #2A2523;
+  --surface: #2A2523; --surface-alt: #342E2B;
+  --text: #E8DDD6; --text-secondary: #A89890; --text-muted: #786A62;
+  --accent: #D4896A; --accent-light: rgba(212,137,106,0.15);
+  --accent-2: #A8C4A2; --accent-2-light: rgba(168,196,162,0.12);
+  --accent-3: #C9A8D4; --accent-3-light: rgba(201,168,212,0.12);
+  --border: rgba(180,160,145,0.10); --border-hover: rgba(180,160,145,0.20);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.20), 0 1px 4px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12);
+  --card-bg: #2A2523;
+  --nav-bg: rgba(28,25,23,0.95);
+  --deco-1: rgba(212,137,106,0.06);
+  --deco-2: rgba(168,196,162,0.06);
+  --tag-text: #D4896A;
+  --chip-bg: #322A26;
+  --cal-today: rgba(212,137,106,0.20);
+  --input-bg: #322A26;
+  --star-color: #C8A860;
+}
+
+/* ========================================
+   SCHEME B: 雾蓝灰
+   ======================================== */
+[data-scheme="B"] {
+  --bg1: #F5F7FA; --bg2: #EFF3F8; --bg3: #E8EDF4;
+  --surface: #FFFFFF; --surface-alt: #F8FAFE;
+  --text: #2C3344; --text-secondary: #6E7A90; --text-muted: #A0AAC0;
+  --accent: #6B8DB5; --accent-light: rgba(107,141,181,0.10);
+  --accent-2: #B5926B; --accent-2-light: rgba(181,146,107,0.10);
+  --accent-3: #9B8EC4; --accent-3-light: rgba(155,142,196,0.10);
+  --border: rgba(130,150,180,0.12); --border-hover: rgba(130,150,180,0.25);
+  --shadow-sm: 0 2px 8px rgba(100,120,150,0.05);
+  --shadow-md: 0 4px 16px rgba(100,120,150,0.07), 0 1px 4px rgba(100,120,150,0.03);
+  --shadow-lg: 0 8px 32px rgba(100,120,150,0.09), 0 2px 8px rgba(100,120,150,0.04);
+  --card-bg: #FFFFFF;
+  --nav-bg: rgba(245,247,250,0.94);
+  --deco-1: rgba(107,141,181,0.06);
+  --deco-2: rgba(181,146,107,0.06);
+  --tag-text: #6B8DB5;
+  --chip-bg: #F0F4F8;
+  --m1: #6B8DB5; --m2: #B5926B; --m3: #9B8EC4; --m4: #C4B56B; --m5: #8EB5B5; --m6: #C49B8E;
+  --cal-today: rgba(107,141,181,0.15);
+  --input-bg: #F0F4F8;
+  --star-color: #C4B56B;
+}
+[data-scheme="B"][data-mode="dark"] {
+  --bg1: #151820; --bg2: #1A1E28; --bg3: #1F2430;
+  --surface: #22283A; --surface-alt: #2A3045;
+  --text: #D8E0F0; --text-secondary: #8898B0; --text-muted: #586880;
+  --accent: #88B0D4; --accent-light: rgba(136,176,212,0.15);
+  --accent-2: #D4A878; --accent-2-light: rgba(212,168,120,0.12);
+  --accent-3: #B8A8E0; --accent-3-light: rgba(184,168,224,0.12);
+  --border: rgba(130,150,180,0.08); --border-hover: rgba(130,150,180,0.18);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.20), 0 1px 4px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12);
+  --card-bg: #22283A;
+  --nav-bg: rgba(21,24,32,0.95);
+  --deco-1: rgba(136,176,212,0.06);
+  --deco-2: rgba(212,168,120,0.06);
+  --tag-text: #88B0D4;
+  --chip-bg: #1E2330;
+  --cal-today: rgba(136,176,212,0.18);
+  --input-bg: #1E2330;
+  --star-color: #C8B060;
+}
+
+/* ========================================
+   SCHEME C: 苔藓绿
+   ======================================== */
+[data-scheme="C"] {
+  --bg1: #F6F7F4; --bg2: #EFF2EB; --bg3: #E5EAE0;
+  --surface: #FCFDFB; --surface-alt: #F4F7F1;
+  --text: #2E3328; --text-secondary: #6B7560; --text-muted: #A0AA95;
+  --accent: #7BA06E; --accent-light: rgba(123,160,110,0.10);
+  --accent-2: #C4A06B; --accent-2-light: rgba(196,160,107,0.10);
+  --accent-3: #A088B0; --accent-3-light: rgba(160,136,176,0.10);
+  --border: rgba(100,130,90,0.12); --border-hover: rgba(100,130,90,0.25);
+  --shadow-sm: 0 2px 8px rgba(80,100,70,0.05);
+  --shadow-md: 0 4px 16px rgba(80,100,70,0.07), 0 1px 4px rgba(80,100,70,0.03);
+  --shadow-lg: 0 8px 32px rgba(80,100,70,0.09), 0 2px 8px rgba(80,100,70,0.04);
+  --card-bg: #FCFDFB;
+  --nav-bg: rgba(246,247,244,0.94);
+  --deco-1: rgba(123,160,110,0.06);
+  --deco-2: rgba(196,160,107,0.06);
+  --tag-text: #6B8A5E;
+  --chip-bg: #EFF3EB;
+  --m1: #7BA06E; --m2: #C4A06B; --m3: #A088B0; --m4: #C4B86B; --m5: #6EA0A0; --m6: #C48B8B;
+  --cal-today: rgba(123,160,110,0.15);
+  --input-bg: #EFF3EB;
+  --star-color: #C4B86B;
+}
+[data-scheme="C"][data-mode="dark"] {
+  --bg1: #161A14; --bg2: #1C211A; --bg3: #222920;
+  --surface: #242B22; --surface-alt: #2C3428;
+  --text: #D8E4D0; --text-secondary: #8A9A80; --text-muted: #5A6A50;
+  --accent: #8BC07A; --accent-light: rgba(139,192,122,0.15);
+  --accent-2: #D4B078; --accent-2-light: rgba(212,176,120,0.12);
+  --accent-3: #B8A0CC; --accent-3-light: rgba(184,160,204,0.12);
+  --border: rgba(100,130,90,0.08); --border-hover: rgba(100,130,90,0.18);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.20), 0 1px 4px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12);
+  --card-bg: #242B22;
+  --nav-bg: rgba(22,26,20,0.95);
+  --deco-1: rgba(139,192,122,0.06);
+  --deco-2: rgba(212,176,120,0.06);
+  --tag-text: #8BC07A;
+  --chip-bg: #1E251C;
+  --cal-today: rgba(139,192,122,0.18);
+  --input-bg: #1E251C;
+  --star-color: #C8B860;
+}
+
+/* ========================================
+   FONT PAIRINGS
+   ======================================== */
+[data-font="1"] { --ff-h: 'Noto Serif SC', serif; --ff-b: 'Noto Sans SC', sans-serif; --ff-n: 'Noto Serif SC', serif; }
+[data-font="2"] { --ff-h: 'Noto Sans SC', sans-serif; --ff-b: 'Noto Sans SC', sans-serif; --ff-n: 'Noto Sans SC', sans-serif; }
+[data-font="3"] { --ff-h: 'LXGW WenKai', serif; --ff-b: 'Noto Sans SC', sans-serif; --ff-n: 'LXGW WenKai', serif; }
+[data-font="4"] { --ff-h: 'LXGW WenKai', serif; --ff-b: 'LXGW WenKai', serif; --ff-n: 'LXGW WenKai', serif; }
+
+/* ========================================
+   GRAIN TEXTURE
+   ======================================== */
+body::after {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03; pointer-events: none; z-index: 999;
+}
+
+/* ========================================
+   MICRO-INTERACTIONS (shared)
+   ======================================== */
+.interactive {
+  cursor: pointer;
+  transition: transform 0.18s ease-out, box-shadow 0.25s ease-out, background 0.2s ease-out;
+}
+.interactive:active { transform: scale(0.965); }
+
+.card-hover {
+  cursor: pointer;
+  transition: transform 0.2s ease-out, box-shadow 0.25s ease-out, border-color 0.25s ease-out;
+}
+.card-hover:hover { box-shadow: var(--shadow-lg); border-color: var(--border-hover); }
+.card-hover:active { transform: scale(0.98); }
+
+.chip-tap {
+  cursor: pointer;
+  transition: transform 0.15s ease-out, background 0.2s, border-color 0.2s, color 0.2s;
+  min-height: 40px; display: flex; align-items: center;
+}
+.chip-tap:active { transform: scale(0.94); }
+
+/* Staggered list animation */
+@keyframes listIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger-1 { animation: listIn 0.35s ease-out 0.05s both; }
+.stagger-2 { animation: listIn 0.35s ease-out 0.12s both; }
+.stagger-3 { animation: listIn 0.35s ease-out 0.19s both; }
+
+/* Subtle pulse for save/favorite */
+@keyframes softPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ========================================
+   LAYOUT
+   ======================================== */
+.grid-6col {
+  display: grid;
+  grid-template-columns: repeat(6, 360px);
+  gap: 20px; max-width: fit-content;
+  margin: 16px auto; padding: 0 20px;
+  justify-content: center;
+}
+
+/* ========================================
+   PHONE FRAME
+   ======================================== */
+.phone-col { display: flex; flex-direction: column; align-items: center; }
+.page-label {
+  font-size: 12px; font-weight: 600; color: #888;
+  font-family: 'Inter', sans-serif; margin-bottom: 6px;
+}
+.phone-frame {
+  width: 360px; height: 760px; border-radius: 36px; overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+}
+.phone-content {
+  padding: 22px 18px 0; height: 100%; overflow-y: auto;
+  position: relative; scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ========================================
+   DECORATIVE
+   ======================================== */
+.deco-circle {
+  position: absolute; border-radius: 50%; pointer-events: none;
+}
+.dc1 { width: 200px; height: 200px; top: -50px; right: -60px; background: var(--deco-1); filter: blur(40px); }
+.dc2 { width: 140px; height: 140px; bottom: 120px; left: -30px; background: var(--deco-2); filter: blur(35px); }
+.dc3 { width: 100px; height: 100px; top: 35%; right: -20px; background: var(--deco-1); filter: blur(28px); opacity: 0.6; }
+
+/* ========================================
+   SHARED COMPONENTS
+   ======================================== */
+.header { margin-bottom: 20px; position: relative; z-index: 1; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.header h1 { font-family: var(--ff-h); font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.header .sub { font-family: var(--ff-b); font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; font-weight: 300; }
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--border);
+  background: var(--surface); box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-secondary);
+  transition: transform 0.18s ease-out, background 0.2s;
+}
+.icon-btn:active { transform: scale(0.92); background: var(--surface-alt); }
+
+.stats { display: flex; gap: 10px; margin-bottom: 20px; position: relative; z-index: 1; }
+.stat {
+  flex: 1; text-align: center; padding: 14px 8px; border-radius: 18px;
+  background: var(--surface); box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  cursor: pointer; transition: transform 0.18s ease-out, box-shadow 0.25s;
+}
+.stat:active { transform: scale(0.955); }
+.stat .num { font-family: var(--ff-n); font-size: 24px; font-weight: 700; color: var(--accent); }
+.stat .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 400; }
+
+.date-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; margin-bottom: 16px; border-radius: 18px;
+  background: var(--surface); box-shadow: var(--shadow-md);
+  border: 1px solid var(--border); position: relative; z-index: 1;
+}
+.date-bar .date { font-family: var(--ff-h); font-size: 17px; font-weight: 600; color: var(--text); }
+.date-bar .day { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+.sec-title {
+  font-family: var(--ff-h); font-size: 15px; font-weight: 600;
+  color: var(--text); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px; position: relative; z-index: 1;
+}
+.sec-title .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-hover), transparent); }
+
+/* Entry card (Home) */
+.entry {
+  padding: 16px 18px; margin-bottom: 12px; position: relative; z-index: 1;
+  border-radius: 18px; background: var(--card-bg);
+  box-shadow: var(--shadow-md); border: 1px solid var(--border);
+  transition: transform 0.2s ease-out, box-shadow 0.25s, border-color 0.25s;
+  cursor: pointer;
+}
+.entry:hover { box-shadow: var(--shadow-lg); border-color: var(--border-hover); }
+.entry:active { transform: scale(0.98); }
+.entry .time { font-size: 12px; color: var(--accent); font-weight: 500; margin-bottom: 6px; }
+.entry h3 { font-family: var(--ff-h); font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.5; }
+.entry p { font-family: var(--ff-b); font-size: 13px; line-height: 1.75; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.entry .mood-dot { position: absolute; top: 18px; right: 18px; width: 10px; height: 10px; border-radius: 50%; }
+.entry .tags { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.entry .tag { font-size: 11px; padding: 4px 12px; border-radius: 10px; color: var(--tag-text); background: var(--accent-light); font-weight: 400; }
+
+/* Bottom nav */
+.bottom-nav {
+  position: sticky; bottom: 0; margin: 0 -18px;
+  padding: 10px 16px 22px; background: var(--nav-bg);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around; align-items: center;
+  border-radius: 22px 22px 0 0; z-index: 10;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 12px; border-radius: 14px; cursor: pointer;
+  transition: transform 0.2s ease-out, background 0.2s, color 0.2s;
+  font-size: 10px; color: var(--text-muted); font-family: var(--ff-b);
+  min-width: 44px; min-height: 44px; justify-content: center;
+}
+.nav-item:active { transform: scale(0.92); }
+.nav-item.on { color: var(--accent); background: var(--accent-light); font-weight: 500; }
+.nav-item svg { width: 20px; height: 20px; }
+
+/* Mood tag */
+.mood-tag {
+  font-size: 13px; color: var(--accent); font-weight: 500;
+  padding: 6px 14px; border-radius: 12px; background: var(--accent-light);
+  white-space: nowrap;
+}
+
+/* ========================================
+   PAGE 1: HOME (diary list)
+   ======================================== */
+.btn-write {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 15px; border: none; border-radius: 18px;
+  font-family: var(--ff-h); font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-bottom: 16px;
+  background: var(--accent); color: #FFF;
+  box-shadow: 0 4px 16px rgba(212,137,106,0.25);
+  transition: transform 0.18s ease-out, box-shadow 0.25s;
+  position: relative; z-index: 1; min-height: 44px;
+}
+.btn-write:active { transform: scale(0.965); }
+
+/* ========================================
+   PAGE 2: DIARY DETAIL (reading view)
+   ======================================== */
+.detail-wrap { position: relative; z-index: 1; }
+.detail-header {
+  text-align: center; margin-bottom: 18px;
+}
+.detail-header .dh-date {
+  font-family: var(--ff-h); font-size: 22px; font-weight: 600; color: var(--text);
+}
+.detail-header .dh-sub {
+  font-size: 13px; color: var(--text-secondary); margin-top: 4px; opacity: 0.7;
+}
+.dh-meta-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px;
+}
+.dh-meta-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--text-secondary); opacity: 0.75;
+}
+.dh-meta-item .dh-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dh-meta-sep { color: var(--text-muted); opacity: 0.4; }
+
+.detail-tags { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.detail-tag {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; padding: 4px 12px; border-radius: 10px;
+  color: var(--tag-text); background: var(--accent-light);
+}
+.detail-tag .dt-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+.detail-content {
+  font-family: var(--ff-b); font-size: 14.5px; line-height: 2;
+  color: var(--text); margin-bottom: 18px; padding: 0 4px;
+}
+.detail-content p { margin-bottom: 1.2em; text-indent: 2em; }
+
+.detail-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--text-muted);
+  padding: 10px 0; margin-bottom: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.detail-actions {
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 12px 0; position: relative; z-index: 1;
+}
+.detail-action {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; transition: transform 0.18s ease-out;
+  padding: 8px 20px; border-radius: 12px;
+}
+.detail-action:active { transform: scale(0.92); }
+.detail-action .da-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.detail-action .da-label { font-size: 11px; font-weight: 500; }
+.da-edit .da-icon { background: var(--accent-light); color: var(--accent); }
+.da-fav .da-icon { background: rgba(232,200,122,0.15); color: var(--star-color); }
+.da-del .da-icon { background: rgba(210,100,100,0.12); color: rgba(200,90,90,0.8); }
+
+/* Related entries */
+.related-section { position: relative; z-index: 1; margin-top: 16px; }
+.related-section .rs-title { font-size: 12px; color: var(--text-secondary); opacity: 0.6; margin-bottom: 8px; font-weight: 500; }
+.related-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 12px; margin-bottom: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  cursor: pointer; transition: transform 0.18s ease-out;
+  font-size: 13px; color: var(--text-secondary);
+}
+.related-item:active { transform: scale(0.98); }
+.related-item .ri-year { font-weight: 600; color: var(--accent); font-size: 12px; flex-shrink: 0; }
+.related-item .ri-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ========================================
+   PAGE 3: WRITE / EDITOR (redesigned)
+   ======================================== */
+.editor-back-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; position: relative; z-index: 1; }
+.editor-date { font-size: 13px; color: var(--text-muted); }
+
+.editor-toolbar {
+  display: flex; gap: 10px; margin-bottom: 14px; position: relative; z-index: 1;
+}
+.tool-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease-out, background 0.2s, color 0.2s;
+}
+.tool-btn:active { transform: scale(0.88); background: var(--accent-light); color: var(--accent); }
+
+.editor-title {
+  width: 100%; border: none; background: transparent;
+  font-family: var(--ff-h); font-size: 22px; font-weight: 600;
+  color: var(--text); padding: 0; outline: none;
+  margin-bottom: 10px; line-height: 1.4;
+}
+.editor-title::placeholder { color: var(--text-muted); }
+.editor-body {
+  width: 100%; min-height: 160px; border: none; background: transparent;
+  font-family: var(--ff-b); font-size: 14.5px; line-height: 1.95;
+  color: var(--text); outline: none; resize: none; padding: 0; margin-bottom: 16px;
+}
+.editor-body::placeholder { color: var(--text-muted); }
+.editor-body::-webkit-scrollbar { width: 0; }
+
+/* Writing prompt */
+.prompt-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: 12px; margin-bottom: 14px;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+.prompt-box .pb-bar {
+  width: 2.5px; height: 28px; border-radius: 2px;
+  background: var(--accent); opacity: 0.25; flex-shrink: 0; margin-top: 2px;
+}
+.prompt-box .pb-text { font-size: 12px; color: var(--text-secondary); opacity: 0.65; line-height: 1.6; }
+
+/* Editor metadata row */
+.editor-meta {
+  display: flex; gap: 8px; margin-bottom: 12px; position: relative; z-index: 1; flex-wrap: wrap;
+}
+.meta-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 13px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--surface); font-size: 12.5px; color: var(--text-secondary);
+  cursor: pointer; min-height: 40px;
+  transition: transform 0.15s ease-out, border-color 0.2s, background 0.2s, color 0.2s;
+  white-space: nowrap; font-family: var(--ff-b);
+}
+.meta-chip:active { transform: scale(0.94); }
+.meta-chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-light); font-weight: 500; }
+.meta-chip .mc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Expandable panel */
+.editor-panel {
+  padding: 14px; border-radius: 16px; margin-bottom: 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  position: relative; z-index: 1;
+  animation: panelIn 0.25s ease-out;
+}
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.editor-panel .ep-title { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
+
+/* Mood grid in panel */
+.mood-grid {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.mood-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 8px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--surface); cursor: pointer; min-width: 48px;
+  transition: transform 0.15s ease-out, border-color 0.2s, background 0.2s;
+}
+.mood-btn:active { transform: scale(0.92); }
+.mood-btn.sel { border-color: var(--accent); background: var(--accent-light); }
+.mood-btn .mood-emoji { font-size: 18px; line-height: 1; }
+.mood-btn .mood-label { font-size: 10px; color: var(--text-secondary); }
+
+/* Tag grid in panel */
+.tag-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag-btn {
+  padding: 6px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--surface); font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; transition: transform 0.15s ease-out, border-color 0.2s, background 0.2s, color 0.2s;
+  font-family: var(--ff-b);
+}
+.tag-btn:active { transform: scale(0.92); }
+.tag-btn.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+/* Editor bottom bar */
+.editor-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; margin-bottom: 14px; position: relative; z-index: 1;
+}
+.editor-bottom .eb-word { font-size: 11px; color: var(--text-secondary); opacity: 0.5; }
+.editor-bottom .eb-milestone { font-size: 10px; color: var(--accent); opacity: 0.5; }
+
+.save-btn {
+  width: 100%; padding: 15px; border: none; border-radius: 18px;
+  background: var(--accent); color: #FFF;
+  font-family: var(--ff-h); font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: transform 0.18s ease-out, box-shadow 0.25s, opacity 0.2s;
+  position: relative; z-index: 1; min-height: 44px; letter-spacing: 0.5px;
+}
+.save-btn:active { transform: scale(0.965); }
+
+/* ========================================
+   PAGE 4: CALENDAR
+   ======================================== */
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; position: relative; z-index: 1;
+}
+.cal-month { font-family: var(--ff-h); font-size: 20px; font-weight: 600; color: var(--text); }
+.cal-nav { display: flex; gap: 6px; }
+.cal-nav-btn {
+  width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer; transition: transform 0.15s ease-out;
+  display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
+}
+.cal-nav-btn:active { transform: scale(0.88); }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; position: relative; z-index: 1; }
+.cal-day-hdr { text-align: center; font-size: 11px; color: var(--text-muted); padding: 8px 0; font-weight: 500; }
+.cal-day-btn {
+  aspect-ratio: 1; border-radius: 12px; border: none; background: transparent;
+  cursor: pointer; transition: transform 0.15s ease-out, background 0.2s;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--ff-b); font-size: 13px; color: var(--text);
+  position: relative; gap: 2px; min-height: 44px;
+}
+.cal-day-btn:hover { background: var(--surface-alt); }
+.cal-day-btn:active { transform: scale(0.9); }
+.cal-day-btn.other-month { color: var(--text-muted); opacity: 0.4; }
+.cal-day-btn.today { background: var(--cal-today); font-weight: 600; }
+.cal-day-btn .cal-dot-row { display: flex; gap: 2px; }
+.cal-day-btn .cal-dot-sm { width: 4px; height: 4px; border-radius: 50%; }
+
+.cal-entry-list { margin-top: 18px; position: relative; z-index: 1; }
+.cal-entry-mini {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border-radius: 14px; margin-bottom: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  transition: transform 0.18s ease-out; cursor: pointer;
+}
+.cal-entry-mini:active { transform: scale(0.98); }
+.cal-entry-mini .ce-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cal-entry-mini .ce-info { flex: 1; min-width: 0; }
+.cal-entry-mini .ce-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.cal-entry-mini .ce-time { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* ========================================
+   PAGE 5: STATISTICS
+   ======================================== */
+.stats-header { margin-bottom: 18px; position: relative; z-index: 1; }
+.stats-header h2 { font-family: var(--ff-h); font-size: 22px; font-weight: 700; color: var(--text); }
+.stats-header .sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.stat-card {
+  padding: 18px; border-radius: 18px; background: var(--card-bg);
+  border: 1px solid var(--border); box-shadow: var(--shadow-md);
+  margin-bottom: 14px; position: relative; z-index: 1;
+}
+.stat-card .sc-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
+.stat-card .sc-value { font-family: var(--ff-n); font-size: 32px; font-weight: 700; color: var(--accent); }
+.stat-card .sc-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+.stat-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.mood-bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.mood-bar-item { display: flex; align-items: center; gap: 10px; }
+.mood-bar-item .mb-label { width: 50px; font-size: 12px; color: var(--text-secondary); text-align: right; }
+.mood-bar-item .mb-track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-alt); overflow: hidden; }
+.mood-bar-item .mb-fill { height: 100%; border-radius: 4px; }
+
+.week-heatmap { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 8px; }
+.heat-cell { width: 12px; height: 12px; border-radius: 3px; background: var(--surface-alt); }
+.heat-cell.h1 { background: var(--accent); opacity: 0.15; }
+.heat-cell.h2 { background: var(--accent); opacity: 0.35; }
+.heat-cell.h3 { background: var(--accent); opacity: 0.65; }
+.heat-cell.h4 { background: var(--accent); opacity: 1; }
+
+/* ========================================
+   PAGE 6: PROFILE
+   ======================================== */
+.profile-header {
+  text-align: center; padding: 20px 0; position: relative; z-index: 1; margin-bottom: 16px;
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 28px; font-weight: 600;
+}
+.profile-name { font-family: var(--ff-h); font-size: 20px; font-weight: 600; color: var(--text); }
+.profile-bio { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.profile-stats-row { display: flex; gap: 8px; margin-bottom: 20px; position: relative; z-index: 1; }
+.pstat {
+  flex: 1; text-align: center; padding: 14px 4px; border-radius: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.pstat .val { font-size: 18px; font-weight: 700; color: var(--accent); font-family: var(--ff-n); }
+.pstat .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.settings-list { position: relative; z-index: 1; }
+.setting-item {
+  display: flex; align-items: center; gap: 14px; padding: 16px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: all 0.2s; min-height: 44px;
+}
+.setting-item:active { opacity: 0.6; }
+.setting-item .si-icon {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.si-1 { background: var(--accent-light); color: var(--accent); }
+.si-2 { background: var(--accent-2-light); color: var(--accent-2); }
+.si-3 { background: var(--accent-3-light); color: var(--accent-3); }
+.si-4 { background: var(--accent-light); color: var(--accent); }
+.setting-item .si-text { flex: 1; }
+.setting-item .si-title { font-size: 15px; color: var(--text); font-weight: 500; }
+.setting-item .si-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.setting-item .si-arrow { color: var(--text-muted); }
+
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body data-scheme="A" data-mode="light" data-font="1">
+
+<!-- Controls -->
+<div class="controls">
+  <label>配色</label>
+  <select id="scheme">
+    <option value="A">A 暖桃奶油</option>
+    <option value="B">B 雾蓝灰</option>
+    <option value="C">C 苔藓绿</option>
+  </select>
+  <div class="sep"></div>
+  <label>字体</label>
+  <select id="fontSel">
+    <option value="1">1 宋体标题 + 无衬线正文</option>
+    <option value="2">2 全 Noto Sans SC</option>
+    <option value="3">3 文楷标题 + 无衬线正文</option>
+    <option value="4">4 全 LXGW 文楷</option>
+  </select>
+  <div class="sep"></div>
+  <label>模式</label>
+  <button id="lightBtn" class="active-btn" onclick="setMode('light')">浅色</button>
+  <button id="darkBtn" onclick="setMode('dark')">深色</button>
+</div>
+
+<div class="grid-6col">
+
+  <!-- ===== PAGE 1: HOME 首页 ===== -->
+  <div class="phone-col">
+    <div class="page-label">首页 — 日记列表</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc1"></div><div class="deco-circle dc2"></div><div class="deco-circle dc3"></div>
+        <div class="header">
+          <div class="header-top">
+            <div><h1>首页</h1><div class="sub">共 128 天有记录</div></div>
+            <button class="icon-btn" aria-label="菜单">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num">128</div><div class="lbl">总日记</div></div>
+          <div class="stat"><div class="num">7</div><div class="lbl">连续</div></div>
+          <div class="stat"><div class="num">3</div><div class="lbl">本月</div></div>
+        </div>
+        <div class="date-bar">
+          <div><div class="date">6月5日 星期四</div><div class="day">农历五月初十</div></div>
+          <div class="mood-tag">心情不错</div>
+        </div>
+        <div class="sec-title">最近记录 <span class="line"></span></div>
+
+        <div class="entry stagger-1">
+          <div class="mood-dot" style="background:var(--m2)"></div>
+          <div class="time">下午 3:24</div>
+          <h3>雨天的咖啡馆</h3>
+          <p>今天下了一整天的雨，窝在咖啡馆里写东西，窗外的雨声特别好听，配上一杯热拿铁，整个人都放松下来了。</p>
+          <div class="tags"><span class="tag">生活</span><span class="tag">咖啡</span></div>
+        </div>
+        <div class="entry stagger-2">
+          <div class="mood-dot" style="background:var(--m3)"></div>
+          <div class="time">上午 10:15</div>
+          <h3>和老朋友见面</h3>
+          <p>好久没见小李了，聊了很多以前的事，时间过得真快，那些青春的日子好像就在昨天。</p>
+          <div class="tags"><span class="tag">朋友</span><span class="tag">回忆</span></div>
+        </div>
+        <div class="entry stagger-3">
+          <div class="mood-dot" style="background:var(--m4)"></div>
+          <div class="time">昨天 21:08</div>
+          <h3>读完一本好书</h3>
+          <p>终于把《百年孤独》读完了，马尔克斯的文字有种魔力，让人沉迷其中无法自拔。</p>
+          <div class="tags"><span class="tag">阅读</span><span class="tag">感悟</span></div>
+        </div>
+
+        <button class="btn-write">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          写点什么...
+        </button>
+
+        <div class="bottom-nav">
+          <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 2: DIARY DETAIL 日记详情 ===== -->
+  <div class="phone-col">
+    <div class="page-label">日记详情 — 阅读视图</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc1"></div><div class="deco-circle dc3"></div>
+
+        <!-- Top bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative;z-index:1">
+          <button class="icon-btn" aria-label="返回">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="icon-btn" aria-label="更多">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+
+        <div class="detail-wrap">
+          <!-- Date header -->
+          <div class="detail-header">
+            <div class="dh-date">2026年6月5日</div>
+            <div class="dh-sub">星期四 · 下午 3:24</div>
+            <div class="dh-meta-row">
+              <div class="dh-meta-item"><span class="dh-dot" style="background:var(--m2)"></span> 平静</div>
+              <span class="dh-meta-sep">·</span>
+              <div class="dh-meta-item">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+                小雨
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div class="detail-tags">
+            <div class="detail-tag"><span class="dt-dot" style="background:var(--accent)"></span> 生活</div>
+            <div class="detail-tag"><span class="dt-dot" style="background:var(--accent-2)"></span> 咖啡</div>
+          </div>
+
+          <!-- Content -->
+          <div class="detail-content">
+            <p>今天下了一整天的雨。早上醒来就听到窗外淅淅沥沥的雨声，拉开窗帘，灰蒙蒙的天，光线很柔和。</p>
+            <p>想着好久没去那家咖啡馆了，于是撑伞出门。店里人不多，坐在靠窗的老位子上。雨滴打在玻璃上，歪歪扭扭地滑下来，像小时候画的水彩画。</p>
+            <p>点了一杯热拿铁，翻开带来的一本书。雨声是最好的白噪音，平时浮躁的心慢慢静下来。不知不觉坐了两个多小时，直到雨渐渐停歇才离开。</p>
+            <p>有时候什么都不做，就听听雨、喝喝咖啡，也是一种很好的休息。</p>
+          </div>
+
+          <!-- Footer -->
+          <div class="detail-footer">
+            <span>约 1 分钟阅读</span>
+            <span>创建于 2026年6月5日 15:24</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="detail-actions">
+            <div class="detail-action da-edit">
+              <div class="da-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+              <div class="da-label">编辑</div>
+            </div>
+            <div class="detail-action da-fav">
+              <div class="da-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--star-color)" stroke="var(--star-color)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+              <div class="da-label" style="color:var(--star-color)">已收藏</div>
+            </div>
+            <div class="detail-action da-del">
+              <div class="da-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+              <div class="da-label">删除</div>
+            </div>
+          </div>
+
+          <!-- Related entries -->
+          <div class="related-section">
+            <div class="rs-title">历年今日</div>
+            <div class="related-item"><span class="ri-year">2025年</span><span class="ri-text">高考第一天，天气很热，中午吃了牛肉面...</span></div>
+            <div class="related-item"><span class="ri-year">2024年</span><span class="ri-text">和同事一起去了海边，看到了很美的日落...</span></div>
+          </div>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 3: WRITE 写作页 (redesigned) ===== -->
+  <div class="phone-col">
+    <div class="page-label">写作 — 新日记（重设计）</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc1"></div><div class="deco-circle dc3"></div>
+
+        <div class="editor-back-row">
+          <button class="icon-btn" aria-label="返回">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="editor-date">6月5日 星期四</span>
+            <span class="editor-date">15:24</span>
+          </div>
+        </div>
+
+        <!-- Formatting toolbar -->
+        <div class="editor-toolbar">
+          <button class="tool-btn" aria-label="加粗"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg></button>
+          <button class="tool-btn" aria-label="斜体"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+          <button class="tool-btn" aria-label="标题"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4v16M18 4v16M6 12h12"/></svg></button>
+          <button class="tool-btn" aria-label="图片"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+          <button class="tool-btn" aria-label="分割线"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="12" x2="20" y2="12"/></svg></button>
+        </div>
+
+        <!-- Writing prompt -->
+        <div class="prompt-box">
+          <div class="pb-bar"></div>
+          <div class="pb-text">今天有什么特别的事？或者写写此刻的心情，让文字自然地流淌...</div>
+        </div>
+
+        <input class="editor-title" placeholder="标题..." value="雨天的咖啡馆">
+
+        <textarea class="editor-body" placeholder="开始写点什么...">今天下了一整天的雨。早上醒来就听到窗外淅淅沥沥的雨声，整个人都不想动。窝在咖啡馆里写东西，窗外的雨声特别好听，配上一杯热拿铁。</textarea>
+
+        <!-- Metadata chips -->
+        <div class="editor-meta">
+          <div class="meta-chip on"><span class="mc-dot" style="background:var(--m2)"></span> 平静</div>
+          <div class="meta-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg> 小雨</div>
+          <div class="meta-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49M7.76 7.76a6 6 0 000 8.49"/></svg> 生活 咖啡</div>
+          <div class="meta-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> 位置</div>
+        </div>
+
+        <!-- Expanded panel: mood picker -->
+        <div class="editor-panel">
+          <div class="ep-title">选择心情</div>
+          <div class="mood-grid">
+            <div class="mood-btn"><div class="mood-emoji">😄</div><div class="mood-label">开心</div></div>
+            <div class="mood-btn sel"><div class="mood-emoji">😌</div><div class="mood-label">平静</div></div>
+            <div class="mood-btn"><div class="mood-emoji">😢</div><div class="mood-label">感伤</div></div>
+            <div class="mood-btn"><div class="mood-emoji">🤩</div><div class="mood-label">期待</div></div>
+            <div class="mood-btn"><div class="mood-emoji">😫</div><div class="mood-label">疲惫</div></div>
+            <div class="mood-btn"><div class="mood-emoji">🥰</div><div class="mood-label">幸福</div></div>
+          </div>
+        </div>
+
+        <!-- Expanded panel: tag picker -->
+        <div class="editor-panel">
+          <div class="ep-title">选择标签</div>
+          <div class="tag-grid">
+            <div class="tag-btn sel">生活</div>
+            <div class="tag-btn sel">咖啡</div>
+            <div class="tag-btn">工作</div>
+            <div class="tag-btn">旅行</div>
+            <div class="tag-btn">阅读</div>
+            <div class="tag-btn">感悟</div>
+            <div class="tag-btn">美食</div>
+            <div class="tag-btn">运动</div>
+          </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="editor-bottom">
+          <span class="eb-word">128 字</span>
+          <span class="eb-milestone">渐入佳境</span>
+        </div>
+
+        <button class="save-btn">保存日记</button>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 4: CALENDAR 日历 ===== -->
+  <div class="phone-col">
+    <div class="page-label">日历 — 月视图</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc2"></div>
+        <div class="cal-header">
+          <div class="cal-month">2026年 6月</div>
+          <div class="cal-nav">
+            <button class="cal-nav-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <button class="cal-nav-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-day-hdr">日</div><div class="cal-day-hdr">一</div><div class="cal-day-hdr">二</div><div class="cal-day-hdr">三</div><div class="cal-day-hdr">四</div><div class="cal-day-hdr">五</div><div class="cal-day-hdr">六</div>
+          <div class="cal-day-btn other-month">31</div>
+          <script>
+          const days = [
+            {d:1,dots:[]},{d:2,dots:['m2']},{d:3,dots:['m1','m2']},{d:4,dots:['m4']},{d:5,dots:['m1']},{d:6,dots:[]},
+            {d:7,dots:['m2']},{d:8,dots:['m4']},{d:9,dots:[]},{d:10,dots:[]},{d:11,dots:['m4']},{d:12,dots:['m2']},
+            {d:13,dots:['m2']},{d:14,dots:['m3']},{d:15,dots:[]},{d:16,dots:['m2']},{d:17,dots:[]},{d:18,dots:['m4']},
+            {d:19,dots:['m1']},{d:20,dots:['m4']},{d:21,dots:['m2']},{d:22,dots:['m2']},{d:23,dots:[]},{d:24,dots:['m3']},
+            {d:25,dots:['m1','m2']},{d:26,dots:['m4']},{d:27,dots:[]},{d:28,dots:['m1']},{d:29,dots:['m4']},{d:30,dots:[]}
+          ];
+          const mcs = {m1:'var(--m1)',m2:'var(--m2)',m3:'var(--m3)',m4:'var(--m4)',m5:'var(--m5)',m6:'var(--m6)'};
+          document.write(days.map(d=>{
+            const today=d.d===5?' today':'';
+            const dots=d.dots.map(m=>`<span class="cal-dot-sm" style="background:${mcs[m]}"></span>`).join('');
+            return `<div class="cal-day-btn${today}">${d.d}<div class="cal-dot-row">${dots}</div></div>`;
+          }).join(''));
+          </script>
+        </div>
+        <div class="sec-title" style="margin-top:20px">6月5日 记录 <span class="line"></span></div>
+        <div class="cal-entry-list">
+          <div class="cal-entry-mini"><span class="ce-dot" style="background:var(--m2)"></span><div class="ce-info"><div class="ce-title">雨天的咖啡馆</div><div class="ce-time">下午 3:24</div></div></div>
+          <div class="cal-entry-mini"><span class="ce-dot" style="background:var(--m1)"></span><div class="ce-info"><div class="ce-title">晨跑新路线</div><div class="ce-time">早上 7:15</div></div></div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 5: STATISTICS 统计 ===== -->
+  <div class="phone-col">
+    <div class="page-label">统计 — 数据面板</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc1"></div><div class="deco-circle dc3"></div>
+        <div class="stats-header"><h2>我的统计</h2><div class="sub">记录生活的一点一滴</div></div>
+        <div class="stats">
+          <div class="stat"><div class="num">128</div><div class="lbl">总日记</div></div>
+          <div class="stat"><div class="num">7</div><div class="lbl">连续天</div></div>
+          <div class="stat"><div class="num">3.2</div><div class="lbl">万字</div></div>
+        </div>
+        <div class="stat-row2">
+          <div class="stat-card"><div class="sc-title">本月记录</div><div class="sc-value">5</div><div class="sc-desc">篇日记</div></div>
+          <div class="stat-card"><div class="sc-title">平均字数</div><div class="sc-value">256</div><div class="sc-desc">字/篇</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-title">心情分布</div>
+          <div class="mood-bar-chart">
+            <div class="mood-bar-item"><span class="mb-label">开心</span><div class="mb-track"><div class="mb-fill" style="width:72%;background:var(--m1)"></div></div><span style="font-size:11px;color:var(--text-muted)">36</span></div>
+            <div class="mood-bar-item"><span class="mb-label">平静</span><div class="mb-track"><div class="mb-fill" style="width:56%;background:var(--m2)"></div></div><span style="font-size:11px;color:var(--text-muted)">28</span></div>
+            <div class="mood-bar-item"><span class="mb-label">感伤</span><div class="mb-track"><div class="mb-fill" style="width:28%;background:var(--m3)"></div></div><span style="font-size:11px;color:var(--text-muted)">14</span></div>
+            <div class="mood-bar-item"><span class="mb-label">期待</span><div class="mb-track"><div class="mb-fill" style="width:40%;background:var(--m4)"></div></div><span style="font-size:11px;color:var(--text-muted)">20</span></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-title">最近 30 天活跃度</div>
+          <div class="week-heatmap">
+            <script>for(let i=0;i<30;i++){const r=Math.random();const cls=r>0.7?'h4':r>0.5?'h3':r>0.25?'h2':'h1';document.write(`<div class="heat-cell ${cls}"></div>`);}</script>
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="bottom-nav">
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 6: PROFILE 我的 ===== -->
+  <div class="phone-col">
+    <div class="page-label">我的 — 个人中心</div>
+    <div class="phone-frame">
+      <div class="phone-content">
+        <div class="deco-circle dc2"></div><div class="deco-circle dc3"></div>
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="profile-name">日记主人</div>
+          <div class="profile-bio">记录生活的第 365 天</div>
+        </div>
+        <div class="profile-stats-row">
+          <div class="pstat"><div class="val">128</div><div class="lbl">总日记</div></div>
+          <div class="pstat"><div class="val">7</div><div class="lbl">连续天</div></div>
+          <div class="pstat"><div class="val">32k</div><div class="lbl">总字数</div></div>
+        </div>
+        <div class="sec-title">设置 <span class="line"></span></div>
+        <div class="settings-list">
+          <div class="setting-item">
+            <div class="si-icon si-1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div class="si-text"><div class="si-title">外观设置</div><div class="si-desc">浅色 / 深色 / 跟随系统</div></div>
+            <span class="si-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="si-icon si-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="si-text"><div class="si-title">个人资料</div><div class="si-desc">昵称、头像、签名</div></div>
+            <span class="si-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="si-icon si-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+            <div class="si-text"><div class="si-title">偏好设置</div><div class="si-desc">字体、提醒、默认心情</div></div>
+            <span class="si-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="si-icon si-4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            <div class="si-text"><div class="si-title">数据导出</div><div class="si-desc">备份你的日记数据</div></div>
+            <span class="si-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>首页</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>日历</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>待办</div>
+          <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>统计</div>
+          <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const body = document.body;
+document.getElementById('scheme').onchange = e => body.dataset.scheme = e.target.value;
+document.getElementById('fontSel').onchange = e => body.dataset.font = e.target.value;
+
+function setMode(m) {
+  body.dataset.mode = m;
+  document.getElementById('lightBtn').className = m === 'light' ? 'active-btn' : '';
+  document.getElementById('darkBtn').className = m === 'dark' ? 'active-btn' : '';
+}
+</script>
+</body>
+</html>

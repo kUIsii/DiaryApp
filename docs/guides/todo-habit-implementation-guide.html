@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待办与习惯系统实施指南</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2; --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88); --ink: #263543;
+            --muted: #66737f; --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08); --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48; --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8; --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73; --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a; --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672; --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0; --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px; --radius-lg: 24px; --radius-md: 18px; --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252,242,221,0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(121,145,168,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121,145,168,0.08) 1px, transparent 1px);
+            background-size: 22px 22px; pointer-events: none; opacity: 0.45;
+        }
+        .shell { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 28px 24px 88px; }
+        .card { background: var(--paper); border: 1px solid rgba(255,255,255,0.82); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 26px 28px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+        h1 { margin: 18px 0 14px; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; font-family: Georgia, "Noto Serif SC", serif; font-weight: 700; }
+        h2 { margin: 0 0 14px; font-size: 26px; line-height: 1.2; }
+        h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
+        p { margin: 0; color: var(--muted); line-height: 1.82; }
+        .lead { font-size: 15px; max-width: 860px; }
+        .anchor-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .anchor-row a { text-decoration: none; color: var(--blue); background: var(--blue-soft); padding: 9px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+        .section-gap { margin-top: 32px; }
+        .code-block { background: rgba(38,53,67,0.04); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 20px; margin: 14px 0; overflow-x: auto; }
+        .code-block code { background: none; padding: 0; font-size: 13px; line-height: 1.7; font-family: "Cascadia Code", "Fira Code", monospace; color: var(--ink); }
+        code { background: rgba(93,131,168,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; }
+        .step-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+        .step-card { padding: 20px; border-radius: var(--radius-lg); background: var(--paper); border: 1px solid rgba(255,255,255,0.82); box-shadow: 0 8px 32px rgba(54,41,29,0.08); }
+        .step-card h3 { display: flex; align-items: center; gap: 10px; }
+        .step-num { width: 28px; height: 28px; border-radius: 8px; background: var(--green-soft); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+        .file-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--line); color: var(--muted); margin-top: 8px; }
+        .note-box { padding: 16px 20px; border-radius: var(--radius-md); background: var(--green-soft); border: 1px solid rgba(92,143,115,0.2); margin-top: 16px; }
+        .note-box p { color: var(--green); font-size: 13px; }
+        @media (max-width: 900px) { .step-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">check_box</span>
+            实施指南
+        </span>
+        <h1>待办与习惯系统实施指南</h1>
+        <p class="lead">GTD 任务管理、自然语言日期解析、灵活习惯频率、GitHub 风格热力图等功能的详细实施步骤。</p>
+        <div class="anchor-row">
+            <a href="#gtd">GTD 任务</a>
+            <a href="#habit">习惯系统</a>
+            <a href="#heatmap">热力图</a>
+            <a href="#widget">桌面小组件</a>
+        </div>
+    </div>
+
+    <!-- GTD -->
+    <div id="gtd" class="card section-gap">
+        <h2>Step 1: GTD 任务管理增强 (2天)</h2>
+        <p class="lead">增强待办系统，支持子任务、优先级、自然语言日期解析。</p>
+
+        <div class="step-grid">
+            <div class="step-card">
+                <h3><span class="step-num">1</span> 子任务支持</h3>
+                <div class="code-block">
+<code>// TodoItem 已有 parentId 字段
+// 需要添加 UI 支持:
+
+@Composable
+fun TodoItem(
+    todo: TodoItem,
+    subTodos: List<TodoItem>,
+    onToggle: (Boolean) -> Unit,
+    onAddSubTodo: () -> Unit
+) {
+    GlassCard {
+        // 主任务
+        Row {
+            Checkbox(checked = todo.isCompleted, onToggle)
+            Text(todo.title)
+        }
+        // 子任务列表
+        subTodos.forEach { subTodo ->
+            SubTodoItem(subTodo)
+        }
+        // 添加子任务按钮
+        TextButton(onClick = onAddSubTodo) {
+            Text("添加子任务")
+        }
+    }
+}</code>
+                </div>
+                <div class="file-tag">TodoScreen.kt</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">2</span> 自然语言日期</h3>
+                <div class="code-block">
+<code>// 新增自然语言日期解析器:
+object NaturalDateParser {
+    fun parse(input: String): LocalDate? {
+        val today = LocalDate.now()
+        return when {
+            input.contains("今天") -> today
+            input.contains("明天") -> today.plusDays(1)
+            input.contains("后天") -> today.plusDays(2)
+            input.contains("下周") -> {
+                val day = extractWeekday(input)
+                today.with(TemporalAdjusters.next(day))
+            }
+            input.contains("下个月") -> today.plusMonths(1)
+            else -> null
+        }
+    }
+}</code>
+                </div>
+                <div class="file-tag">NaturalDateParser.kt (新增)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Habit -->
+    <div id="habit" class="card section-gap">
+        <h2>Step 2: 灵活习惯频率 (1天)</h2>
+        <p class="lead">支持自定义习惯频率：每天、每周X次、每月X次等。</p>
+
+        <div class="step-grid">
+            <div class="step-card">
+                <h3><span class="step-num">1</span> 频率模型</h3>
+                <div class="code-block">
+<code>sealed class HabitFrequency {
+    object Daily : HabitFrequency()
+    data class Weekly(val times: Int) : HabitFrequency()
+    data class Monthly(val times: Int) : HabitFrequency()
+    data class Custom(val cron: String) : HabitFrequency()
+}
+
+// TodoItem 新增字段:
+// val habitFrequency: HabitFrequency?
+// val habitTarget: Int? (目标次数)</code>
+                </div>
+                <div class="file-tag">TodoItem.kt</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">2</span> 打卡记录</h3>
+                <div class="code-block">
+<code>// HabitRecord 已有:
+// - todoId: Long
+// - recordDate: Long
+// - note: String?
+
+// 新增查询:
+@Query("""
+    SELECT COUNT(*) FROM habit_records
+    WHERE todoId = :todoId
+    AND recordDate BETWEEN :startDate AND :endDate
+""")
+suspend fun getHabitCountInRange(
+    todoId: Long,
+    startDate: Long,
+    endDate: Long
+): Int</code>
+                </div>
+                <div class="file-tag">DiaryDao.kt</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div id="heatmap" class="card section-gap">
+        <h2>Step 3: GitHub 风格热力图 (1天)</h2>
+        <p class="lead">习惯打卡的 GitHub 风格热力图，直观展示打卡规律。</p>
+
+        <div class="step-grid">
+            <div class="step-card">
+                <h3><span class="step-num">1</span> 热力图组件</h3>
+                <div class="code-block">
+<code>@Composable
+fun HabitHeatmap(
+    records: List<HabitRecord>,
+    startDate: LocalDate,
+    endDate: LocalDate
+) {
+    val recordsByDate = records.groupBy {
+        Instant.ofEpochMilli(it.recordDate)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+    }
+
+    Column {
+        // 星期标签
+        Row {
+            listOf("一","三","五").forEach {
+                Text(it, fontSize = 10)
+            }
+        }
+        // 热力图网格
+        LazyRow {
+            items(weeksBetween(startDate, endDate)) { week ->
+                Column {
+                    (0..6).forEach { day ->
+                        val date = week.plusDays(day.toLong())
+                        val count = recordsByDate[date]?.size ?: 0
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .padding(1.dp)
+                                .background(
+                                    heatColor(count),
+                                    RoundedCornerShape(2.dp)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun heatColor(count: Int): Color = when {
+    count == 0 -> Color(0xFFEBEDF0)
+    count == 1 -> Color(0xFF9BE9A8)
+    count == 2 -> Color(0xFF40C463)
+    count >= 3 -> Color(0xFF30A14E)
+    else -> Color(0xFF216E39)
+}</code>
+                </div>
+                <div class="file-tag">HabitHeatmap.kt (新增)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget -->
+    <div id="widget" class="card section-gap">
+        <h2>Step 4: 桌面小组件 (1天)</h2>
+        <p class="lead">使用 Jetpack Glance 实现桌面待办小组件。</p>
+
+        <div class="step-grid">
+            <div class="step-card">
+                <h3><span class="step-num">1</span> Glance 小组件</h3>
+                <div class="code-block">
+<code>class TodoWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(
+        context: Context,
+        id: GlanceId
+    ) {
+        provideContent {
+            GlanceTheme {
+                TodoWidgetContent()
+            }
+        }
+    }
+
+    @Composable
+    private fun TodoWidgetContent() {
+        val todos = // 从 DAO 获取 top 5 待办
+        LazyColumn {
+            items(todos) { todo ->
+                Row {
+                    Checkbox(checked = todo.isCompleted)
+                    Text(todo.title)
+                }
+            }
+        }
+    }
+}</code>
+                </div>
+                <div class="file-tag">TodoWidget.kt (新增)</div>
+            </div>
+
+            <div class="step-card">
+                <h3><span class="step-num">2</span> 注册 Widget</h3>
+                <div class="code-block">
+<code>// AndroidManifest.xml 新增:
+&lt;receiver
+    android:name=".TodoWidgetReceiver"
+    android:exported="true"&gt;
+    &lt;intent-filter&gt;
+        &lt;action android:name=
+            "android.appwidget.action.APPWIDGET_UPDATE" /&gt;
+    &lt;/intent-filter&gt;
+    &lt;meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/todo_widget_info" /&gt;
+&lt;/receiver&gt;</code>
+                </div>
+                <div class="file-tag">AndroidManifest.xml</div>
+            </div>
+        </div>
+
+        <div class="note-box">
+            <p><strong>注意：</strong>Glance 小组件需要 API 31+。如果需要支持更低版本，可以使用传统的 RemoteViews 实现。</p>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

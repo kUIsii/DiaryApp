@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DiaryApp 跨模块依赖分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-1: #f4ece2;
+            --bg-2: #eef3f5;
+            --paper: rgba(255, 251, 247, 0.88);
+            --paper-2: rgba(255, 255, 255, 0.95);
+            --ink: #263543;
+            --muted: #66737f;
+            --soft: #86929d;
+            --line: rgba(38, 53, 67, 0.08);
+            --line-strong: rgba(38, 53, 67, 0.16);
+            --shadow: 0 28px 70px rgba(54, 41, 29, 0.12);
+            --brown: #9a6a48;
+            --brown-soft: rgba(154, 106, 72, 0.12);
+            --blue: #5d83a8;
+            --blue-soft: rgba(93, 131, 168, 0.13);
+            --green: #5c8f73;
+            --green-soft: rgba(92, 143, 115, 0.14);
+            --amber: #c28b3a;
+            --amber-soft: rgba(194, 139, 58, 0.14);
+            --rose: #bf6672;
+            --rose-soft: rgba(191, 102, 114, 0.14);
+            --purple: #806fb0;
+            --purple-soft: rgba(128, 111, 176, 0.13);
+            --radius-xl: 30px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.84), transparent 33%),
+                radial-gradient(circle at 88% 8%, rgba(252, 242, 221, 0.58), transparent 26%),
+                linear-gradient(150deg, var(--bg-1), var(--bg-2));
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(121, 145, 168, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(121, 145, 168, 0.08) 1px, transparent 1px);
+            background-size: 22px 22px;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+        .shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1560px;
+            margin: 0 auto;
+            padding: 28px 24px 88px;
+        }
+        .card {
+            background: var(--paper);
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+            padding: 26px 28px;
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 13px;
+            border-radius: 999px;
+            background: var(--brown-soft);
+            color: var(--brown);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        h1 {
+            margin: 18px 0 14px;
+            font-size: clamp(34px, 5vw, 54px);
+            line-height: 1.05;
+            font-family: Georgia, "Noto Serif SC", serif;
+            font-weight: 700;
+        }
+        h2 {
+            margin: 0 0 14px;
+            font-size: 26px;
+            line-height: 1.2;
+        }
+        h3 {
+            margin: 0 0 10px;
+            font-size: 19px;
+            line-height: 1.3;
+        }
+        h4 {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.35;
+        }
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.82;
+        }
+        .lead {
+            font-size: 15px;
+            max-width: 860px;
+        }
+        .anchor-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .anchor-row a {
+            text-decoration: none;
+            color: var(--blue);
+            background: var(--blue-soft);
+            padding: 9px 13px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+        .stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(38, 53, 67, 0.06);
+        }
+        .stat strong {
+            display: block;
+            color: var(--ink);
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        .stat span {
+            display: block;
+            color: var(--soft);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+        .module-card {
+            padding: 22px;
+            border-radius: var(--radius-lg);
+            background: var(--paper);
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            box-shadow: 0 8px 32px rgba(54, 41, 29, 0.08);
+        }
+        .module-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .module-card h3 .material-symbols-rounded {
+            font-size: 22px;
+        }
+        .dep-list {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0 0;
+        }
+        .dep-list li {
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(38, 53, 67, 0.06);
+            font-size: 13px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dep-list li .material-symbols-rounded {
+            font-size: 16px;
+            color: var(--soft);
+        }
+        .dep-arrow {
+            color: var(--soft);
+            font-size: 12px;
+        }
+        .tag-in {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .tag-data { background: var(--blue-soft); color: var(--blue); }
+        .tag-ui { background: var(--green-soft); color: var(--green); }
+        .tag-util { background: var(--amber-soft); color: var(--amber); }
+        .tag-nav { background: var(--purple-soft); color: var(--purple); }
+        .impact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+        .impact-card {
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            background: var(--paper);
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            box-shadow: 0 8px 32px rgba(54, 41, 29, 0.08);
+        }
+        .risk-high { border-left: 4px solid var(--rose); }
+        .risk-mid { border-left: 4px solid var(--amber); }
+        .risk-low { border-left: 4px solid var(--green); }
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-high { background: var(--rose-soft); color: var(--rose); }
+        .badge-mid { background: var(--amber-soft); color: var(--amber); }
+        .badge-low { background: var(--green-soft); color: var(--green); }
+        .flow-diagram {
+            margin: 22px 0;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(38, 53, 67, 0.06);
+            overflow-x: auto;
+        }
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .flow-box {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .flow-data { background: var(--blue-soft); color: var(--blue); }
+        .flow-ui { background: var(--green-soft); color: var(--green); }
+        .flow-vm { background: var(--amber-soft); color: var(--amber); }
+        .flow-nav { background: var(--purple-soft); color: var(--purple); }
+        .flow-arrow {
+            color: var(--soft);
+            font-size: 18px;
+        }
+        .section-gap { margin-top: 32px; }
+        .note-box {
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            background: var(--amber-soft);
+            border: 1px solid rgba(194, 139, 58, 0.2);
+            margin-top: 16px;
+        }
+        .note-box p {
+            color: var(--amber);
+            font-size: 13px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            text-align: left;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.6);
+            border-bottom: 2px solid var(--line-strong);
+            font-weight: 700;
+            color: var(--ink);
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+        }
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        code {
+            background: rgba(93, 131, 168, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: "Cascadia Code", "Fira Code", monospace;
+        }
+        @media (max-width: 900px) {
+            .module-grid { grid-template-columns: 1fr; }
+            .impact-grid { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .summary-grid { grid-template-columns: 1fr; }
+            .shell { padding: 16px 12px 60px; }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+
+    <!-- Hero -->
+    <div class="card hero">
+        <span class="eyebrow">
+            <span class="material-symbols-rounded">account_tree</span>
+            架构分析
+        </span>
+        <h1>跨模块依赖分析</h1>
+        <p class="lead">DiaryApp 当前代码库的模块间依赖关系、耦合风险点、以及重构建议。基于 <code>experiment/v2-redesign</code> 分支最新代码分析。</p>
+        <div class="anchor-row">
+            <a href="#architecture">整体架构</a>
+            <a href="#modules">模块清单</a>
+            <a href="#dependencies">依赖关系</a>
+            <a href="#risks">耦合风险</a>
+            <a href="#refactor">重构建议</a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-grid">
+        <div class="stat">
+            <strong>8</strong>
+            <span>Room Entity 表</span>
+        </div>
+        <div class="stat">
+            <strong>16</strong>
+            <span>UI Screen 模块</span>
+        </div>
+        <div class="stat">
+            <strong>13</strong>
+            <span>数据库版本 (v13)</span>
+        </div>
+        <div class="stat">
+            <strong>~8000</strong>
+            <span>核心 Kotlin 代码行</span>
+        </div>
+    </div>
+
+    <!-- Architecture Overview -->
+    <div id="architecture" class="card section-gap">
+        <h2>整体架构</h2>
+        <p class="lead">DiaryApp 采用 MVVM 架构，Jetpack Compose UI + Room 数据层 + Navigation Compose 路由。所有模块共享同一个 <code>DiaryDao</code> 实例，通过 <code>DiaryApplication.database</code> 访问。</p>
+
+        <div class="flow-diagram">
+            <h4>数据流向</h4>
+            <div class="flow-row">
+                <div class="flow-box flow-data">Room DB (v13)</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-data">DiaryDao</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-vm">ViewModel</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-ui">Compose UI</div>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-nav">DiaryNavHost</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-ui">Screen Composables</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-vm">ViewModel (per screen)</div>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">DiaryEntry</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-data">Quill Delta JSON</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-box flow-ui">WebView (viewer.html)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module List -->
+    <div id="modules" class="card section-gap">
+        <h2>模块清单</h2>
+        <p class="lead">当前代码库包含的主要模块及其职责。</p>
+
+        <div class="module-grid">
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--blue)">home</span> 首页 Home</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">HomeScreen (742行) + HomeViewModel + CalendarView + HomeMultiSelectState</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getAllPreviews()</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getOnThisDayPreviews()</li>
+                    <li><span class="tag-in tag-ui">UI</span> GlassCard, GradientBackground</li>
+                    <li><span class="tag-in tag-nav">NAV</span> EditorScreen, DiaryDetailScreen</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">edit_note</span> 编辑器 Editor</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">EditorScreen (1639行) + EditorViewModel + DiaryJsBridge + EditorToolbar</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao CRUD 操作</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryJsBridge (WebView↔Kotlin)</li>
+                    <li><span class="tag-in tag-ui">UI</span> MoodSlider, WeatherSelector, TagEditor</li>
+                    <li><span class="tag-in tag-util">UTIL</span> LocationSelector, MetadataChip</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">visibility</span> 详情页 Detail</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">DiaryDetailScreen (676行) + DiaryDetailViewModel + viewer.html</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getEntryByIdSafe()</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryExporter (图片/文本导出)</li>
+                    <li><span class="tag-in tag-ui">UI</span> WebView + viewer.html 渲染</li>
+                    <li><span class="tag-in tag-util">UTIL</span> DiaryDao.getTagInfoForDiary()</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--purple)">timeline</span> 时间线 Timeline</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">TimelineScreen + 月/周视图 + 搜索过滤</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getAllPreviews()</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.searchPreviews()</li>
+                    <li><span class="tag-in tag-ui">UI</span> GlassCard, TagChip</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--rose)">check_box</span> 待办 Todo</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">TodoScreen + TodoViewModel + 习惯打卡</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao (Todo/Habit queries)</li>
+                    <li><span class="tag-in tag-data">DATA</span> TodoItem, HabitRecord entities</li>
+                    <li><span class="tag-in tag-ui">UI</span> GlassCard, PressableScale</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--brown)">bar_chart</span> 统计 Stats</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">StatsScreen (996行) + StatsViewModel + 热力图</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getAllPreviews()</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao.getTagUsage()</li>
+                    <li><span class="tag-in tag-ui">UI</span> AnimatedCounter, GlassCard</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--blue)">cloud_upload</span> 备份 Backup</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">BackupScreen + BackupManager + 导入导出</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-data">DATA</span> DiaryDao (全量查询)</li>
+                    <li><span class="tag-in tag-data">DATA</span> DiaryExporter, DiaryImporter</li>
+                    <li><span class="tag-in tag-util">UTIL</span> BackupManager (JSON/ZIP)</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--green)">science</span> 实验功能</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">ExperimentalFeaturesScreen (264行) + Preferences</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-util">UTIL</span> ExperimentalFeaturesPreferences</li>
+                    <li><span class="tag-in tag-nav">NAV</span> DiaryNavHost 路由集成</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3><span class="material-symbols-rounded" style="color:var(--amber)">palette</span> 主题 Theme</h3>
+                <p style="font-size:13px;color:var(--muted);margin-top:8px">Theme.kt + Color.kt + DesignTokens + ThemePreferences</p>
+                <ul class="dep-list">
+                    <li><span class="tag-in tag-ui">UI</span> 4种主题模式 (FogBlue/MossGreen × Light/Dark)</li>
+                    <li><span class="tag-in tag-util">UTIL</span> ThemePreferences (SharedPreferences)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <div id="dependencies" class="card section-gap">
+        <h2>依赖关系矩阵</h2>
+        <p class="lead">各模块对共享资源的依赖情况。红色标注的为高耦合点。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>模块</th>
+                        <th>DiaryDao</th>
+                        <th>DiaryEntry</th>
+                        <th>DiaryPreview</th>
+                        <th>GlassCard</th>
+                        <th>WebView</th>
+                        <th>Navigation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>HomeScreen</strong></td>
+                        <td style="color:var(--rose)">重度依赖</td>
+                        <td>间接</td>
+                        <td style="color:var(--rose)">直接</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>EditorScreen</strong></td>
+                        <td style="color:var(--rose)">重度依赖</td>
+                        <td style="color:var(--rose)">直接CRUD</td>
+                        <td>-</td>
+                        <td>使用</td>
+                        <td style="color:var(--rose)">核心</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DiaryDetailScreen</strong></td>
+                        <td style="color:var(--amber)">中度依赖</td>
+                        <td style="color:var(--amber)">读取</td>
+                        <td>-</td>
+                        <td>使用</td>
+                        <td style="color:var(--rose)">核心</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TimelineScreen</strong></td>
+                        <td style="color:var(--amber)">中度依赖</td>
+                        <td>间接</td>
+                        <td style="color:var(--rose)">直接</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TodoScreen</strong></td>
+                        <td style="color:var(--amber)">中度依赖</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>StatsScreen</strong></td>
+                        <td style="color:var(--amber)">中度依赖</td>
+                        <td>间接</td>
+                        <td style="color:var(--amber)">聚合</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>BackupScreen</strong></td>
+                        <td style="color:var(--rose)">重度依赖</td>
+                        <td style="color:var(--rose)">全量导出</td>
+                        <td>-</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FavoritesScreen</strong></td>
+                        <td style="color:var(--green)">轻度依赖</td>
+                        <td>间接</td>
+                        <td style="color:var(--amber)">直接</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TrashScreen</strong></td>
+                        <td style="color:var(--green)">轻度依赖</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>使用</td>
+                        <td>-</td>
+                        <td>路由</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Risks -->
+    <div id="risks" class="card section-gap">
+        <h2>耦合风险点</h2>
+        <p class="lead">当前架构中存在的高耦合和潜在问题。</p>
+
+        <div class="impact-grid">
+            <div class="impact-card risk-high">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-high">高风险</span>
+                    DiaryDao 单一接口
+                </h3>
+                <p style="font-size:13px;margin-top:10px">所有模块共享一个 <code>DiaryDao</code> 接口，包含 80+ 个查询方法。任何新增查询都需要修改此接口，影响所有依赖模块的编译。建议拆分为 <code>DiaryDao</code>、<code>TodoDao</code>、<code>TagDao</code>、<code>TrashDao</code> 等专用 DAO。</p>
+            </div>
+
+            <div class="impact-card risk-high">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-high">高风险</span>
+                    getAllPreviews() 全量加载
+                </h3>
+                <p style="font-size:13px;margin-top:10px">HomeScreen、TimelineScreen、StatsScreen 都调用 <code>getAllPreviews()</code> 加载全部条目到内存。当数据量增长到 1000+ 条时，会导致内存压力和 UI 卡顿。需要引入 Paging3 分页加载。</p>
+            </div>
+
+            <div class="impact-card risk-mid">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-mid">中风险</span>
+                    WebView 生命周期管理
+                </h3>
+                <p style="font-size:13px;margin-top:10px">EditorScreen (1639行) 和 DiaryDetailScreen 都使用 WebView，但 WebView 的生命周期管理（stopLoading/destroy 顺序）容易导致内存泄漏。两个屏幕的 WebView 配置代码重复。</p>
+            </div>
+
+            <div class="impact-card risk-mid">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-mid">中风险</span>
+                    Delta JSON 格式依赖
+                </h3>
+                <p style="font-size:13px;margin-top:10px">内容存储使用 Quill.js Delta JSON 格式，解析和渲染都依赖 WebView。如果需要迁移到原生渲染或其他编辑器，需要处理大量已存储的 Delta 数据。建议增加 HTML 缓存字段。</p>
+            </div>
+
+            <div class="impact-card risk-low">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-low">低风险</span>
+                    主题系统硬编码
+                </h3>
+                <p style="font-size:13px;margin-top:10px">4种主题模式的硬编码在 Color.kt 中，新增主题需要修改多处代码。GlassCard 等组件通过 <code>when(mode)</code> 分支选择颜色，扩展性有限。</p>
+            </div>
+
+            <div class="impact-card risk-low">
+                <h3 style="display:flex;align-items:center;gap:8px">
+                    <span class="risk-badge badge-low">低风险</span>
+                    Navigation 路由参数
+                </h3>
+                <p style="font-size:13px;margin-top:10px">EditorScreen 使用 URL 参数 <code>?diaryId={diaryId}&draftId={draftId}</code>，但参数解析逻辑分散在多个地方。建议使用 Type-safe Navigation (Compose Navigation 2.8+)。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refactor Suggestions -->
+    <div id="refactor" class="card section-gap">
+        <h2>重构建议</h2>
+        <p class="lead">按优先级排序的模块化改进方案。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>优先级</th>
+                        <th>改动项</th>
+                        <th>影响范围</th>
+                        <th>预计工作量</th>
+                        <th>收益</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="risk-badge badge-high">P0</span></td>
+                        <td><strong>拆分 DiaryDao</strong><br/><span style="font-size:12px;color:var(--soft)">DiaryDao → DiaryDao + TodoDao + TagDao + TrashDao</span></td>
+                        <td>全部 ViewModel</td>
+                        <td>2天</td>
+                        <td>编译隔离、职责清晰</td>
+                    </tr>
+                    <tr>
+                        <td><span class="risk-badge badge-high">P0</span></td>
+                        <td><strong>引入 Paging3</strong><br/><span style="font-size:12px;color:var(--soft)">getAllPreviews() → PagingSource 分页加载</span></td>
+                        <td>Home, Timeline, Stats</td>
+                        <td>3天</td>
+                        <td>内存优化、首屏加速</td>
+                    </tr>
+                    <tr>
+                        <td><span class="risk-badge badge-mid">P1</span></td>
+                        <td><strong>WebView 工具类抽取</strong><br/><span style="font-size:12px;color:var(--soft)">Editor 和 Detail 共享 WebView 配置和 JS Bridge</span></td>
+                        <td>Editor, Detail</td>
+                        <td>1天</td>
+                        <td>代码复用、统一维护</td>
+                    </tr>
+                    <tr>
+                        <td><span class="risk-badge badge-mid">P1</span></td>
+                        <td><strong>HTML 缓存字段</strong><br/><span style="font-size:12px;color:var(--soft)">DiaryEntry 新增 cachedHtml 字段，避免每次 Delta→HTML 转换</span></td>
+                        <td>Detail, Export</td>
+                        <td>1天</td>
+                        <td>详情页加载速度提升</td>
+                    </tr>
+                    <tr>
+                        <td><span class="risk-badge badge-low">P2</span></td>
+                        <td><strong>Type-safe Navigation</strong><br/><span style="font-size:12px;color:var(--soft)">URL 参数 → Kotlin Serialization 路由</span></td>
+                        <td>NavHost, Editor</td>
+                        <td>1天</td>
+                        <td>类型安全、可维护性</td>
+                    </tr>
+                    <tr>
+                        <td><span class="risk-badge badge-low">P2</span></td>
+                        <td><strong>主题系统重构</strong><br/><span style="font-size:12px;color:var(--soft)">硬编码 → ThemeSpec 接口 + 动态注册</span></td>
+                        <td>Theme, Components</td>
+                        <td>2天</td>
+                        <td>可扩展性、自定义主题</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="note-box">
+            <p><strong>注意：</strong>DAO 拆分和 Paging3 引入是最高优先级的改动，它们直接影响应用的性能和可维护性。建议在进行其他功能开发之前先完成这两项基础重构。</p>
+        </div>
+    </div>
+
+    <!-- Entity Relationships -->
+    <div class="card section-gap">
+        <h2>Entity 关系图</h2>
+        <p class="lead">Room 数据库 v13 的 8 个 Entity 及其关系。</p>
+
+        <div class="flow-diagram">
+            <div class="flow-row">
+                <div class="flow-box flow-data">DiaryEntry</div>
+                <span class="flow-arrow">1:N</span>
+                <div class="flow-box flow-data">DiaryImage</div>
+                <span style="font-size:12px;color:var(--soft)">(ForeignKey CASCADE)</span>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">DiaryEntry</div>
+                <span class="flow-arrow">M:N</span>
+                <div class="flow-box flow-data">Tag</div>
+                <span style="font-size:12px;color:var(--soft)">(via DiaryTag cross_ref)</span>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">TodoItem</div>
+                <span class="flow-arrow">自引用</span>
+                <div class="flow-box flow-data">TodoItem (parentId)</div>
+                <span style="font-size:12px;color:var(--soft)">(子任务)</span>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">TodoItem</div>
+                <span class="flow-arrow">1:N</span>
+                <div class="flow-box flow-data">HabitRecord</div>
+                <span style="font-size:12px;color:var(--soft)">(习惯打卡记录)</span>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">DiaryEntry</div>
+                <span class="flow-arrow">软删除</span>
+                <div class="flow-box flow-data">TrashEntry</div>
+                <span style="font-size:12px;color:var(--soft)">(回收站)</span>
+            </div>
+            <div class="flow-row">
+                <div class="flow-box flow-data">CountDownItem</div>
+                <span style="font-size:12px;color:var(--soft)">(独立模块，无外键依赖)</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>综合实施路线图</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  padding: 32px 16px;
+  line-height: 1.6;
+}
+.dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 1px;
+}
+.header .subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 24px;
+  align-items: start;
+}
+.roadmap-column { display: flex; flex-direction: column; gap: 24px; }
+.sidebar-column { display: flex; flex-direction: column; gap: 20px; }
+
+/* Progress Section */
+.progress-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.progress-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+.progress-bar-wrap {
+  background: #e5e7eb;
+  border-radius: 8px;
+  height: 20px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  width: 15%;
+  transition: width 0.6s ease;
+  position: relative;
+}
+.progress-bar-fill::after {
+  content: '15%';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.progress-phase-label {
+  display: inline-block;
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+/* Phase Card */
+.phase-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  position: relative;
+  border-left: 4px solid transparent;
+}
+.phase-card.p0 { border-left-color: #ef4444; }
+.phase-card.p1 { border-left-color: #f59e0b; }
+.phase-card.p2 { border-left-color: #3b82f6; }
+.phase-card.p3 { border-left-color: #10b981; }
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.priority-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.p0 .priority-badge { background: #fef2f2; color: #ef4444; }
+.p1 .priority-badge { background: #fffbeb; color: #f59e0b; }
+.p2 .priority-badge { background: #eff6ff; color: #3b82f6; }
+.p3 .priority-badge { background: #ecfdf5; color: #10b981; }
+
+.phase-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.phase-duration {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+  font-weight: 500;
+}
+.phase-desc {
+  font-size: 13px;
+  color: #4b5563;
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.chip {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.p0 .chip { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.p1 .chip { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.p2 .chip { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+.p3 .chip { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+
+/* Dependency Arrow */
+.dependency-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  color: #9ca3af;
+}
+.arrow-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.arrow-line .bar {
+  width: 2px;
+  height: 16px;
+  background: #d1d5db;
+}
+.arrow-line .chevron {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #d1d5db;
+}
+.dep-label {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 8px;
+  font-style: italic;
+}
+
+/* Risk Card */
+.risk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  font-size: 12px;
+  border: 1px solid #f3f4f6;
+}
+.risk-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.risk-high .risk-icon { background: #ef4444; }
+.risk-med .risk-icon { background: #f59e0b; }
+.risk-low .risk-icon { background: #10b981; }
+.risk-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+.risk-high { color: #991b1b; }
+.risk-med { color: #92400e; }
+.risk-low { color: #065f46; }
+
+/* Sidebar */
+.sidebar-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.sidebar-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.debt-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.debt-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+.debt-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.debt-item:nth-child(1) .debt-rank { background: #fef2f2; color: #ef4444; }
+.debt-item:nth-child(2) .debt-rank { background: #fffbeb; color: #f59e0b; }
+.debt-item:nth-child(3) .debt-rank { background: #fffbeb; color: #f59e0b; }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.legend-dot.red { background: #ef4444; }
+.legend-dot.amber { background: #f59e0b; }
+.legend-dot.blue { background: #3b82f6; }
+.legend-dot.green { background: #10b981; }
+
+/* Timeline dots on phase cards */
+.phase-card::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 28px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #d1d5db;
+}
+.p0::before { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+.p1::before { background: #f59e0b; box-shadow: 0 0 0 2px #f59e0b; }
+.p2::before { background: #3b82f6; box-shadow: 0 0 0 2px #3b82f6; }
+.p3::before { background: #10b981; box-shadow: 0 0 0 2px #10b981; }
+
+/* Summary Stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.stat-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.stat-number {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+.stat-number.red { color: #ef4444; }
+.stat-number.amber { color: #f59e0b; }
+.stat-number.blue { color: #3b82f6; }
+.stat-number.green { color: #10b981; }
+.stat-label {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>综合实施路线图</h1>
+    <div class="subtitle">DiaryApp 重构与优化计划 -- 2026 Q3-Q4</div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-number red">4</div>
+      <div class="stat-label">总阶段数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number amber">14-17</div>
+      <div class="stat-label">预计周数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number blue">18</div>
+      <div class="stat-label">子任务数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number green">15%</div>
+      <div class="stat-label">当前进度</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot red"></div>P0 紧急</div>
+    <div class="legend-item"><div class="legend-dot amber"></div>P1 重要</div>
+    <div class="legend-item"><div class="legend-dot blue"></div>P2 计划</div>
+    <div class="legend-item"><div class="legend-dot green"></div>P3 持续</div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-grid">
+
+    <!-- Roadmap Column -->
+    <div class="roadmap-column">
+
+      <!-- Current Progress -->
+      <div class="progress-section">
+        <h2>当前进度</h2>
+        <span class="progress-phase-label">Phase 1 进行中</span>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span>编辑器迁移: TipTap 替代 Quill</span>
+          <span>15% 完成</span>
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="phase-card p0">
+        <div class="phase-header">
+          <span class="priority-badge">P0</span>
+          <span class="phase-title">编辑器迁移</span>
+          <span class="phase-duration">2-3 周</span>
+        </div>
+        <div class="phase-desc">
+          将富文本编辑器从 Quill 迁移至 TipTap，从根本上解决 IME 输入法兼容性问题，提升中文输入体验。
+        </div>
+        <div class="chip-row">
+          <span class="chip">TipTap 基础集成</span>
+          <span class="chip">自定义扩展开发</span>
+          <span class="chip">IME 光标对齐修复</span>
+          <span class="chip">图片/附件迁移</span>
+          <span class="chip">旧数据兼容层</span>
+          <span class="chip">性能基准测试</span>
+        </div>
+        <div class="risk-row risk-high">
+          <div class="risk-icon"></div>
+          <span class="risk-label">高风险:</span>
+          <span>历史数据格式转换可能丢失富文本样式</span>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="dependency-arrow">
+        <div class="arrow-line">
+          <div class="bar"></div>
+          <div class="chevron"></div>
+        </div>
+        <span class="dep-label">编辑器稳定后方可进行性能优化</span>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="phase-card p1">
+        <div class="phase-header">
+          <span class="priority-badge">P1</span>
+          <span class="phase-title">性能优化</span>
+          <span class="phase-duration">3-4 周</span>
+        </div>
+        <div class="phase-desc">
+          引入 Paging3 分页加载机制，部署 FTS5 全文搜索引擎，建立复合索引以提升大数据量下的查询效率。
+        </div>
+        <div class="chip-row">
+          <span class="chip">Paging3 分页集成</span>
+          <span class="chip">FTS5 全文搜索</span>
+          <span class="chip">复合索引设计</span>
+          <span class="chip">内存缓存策略</span>
+          <span class="chip">懒加载优化</span>
+          <span class="chip">ANR 监控埋点</span>
+        </div>
+        <div class="risk-row risk-med">
+          <div class="risk-icon"></div>
+          <span class="risk-label">中风险:</span>
+          <span>FTS5 索引与 Room 数据库迁移需谨慎处理</span>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="dependency-arrow">
+        <div class="arrow-line">
+          <div class="bar"></div>
+          <div class="chevron"></div>
+        </div>
+        <span class="dep-label">性能达标后开始功能扩展</span>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase-card p2">
+        <div class="phase-header">
+          <span class="priority-badge">P2</span>
+          <span class="phase-title">功能增强</span>
+          <span class="phase-duration">4-5 周</span>
+        </div>
+        <div class="phase-desc">
+          重新设计首页布局，引入习惯追踪系统，增强数据统计与可视化能力，提升整体用户体验。
+        </div>
+        <div class="chip-row">
+          <span class="chip">首页布局重设计</span>
+          <span class="chip">习惯打卡系统</span>
+          <span class="chip">统计图表增强</span>
+          <span class="chip">时间线视图优化</span>
+          <span class="chip">快捷操作入口</span>
+          <span class="chip">深色模式适配</span>
+        </div>
+        <div class="risk-row risk-low">
+          <div class="risk-icon"></div>
+          <span class="risk-label">低风险:</span>
+          <span>UI 改版可通过 A/B 测试逐步验证</span>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="dependency-arrow">
+        <div class="arrow-line">
+          <div class="bar"></div>
+          <div class="chevron"></div>
+        </div>
+        <span class="dep-label">核心功能稳定后迭代高级特性</span>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="phase-card p3">
+        <div class="phase-header">
+          <span class="priority-badge">P3</span>
+          <span class="phase-title">高级功能</span>
+          <span class="phase-duration">持续迭代</span>
+        </div>
+        <div class="phase-desc">
+          引入端到端数据加密，开发 Glance 桌面小组件，集成 AI 情感分析能力，打造差异化竞争优势。
+        </div>
+        <div class="chip-row">
+          <span class="chip">端到端加密</span>
+          <span class="chip">Glance 小组件</span>
+          <span class="chip">情感分析引擎</span>
+          <span class="chip">自动标签推荐</span>
+          <span class="chip">多端同步方案</span>
+        </div>
+        <div class="risk-row risk-med">
+          <div class="risk-icon"></div>
+          <span class="risk-label">中风险:</span>
+          <span>加密方案选择影响数据迁移和兼容性</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar-column">
+
+      <!-- Tech Debt -->
+      <div class="sidebar-card">
+        <h3>技术债务 TOP 5</h3>
+        <ul class="debt-list">
+          <li class="debt-item">
+            <span class="debt-rank">1</span>
+            <span>Quill 编辑器 IME 输入法光标漂移，中文用户体验严重受损</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">2</span>
+            <span>日记列表全量加载，超过 500 条时明显卡顿</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">3</span>
+            <span>搜索功能基于 LIKE 查询，无索引支持，大数据量下超时</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">4</span>
+            <span>旧版媒体文件路径硬编码，迁移设备后图片无法加载</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">5</span>
+            <span>数据库缺少复合索引，排序和筛选操作全表扫描</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Key Milestones -->
+      <div class="sidebar-card">
+        <h3>关键里程碑</h3>
+        <ul class="debt-list">
+          <li class="debt-item">
+            <span class="debt-rank" style="background:#fef2f2;color:#ef4444;">!</span>
+            <span>TipTap 编辑器上线，IME 问题归零</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank" style="background:#fffbeb;color:#f59e0b;">!</span>
+            <span>万条日记下搜索响应 &lt; 200ms</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank" style="background:#eff6ff;color:#3b82f6;">!</span>
+            <span>新首页 + 习惯系统发布</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank" style="background:#ecfdf5;color:#10b981;">!</span>
+            <span>数据加密方案通过安全审计</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Resource Estimate -->
+      <div class="sidebar-card">
+        <h3>资源估算</h3>
+        <ul class="debt-list">
+          <li class="debt-item">
+            <span class="debt-rank">W</span>
+            <span>开发工时: 约 280-360 人时</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">T</span>
+            <span>测试覆盖: 目标 70%+</span>
+          </li>
+          <li class="debt-item">
+            <span class="debt-rank">R</span>
+            <span>回滚方案: 每阶段独立分支</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

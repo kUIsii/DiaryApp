@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>打卡页新方案预览</title>
+    <style>
+        :root {
+            --bg-start: #f5f7fa;
+            --bg-mid: #eff3f8;
+            --bg-end: #e8edf4;
+            --surface: rgba(255, 255, 255, 0.76);
+            --surface-strong: rgba(255, 255, 255, 0.92);
+            --border: rgba(130, 150, 180, 0.14);
+            --text-primary: #2c3344;
+            --text-secondary: #5a6577;
+            --text-tertiary: #8a96a8;
+            --accent: #6b8db5;
+            --accent-soft: rgba(107, 141, 181, 0.14);
+            --warm: #b5926b;
+            --warm-soft: rgba(181, 146, 107, 0.14);
+            --success: #6abf8a;
+            --success-soft: rgba(106, 191, 138, 0.14);
+            --shadow: 0 18px 42px rgba(101, 120, 150, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+            color: var(--text-primary);
+            background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 48%, var(--bg-end) 100%);
+            position: relative;
+            overflow-x: auto;
+            padding: 24px;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.045) 0.8px, transparent 0.8px);
+            background-size: 22px 22px;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .wrap {
+            position: relative;
+            max-width: 1120px;
+            margin: 0 auto;
+        }
+
+        .intro {
+            margin-bottom: 18px;
+        }
+
+        .intro h1 {
+            font-family: Georgia, "Noto Serif SC", serif;
+            font-size: 30px;
+            letter-spacing: 0.2px;
+            margin-bottom: 6px;
+        }
+
+        .intro p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 14px;
+            max-width: 760px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 390px 390px;
+            justify-content: center;
+            gap: 28px;
+        }
+
+        .preview-col {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .preview-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-left: 8px;
+        }
+
+        .phone {
+            position: relative;
+            border-radius: 38px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.44);
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
+            min-height: 844px;
+        }
+
+        .phone::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(107,141,181,0.12), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(181,146,107,0.10), transparent 24%);
+            pointer-events: none;
+        }
+
+        .phone-inner {
+            position: relative;
+            padding: 0 18px 24px;
+        }
+
+        .notch {
+            width: 116px;
+            height: 31px;
+            border-radius: 0 0 18px 18px;
+            background: rgba(44, 51, 68, 0.88);
+            margin: 0 auto 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .header-title {
+            font-family: Georgia, "Noto Serif SC", serif;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .header-subtitle {
+            margin-top: 4px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .ghost-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,0.58);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 6px;
+            padding: 4px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.6);
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 11px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--surface-strong);
+            color: var(--accent);
+            font-weight: 600;
+            box-shadow: 0 6px 14px rgba(107, 141, 181, 0.12);
+        }
+
+        .glass-card {
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.68);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 10px 26px rgba(101, 120, 150, 0.07);
+        }
+
+        .summary-card {
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .summary-top {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .progress-ring {
+            position: relative;
+            width: 88px;
+            height: 88px;
+            flex-shrink: 0;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 7;
+        }
+
+        .progress-ring .bg {
+            stroke: rgba(130, 150, 180, 0.16);
+        }
+
+        .progress-ring .bar {
+            stroke: var(--accent);
+            stroke-linecap: round;
+        }
+
+        .progress-value {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-value strong {
+            font-size: 25px;
+            line-height: 1;
+            color: var(--accent);
+        }
+
+        .progress-value span {
+            margin-top: 3px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .summary-main {
+            flex: 1;
+        }
+
+        .summary-main h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .summary-main p {
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+        }
+
+        .summary-meta {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .meta-pill {
+            padding: 8px 11px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.62);
+            border: 1px solid rgba(130, 150, 180, 0.1);
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 0 2px;
+        }
+
+        .section-title h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .section-title span {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .habit-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .habit-item {
+            padding: 15px 16px 14px;
+            cursor: default;
+        }
+
+        .habit-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .habit-left {
+            min-width: 0;
+        }
+
+        .habit-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .habit-line {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .habit-line.empty {
+            color: var(--text-tertiary);
+        }
+
+        .habit-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .streak {
+            font-size: 12px;
+            color: var(--warm);
+            margin-bottom: 7px;
+            font-weight: 600;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-pill.diary {
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .status-pill.manual {
+            color: var(--warm);
+            background: var(--warm-soft);
+        }
+
+        .status-pill.empty {
+            color: var(--text-tertiary);
+            background: rgba(130,150,180,0.1);
+        }
+
+        .item-footer {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .week-mini {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mini-day {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .mini-day-label {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-bottom: 5px;
+        }
+
+        .mini-day-box {
+            position: relative;
+            height: 34px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.52);
+            border: 1px solid rgba(130,150,180,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .mini-day-box.today {
+            border-color: rgba(107,141,181,0.3);
+            box-shadow: inset 0 0 0 1px rgba(107,141,181,0.16);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .mini-day-box .mini-mark {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .mini-day-box .mini-mark.diary { background: var(--accent); }
+        .mini-day-box .mini-mark.manual { background: var(--warm); }
+        .mini-day-box .mini-mark.detail {
+            background: var(--success);
+            width: 7px;
+            height: 7px;
+        }
+
+        .view-history {
+            font-size: 12px;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+
+        .record-note {
+            margin-top: 14px;
+            padding: 13px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.6);
+            border: 1px dashed rgba(107,141,181,0.24);
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        .detail-card {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .detail-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .detail-top h3 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .detail-top p {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .month-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .month-nav {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,0.56);
+            border: 1px solid rgba(130,150,180,0.1);
+        }
+
+        .weekday-row,
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .weekday-row {
+            margin-bottom: 8px;
+        }
+
+        .weekday-row div {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .day-cell {
+            position: relative;
+            height: 44px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.46);
+            border: 1px solid rgba(130,150,180,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .day-cell.other {
+            opacity: 0.35;
+        }
+
+        .day-cell.today {
+            border-color: rgba(107,141,181,0.35);
+            box-shadow: inset 0 0 0 1px rgba(107,141,181,0.18);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .day-cell .mark {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .mark.diary { background: var(--accent); }
+        .mark.manual { background: var(--warm); }
+
+        .day-cell.selected {
+            background: rgba(107,141,181,0.13);
+        }
+
+        .day-detail {
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.62);
+            border: 1px solid rgba(130,150,180,0.1);
+        }
+
+        .day-detail .small-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 7px;
+        }
+
+        .day-detail strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .day-detail p {
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+        }
+
+        .day-link {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .quick-card {
+            padding: 16px;
+        }
+
+        .quick-card h4 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .quick-card p {
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+
+        .quick-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .quick-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.62);
+            border: 1px solid rgba(130,150,180,0.1);
+        }
+
+        .quick-action strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .quick-action span {
+            display: block;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        .action-tag {
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-soft);
+            white-space: nowrap;
+        }
+
+        .hint {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-left: 3px solid var(--warm);
+            border-radius: 0 14px 14px 0;
+            background: rgba(181,146,107,0.08);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        .logic-note {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.54);
+            border: 1px dashed rgba(107,141,181,0.22);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        @media (max-width: 920px) {
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="intro">
+            <h1>打卡页新方案</h1>
+            <p>这次按你当前 APP 的雾蓝灰风格重新收了一版。重点是：首页只看今天的整体情况和每个打卡项的一句话状态，历史情况通过点开某一项后查看月历，不让日历把首页压得太重，也不让打卡变得麻烦。</p>
+        </div>
+
+        <div class="preview-grid">
+            <div class="preview-col">
+                <div class="preview-label">首页：今日汇总 + 打卡项列表</div>
+                <div class="phone">
+                    <div class="phone-inner">
+                        <div class="notch"></div>
+
+                        <div class="header">
+                            <div>
+                                <div class="header-title">打卡</div>
+                                <div class="header-subtitle">今天的习惯情况，一眼看完</div>
+                            </div>
+                            <div class="ghost-icon">⋯</div>
+                        </div>
+
+                        <div class="tabs">
+                            <div class="tab active">打卡</div>
+                            <div class="tab">备忘</div>
+                            <div class="tab">待办</div>
+                        </div>
+
+                        <div class="glass-card summary-card">
+                            <div class="summary-top">
+                                <div class="progress-ring">
+                                    <svg width="88" height="88" viewBox="0 0 88 88">
+                                        <circle class="bg" cx="44" cy="44" r="32"></circle>
+                                        <circle class="bar" cx="44" cy="44" r="32" stroke-dasharray="201" stroke-dashoffset="80"></circle>
+                                    </svg>
+                                    <div class="progress-value">
+                                        <strong>3/5</strong>
+                                        <span>今日</span>
+                                    </div>
+                                </div>
+                                <div class="summary-main">
+                                    <h3>今天已经留下了 3 条打卡</h3>
+                                    <p>其中 2 条来自今日日记，1 条是你自己补的一句记录。没完成的项也不用直接点完成，点进去再留一点痕迹就够了。</p>
+                                    <div class="summary-meta">
+                                        <div class="meta-pill">日记打卡 2 项</div>
+                                        <div class="meta-pill">手动记录 1 项</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-title">
+                            <h3>全部打卡项</h3>
+                            <span>点开可看月历</span>
+                        </div>
+
+                        <div class="habit-list">
+                            <div class="glass-card habit-item">
+                                <div class="habit-head">
+                                    <div class="habit-left">
+                                        <div class="habit-name">跑步</div>
+                                        <div class="habit-line">今天去江边跑了 4.8 公里，回来之后心情很好。</div>
+                                    </div>
+                                    <div class="habit-right">
+                                        <div class="streak">连续 5 天</div>
+                                        <div class="status-pill diary">日记打卡</div>
+                                    </div>
+                                </div>
+                                <div class="item-footer">
+                                    <div class="week-mini">
+                                        <div class="mini-day"><div class="mini-day-label">一</div><div class="mini-day-box">2<div class="mini-mark diary"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">二</div><div class="mini-day-box">3<div class="mini-mark detail"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">三</div><div class="mini-day-box">4</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">四</div><div class="mini-day-box">5<div class="mini-mark manual"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">五</div><div class="mini-day-box">6<div class="mini-mark diary"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">六</div><div class="mini-day-box today">7<div class="mini-mark diary"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">日</div><div class="mini-day-box">8</div></div>
+                                    </div>
+                                    <div class="view-history">查看历史</div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card habit-item">
+                                <div class="habit-head">
+                                    <div class="habit-left">
+                                        <div class="habit-name">阅读</div>
+                                        <div class="habit-line">睡前读了 18 页，虽然不多，但终于重新打开书了。</div>
+                                    </div>
+                                    <div class="habit-right">
+                                        <div class="streak">连续 2 天</div>
+                                        <div class="status-pill manual">手动记录</div>
+                                    </div>
+                                </div>
+                                <div class="item-footer">
+                                    <div class="week-mini">
+                                        <div class="mini-day"><div class="mini-day-label">一</div><div class="mini-day-box">2<div class="mini-mark manual"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">二</div><div class="mini-day-box">3</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">三</div><div class="mini-day-box">4<div class="mini-mark diary"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">四</div><div class="mini-day-box">5</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">五</div><div class="mini-day-box">6<div class="mini-mark manual"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">六</div><div class="mini-day-box today">7<div class="mini-mark detail"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">日</div><div class="mini-day-box">8</div></div>
+                                    </div>
+                                    <div class="view-history">查看历史</div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card habit-item">
+                                <div class="habit-head">
+                                    <div class="habit-left">
+                                        <div class="habit-name">整理房间</div>
+                                        <div class="habit-line empty">今天还没有留下记录</div>
+                                    </div>
+                                    <div class="habit-right">
+                                        <div class="streak">连续 0 天</div>
+                                        <div class="status-pill empty">未记录</div>
+                                    </div>
+                                </div>
+                                <div class="item-footer">
+                                    <div class="week-mini">
+                                        <div class="mini-day"><div class="mini-day-label">一</div><div class="mini-day-box">2<div class="mini-mark manual"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">二</div><div class="mini-day-box">3</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">三</div><div class="mini-day-box">4</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">四</div><div class="mini-day-box">5<div class="mini-mark manual"></div></div></div>
+                                        <div class="mini-day"><div class="mini-day-label">五</div><div class="mini-day-box">6</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">六</div><div class="mini-day-box today">7</div></div>
+                                        <div class="mini-day"><div class="mini-day-label">日</div><div class="mini-day-box">8</div></div>
+                                    </div>
+                                    <div class="view-history">去记录</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="record-note">这页只负责看“今天怎么样”。具体过去哪天打了卡，点某一项再看月历，不把首页做得太重。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-col">
+                <div class="preview-label">点开某项：月历历史 + 轻量记录</div>
+                <div class="phone">
+                    <div class="phone-inner">
+                        <div class="notch"></div>
+
+                        <div class="header">
+                            <div>
+                                <div class="header-title">跑步</div>
+                                <div class="header-subtitle">看过去的情况，也顺手处理今天</div>
+                            </div>
+                            <div class="ghost-icon">×</div>
+                        </div>
+
+                        <div class="glass-card detail-card">
+                            <div class="detail-top">
+                                <div>
+                                    <h3>连续 5 天</h3>
+                                    <p>本月 14 天留下过记录</p>
+                                </div>
+                                <div class="status-pill diary">今天已打卡</div>
+                            </div>
+
+                            <div class="month-bar">
+                                <div class="month-nav">‹</div>
+                                <div>2026 年 6 月</div>
+                                <div class="month-nav">›</div>
+                            </div>
+
+                            <div class="weekday-row">
+                                <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+                            </div>
+
+                            <div class="calendar-grid">
+                                <div class="day-cell other">26</div>
+                                <div class="day-cell other">27</div>
+                                <div class="day-cell other">28</div>
+                                <div class="day-cell other">29</div>
+                                <div class="day-cell other">30</div>
+                                <div class="day-cell">1<div class="mark diary"></div></div>
+                                <div class="day-cell">2</div>
+
+                                <div class="day-cell">3<div class="mark manual"></div></div>
+                                <div class="day-cell">4</div>
+                                <div class="day-cell">5<div class="mark diary"></div></div>
+                                <div class="day-cell today selected">6<div class="mark diary"></div></div>
+                                <div class="day-cell">7</div>
+                                <div class="day-cell">8</div>
+                                <div class="day-cell">9<div class="mark manual"></div></div>
+
+                                <div class="day-cell">10</div>
+                                <div class="day-cell">11<div class="mark diary"></div></div>
+                                <div class="day-cell">12</div>
+                                <div class="day-cell">13<div class="mark diary"></div></div>
+                                <div class="day-cell">14</div>
+                                <div class="day-cell">15</div>
+                                <div class="day-cell">16<div class="mark manual"></div></div>
+
+                                <div class="day-cell">17</div>
+                                <div class="day-cell">18</div>
+                                <div class="day-cell">19<div class="mark diary"></div></div>
+                                <div class="day-cell">20</div>
+                                <div class="day-cell">21</div>
+                                <div class="day-cell">22<div class="mark manual"></div></div>
+                                <div class="day-cell">23</div>
+
+                                <div class="day-cell">24</div>
+                                <div class="day-cell">25<div class="mark diary"></div></div>
+                                <div class="day-cell">26</div>
+                                <div class="day-cell">27</div>
+                                <div class="day-cell">28</div>
+                                <div class="day-cell">29</div>
+                                <div class="day-cell">30</div>
+                            </div>
+
+                            <div class="day-detail">
+                                <div class="small-label">6 月 6 日 · 跑步这一个打卡项的记录</div>
+                                <strong>今天去江边跑了 4.8 公里</strong>
+                                <p>风有点大，但跑完之后整个人轻松很多。晚上写日记的时候顺手就把这项自动打上了。</p>
+                                <div class="day-link">查看对应日记</div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card quick-card">
+                            <h4>今天的打卡不用太麻烦</h4>
+                            <p>如果今天已经写过对应分类的日记，就自动完成；如果没有，也只需要补一句，不用填很多东西。</p>
+
+                            <div class="quick-actions">
+                                <div class="quick-action">
+                                    <div>
+                                        <strong>关联今日日记</strong>
+                                        <span>写日记时选中关联分类，就直接显示今日已打卡</span>
+                                    </div>
+                                    <div class="action-tag">更完整</div>
+                                </div>
+
+                                <div class="quick-action">
+                                    <div>
+                                        <strong>写一句今天记录</strong>
+                                        <span>比如“晚饭后跑了 20 分钟”</span>
+                                    </div>
+                                    <div class="action-tag">最轻量</div>
+                                </div>
+
+                                <div class="quick-action">
+                                    <div>
+                                        <strong>更多内容打卡</strong>
+                                        <span>想多写一点时，再补完整一点的当天内容</span>
+                                    </div>
+                                    <div class="action-tag">更详细</div>
+                                </div>
+                            </div>
+
+                            <div class="logic-note">点开之后看的不是“今天所有打卡项目”，而是“跑步这一项自己的历史”。月历负责看过去哪天打了卡，下面这块只处理今天这一项怎么记录。</div>
+                            <div class="hint">取消今天的打卡不放在主操作里，避免现在那种“点了又取消，太快也太空”的感觉。首页先看今天，历史靠月历补全连续感。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>应用架构总览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    line-height: 1.6;
+    padding: 32px 16px;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+    color: #1a1a2e;
+  }
+  .subtitle {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* Architecture Diagram */
+  .arch-diagram {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .arch-diagram h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    color: #374151;
+  }
+  .layer {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .layer-label {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .layer-label .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 4px;
+  }
+  .layer-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .layer-item {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .arrow-down {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 18px;
+    margin: 4px 0;
+    letter-spacing: 2px;
+  }
+
+  /* UI Layer */
+  .layer-ui {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+  }
+  .layer-ui .layer-label { color: #1d4ed8; }
+  .layer-ui .tag { background: #dbeafe; color: #1e40af; }
+  .layer-ui .layer-item { background: #dbeafe; color: #1e40af; }
+
+  /* ViewModel Layer */
+  .layer-vm {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+  .layer-vm .layer-label { color: #15803d; }
+  .layer-vm .tag { background: #dcfce7; color: #166534; }
+  .layer-vm .layer-item { background: #dcfce7; color: #166534; }
+
+  /* Domain Layer */
+  .layer-domain {
+    background: #fefce8;
+    border: 1px solid #fde68a;
+  }
+  .layer-domain .layer-label { color: #a16207; }
+  .layer-domain .tag { background: #fef3c7; color: #92400e; }
+  .layer-domain .layer-item { background: #fef3c7; color: #92400e; }
+
+  /* Data Layer */
+  .layer-data {
+    background: #fdf2f8;
+    border: 1px solid #fbcfe8;
+  }
+  .layer-data .layer-label { color: #be185d; }
+  .layer-data .tag { background: #fce7f3; color: #9d174d; }
+  .layer-data .layer-item { background: #fce7f3; color: #9d174d; }
+
+  /* External Layer */
+  .layer-ext {
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+  }
+  .layer-ext .layer-label { color: #6d28d9; }
+  .layer-ext .tag { background: #ede9fe; color: #5b21b6; }
+  .layer-ext .layer-item { background: #ede9fe; color: #5b21b6; }
+
+  /* Module Badges */
+  .badges-section {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .badges-section h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #374151;
+  }
+  .badges-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    padding: 18px 12px;
+    border-radius: 10px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+  .badge-num {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .badge-label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  .badge-blue .badge-num { color: #2563eb; }
+  .badge-green .badge-num { color: #16a34a; }
+  .badge-purple .badge-num { color: #7c3aed; }
+  .badge-amber .badge-num { color: #d97706; }
+
+  /* Tech Stack Cards */
+  .tech-section {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .tech-section h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #374151;
+  }
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .tech-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .tech-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #2563eb;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .tech-icon.planned {
+    background: #9ca3af;
+  }
+  .tech-info h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e3a5f;
+    margin-bottom: 2px;
+  }
+  .tech-info p {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .tech-info .planned-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
+  /* Health Score */
+  .health-section {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .health-section h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    color: #374151;
+  }
+  .health-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 22px;
+  }
+  .score-ring {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .score-ring svg {
+    transform: rotate(-90deg);
+  }
+  .score-ring-bg {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 8;
+  }
+  .score-ring-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 70.34;
+  }
+  .score-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .score-text .unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9ca3af;
+  }
+  .health-summary {
+    flex: 1;
+  }
+  .health-summary .level {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .health-summary .desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+  .breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .breakdown-label {
+    font-size: 13px;
+    font-weight: 600;
+    width: 110px;
+    flex-shrink: 0;
+    color: #374151;
+  }
+  .breakdown-bar-bg {
+    flex: 1;
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .breakdown-bar {
+    height: 100%;
+    border-radius: 5px;
+  }
+  .breakdown-score {
+    font-size: 13px;
+    font-weight: 700;
+    width: 48px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .bar-green { background: #22c55e; }
+  .bar-amber { background: #f59e0b; }
+  .bar-red { background: #ef4444; }
+  .text-green { color: #16a34a; }
+  .text-amber { color: #d97706; }
+  .text-red { color: #dc2626; }
+  .health-notes {
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: #fefce8;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+  }
+  .health-notes h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 6px;
+  }
+  .health-notes ul {
+    list-style: none;
+    padding: 0;
+  }
+  .health-notes li {
+    font-size: 12px;
+    color: #78350f;
+    padding: 3px 0;
+    padding-left: 14px;
+    position: relative;
+  }
+  .health-notes li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #d97706;
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <h1>应用架构总览</h1>
+  <p class="subtitle">DiaryApp -- Clean Architecture 分层结构与技术栈概览</p>
+
+  <!-- Architecture Layer Diagram -->
+  <div class="arch-diagram">
+    <h2>分层架构图</h2>
+
+    <div class="layer layer-ui">
+      <div class="layer-label">UI Layer <span class="tag">表现层</span></div>
+      <div class="layer-items">
+        <span class="layer-item">Jetpack Compose Screens</span>
+        <span class="layer-item">WebView Editor</span>
+        <span class="layer-item">Glance Widgets</span>
+        <span class="layer-item">Navigation</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ ▼ ▼</div>
+
+    <div class="layer layer-vm">
+      <div class="layer-label">ViewModel Layer <span class="tag">逻辑层</span></div>
+      <div class="layer-items">
+        <span class="layer-item">HomeVM</span>
+        <span class="layer-item">EditorVM</span>
+        <span class="layer-item">TimelineVM</span>
+        <span class="layer-item">StatsVM</span>
+        <span class="layer-item">SettingsVM</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ ▼ ▼</div>
+
+    <div class="layer layer-domain">
+      <div class="layer-label">Domain Layer <span class="tag">领域层</span></div>
+      <div class="layer-items">
+        <span class="layer-item">Repositories</span>
+        <span class="layer-item">UseCases</span>
+        <span class="layer-item">Models</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ ▼ ▼</div>
+
+    <div class="layer layer-data">
+      <div class="layer-label">Data Layer <span class="tag">数据层</span></div>
+      <div class="layer-items">
+        <span class="layer-item">Room DAO</span>
+        <span class="layer-item">DataStore</span>
+        <span class="layer-item">WorkManager</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼ ▼ ▼</div>
+
+    <div class="layer layer-ext">
+      <div class="layer-label">External <span class="tag">外部依赖</span></div>
+      <div class="layer-items">
+        <span class="layer-item">JS Bridge (Quill.js)</span>
+        <span class="layer-item">File System</span>
+        <span class="layer-item">Android System</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Module Count Badges -->
+  <div class="badges-section">
+    <h2>模块统计</h2>
+    <div class="badges-row">
+      <div class="badge badge-blue">
+        <div class="badge-num">8</div>
+        <div class="badge-label">Entities</div>
+      </div>
+      <div class="badge badge-green">
+        <div class="badge-num">5</div>
+        <div class="badge-label">ViewModels</div>
+      </div>
+      <div class="badge badge-purple">
+        <div class="badge-num">12</div>
+        <div class="badge-label">Screens</div>
+      </div>
+      <div class="badge badge-amber">
+        <div class="badge-num">3</div>
+        <div class="badge-label">Services</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech Stack Cards -->
+  <div class="tech-section">
+    <h2>技术栈</h2>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">JC</div>
+        <div class="tech-info">
+          <h3>Jetpack Compose</h3>
+          <p>声明式 UI 框架</p>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">DB</div>
+        <div class="tech-info">
+          <h3>Room + SQLite</h3>
+          <p>本地数据库持久化</p>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">WV</div>
+        <div class="tech-info">
+          <h3>WebView + Quill.js</h3>
+          <p>富文本编辑器方案</p>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">HI</div>
+        <div class="tech-info">
+          <h3>Hilt</h3>
+          <p>依赖注入框架</p>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon planned">P3</div>
+        <div class="tech-info">
+          <h3>Paging3 <span class="planned-tag">规划中</span></h3>
+          <p>分页加载优化</p>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon planned">WM</div>
+        <div class="tech-info">
+          <h3>WorkManager <span class="planned-tag">规划中</span></h3>
+          <p>后台任务调度</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture Health Score -->
+  <div class="health-section">
+    <h2>架构健康度</h2>
+
+    <div class="health-header">
+      <div class="score-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="score-ring-bg" cx="50" cy="50" r="40" />
+          <circle class="score-ring-fill" cx="50" cy="50" r="40" stroke="#f59e0b" />
+        </svg>
+        <div class="score-text" style="color: #d97706;">72<span class="unit">/100</span></div>
+      </div>
+      <div class="health-summary">
+        <div class="level" style="color: #d97706;">中等偏上 -- 有提升空间</div>
+        <div class="desc">整体架构采用 Clean Architecture 分层，核心模块划分清晰。部分边界耦合度偏高，数据流单向性有待加强，依赖注入覆盖基本完整。建议优先解决 ViewModel 层间耦合和 Repository 接口规范化。</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="breakdown-item">
+        <div class="breakdown-label">分层清晰度</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-green" style="width: 85%;"></div></div>
+        <div class="breakdown-score text-green">85</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-label">依赖方向</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-green" style="width: 78%;"></div></div>
+        <div class="breakdown-score text-green">78</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-label">模块耦合度</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-amber" style="width: 62%;"></div></div>
+        <div class="breakdown-score text-amber">62</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-label">数据流一致性</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-amber" style="width: 65%;"></div></div>
+        <div class="breakdown-score text-amber">65</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-label">DI 覆盖率</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-green" style="width: 80%;"></div></div>
+        <div class="breakdown-score text-green">80</div>
+      </div>
+      <div class="breakdown-item">
+        <div class="breakdown-label">可测试性</div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar bar-red" style="width: 55%;"></div></div>
+        <div class="breakdown-score text-red">55</div>
+      </div>
+    </div>
+
+    <div class="health-notes">
+      <h3>待改进项</h3>
+      <ul>
+        <li>EditorVM 与 HomeVM 存在隐式数据传递，建议通过 SharedFlow 事件解耦</li>
+        <li>部分 Repository 直接暴露 DAO 实体，未做领域模型映射</li>
+        <li>可测试性较低，ViewModel 层缺少接口抽象，建议引入 UseCase 抽象层</li>
+        <li>WebView JS Bridge 通信缺少统一错误处理协议</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">DiaryApp Architecture Overview -- 2026-06-11</div>
+
+</div>
+</body>
+</html>

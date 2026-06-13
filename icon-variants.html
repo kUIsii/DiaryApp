@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaryApp 图标变体 - 方案 C 优化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F5;
+            color: #1A1A1A;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1A1A1A;
+        }
+
+        .subtitle {
+            color: #4A4A4A;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #1A1A1A;
+        }
+
+        .variants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .variant-card {
+            text-align: center;
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .variant-card:hover {
+            border-color: #B8860B;
+            background: #FDFBF7;
+        }
+
+        .variant-card.selected {
+            border-color: #B8860B;
+            background: #FDFBF7;
+        }
+
+        .variant-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1A1A1A;
+        }
+
+        .variant-card p {
+            font-size: 12px;
+            color: #4A4A4A;
+            margin-bottom: 16px;
+        }
+
+        .icon-showcase {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .icon {
+            background: #FDFBF7;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .icon.small {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+        }
+
+        .icon.medium {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+        }
+
+        .icon.large {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+        }
+
+        .icon svg {
+            width: 60%;
+            height: 60%;
+            fill: none;
+            stroke: #2D3748;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .gold-accent {
+            stroke: #B8860B !important;
+            fill: #B8860B !important;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #E2E8F0;
+            color: #4A5568;
+            margin-top: 8px;
+        }
+
+        .tag.recommended {
+            background: #B8860B;
+            color: #FFFFFF;
+        }
+
+        /* 大尺寸预览区 */
+        .preview-large {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid #E2E8F0;
+        }
+
+        .preview-item {
+            text-align: center;
+        }
+
+        .preview-item .label {
+            font-size: 14px;
+            color: #4A4A4A;
+            margin-top: 16px;
+        }
+
+        .icon.xl {
+            width: 128px;
+            height: 128px;
+            border-radius: 24px;
+        }
+
+        /* 设计说明 */
+        .notes {
+            background: #FDFBF7;
+            border-left: 4px solid #B8860B;
+            border-radius: 0 8px 8px 0;
+            padding: 20px 24px;
+            margin-top: 32px;
+        }
+
+        .notes h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1A1A1A;
+        }
+
+        .notes ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .notes li {
+            font-size: 14px;
+            color: #4A4A4A;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .notes li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 8px;
+            height: 8px;
+            background: #B8860B;
+            border-radius: 50%;
+        }
+
+        @media (max-width: 768px) {
+            .variants-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .preview-large {
+                gap: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>方案 C 变体优化</h1>
+        <p class="subtitle">基于 UI/UX Skill 的笔 + 本图标，提供更多设计选择</p>
+
+        <!-- 变体选择 -->
+        <div class="section">
+            <h2>选择变体</h2>
+            <div class="variants-grid">
+                <!-- C1：经典钢笔 -->
+                <div class="variant-card selected" onclick="selectVariant('c1')">
+                    <h3>C1：经典钢笔</h3>
+                    <p>传统钢笔造型，优雅书卷气</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="6" y="8" width="12" height="13" rx="1" />
+                                <line x1="9" y1="12" x2="15" y2="12" />
+                                <line x1="9" y1="15" x2="15" y2="15" />
+                                <path d="M17 3l-8 8" class="gold-accent" />
+                                <path d="M17 3l2 2-6 6-2-2z" class="gold-accent" />
+                                <path d="M9 11l-2 2" class="gold-accent" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag recommended">推荐</span>
+                </div>
+
+                <!-- C2：圆珠笔 -->
+                <div class="variant-card" onclick="selectVariant('c2')">
+                    <h3>C2：圆珠笔</h3>
+                    <p>现代简约，线条更简洁</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="6" y="8" width="12" height="13" rx="1" />
+                                <line x1="9" y1="12" x2="15" y2="12" />
+                                <line x1="9" y1="15" x2="15" y2="15" />
+                                <path d="M16 4l-6 6" class="gold-accent" />
+                                <path d="M16 4h3v3" class="gold-accent" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag">现代</span>
+                </div>
+
+                <!-- C3：羽毛笔 -->
+                <div class="variant-card" onclick="selectVariant('c3')">
+                    <h3>C3：羽毛笔</h3>
+                    <p>复古文艺，书写仪式感</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="6" y="8" width="12" height="13" rx="1" />
+                                <line x1="9" y1="12" x2="15" y2="12" />
+                                <line x1="9" y1="15" x2="15" y2="15" />
+                                <path d="M18 2c-4 2-6 6-7 10" class="gold-accent" />
+                                <path d="M18 2c0 4-2 6-4 8" class="gold-accent" />
+                                <path d="M11 12l-1 2" class="gold-accent" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag">复古</span>
+                </div>
+
+                <!-- C4：铅笔斜放 -->
+                <div class="variant-card" onclick="selectVariant('c4')">
+                    <h3>C4：铅笔斜放</h3>
+                    <p>动态构图，书写感更强</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="4" y="6" width="14" height="14" rx="1" />
+                                <line x1="7" y1="10" x2="15" y2="10" />
+                                <line x1="7" y1="13" x2="15" y2="13" />
+                                <line x1="7" y1="16" x2="11" y2="16" />
+                                <path d="M18 3l-10 10" class="gold-accent" stroke-width="2.5" />
+                                <path d="M18 3l-2 2" class="gold-accent" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag">动态</span>
+                </div>
+
+                <!-- C5：钢笔尖 -->
+                <div class="variant-card" onclick="selectVariant('c5')">
+                    <h3>C5：钢笔尖</h3>
+                    <p>聚焦笔尖，书写核心</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="6" y="8" width="12" height="13" rx="1" />
+                                <line x1="9" y1="12" x2="15" y2="12" />
+                                <line x1="9" y1="15" x2="15" y2="15" />
+                                <path d="M12 2l-3 6h6z" class="gold-accent" />
+                                <line x1="12" y1="8" x2="12" y2="10" class="gold-accent" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag">极简</span>
+                </div>
+
+                <!-- C6：书签笔 -->
+                <div class="variant-card" onclick="selectVariant('c6')">
+                    <h3>C3：书签 + 笔</h3>
+                    <p>书签与笔结合，阅读记录</p>
+                    <div class="icon-showcase">
+                        <div class="icon small">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="6" y="6" width="12" height="15" rx="1" />
+                                <path d="M6 6l6 4 6-4" class="gold-accent" />
+                                <line x1="9" y1="14" x2="15" y2="14" />
+                                <line x1="9" y1="17" x2="13" y2="17" />
+                                <path d="M18 3l-2 3" class="gold-accent" stroke-width="1.5" />
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="tag">组合</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 大尺寸预览 -->
+        <div class="section">
+            <h2>大尺寸预览</h2>
+            <div class="preview-large">
+                <div class="preview-item">
+                    <div class="icon xl" id="preview-icon">
+                        <svg viewBox="0 0 24 24" id="preview-svg">
+                            <rect x="6" y="8" width="12" height="13" rx="1" />
+                            <line x1="9" y1="12" x2="15" y2="12" />
+                            <line x1="9" y1="15" x2="15" y2="15" />
+                            <path d="M17 3l-8 8" class="gold-accent" />
+                            <path d="M17 3l2 2-6 6-2-2z" class="gold-accent" />
+                            <path d="M9 11l-2 2" class="gold-accent" />
+                        </svg>
+                    </div>
+                    <div class="label">128px 效果</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计说明 -->
+        <div class="notes">
+            <h3>设计说明</h3>
+            <ul>
+                <li>所有变体保持统一的配色：墨色主色 (#2D3748) + 金色点缀 (#B8860B)</li>
+                <li>SVG 矢量格式，支持无损缩放</li>
+                <li>遵循 Android 自适应图标规范 (108dp × 108dp)</li>
+                <li>线条粗细一致 (stroke-width: 2)，确保视觉统一</li>
+                <li>金色点缀用于强调书写元素（笔、笔尖）</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const variants = {
+            c1: `<rect x="6" y="8" width="12" height="13" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                  <path d="M17 3l-8 8" class="gold-accent" />
+                  <path d="M17 3l2 2-6 6-2-2z" class="gold-accent" />
+                  <path d="M9 11l-2 2" class="gold-accent" />`,
+            c2: `<rect x="6" y="8" width="12" height="13" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                  <path d="M16 4l-6 6" class="gold-accent" />
+                  <path d="M16 4h3v3" class="gold-accent" />`,
+            c3: `<rect x="6" y="8" width="12" height="13" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                  <path d="M18 2c-4 2-6 6-7 10" class="gold-accent" />
+                  <path d="M18 2c0 4-2 6-4 8" class="gold-accent" />
+                  <path d="M11 12l-1 2" class="gold-accent" />`,
+            c4: `<rect x="4" y="6" width="14" height="14" rx="1" />
+                  <line x1="7" y1="10" x2="15" y2="10" />
+                  <line x1="7" y1="13" x2="15" y2="13" />
+                  <line x1="7" y1="16" x2="11" y2="16" />
+                  <path d="M18 3l-10 10" class="gold-accent" stroke-width="2.5" />
+                  <path d="M18 3l-2 2" class="gold-accent" />`,
+            c5: `<rect x="6" y="8" width="12" height="13" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                  <path d="M12 2l-3 6h6z" class="gold-accent" />
+                  <line x1="12" y1="8" x2="12" y2="10" class="gold-accent" />`,
+            c6: `<rect x="6" y="6" width="12" height="15" rx="1" />
+                  <path d="M6 6l6 4 6-4" class="gold-accent" />
+                  <line x1="9" y1="14" x2="15" y2="14" />
+                  <line x1="9" y1="17" x2="13" y2="17" />
+                  <path d="M18 3l-2 3" class="gold-accent" stroke-width="1.5" />`
+        };
+
+        function selectVariant(id) {
+            // 更新选中状态
+            document.querySelectorAll('.variant-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // 更新大预览
+            document.getElementById('preview-svg').innerHTML = variants[id];
+        }
+    </script>
+</body>
+</html>

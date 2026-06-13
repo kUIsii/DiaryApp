@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据层与导航架构分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    line-height: 1.6;
+    padding: 32px 16px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 28px 32px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 16px;
+    color: #fff;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  .header p { font-size: 14px; color: #a0aec0; margin-top: 8px; }
+
+  /* Section */
+  .section {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: #edf2f7;
+    color: #4a5568;
+  }
+
+  /* Data Flow Diagram */
+  .flow-diagram { display: flex; flex-direction: column; gap: 16px; }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 120px;
+    position: relative;
+    white-space: nowrap;
+  }
+  .flow-box.ui { background: #e8f4fd; color: #1565c0; border: 1.5px solid #90caf9; }
+  .flow-box.vm { background: #f3e5f5; color: #7b1fa2; border: 1.5px solid #ce93d8; }
+  .flow-box.repo { background: #e8f5e9; color: #2e7d32; border: 1.5px solid #a5d6a7; }
+  .flow-box.dao { background: #fff3e0; color: #e65100; border: 1.5px solid #ffcc80; }
+  .flow-box.db { background: #fce4ec; color: #c62828; border: 1.5px solid #ef9a9a; }
+  .flow-box.wv { background: #e0f2f1; color: #00695c; border: 1.5px solid #80cbc4; }
+  .flow-box.bridge { background: #fff8e1; color: #f57f17; border: 1.5px solid #ffe082; }
+  .flow-box.delta { background: #ede7f6; color: #4527a0; border: 1.5px solid #b39ddb; }
+  .flow-arrow {
+    font-size: 18px;
+    color: #94a3b8;
+    padding: 0 8px;
+    font-weight: 400;
+  }
+  .flow-label {
+    font-size: 11px;
+    color: #64748b;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .flow-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .flow-branch-label {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 4px 0;
+    text-align: center;
+    width: 100%;
+  }
+  .flow-main, .flow-alt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+  }
+  .flow-alt { margin-top: 6px; }
+
+  /* Entity Diagram */
+  .entity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .entity-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .entity-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .entity-name {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .entity-fields {
+    font-size: 11px;
+    color: #64748b;
+    padding: 8px 14px;
+    line-height: 1.8;
+  }
+  .entity-fields .pk { color: #c62828; font-weight: 600; }
+  .entity-fields .fk { color: #1565c0; font-weight: 600; }
+
+  .entity-color-diary .entity-name { background: #e8f4fd; color: #1565c0; }
+  .entity-color-tag .entity-name { background: #e8f5e9; color: #2e7d32; }
+  .entity-color-cross .entity-name { background: #f3e5f5; color: #7b1fa2; }
+  .entity-color-mood .entity-name { background: #fce4ec; color: #c62828; }
+  .entity-color-habit .entity-name { background: #e0f2f1; color: #00695c; }
+  .entity-color-hrecord .entity-name { background: #fff3e0; color: #e65100; }
+  .entity-color-todo .entity-name { background: #fff8e1; color: #f57f17; }
+  .entity-color-review .entity-name { background: #ede7f6; color: #4527a0; }
+
+  /* Relations */
+  .relations {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+  }
+  .relations h4 { font-size: 13px; color: #475569; margin-bottom: 10px; }
+  .rel-list { display: flex; flex-direction: column; gap: 6px; }
+  .rel-item {
+    font-size: 12px;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rel-arrow {
+    display: inline-block;
+    width: 28px;
+    height: 2px;
+    background: #94a3b8;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .rel-arrow::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -3px;
+    border: 4px solid transparent;
+    border-left: 5px solid #94a3b8;
+  }
+  .rel-entity {
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .rel-entity.diary { background: #e8f4fd; color: #1565c0; }
+  .rel-entity.tag { background: #e8f5e9; color: #2e7d32; }
+  .rel-entity.cross { background: #f3e5f5; color: #7b1fa2; }
+  .rel-entity.mood { background: #fce4ec; color: #c62828; }
+  .rel-entity.habit { background: #e0f2f1; color: #00695c; }
+  .rel-entity.hrecord { background: #fff3e0; color: #e65100; }
+  .rel-entity.todo { background: #fff8e1; color: #f57f17; }
+  .rel-entity.review { background: #ede7f6; color: #4527a0; }
+
+  /* Navigation */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .nav-col-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .nav-col-title.current { background: #fef3c7; color: #92400e; }
+  .nav-col-title.proposed { background: #d1fae5; color: #065f46; }
+  .nav-destinations {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .nav-dest {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-dest.current {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #78350f;
+  }
+  .nav-dest.proposed {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #064e3b;
+  }
+  .nav-dest .nav-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .nav-dest.current .nav-icon { background: #fde68a; color: #92400e; }
+  .nav-dest.proposed .nav-icon { background: #a7f3d0; color: #064e3b; }
+
+  /* Issues */
+  .issue-list { display: flex; flex-direction: column; gap: 14px; }
+  .issue-item {
+    border-radius: 10px;
+    padding: 16px 20px;
+    border-left: 4px solid;
+  }
+  .issue-item.issue { background: #fef2f2; border-color: #ef4444; }
+  .issue-item.suggest { background: #f0fdf4; border-color: #22c55e; }
+  .issue-header {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .issue-item.issue .issue-header { color: #991b1b; }
+  .issue-item.suggest .issue-header { color: #166534; }
+  .issue-body {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.7;
+  }
+  .issue-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .nav-grid { grid-template-columns: 1fr; }
+    .issue-pair { grid-template-columns: 1fr; }
+    .entity-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>数据层与导航架构分析</h1>
+    <p>DiaryApp 现有架构梳理与优化方向</p>
+  </div>
+
+  <!-- Data Flow Diagram -->
+  <div class="section">
+    <div class="section-title">数据流架构图 <span class="badge">Data Flow</span></div>
+
+    <!-- Main flow -->
+    <div class="flow-diagram">
+      <div class="flow-branch-label">主数据流 (日记 CRUD)</div>
+      <div class="flow-row">
+        <div class="flow-group">
+          <div class="flow-box ui">UI Layer<br><span style="font-size:11px;font-weight:400;">Jetpack Compose</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box vm">ViewModel<br><span style="font-size:11px;font-weight:400;">StateFlow</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box repo">Repository<br><span style="font-size:11px;font-weight:400;">(部分缺失)</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box dao">Room DAO<br><span style="font-size:11px;font-weight:400;">@Query / @Insert</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box db">SQLite<br><span style="font-size:11px;font-weight:400;">Room Database</span></div>
+        </div>
+      </div>
+
+      <div style="height: 8px;"></div>
+      <div class="flow-branch-label">编辑器数据流 (WebView Rich Text)</div>
+      <div class="flow-row">
+        <div class="flow-group">
+          <div class="flow-box wv">WebView Editor<br><span style="font-size:11px;font-weight:400;">HTML5 ContentEditable</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box bridge">JS Bridge<br><span style="font-size:11px;font-weight:400;">evaluateJavascript</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box vm">ViewModel<br><span style="font-size:11px;font-weight:400;">saveDraft()</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box dao">Room DAO<br><span style="font-size:11px;font-weight:400;">@Upsert</span></div>
+        </div>
+      </div>
+
+      <div style="height: 8px;"></div>
+      <div class="flow-branch-label">Delta JSON 变更流</div>
+      <div class="flow-row">
+        <div class="flow-group">
+          <div class="flow-box delta">Editor<br><span style="font-size:11px;font-weight:400;">Delta 格式</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box bridge">JS Bridge<br><span style="font-size:11px;font-weight:400;">JSON 序列化</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box vm">ViewModel<br><span style="font-size:11px;font-weight:400;">Delta JSON 解析</span></div>
+        </div>
+        <div class="flow-arrow">--&gt;</div>
+        <div class="flow-group">
+          <div class="flow-box dao">Room<br><span style="font-size:11px;font-weight:400;">content 字段存储</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entity Relationship Diagram -->
+  <div class="section">
+    <div class="section-title">实体关系图 <span class="badge">ER Diagram (8 Entities)</span></div>
+    <div class="entity-grid">
+      <div class="entity-card entity-color-diary">
+        <div class="entity-name">DiaryEntry</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          title: String<br>
+          content: String<br>
+          richContent: String?<br>
+          mood: String?<br>
+          weather: String?<br>
+          createTime: Long<br>
+          updateTime: Long
+        </div>
+      </div>
+      <div class="entity-card entity-color-tag">
+        <div class="entity-name">Tag</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          name: String<br>
+          color: String<br>
+          icon: String?
+        </div>
+      </div>
+      <div class="entity-card entity-color-cross">
+        <div class="entity-name">DiaryTagCrossRef</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> <span class="fk">FK</span> diaryId: Long<br>
+          <span class="pk">PK</span> <span class="fk">FK</span> tagId: Long
+        </div>
+      </div>
+      <div class="entity-card entity-color-mood">
+        <div class="entity-name">MoodRecord</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          <span class="fk">FK</span> diaryId: Long<br>
+          moodType: String<br>
+          intensity: Int<br>
+          note: String?
+        </div>
+      </div>
+      <div class="entity-card entity-color-habit">
+        <div class="entity-name">Habit</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          name: String<br>
+          frequency: String<br>
+          icon: String?<br>
+          color: String?<br>
+          sortOrder: Int
+        </div>
+      </div>
+      <div class="entity-card entity-color-hrecord">
+        <div class="entity-name">HabitRecord</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          <span class="fk">FK</span> habitId: Long<br>
+          date: String<br>
+          completed: Boolean<br>
+          note: String?
+        </div>
+      </div>
+      <div class="entity-card entity-color-todo">
+        <div class="entity-name">TodoItem</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          content: String<br>
+          isDone: Boolean<br>
+          dueDate: Long?<br>
+          priority: Int<br>
+          <span class="fk">FK</span> diaryId: Long?
+        </div>
+      </div>
+      <div class="entity-card entity-color-review">
+        <div class="entity-name">ReviewCard</div>
+        <div class="entity-fields">
+          <span class="pk">PK</span> id: Long<br>
+          <span class="fk">FK</span> diaryId: Long<br>
+          highlightText: String<br>
+          reviewDate: Long<br>
+          isFavorite: Boolean
+        </div>
+      </div>
+    </div>
+
+    <div class="relations">
+      <h4>外键关联关系</h4>
+      <div class="rel-list">
+        <div class="rel-item">
+          <span class="rel-entity cross">DiaryTagCrossRef.diaryId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity diary">DiaryEntry.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对多 (N:M)</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-entity cross">DiaryTagCrossRef.tagId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity tag">Tag.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对多 (N:M)</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-entity mood">MoodRecord.diaryId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity diary">DiaryEntry.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对一 (N:1)</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-entity hrecord">HabitRecord.habitId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity habit">Habit.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对一 (N:1)</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-entity todo">TodoItem.diaryId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity diary">DiaryEntry.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对一 (N:1) 可空</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-entity review">ReviewCard.diaryId</span>
+          <span class="rel-arrow"></span>
+          <span class="rel-entity diary">DiaryEntry.id</span>
+          <span style="color:#94a3b8;font-size:11px;">多对一 (N:1)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Graph -->
+  <div class="section">
+    <div class="section-title">导航图 <span class="badge">Navigation Graph</span></div>
+    <div class="nav-grid">
+      <div>
+        <div class="nav-col-title current">当前导航 (手动管理)</div>
+        <div class="nav-destinations">
+          <div class="nav-dest current">
+            <div class="nav-icon">H</div>
+            <div>
+              <div style="font-weight:700;">HomeScreen</div>
+              <div style="font-size:11px;color:#92400e;">日记列表 / 月视图 / 日历</div>
+            </div>
+          </div>
+          <div class="nav-dest current">
+            <div class="nav-icon">E</div>
+            <div>
+              <div style="font-weight:700;">EditorScreen</div>
+              <div style="font-size:11px;color:#92400e;">WebView 富文本编辑器</div>
+            </div>
+          </div>
+          <div class="nav-dest current">
+            <div class="nav-icon">D</div>
+            <div>
+              <div style="font-weight:700;">DetailScreen</div>
+              <div style="font-size:11px;color:#92400e;">日记详情 / 渲染展示</div>
+            </div>
+          </div>
+          <div class="nav-dest current">
+            <div class="nav-icon">T</div>
+            <div>
+              <div style="font-weight:700;">TodoScreen</div>
+              <div style="font-size:11px;color:#92400e;">待办清单</div>
+            </div>
+          </div>
+          <div class="nav-dest current">
+            <div class="nav-icon">S</div>
+            <div>
+              <div style="font-weight:700;">StatsScreen</div>
+              <div style="font-size:11px;color:#92400e;">统计概览</div>
+            </div>
+          </div>
+          <div class="nav-dest current">
+            <div class="nav-icon">M</div>
+            <div>
+              <div style="font-weight:700;">SettingsScreen</div>
+              <div style="font-size:11px;color:#92400e;">设置 / 备份</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="nav-col-title proposed">建议新增 (Navigation Compose)</div>
+        <div class="nav-destinations">
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">TimelineScreen</div>
+              <div style="font-size:11px;color:#064e3b;">时间线回顾 / 按日聚合</div>
+            </div>
+          </div>
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">HabitScreen</div>
+              <div style="font-size:11px;color:#064e3b;">习惯管理 / 打卡日历</div>
+            </div>
+          </div>
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">TagManageScreen</div>
+              <div style="font-size:11px;color:#064e3b;">标签管理 / 颜色编辑</div>
+            </div>
+          </div>
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">ReviewScreen</div>
+              <div style="font-size:11px;color:#064e3b;">回顾卡片 / 高亮摘录</div>
+            </div>
+          </div>
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">SearchScreen</div>
+              <div style="font-size:11px;color:#064e3b;">全文搜索 / 筛选器</div>
+            </div>
+          </div>
+          <div class="nav-dest proposed">
+            <div class="nav-icon">+</div>
+            <div>
+              <div style="font-weight:700;">MoodAnalyticsScreen</div>
+              <div style="font-size:11px;color:#064e3b;">情绪分析 / 趋势图表</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issues & Optimization -->
+  <div class="section">
+    <div class="section-title">问题与优化 <span class="badge">Issues & Optimization</span></div>
+    <div class="issue-list">
+
+      <div class="issue-pair">
+        <div class="issue-item issue">
+          <div class="issue-header">当前问题: 直接 DAO 调用</div>
+          <div class="issue-body">
+            ViewModel 直接调用 Room DAO，缺少 Repository 抽象层。数据源逻辑分散在各 ViewModel 中，导致：<br>
+            - 缓存策略无法统一管理<br>
+            - 数据源切换 (本地/远程) 需逐处修改<br>
+            - 单元测试难以 mock 数据层<br>
+            - 业务逻辑与数据获取耦合
+          </div>
+        </div>
+        <div class="issue-item suggest">
+          <div class="issue-header">建议: 统一 Repository + UseCase 模式</div>
+          <div class="issue-body">
+            引入 Repository 模式封装数据访问，UseCase 封装业务逻辑：<br>
+            - DiaryRepository 统一管理日记 CRUD<br>
+            - HabitRepository 管理习惯与打卡<br>
+            - UseCase 处理跨实体业务 (如日记+标签+心情)<br>
+            - 便于后续接入云同步 / 数据迁移
+          </div>
+        </div>
+      </div>
+
+      <div class="issue-pair">
+        <div class="issue-item issue">
+          <div class="issue-header">当前问题: 手动导航管理</div>
+          <div class="issue-body">
+            使用自定义状态机管理页面切换，存在以下问题：<br>
+            - 深层链接 (Deep Link) 支持困难<br>
+            - 页面转场动画不统一<br>
+            - 返回栈逻辑需手动维护<br>
+            - 参数传递缺乏类型安全
+          </div>
+        </div>
+        <div class="issue-item suggest">
+          <div class="issue-header">建议: 迁移至 Navigation Compose</div>
+          <div class="issue-body">
+            采用 Jetpack Navigation Compose 重构导航：<br>
+            - NavHost + composable() 声明式路由<br>
+            - 路由参数类型安全 (Kotlin Serialization)<br>
+            - 内置返回栈管理与动画支持<br>
+            - 便于实现底部导航栏 + 侧边栏布局
+          </div>
+        </div>
+      </div>
+
+      <div class="issue-item issue">
+        <div class="issue-header">当前问题: WebView Bridge 数据序列化开销</div>
+        <div class="issue-body">
+          编辑器每次保存需将整个 Delta JSON 通过 JS Bridge 序列化传输，大文档场景下存在性能瓶颈。建议：增量同步 (仅传输变更部分)、防抖策略优化 (当前 500ms)、大文档分片存储。
+        </div>
+      </div>
+
+      <div class="issue-item issue">
+        <div class="issue-header">当前问题: 8 张表缺乏统一 Migration 策略</div>
+        <div class="issue-body">
+          随着实体增多，Room Migration 脚本管理变得复杂。建议：引入 Migration 测试、版本化 Schema 导出 (Room Schema Location)、考虑 AutoMigration 支持的场景。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center; color:#94a3b8; font-size:12px; margin-top:32px; padding-bottom:16px;">
+    DiaryApp 数据层与导航架构分析 -- 2026.06
+  </div>
+
+</div>
+</body>
+</html>

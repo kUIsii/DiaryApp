@@ -125,6 +125,10 @@ fun NotificationScreen(
                                     when (item) {
                                         is CapsuleUnlockNotification -> onNavigateToCapsule(item.capsule.id)
                                         is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
+                                        is AnnualReportNotification -> {
+                                            // 可以在这里添加导航到年度报告的逻辑
+                                            // 目前先留空，因为可能需要在Navigation中添加路由
+                                        }
                                         else -> {}
                                     }
                                 }
@@ -169,6 +173,12 @@ private fun NotificationCard(
             iconColor = Color(0xFFE86833),
             title = "连续写作 ${item.days} 天",
             subtitle = "坚持记录，保持习惯"
+        )
+        is AnnualReportNotification -> NotificationStyle(
+            icon = Icons.Default.History,
+            iconColor = Color(0xFF4A90E2), // 蓝色表示年度总结
+            title = "${item.year} 年度报告已生成",
+            subtitle = "回顾过去一年的点滴记录，点击查看年度总结"
         )
     }
 

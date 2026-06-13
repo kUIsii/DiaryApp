@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>实验性统计 - Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* Phone Frame */
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: #f8f6f3;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 3px #2a2a3e, 0 0 0 6px #111, 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* Status Bar */
+  .status-bar {
+    height: 44px;
+    padding: 12px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-bar-left { letter-spacing: 0.5px; }
+  .status-bar-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 11px;
+  }
+  .status-bar-right .signal {
+    display: flex;
+    gap: 1.5px;
+    align-items: flex-end;
+    height: 10px;
+  }
+  .signal span {
+    display: block;
+    width: 3px;
+    background: #fff;
+    border-radius: 1px;
+  }
+  .signal span:nth-child(1) { height: 3px; }
+  .signal span:nth-child(2) { height: 5px; }
+  .signal span:nth-child(3) { height: 7px; }
+  .signal span:nth-child(4) { height: 9px; }
+  .battery {
+    width: 22px;
+    height: 10px;
+    border: 1.5px solid #fff;
+    border-radius: 2px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1px;
+  }
+  .battery::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    width: 2px;
+    height: 5px;
+    background: #fff;
+    border-radius: 0 1px 1px 0;
+  }
+  .battery-fill {
+    width: 75%;
+    height: 100%;
+    background: #fff;
+    border-radius: 1px;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 16px 20px 20px;
+    color: #fff;
+    position: relative;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .experimental-badge {
+    background: rgba(245, 166, 35, 0.9);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+  .header-sub {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  /* Tab Bar */
+  .tab-bar {
+    display: flex;
+    background: #fff;
+    padding: 0;
+    border-bottom: 1px solid #eee;
+    position: relative;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 4px;
+    font-size: 12px;
+    color: #999;
+    font-weight: 500;
+    position: relative;
+    cursor: default;
+    transition: color 0.2s;
+  }
+  .tab.active {
+    color: #667eea;
+    font-weight: 600;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: #667eea;
+    border-radius: 2px;
+  }
+
+  /* Content Area */
+  .content {
+    padding: 16px 16px 8px;
+    overflow-y: auto;
+    height: calc(812px - 44px - 76px - 44px - 60px);
+  }
+
+  /* Section Title */
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title .dot {
+    width: 4px;
+    height: 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 2px;
+  }
+
+  /* Sentiment Trend Chart */
+  .chart-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .chart-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+  .chart-period {
+    font-size: 11px;
+    color: #999;
+    background: #f5f5f5;
+    padding: 3px 8px;
+    border-radius: 8px;
+  }
+
+  /* Line Chart */
+  .line-chart {
+    position: relative;
+    height: 120px;
+    margin-bottom: 10px;
+  }
+  .chart-grid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .grid-line {
+    height: 1px;
+    background: #f0f0f0;
+    position: relative;
+  }
+  .grid-line::before {
+    content: attr(data-label);
+    position: absolute;
+    left: -2px;
+    top: -7px;
+    font-size: 9px;
+    color: #bbb;
+    transform: translateX(-100%);
+    padding-right: 4px;
+  }
+  .chart-svg {
+    position: absolute;
+    inset: 20px 0 0 20px;
+    right: 0;
+    bottom: 0;
+  }
+  .chart-svg svg {
+    width: 100%;
+    height: 100%;
+  }
+  .chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #888;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  /* Emotion Pie */
+  .pie-section {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .pie-chart {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    background: conic-gradient(
+      #667eea 0deg 126deg,
+      #f5a623 126deg 226.8deg,
+      #764ba2 226.8deg 298.8deg,
+      #e74c3c 298.8deg 342deg,
+      #ccc 342deg 360deg
+    );
+  }
+  .pie-chart::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .pie-labels {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pie-label-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #555;
+  }
+  .pie-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .pie-pct {
+    margin-left: auto;
+    font-weight: 600;
+    color: #333;
+    font-size: 12px;
+  }
+
+  /* Score Card */
+  .score-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .score-card::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .score-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: 30px;
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+  }
+  .score-label {
+    font-size: 13px;
+    opacity: 0.9;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .score-value {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-total {
+    font-size: 16px;
+    opacity: 0.7;
+    font-weight: 500;
+  }
+  .score-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.18);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+  .score-trend-arrow {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 6px solid #fff;
+  }
+  .score-desc {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* Greyed-out Tab Previews */
+  .tab-preview-section {
+    margin-top: 8px;
+    margin-bottom: 14px;
+  }
+  .tab-preview-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .tab-preview-card .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(248, 246, 243, 0.7);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .overlay-text {
+    font-size: 12px;
+    color: #999;
+    font-weight: 500;
+    background: rgba(255,255,255,0.8);
+    padding: 5px 14px;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+  }
+  .preview-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preview-title .tag {
+    font-size: 9px;
+    color: #999;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  /* Word Cloud Preview */
+  .word-cloud-mock {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .word-mock {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #f0eef5;
+    font-size: 11px;
+    color: #aaa;
+  }
+  .word-mock.big { font-size: 16px; padding: 4px 10px; }
+  .word-mock.medium { font-size: 13px; }
+
+  /* Writing Pattern Preview */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .pattern-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: #eee;
+  }
+  .pattern-cell.l1 { background: #e8e6f0; }
+  .pattern-cell.l2 { background: #d4d0e3; }
+  .pattern-cell.l3 { background: #b8b2d0; }
+  .pattern-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #bbb;
+    margin-bottom: 6px;
+  }
+
+  /* Activity Matrix Preview */
+  .matrix-mock {
+    display: grid;
+    grid-template-columns: 40px repeat(5, 1fr);
+    gap: 3px;
+    font-size: 9px;
+    color: #bbb;
+  }
+  .matrix-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+  }
+  .matrix-cell.h0 { background: #f5f3f0; }
+  .matrix-cell.h1 { background: #e6e1d8; }
+  .matrix-cell.h2 { background: #d4cbbe; }
+  .matrix-cell.h3 { background: #c0b5a5; }
+  .matrix-label {
+    display: flex;
+    align-items: center;
+    font-size: 9px;
+    color: #bbb;
+  }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: 8px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: #bbb;
+  }
+  .nav-item.active { color: #667eea; }
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-icon svg { width: 20px; height: 20px; }
+
+  /* Scrollbar */
+  .content::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="status-bar-left">9:41</span>
+    <div class="status-bar-right">
+      <div class="signal">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+        <path d="M7 2.5C8.8 2.5 10.4 3.3 11.5 4.5L13 3C11.5 1.3 9.4 0.2 7 0.2C4.6 0.2 2.5 1.3 1 3L2.5 4.5C3.6 3.3 5.2 2.5 7 2.5Z" fill="#fff"/>
+        <path d="M7 5.5C8.1 5.5 9.1 5.9 9.8 6.6L11.3 5.1C10.2 4 8.7 3.3 7 3.3C5.3 3.3 3.8 4 2.7 5.1L4.2 6.6C4.9 5.9 5.9 5.5 7 5.5Z" fill="#fff"/>
+        <circle cx="7" cy="8.5" r="1.5" fill="#fff"/>
+      </svg>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <span class="header-title">实验性统计</span>
+      <span class="experimental-badge">实验功能</span>
+    </div>
+    <div class="header-sub">探索日记数据的深层洞察</div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab active">情感分析</div>
+    <div class="tab">词云</div>
+    <div class="tab">写作模式</div>
+    <div class="tab">生活节奏</div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Sentiment Trend Chart -->
+    <div class="section-title">
+      <span class="dot"></span>
+      情绪趋势
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-label">近30天情绪波动</span>
+        <span class="chart-period">6月</span>
+      </div>
+      <div class="line-chart">
+        <div class="chart-grid">
+          <div class="grid-line" data-label="积极"></div>
+          <div class="grid-line" data-label="中性"></div>
+          <div class="grid-line" data-label="消极"></div>
+          <div class="grid-line" data-label=""></div>
+        </div>
+        <div class="chart-svg">
+          <svg viewBox="0 0 320 100" preserveAspectRatio="none">
+            <!-- Positive line -->
+            <polyline
+              points="0,30 20,25 40,35 60,20 80,28 100,15 120,22 140,18 160,30 180,12 200,20 220,15 240,25 260,10 280,18 300,8 320,15"
+              fill="none" stroke="#667eea" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              vector-effect="non-scaling-stroke"
+            />
+            <!-- Neutral line -->
+            <polyline
+              points="0,50 20,48 40,52 60,45 80,50 100,46 120,55 140,48 160,52 180,45 200,50 220,48 240,55 260,42 280,50 300,45 320,48"
+              fill="none" stroke="#f5a623" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              vector-effect="non-scaling-stroke"
+            />
+            <!-- Negative line -->
+            <polyline
+              points="0,70 20,75 40,68 60,78 80,72 100,80 120,72 140,76 160,68 180,78 200,70 220,75 240,65 260,80 280,72 300,78 320,70"
+              fill="none" stroke="#e74c3c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              vector-effect="non-scaling-stroke"
+            />
+            <!-- Area fill for positive -->
+            <polyline
+              points="0,30 20,25 40,35 60,20 80,28 100,15 120,22 140,18 160,30 180,12 200,20 220,15 240,25 260,10 280,18 300,8 320,15 320,100 0,100"
+              fill="url(#positiveGrad)" stroke="none"
+            />
+            <defs>
+              <linearGradient id="positiveGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#667eea" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#667eea" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#667eea;"></span>
+          积极情绪
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#f5a623;"></span>
+          中性情绪
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#e74c3c;"></span>
+          消极情绪
+        </div>
+      </div>
+    </div>
+
+    <!-- Emotion Breakdown Pie Chart -->
+    <div class="section-title">
+      <span class="dot"></span>
+      情绪构成
+    </div>
+    <div class="chart-card">
+      <div class="pie-section">
+        <div class="pie-chart"></div>
+        <div class="pie-labels">
+          <div class="pie-label-item">
+            <span class="pie-color" style="background:#667eea;"></span>
+            平静
+            <span class="pie-pct">35%</span>
+          </div>
+          <div class="pie-label-item">
+            <span class="pie-color" style="background:#f5a623;"></span>
+            开心
+            <span class="pie-pct">28%</span>
+          </div>
+          <div class="pie-label-item">
+            <span class="pie-color" style="background:#764ba2;"></span>
+            思考
+            <span class="pie-pct">20%</span>
+          </div>
+          <div class="pie-label-item">
+            <span class="pie-color" style="background:#e74c3c;"></span>
+            焦虑
+            <span class="pie-pct">12%</span>
+          </div>
+          <div class="pie-label-item">
+            <span class="pie-color" style="background:#ccc;"></span>
+            其他
+            <span class="pie-pct">5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Score Card -->
+    <div class="section-title">
+      <span class="dot"></span>
+      综合指数
+    </div>
+    <div class="score-card">
+      <div class="score-label">写作情绪指数</div>
+      <div class="score-row">
+        <span class="score-value">7.8</span>
+        <span class="score-total">/10</span>
+      </div>
+      <div class="score-trend">
+        <span class="score-trend-arrow"></span>
+        较上周提升 0.6
+      </div>
+      <div class="score-desc">本月情绪整体积极稳定，积极情绪占比持续上升</div>
+    </div>
+
+    <!-- Greyed-out Tab Previews -->
+    <div class="tab-preview-section">
+      <!-- Word Cloud -->
+      <div class="tab-preview-card">
+        <div class="preview-title">词云分析 <span class="tag">词云</span></div>
+        <div class="word-cloud-mock">
+          <span class="word-mock big">旅行</span>
+          <span class="word-mock medium">朋友</span>
+          <span class="word-mock">阳光</span>
+          <span class="word-mock big">工作</span>
+          <span class="word-mock">咖啡</span>
+          <span class="word-mock medium">音乐</span>
+          <span class="word-mock">跑步</span>
+          <span class="word-mock big">阅读</span>
+          <span class="word-mock medium">周末</span>
+          <span class="word-mock">散步</span>
+          <span class="word-mock">做饭</span>
+          <span class="word-mock medium">电影</span>
+        </div>
+        <div class="overlay">
+          <span class="overlay-text">敬请期待</span>
+        </div>
+      </div>
+
+      <!-- Writing Pattern -->
+      <div class="tab-preview-card">
+        <div class="preview-title">写作时段分布 <span class="tag">写作模式</span></div>
+        <div class="pattern-header">
+          <span>周一</span><span>周日</span>
+        </div>
+        <div class="pattern-grid">
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l2"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l3"></div>
+          <div class="pattern-cell"></div>
+          <div class="pattern-cell l1"></div>
+          <div class="pattern-cell l2"></div>
+        </div>
+        <div class="overlay">
+          <span class="overlay-text">敬请期待</span>
+        </div>
+      </div>
+
+      <!-- Activity Matrix -->
+      <div class="tab-preview-card">
+        <div class="preview-title">活动关联矩阵 <span class="tag">生活节奏</span></div>
+        <div class="matrix-mock">
+          <div></div>
+          <div class="matrix-label" style="justify-content:center;">运动</div>
+          <div class="matrix-label" style="justify-content:center;">阅读</div>
+          <div class="matrix-label" style="justify-content:center;">社交</div>
+          <div class="matrix-label" style="justify-content:center;">工作</div>
+          <div class="matrix-label" style="justify-content:center;">休息</div>
+
+          <div class="matrix-label">情绪</div>
+          <div class="matrix-cell h3"></div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h3"></div>
+
+          <div class="matrix-label">睡眠</div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h0"></div>
+          <div class="matrix-cell h3"></div>
+          <div class="matrix-cell h2"></div>
+
+          <div class="matrix-label">效率</div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h3"></div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h0"></div>
+
+          <div class="matrix-label">创作</div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h3"></div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h0"></div>
+          <div class="matrix-cell h1"></div>
+
+          <div class="matrix-label">社交</div>
+          <div class="matrix-cell h0"></div>
+          <div class="matrix-cell h1"></div>
+          <div class="matrix-cell h3"></div>
+          <div class="matrix-cell h2"></div>
+          <div class="matrix-cell h1"></div>
+        </div>
+        <div class="overlay">
+          <span class="overlay-text">敬请期待</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span>首页</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <span>日历</span>
+    </div>
+    <div class="nav-item" style="color:#667eea;">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
+      <span>统计</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <span>设置</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

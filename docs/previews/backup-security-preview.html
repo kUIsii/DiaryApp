@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>备份与安全预览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+
+        .phone-frame { width: 375px; height: 812px; background: #fafafa; border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); overflow: hidden; position: relative; }
+        .status-bar { height: 44px; background: linear-gradient(135deg, #f43f5e 0%, #f59e0b 100%); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px; color: white; font-size: 12px; }
+        .header { background: linear-gradient(135deg, #f43f5e 0%, #f59e0b 100%); padding: 16px 20px 20px; color: white; display: flex; align-items: center; gap: 12px; }
+        .header .back { font-size: 20px; cursor: pointer; opacity: 0.9; }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .content { padding: 16px; overflow-y: auto; height: calc(100% - 44px - 56px); }
+
+        /* Section Card */
+        .section { background: white; border-radius: 14px; margin-bottom: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.04); overflow: hidden; }
+        .section-title { font-size: 13px; font-weight: 600; color: #999; padding: 14px 16px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Toggle Row */
+        .row { display: flex; align-items: center; padding: 14px 16px; gap: 14px; border-bottom: 1px solid #f5f5f5; }
+        .row:last-child { border-bottom: none; }
+        .row-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .row-icon.cloud { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #f43f5e; }
+        .row-icon.lock { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #d97706; }
+        .row-icon.finger { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #f43f5e; }
+        .row-icon.key { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #d97706; }
+        .row-icon.export { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #f43f5e; }
+        .row-icon.storage { background: linear-gradient(135deg, #fce7f3, #fef3c7); color: #d97706; }
+        .row-body { flex: 1; min-width: 0; }
+        .row-title { font-size: 15px; font-weight: 500; color: #333; }
+        .row-desc { font-size: 12px; color: #999; margin-top: 2px; }
+        .row-action { flex-shrink: 0; }
+
+        /* Toggle Switch */
+        .toggle { width: 44px; height: 26px; border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; }
+        .toggle.on { background: linear-gradient(135deg, #f43f5e, #f59e0b); }
+        .toggle.off { background: #ddd; }
+        .toggle::after { content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%; background: white; top: 2px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+        .toggle.on::after { left: 20px; }
+        .toggle.off::after { left: 2px; }
+
+        /* Chevron */
+        .chevron { color: #ccc; font-size: 14px; }
+
+        /* Backup History */
+        .history-item { display: flex; align-items: center; padding: 12px 16px; gap: 12px; border-bottom: 1px solid #f5f5f5; }
+        .history-item:last-child { border-bottom: none; }
+        .history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .history-dot.success { background: #22c55e; }
+        .history-dot.partial { background: #f59e0b; }
+        .history-info { flex: 1; }
+        .history-date { font-size: 14px; color: #333; font-weight: 500; }
+        .history-meta { font-size: 12px; color: #999; margin-top: 2px; }
+        .history-size { font-size: 13px; color: #666; flex-shrink: 0; }
+
+        /* Storage Bar */
+        .storage-card { padding: 16px; }
+        .storage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .storage-label { font-size: 13px; color: #666; }
+        .storage-value { font-size: 13px; font-weight: 600; color: #333; }
+        .storage-bar { height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden; display: flex; }
+        .storage-fill { height: 100%; border-radius: 5px; }
+        .storage-fill.db { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+        .storage-fill.media { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .storage-legend { display: flex; gap: 16px; margin-top: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+        /* Export Buttons */
+        .export-grid { display: flex; gap: 10px; padding: 0 16px 14px; }
+        .export-btn { flex: 1; padding: 12px 8px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid #f0f0f0; background: #fafafa; }
+        .export-btn:active { background: #f0f0f0; }
+        .export-label { font-size: 12px; color: #666; margin-top: 4px; }
+        .export-icon { font-size: 20px; }
+        .export-icon.json { color: #f59e0b; }
+        .export-icon.md { color: #f43f5e; }
+        .export-icon.enc { color: #8b5cf6; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #999; }
+        .nav-item .icon { font-size: 20px; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="status-bar">
+        <span>9:41</span>
+        <span>100%</span>
+    </div>
+
+    <div class="header">
+        <span class="back">&lt;</span>
+        <h1>备份与安全</h1>
+    </div>
+
+    <div class="content">
+        <!-- Cloud Backup -->
+        <div class="section">
+            <div class="section-title">云端备份</div>
+            <div class="row">
+                <div class="row-icon cloud">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">自动备份</div>
+                    <div class="row-desc">每日通过 Wi-Fi 自动备份</div>
+                </div>
+                <div class="row-action">
+                    <div class="toggle on"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="row-icon cloud">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">上次备份</div>
+                    <div class="row-desc">今天 14:30 - 备份成功</div>
+                </div>
+                <div class="row-action">
+                    <span class="chevron">&gt;</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup History -->
+        <div class="section">
+            <div class="section-title">备份历史</div>
+            <div class="history-item">
+                <div class="history-dot success"></div>
+                <div class="history-info">
+                    <div class="history-date">今天 14:30</div>
+                    <div class="history-meta">自动备份</div>
+                </div>
+                <div class="history-size">24.3 MB</div>
+            </div>
+            <div class="history-item">
+                <div class="history-dot success"></div>
+                <div class="history-info">
+                    <div class="history-date">昨天 14:30</div>
+                    <div class="history-meta">自动备份</div>
+                </div>
+                <div class="history-size">23.8 MB</div>
+            </div>
+            <div class="history-item">
+                <div class="history-dot success"></div>
+                <div class="history-info">
+                    <div class="history-date">6月9日 14:30</div>
+                    <div class="history-meta">自动备份</div>
+                </div>
+                <div class="history-size">23.1 MB</div>
+            </div>
+            <div class="history-item">
+                <div class="history-dot partial"></div>
+                <div class="history-info">
+                    <div class="history-date">6月8日 14:30</div>
+                    <div class="history-meta">手动备份</div>
+                </div>
+                <div class="history-size">22.7 MB</div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="section">
+            <div class="section-title">安全设置</div>
+            <div class="row">
+                <div class="row-icon lock">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">数据库加密</div>
+                    <div class="row-desc">使用 AES-256 加密本地数据</div>
+                </div>
+                <div class="row-action">
+                    <div class="toggle on"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="row-icon finger">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M9 6.8a6 6 0 0 1 9 5.2v.3"/></svg>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">指纹 / 面容解锁</div>
+                    <div class="row-desc">使用生物识别解锁应用</div>
+                </div>
+                <div class="row-action">
+                    <div class="toggle on"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="row-icon key">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">应用密码</div>
+                    <div class="row-desc">设置 6 位数字密码</div>
+                </div>
+                <div class="row-action">
+                    <span class="chevron">&gt;</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export -->
+        <div class="section">
+            <div class="section-title">数据导出</div>
+            <div class="export-grid">
+                <div class="export-btn">
+                    <div class="export-icon json">{ }</div>
+                    <div class="export-label">JSON</div>
+                </div>
+                <div class="export-btn">
+                    <div class="export-icon md">M</div>
+                    <div class="export-label">Markdown</div>
+                </div>
+                <div class="export-btn">
+                    <div class="export-icon enc">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div class="export-label">加密备份</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Usage -->
+        <div class="section">
+            <div class="section-title">存储空间</div>
+            <div class="storage-card">
+                <div class="storage-header">
+                    <span class="storage-label">已使用 47.2 MB / 256 MB</span>
+                    <span class="storage-value">18.4%</span>
+                </div>
+                <div class="storage-bar">
+                    <div class="storage-fill db" style="width: 9%;"></div>
+                    <div class="storage-fill media" style="width: 9.4%;"></div>
+                </div>
+                <div class="storage-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #f43f5e;"></div>
+                        <span>数据库 23.1 MB</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #f59e0b;"></div>
+                        <span>媒体文件 24.1 MB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </span>
+            <span>首页</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span>时间线</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </span>
+            <span>待办</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <span>我的</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>
