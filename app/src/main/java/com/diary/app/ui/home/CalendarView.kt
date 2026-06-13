@@ -137,31 +137,39 @@ fun CalendarView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .pointerInput(calendarMode) {
-                        detectHorizontalDragGestures { _, dragAmount ->
-                            val threshold = 50.dp.toPx()
-                            if (dragAmount < -threshold) {
-                                // Swipe left → next
-                                val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
-                                    currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
-                                } else {
-                                    currentWeekStart.plusDays(6) >= today
-                                }
-                                if (!isAtCurrent) {
-                                    if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth = currentMonth.plusMonths(1)
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                totalDrag += dragAmount
+                                change.consume()
+                            },
+                            onDragEnd = {
+                                val threshold = 48f
+                                if (totalDrag < -threshold) {
+                                    // Swipe left → next
+                                    val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
+                                        currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
                                     } else {
-                                        currentWeekStart = currentWeekStart.plusWeeks(1)
+                                        currentWeekStart.plusDays(6) >= today
+                                    }
+                                    if (!isAtCurrent) {
+                                        if (calendarMode == CalendarMode.MONTH) {
+                                            currentMonth = currentMonth.plusMonths(1)
+                                        } else {
+                                            currentWeekStart = currentWeekStart.plusWeeks(1)
+                                        }
+                                    }
+                                } else if (totalDrag > threshold) {
+                                    // Swipe right → previous
+                                    if (calendarMode == CalendarMode.MONTH) {
+                                        currentMonth = currentMonth.minusMonths(1)
+                                    } else {
+                                        currentWeekStart = currentWeekStart.minusWeeks(1)
                                     }
                                 }
-                            } else if (dragAmount > threshold) {
-                                // Swipe right → previous
-                                if (calendarMode == CalendarMode.MONTH) {
-                                    currentMonth = currentMonth.minusMonths(1)
-                                } else {
-                                    currentWeekStart = currentWeekStart.minusWeeks(1)
-                                }
                             }
-                        }
+                        )
                     }
             ) {
                 AnimatedContent(

@@ -6,7 +6,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -368,6 +370,7 @@ private fun SectionHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CapsuleCard(
     capsule: TimeCapsule,
@@ -386,9 +389,6 @@ private fun CapsuleCard(
             .atZone(ZoneId.systemDefault()).toLocalDate()
         "${unlock.year}年${unlock.monthValue}月${unlock.dayOfMonth}日"
     }
-    val previewText = remember(capsule.content) {
-        capsule.content.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "没有正文预览" }
-    }
 
     GlassCard(
         cornerRadius = 20.dp,
@@ -396,7 +396,10 @@ private fun CapsuleCard(
         enableShadow = true,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isLocked, onClick = onClick)
+            .combinedClickable(
+                onClick = { if (!isLocked) onClick() },
+                onLongClick = onDelete
+            )
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Surface(
@@ -416,22 +419,40 @@ private fun CapsuleCard(
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = capsule.title,
-                    fontSize = 17.sp,
-                    fontFamily = FontFamily.Serif,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = previewText,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (isLocked) {
+                    Text(
+                        text = "一封来自过去的信",
+                        fontSize = 17.sp,
+                        fontFamily = FontFamily.Serif,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "到期后才能查看内容",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                } else {
+                    val previewText = remember(capsule.content) {
+                        capsule.content.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "没有正文预览" }
+                    }
+                    Text(
+                        text = capsule.title,
+                        fontSize = 17.sp,
+                        fontFamily = FontFamily.Serif,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = previewText,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -449,14 +470,15 @@ private fun CapsuleCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
-
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
-                )
+            if (!isLocked) {
+                Spacer(modifier = Modifier.width(10.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                    )
+                }
             }
         }
     }
