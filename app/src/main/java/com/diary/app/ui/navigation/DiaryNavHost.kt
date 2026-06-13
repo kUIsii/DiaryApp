@@ -68,6 +68,7 @@ import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.capsule.CreateCapsuleScreen
 import com.diary.app.ui.capsule.ReadCapsuleScreen
 import com.diary.app.ui.capsule.TimeCapsuleScreen
+import com.diary.app.ui.notification.NotificationScreen
 import com.diary.app.ui.countdown.CountDownScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
@@ -120,6 +121,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object ReadCapsule : Screen("read_capsule/{capsuleId}", "读胶囊", Icons.Default.Home) {
         fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
     }
+    object Notifications : Screen("notifications", "消息", Icons.Default.Home)
 }
 
 data class BottomNavItem(
@@ -225,7 +227,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
                     onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
                     onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) },
-                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) }
+                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
+                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -301,6 +304,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.CountDown.route) {
                 CountDownScreen(onNavigateBack = { navController.popBackStack() })
+            }
+            composable(Screen.Notifications.route) {
+                NotificationScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCapsule = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
             }
             composable(Screen.TimeCapsule.route) {
                 TimeCapsuleScreen(

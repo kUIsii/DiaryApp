@@ -399,6 +399,12 @@ interface DiaryDao {
 
     @Query("UPDATE time_capsules SET isRead = 1 WHERE id = :id")
     suspend fun markCapsuleRead(id: Long)
+
+    @Query("SELECT * FROM time_capsules")
+    suspend fun getAllCapsulesOnce(): List<TimeCapsule>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries")
+    suspend fun getAllPreviewsOnce(): List<DiaryPreview>
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM
