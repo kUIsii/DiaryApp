@@ -383,6 +383,22 @@ interface DiaryDao {
     // One-shot query for widget
     @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC")
     suspend fun getAllCountDownItemsOnce(): List<CountDownItem>
+
+    // Time Capsule queries
+    @Insert
+    suspend fun insertCapsule(capsule: TimeCapsule): Long
+
+    @Delete
+    suspend fun deleteCapsule(capsule: TimeCapsule)
+
+    @Query("SELECT * FROM time_capsules ORDER BY unlockDate DESC")
+    fun getAllCapsules(): Flow<List<TimeCapsule>>
+
+    @Query("SELECT * FROM time_capsules WHERE id = :id")
+    suspend fun getCapsuleById(id: Long): TimeCapsule?
+
+    @Query("UPDATE time_capsules SET isRead = 1 WHERE id = :id")
+    suspend fun markCapsuleRead(id: Long)
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

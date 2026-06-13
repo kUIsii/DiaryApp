@@ -65,6 +65,9 @@ import androidx.navigation.navArgument
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.backup.BackupScreen
 import com.diary.app.ui.components.rememberHapticFeedback
+import com.diary.app.ui.capsule.CreateCapsuleScreen
+import com.diary.app.ui.capsule.ReadCapsuleScreen
+import com.diary.app.ui.capsule.TimeCapsuleScreen
 import com.diary.app.ui.countdown.CountDownScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
@@ -112,6 +115,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Home)
     object Trash : Screen("trash", "回收站", Icons.Default.Home)
     object CountDown : Screen("countdown", "倒数日", Icons.Default.Home)
+    object TimeCapsule : Screen("time_capsule", "时间胶囊", Icons.Default.Home)
+    object CreateCapsule : Screen("create_capsule", "写胶囊", Icons.Default.Home)
+    object ReadCapsule : Screen("read_capsule/{capsuleId}", "读胶囊", Icons.Default.Home) {
+        fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
+    }
 }
 
 data class BottomNavItem(
@@ -216,7 +224,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
                     onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
-                    onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) }
+                    onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) },
+                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -292,6 +301,39 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.CountDown.route) {
                 CountDownScreen(onNavigateBack = { navController.popBackStack() })
+            }
+            composable(Screen.TimeCapsule.route) {
+                TimeCapsuleScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCreate = { navController.navigate(Screen.CreateCapsule.route) },
+                    onNavigateToRead = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) }
+                )
+            }
+            composable(Screen.CreateCapsule.route) {
+                val parentEntry = navController.getBackStackEntry(Screen.TimeCapsule.route)
+                val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
+                    androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+                CreateCapsuleScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onCreateCapsule = { title, content, unlockDate ->
+                        capsuleViewModel.createCapsule(title, content, unlockDate)
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(
+                route = Screen.ReadCapsule.route,
+                arguments = listOf(navArgument("capsuleId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val capsuleId = backStackEntry.arguments?.getLong("capsuleId") ?: -1L
+                val parentEntry = navController.getBackStackEntry(Screen.TimeCapsule.route)
+                val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
+                    androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+                ReadCapsuleScreen(
+                    capsuleId = capsuleId,
+                    onNavigateBack = { navController.popBackStack() },
+                    viewModel = capsuleViewModel
+                )
             }
             composable(Screen.ExperimentalFeatures.route) {
                 ExperimentalFeaturesScreen(onNavigateBack = { navController.popBackStack() })

@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shuffle
@@ -93,6 +94,7 @@ fun HomeScreen(
     onNavigateToStats: () -> Unit = {},
     onNavigateToMediaLibrary: () -> Unit = {},
     onNavigateToExperimentalFeatures: () -> Unit = {},
+    onNavigateToTimeCapsule: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -310,6 +312,15 @@ fun HomeScreen(
                         onClick = {
                             showFunctionMenu = false
                             onNavigateToCountDown()
+                        }
+                    ),
+                    FunctionMenuItem(
+                        id = "capsule",
+                        title = "时间胶囊",
+                        icon = Icons.Default.MarkEmailUnread,
+                        onClick = {
+                            showFunctionMenu = false
+                            onNavigateToTimeCapsule()
                         }
                     )
                 )
