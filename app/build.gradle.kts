@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 26187  // Updated to match 2.61.87
-        versionName = "2.61.87"
+        versionCode = 26188  // Updated to match 2.61.88
+        versionName = "2.61.88"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
