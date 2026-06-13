@@ -219,18 +219,8 @@ fun EditorScreen(
             pendingImageWebUrl = imageWebUrl
             return
         }
-        currentWebView.evaluateJavascript("insertMedia('image', '${escapeForJs(imageWebUrl)}')") { result ->
-            if (result == "true") {
-                pendingImageWebUrl = null
-            } else {
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "图片插入失败，请重试",
-                        duration = SnackbarDuration.Short
-                    )
-                }
-            }
-        }
+        currentWebView.evaluateJavascript("insertMedia('image', '${escapeForJs(imageWebUrl)}')", null)
+        pendingImageWebUrl = null
     }
 
     // Writing duration
