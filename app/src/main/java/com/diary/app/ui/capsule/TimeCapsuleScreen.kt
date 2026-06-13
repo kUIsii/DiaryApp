@@ -4,10 +4,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,17 +22,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -41,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,7 +135,7 @@ fun TimeCapsuleScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
                     )
                 )
             }
@@ -138,28 +151,42 @@ fun TimeCapsuleScreen(
                     EmptyState(
                         icon = Icons.Default.Lock,
                         title = "还没有时间胶囊",
-                        subtitle = "写一封信给未来的自己\n到了约定的日子再打开"
+                        subtitle = "写一封信给未来的自己\n到了约定的日子再打开",
+                        action = {
+                            Button(
+                                onClick = onNavigateToCreate,
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("写第一封")
+                            }
+                        }
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(4.dp)) }
+                    item {
+                        SummaryCard(
+                            total = capsules.size,
+                            lockedCount = locked.size,
+                            unlockedCount = unlocked.size,
+                            onCreate = onNavigateToCreate
+                        )
+                    }
 
                     if (locked.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "未到期",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                            )
-                        }
+                        item { SectionHeader(title = "未到期", count = locked.size, accent = MaterialTheme.colorScheme.tertiary) }
                         itemsIndexed(
                             items = locked,
                             key = { _, item -> item.id }
@@ -167,10 +194,10 @@ fun TimeCapsuleScreen(
                             val enterDelay = (index * 60).coerceAtMost(400)
                             AnimatedVisibility(
                                 visible = true,
-                                enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
+                                enter = fadeIn(animationSpec = tween(280, delayMillis = enterDelay)) +
                                         slideInVertically(
-                                            animationSpec = tween(300, delayMillis = enterDelay),
-                                            initialOffsetY = { it / 5 }
+                                            animationSpec = tween(280, delayMillis = enterDelay),
+                                            initialOffsetY = { it / 6 }
                                         )
                             ) {
                                 CapsuleCard(
@@ -188,15 +215,7 @@ fun TimeCapsuleScreen(
                     }
 
                     if (unlocked.isNotEmpty()) {
-                        item {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "已到期",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                            )
-                        }
+                        item { SectionHeader(title = "已到期", count = unlocked.size, accent = MaterialTheme.colorScheme.primary) }
                         itemsIndexed(
                             items = unlocked,
                             key = { _, item -> item.id }
@@ -204,10 +223,10 @@ fun TimeCapsuleScreen(
                             val enterDelay = ((index + locked.size) * 60).coerceAtMost(400)
                             AnimatedVisibility(
                                 visible = true,
-                                enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
+                                enter = fadeIn(animationSpec = tween(280, delayMillis = enterDelay)) +
                                         slideInVertically(
-                                            animationSpec = tween(300, delayMillis = enterDelay),
-                                            initialOffsetY = { it / 5 }
+                                            animationSpec = tween(280, delayMillis = enterDelay),
+                                            initialOffsetY = { it / 6 }
                                         )
                             ) {
                                 CapsuleCard(
@@ -224,10 +243,128 @@ fun TimeCapsuleScreen(
                         }
                     }
 
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                    item { Spacer(modifier = Modifier.height(6.dp)) }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SummaryCard(
+    total: Int,
+    lockedCount: Int,
+    unlockedCount: Int,
+    onCreate: () -> Unit
+) {
+    GlassCard(
+        cornerRadius = 22.dp,
+        innerPadding = 18.dp,
+        modifier = Modifier.fillMaxWidth(),
+        enableShadow = true
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LockOpen,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(10.dp).size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "时间胶囊",
+                        fontSize = 20.sp,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "把某一刻留给未来再打开",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                MetricBlock(label = "总数", value = total.toString())
+                MetricBlock(label = "未到期", value = lockedCount.toString())
+                MetricBlock(label = "已到期", value = unlockedCount.toString())
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onCreate,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(vertical = 12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("写一封给未来的自己")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.MetricBlock(label: String, value: String) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = value,
+            fontSize = 22.sp,
+            fontFamily = FontFamily.Serif,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    accent: androidx.compose.ui.graphics.Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(accent, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "$count",
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 
@@ -239,66 +376,105 @@ private fun CapsuleCard(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val dateText = remember(capsule) {
+    val createdText = remember(capsule) {
         val created = Instant.ofEpochMilli(capsule.createdAt)
             .atZone(ZoneId.systemDefault()).toLocalDate()
-        "${created.year}年${created.monthValue}月${created.dayOfMonth}日写"
+        "${created.year}年${created.monthValue}月${created.dayOfMonth}日"
     }
     val unlockText = remember(capsule) {
         val unlock = Instant.ofEpochMilli(capsule.unlockDate)
             .atZone(ZoneId.systemDefault()).toLocalDate()
-        "${unlock.year}年${unlock.monthValue}月${unlock.dayOfMonth}日解锁"
+        "${unlock.year}年${unlock.monthValue}月${unlock.dayOfMonth}日"
+    }
+    val previewText = remember(capsule.content) {
+        capsule.content.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "没有正文预览" }
     }
 
     GlassCard(
-        cornerRadius = 16.dp,
+        cornerRadius = 20.dp,
         innerPadding = 16.dp,
+        enableShadow = true,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !isLocked, onClick = onClick)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                contentDescription = null,
-                tint = if (isLocked) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+        Row(verticalAlignment = Alignment.Top) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isLocked) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            ) {
+                Icon(
+                    imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                    contentDescription = null,
+                    tint = if (isLocked) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(12.dp).size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = capsule.title,
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontFamily = FontFamily.Serif,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = if (isLocked) {
-                        "$dateText · 还有 $daysRemaining 天"
-                    } else {
-                        "$dateText · $unlockText"
-                    },
+                    text = previewText,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-            }
-            if (!isLocked) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(20.dp)
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MetadataPill(text = createdText)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    MetadataPill(text = if (isLocked) "${daysRemaining ?: 0} 天后解锁" else "已解锁")
+                }
+                if (!isLocked) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "解锁于 $unlockText",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun MetadataPill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+        )
     }
 }
 

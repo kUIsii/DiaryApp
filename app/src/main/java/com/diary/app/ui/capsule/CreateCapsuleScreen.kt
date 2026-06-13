@@ -1,26 +1,33 @@
 package com.diary.app.ui.capsule
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LockClock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -31,9 +38,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
@@ -41,7 +50,6 @@ import com.diary.app.ui.components.GradientBackground
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +108,7 @@ fun CreateCapsuleScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
                     )
                 )
             }
@@ -109,14 +117,49 @@ fun CreateCapsuleScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 GlassCard(
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    cornerRadius = 22.dp,
+                    innerPadding = 18.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                    enableShadow = true
                 ) {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LockClock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(10.dp).size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.size(12.dp))
+                            Column {
+                                Text(
+                                    text = "封存一段当下",
+                                    fontSize = 20.sp,
+                                    fontFamily = FontFamily.Serif,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "写下现在，交给未来再读",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
@@ -124,15 +167,16 @@ fun CreateCapsuleScreen(
                             placeholder = { Text("给这封信起个名字") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         OutlinedTextField(
                             value = content,
@@ -141,45 +185,65 @@ fun CreateCapsuleScreen(
                             placeholder = { Text("写下此刻想对未来说的话...") },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
+                                .height(240.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        OutlinedTextField(
-                            value = selectedDate?.let {
-                                "${it.year}年${it.monthValue}月${it.dayOfMonth}日"
-                            } ?: "",
-                            onValueChange = {},
-                            label = { Text("解锁日期") },
-                            placeholder = { Text("选择哪天打开") },
-                            readOnly = true,
-                            singleLine = true,
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showDatePicker = true },
-                            trailingIcon = {
-                                IconButton(onClick = { showDatePicker = true }) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = "选择日期")
-                                }
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent
+                                .clickable { showDatePicker = true }
+                        ) {
+                            Text(
+                                text = "解锁日期",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                             )
-                        )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.size(12.dp))
+                                    Text(
+                                        text = selectedDate?.let {
+                                            "${it.year}年${it.monthValue}月${it.dayOfMonth}日"
+                                        } ?: "选择哪天打开",
+                                        color = if (selectedDate == null) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
@@ -194,8 +258,8 @@ fun CreateCapsuleScreen(
                     enabled = canSubmit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = MaterialTheme.shapes.large,
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
