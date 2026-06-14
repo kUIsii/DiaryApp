@@ -46,8 +46,18 @@ fun TagEditor(
     selectedTagIds: Set<Long>,
     onTagToggle: (Long) -> Unit,
     onAddTag: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    recommendedTagIds: Set<Long> = emptySet()
 ) {
+    // Recommended tags first, then the rest
+    val sortedTags = if (recommendedTagIds.isNotEmpty()) {
+        val recommended = allTags.filter { it.id in recommendedTagIds }
+        val rest = allTags.filter { it.id !in recommendedTagIds }
+        recommended + rest
+    } else {
+        allTags
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -56,14 +66,16 @@ fun TagEditor(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        allTags.forEach { tag ->
+        sortedTags.forEach { tag ->
             val isSelected = tag.id in selectedTagIds
+            val isRecommended = tag.id in recommendedTagIds
             val tagColor = Color(tag.color)
 
             TagChip(
                 tagName = tag.name,
                 tagColor = tagColor,
                 isSelected = isSelected,
+                isRecommended = isRecommended && !isSelected,
                 onClick = { onTagToggle(tag.id) }
             )
         }
@@ -78,6 +90,7 @@ private fun TagChip(
     tagName: String,
     tagColor: Color,
     isSelected: Boolean,
+    isRecommended: Boolean = false,
     onClick: () -> Unit
 ) {
     // 按压缩放动画
@@ -102,15 +115,20 @@ private fun TagChip(
             .scale(scale * selectedScale)
             .clip(shape)
             .background(
-                if (isSelected) {
-                    Brush.linearGradient(
+                when {
+                    isSelected -> Brush.linearGradient(
                         colors = listOf(
                             tagColor.copy(alpha = 0.2f),
                             tagColor.copy(alpha = 0.08f)
                         )
                     )
-                } else {
-                    Brush.linearGradient(
+                    isRecommended -> Brush.linearGradient(
+                        colors = listOf(
+                            tagColor.copy(alpha = 0.18f),
+                            tagColor.copy(alpha = 0.1f)
+                        )
+                    )
+                    else -> Brush.linearGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.surface,
                             MaterialTheme.colorScheme.surface
@@ -120,7 +138,11 @@ private fun TagChip(
             )
             .border(
                 width = 1.dp,
-                color = if (isSelected) tagColor else MaterialTheme.colorScheme.outlineVariant,
+                color = when {
+                    isSelected -> tagColor
+                    isRecommended -> tagColor.copy(alpha = 0.5f)
+                    else -> MaterialTheme.colorScheme.outlineVariant
+                },
                 shape = shape
             )
             .clickable(

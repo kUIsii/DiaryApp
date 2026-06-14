@@ -1,6 +1,7 @@
 package com.diary.app.ui.home
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 internal fun toTrashEntry(entry: DiaryEntry): TrashEntry {
     return TrashEntry(
@@ -451,4 +453,139 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }.sortedByDescending { it.createdAt }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // --- AI Feature: On This Day ---
+    data class OnThisDayItem(val entry: DiaryPreview, val yearsAgo: Int)
+
+    private val _onThisDayItem = MutableStateFlow<OnThisDayItem?>(null)
+    val onThisDayItem: StateFlow<OnThisDayItem?> = _onThisDayItem
+
+    private val prefs = application.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
+
+    init {
+        loadOnThisDay()
+    }
+
+    private fun loadOnThisDay() {
+        val app = getApplication<Application>() as DiaryApplication
+        val features = app.experimentalFeatures.value
+        if (!features.aiEnabled || !features.aiOnThisDay) return
+
+        viewModelScope.launch {
+            val now = LocalDate.now()
+            val entries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
+            val historical = entries.filter { entry ->
+                val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                entryDate.year < now.year
+            }
+            if (historical.isEmpty()) return@launch
+
+            // Find one that hasn't been shown in 7 days
+            val shownKey = "on_this_day_shown_ids"
+            val shownIds = prefs.getStringSet(shownKey, emptySet())?.toMutableSet() ?: mutableSetOf()
+            val candidate = historical.firstOrNull { it.id.toString() !in shownIds }
+                ?: historical.first() // If all shown, pick the most recent anyway
+
+            val entryYear = Instant.ofEpochMilli(candidate.createdAt).atZone(ZoneId.systemDefault()).toLocalDate().year
+            _onThisDayItem.value = OnThisDayItem(candidate, now.year - entryYear)
+
+            // Record as shown
+            shownIds.add(candidate.id.toString())
+            prefs.edit().putStringSet(shownKey, shownIds).apply()
+        }
+    }
+
+    // --- AI Feature: Mood Trend ---
+    data class MoodTrendState(val description: String, val visible: Boolean)
+
+    val moodTrendState: StateFlow<MoodTrendState> = dayInfoMap
+        .map { infoMap ->
+            val app = getApplication<Application>() as DiaryApplication
+            val features = app.experimentalFeatures.value
+            if (!features.aiEnabled || !features.aiMoodTrend) {
+                return@map MoodTrendState("", false)
+            }
+
+            val today = LocalDate.now()
+            val recentDays = (6 downTo 0).map { today.minusDays(it.toLong()) }
+            val moodValues = recentDays.mapNotNull { infoMap[it]?.moodLevel }
+
+            if (moodValues.size < 3) {
+                return@map MoodTrendState("", false)
+            }
+
+            val avg = moodValues.average()
+            val trend = if (moodValues.size >= 2) {
+                val firstHalf = moodValues.take(moodValues.size / 2).average()
+                val secondHalf = moodValues.drop(moodValues.size / 2).average()
+                when {
+                    secondHalf - firstHalf > 0.5 -> "rising"
+                    firstHalf - secondHalf > 0.5 -> "falling"
+                    else -> "stable"
+                }
+            } else "stable"
+
+            val description = when {
+                avg >= 4.5 && trend == "rising" -> "最近的你，状态不错。"
+                avg >= 4.0 && trend == "stable" -> "这些天挺平稳的。"
+                avg < 3.0 && trend == "falling" -> "最近有些不容易。"
+                avg < 3.0 && trend == "rising" -> "在慢慢好起来。"
+                else -> "起起落落，都是生活。"
+            }
+            MoodTrendState(description, true)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MoodTrendState("", false))
+
+    // --- AI Feature: Milestones ---
+    data class MilestoneState(val count: Int, val message: String, val visible: Boolean)
+
+    private val _milestone = MutableStateFlow<MilestoneState?>(null)
+    val milestone: StateFlow<MilestoneState?> = _milestone
+
+    private val milestoneThresholds = listOf(10, 50, 100, 200, 365, 500, 1000)
+
+    private fun checkMilestones(totalEntries: Int) {
+        val app = getApplication<Application>() as DiaryApplication
+        val features = app.experimentalFeatures.value
+        if (!features.aiEnabled || !features.aiMilestones) return
+
+        val shownKey = "milestones_shown"
+        val shownMilestones = prefs.getStringSet(shownKey, emptySet())?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
+
+        val newMilestone = milestoneThresholds.firstOrNull { threshold ->
+            totalEntries >= threshold && threshold !in shownMilestones
+        }
+
+        if (newMilestone != null) {
+            val message = when (newMilestone) {
+                10 -> "开始的10篇，每一笔都是种子。"
+                50 -> "50篇了。你已经养成了一个习惯。"
+                100 -> "第100篇日记。每一篇都值得。"
+                200 -> "200篇。文字在替你记住时光。"
+                365 -> "365篇。一年的时光，都在这里了。"
+                500 -> "500篇。半个千的坚持。"
+                1000 -> "1000篇。你的故事，已经是一部书了。"
+                else -> "${newMilestone}篇了。"
+            }
+            _milestone.value = MilestoneState(newMilestone, message, true)
+
+            // Record as shown
+            val updated = shownMilestones.toMutableSet()
+            updated.add(newMilestone)
+            prefs.edit().putStringSet(shownKey, updated.map { it.toString() }.toSet()).apply()
+        }
+    }
+
+    fun dismissMilestone() {
+        _milestone.value = null
+    }
+
+    // Check milestones when entries change
+    init {
+        viewModelScope.launch {
+            stats.collect { statsData ->
+                checkMilestones(statsData.total)
+            }
+        }
+    }
 }

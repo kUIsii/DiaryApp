@@ -38,12 +38,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -66,11 +68,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.FunctionMenu
 import com.diary.app.ui.components.FunctionMenuItem
@@ -105,12 +109,20 @@ fun HomeScreen(
 ) {
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val app = context.applicationContext as DiaryApplication
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedEntries by viewModel.selectedEntries.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
+
+    // AI feature states
+    val experimentalFeatures by app.experimentalFeatures.collectAsState()
+    val onThisDayItem by viewModel.onThisDayItem.collectAsState()
+    val moodTrendState by viewModel.moodTrendState.collectAsState()
+    val milestone by viewModel.milestone.collectAsState()
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showFunctionMenu by remember { mutableStateOf(false) }
@@ -142,17 +154,60 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "首页",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "首页",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                // Milestone star decoration
+                                if (milestone?.visible == true) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    var milestoneExpanded by remember { mutableStateOf(false) }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                            .clickable {
+                                                haptic.click()
+                                                milestoneExpanded = !milestoneExpanded
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "里程碑",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    if (milestoneExpanded) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = milestone!!.message,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "共 ${entryDates.size} 天有记录",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            // Mood trend description
+                            if (moodTrendState.visible) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = moodTrendState.description,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -214,6 +269,62 @@ fun HomeScreen(
                         onModeChange = { calendarMode = it }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // On This Day card
+                if (onThisDayItem != null && experimentalFeatures.aiEnabled && experimentalFeatures.aiOnThisDay) {
+                    item {
+                        val item = onThisDayItem!!
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                                .border(
+                                    0.5.dp,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { onNavigateToDetail(item.entry.id) }
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${item.yearsAgo}年前的今天",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = item.entry.title.ifBlank { item.entry.plainText.take(30) },
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 selectedDate?.let { currentDate ->

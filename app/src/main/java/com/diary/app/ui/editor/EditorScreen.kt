@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,6 +41,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
@@ -144,6 +146,12 @@ fun EditorScreen(
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
     val currentEntry by viewModel.currentEntry.collectAsState()
     val recentLocations by viewModel.recentLocations.collectAsState()
+
+    // AI feature states
+    val experimentalFeatures by app.experimentalFeatures.collectAsState()
+    val aiTitleSuggestion by viewModel.aiTitleSuggestion.collectAsState()
+    val memoryEcho by viewModel.memoryEcho.collectAsState()
+    val aiRecommendedTagIds by viewModel.aiRecommendedTagIds.collectAsState()
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -473,7 +481,16 @@ fun EditorScreen(
             if (!isApplyingProgrammaticContent) {
                 viewModel.markContentChanged()
                 contentVersion++
+                // Trigger AI features on content change
+                viewModel.onPlainTextForTitleAndTagsChanged(text, entryTitle)
             }
+        }
+    }
+
+    // Trigger memory echo once when content is long enough
+    LaunchedEffect(latestPlainText.length, selectedMood) {
+        if (latestPlainText.length > 100 || selectedMood != null) {
+            viewModel.triggerMemoryEcho(latestPlainText, selectedMood)
         }
     }
 
@@ -687,8 +704,16 @@ fun EditorScreen(
                     viewModel.onManualSaveCompleted(diaryId)
                     isToolbarLocked = false
                     haptic.success()
+                    // Writing rhythm: show effort-aware message
+                    val saveMessage = if (experimentalFeatures.aiEnabled && experimentalFeatures.aiWritingRhythm
+                        && writingDuration > 900 && charCount > 500) {
+                        val mins = writingDuration / 60
+                        "写了${charCount}字，用了${mins}分钟。辛苦了。"
+                    } else {
+                        "日记已保存"
+                    }
                     snackbarHostState.showSnackbar(
-                        message = "日记已保存",
+                        message = saveMessage,
                         duration = SnackbarDuration.Short
                     )
                     onNavigateBack()
@@ -1080,9 +1105,15 @@ fun EditorScreen(
                     cursorBrush = SolidColor(textColor),
                     decorationBox = { innerTextField ->
                         if (entryTitle.isBlank()) {
+                            val placeholder = aiTitleSuggestion ?: "标题（可选）"
                             Text(
-                                text = "标题（可选）",
-                                style = titleTextStyle.copy(color = textSecondary.copy(alpha = 0.42f))
+                                text = placeholder,
+                                style = titleTextStyle.copy(
+                                    color = if (aiTitleSuggestion != null)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                                    else
+                                        textSecondary.copy(alpha = 0.42f)
+                                )
                             )
                         }
                         innerTextField()
@@ -1237,10 +1268,71 @@ fun EditorScreen(
                         }
                     }
                     if (writingDuration > 30) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "已写${viewModel.getFormattedDuration()}",
+                                fontSize = 11.sp,
+                                color = textSecondary.copy(alpha = 0.3f)
+                            )
+                            // Writing rhythm breathing dot (shows after 5 min)
+                            if (experimentalFeatures.aiEnabled && experimentalFeatures.aiWritingRhythm && writingDuration > 300) {
+                                var breathAlpha by remember { mutableStateOf(0.3f) }
+                                LaunchedEffect(Unit) {
+                                    while (true) {
+                                        breathAlpha = 1f
+                                        kotlinx.coroutines.delay(1000)
+                                        breathAlpha = 0.3f
+                                        kotlinx.coroutines.delay(1000)
+                                    }
+                                }
+                                val animatedAlpha by animateFloatAsState(
+                                    targetValue = breathAlpha,
+                                    animationSpec = tween(1000),
+                                    label = "breath"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = animatedAlpha * 0.7f)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Memory Echo - show at bottom when available
+            if (memoryEcho != null && experimentalFeatures.aiEnabled && experimentalFeatures.aiMemoryEcho) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 2.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            modifier = Modifier.size(14.dp)
+                        )
                         Text(
-                            text = "已写${viewModel.getFormattedDuration()}",
+                            text = "记得那天吗？${memoryEcho!!.summary} -- ${memoryEcho!!.date}",
                             fontSize = 11.sp,
-                            color = textSecondary.copy(alpha = 0.3f)
+                            color = textSecondary.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -1315,6 +1407,8 @@ fun EditorScreen(
             selectedWeather = selectedWeather,
             allTags = allTags,
             selectedTagIds = selectedTagIds,
+            aiRecommendedTagIds = aiRecommendedTagIds,
+            aiTagIntuitionEnabled = experimentalFeatures.aiEnabled && experimentalFeatures.aiTagIntuition,
             selectedLocation = selectedLocation,
             locationLat = locationLat,
             locationLng = locationLng,
@@ -1424,6 +1518,8 @@ private fun MetadataOverlayPanel(
     selectedWeather: String?,
     allTags: List<Tag>,
     selectedTagIds: Set<Long>,
+    aiRecommendedTagIds: Set<Long> = emptySet(),
+    aiTagIntuitionEnabled: Boolean = false,
     selectedLocation: String?,
     locationLat: Double?,
     locationLng: Double?,
@@ -1537,7 +1633,8 @@ private fun MetadataOverlayPanel(
                             allTags = allTags,
                             selectedTagIds = selectedTagIds,
                             onTagToggle = onTagToggle,
-                            onAddTag = onAddTag
+                            onAddTag = onAddTag,
+                            recommendedTagIds = if (aiTagIntuitionEnabled) aiRecommendedTagIds else emptySet()
                         )
                         "location" -> LocationSelector(
                             selectedLocation = selectedLocation,

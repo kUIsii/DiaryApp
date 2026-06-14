@@ -8,7 +8,16 @@ val mainScreenRoutes = listOf("home", "timeline", "todo", "profile")
 
 data class ExperimentalFeaturesState(
     val mainScreenSwipeEnabled: Boolean = false,
-    val keepCompletedItemsInPlace: Boolean = false
+    val keepCompletedItemsInPlace: Boolean = false,
+    // AI 默契功能
+    val aiEnabled: Boolean = false,           // AI功能总开关
+    val aiSilentTitle: Boolean = false,       // 静默标题
+    val aiMemoryEcho: Boolean = false,        // 记忆回响
+    val aiOnThisDay: Boolean = false,         // 今日回顾
+    val aiMoodTrend: Boolean = false,         // 情绪天气图
+    val aiWritingRhythm: Boolean = false,     // 写作节奏
+    val aiTagIntuition: Boolean = false,      // 标签直觉
+    val aiMilestones: Boolean = false         // 安静的里程碑
 )
 
 fun resolveMainScreenSwipeTarget(
