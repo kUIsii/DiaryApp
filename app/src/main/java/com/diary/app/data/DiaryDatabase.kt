@@ -240,11 +240,12 @@ abstract class DiaryDatabase : RoomDatabase() {
                         }
                     })
                     .build()
+                    // Force migration execution now so we can catch failures
+                    instance.openHelper.writableDatabase
                     INSTANCE = instance
                     instance
                 } catch (e: Exception) {
                     android.util.Log.e("DiaryDatabase", "Database init failed, attempting destructive recovery", e)
-                    // If migration fails, delete the database and recreate
                     context.deleteDatabase("diary_database")
                     val freshInstance = Room.databaseBuilder(
                         context.applicationContext,
