@@ -647,28 +647,16 @@ private fun EntryCard(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // 时间 + 标题同行
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // 标题
+                if (entry.title.isNotBlank()) {
                     Text(
-                        text = formatEntryTime(entry.createdAt),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        text = entry.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    if (entry.title.isNotBlank()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = entry.title,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
                 }
 
                 // 内容预览
@@ -706,82 +694,84 @@ private fun EntryCard(
                     }
                 }
 
-                // 心情/天气/标签
-                val hasMoodWeather = entry.moodLevel != null || entry.weather != null
-                val hasTags = tags.isNotEmpty()
-                if (hasMoodWeather || hasTags) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (entry.moodLevel != null) {
-                            val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = moodIcon,
-                                    contentDescription = "心情",
-                                    tint = moodTint,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = moodLabelForLevel(entry.moodLevel),
-                                    fontSize = 11.sp,
-                                    color = moodTint,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        if (entry.weather != null) {
-                            val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = weatherIcon,
-                                    contentDescription = "天气",
-                                    tint = weatherTint,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = weatherLabelFor(entry.weather),
-                                    fontSize = 11.sp,
-                                    color = weatherTint,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        if (hasTags) {
-                            tags.take(2).forEach { tag ->
-                                Text(
-                                    text = tag.name,
-                                    fontSize = 10.sp,
-                                    color = tag.color,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(tag.color.copy(alpha = 0.1f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                            if (tags.size > 2) {
-                                Text(
-                                    text = "+${tags.size - 2}",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                // 心情/天气/标签/时间
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (entry.moodLevel != null) {
+                        val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = moodIcon,
+                                contentDescription = "心情",
+                                tint = moodTint,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = moodLabelForLevel(entry.moodLevel),
+                                fontSize = 11.sp,
+                                color = moodTint,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
+                    if (entry.weather != null) {
+                        val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = weatherIcon,
+                                contentDescription = "天气",
+                                tint = weatherTint,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = weatherLabelFor(entry.weather),
+                                fontSize = 11.sp,
+                                color = weatherTint,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (tags.isNotEmpty()) {
+                        tags.take(2).forEach { tag ->
+                            Text(
+                                text = tag.name,
+                                fontSize = 10.sp,
+                                color = tag.color,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(tag.color.copy(alpha = 0.1f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (tags.size > 2) {
+                            Text(
+                                text = "+${tags.size - 2}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = formatEntryTime(entry.createdAt),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
                 }
             }
         }

@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -118,6 +119,11 @@ fun TimelineScreen(
     val coroutineScope = rememberCoroutineScope()
     var isFilterExpanded by remember { mutableStateOf(false) }
 
+    // Show scroll-to-top button when scrolled down
+    val showScrollToTop by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 2 }
+    }
+
     // Search bar collapse: auto-collapse when scrolled past header
     val isScrolledPastHeader by remember {
         derivedStateOf { listState.firstVisibleItemIndex > 0 }
@@ -148,8 +154,6 @@ fun TimelineScreen(
         expandedMonths[currentMonth] = true
     }
 
-    var selectedMonth by remember { mutableStateOf(currentMonth) }
-
     // Build flat list of items for LazyColumn with stable keys
     data class TimelineItem(val key: String, val type: String, val month: YearMonth? = null, val date: LocalDate? = null, val entry: DiaryPreview? = null)
 
@@ -177,19 +181,6 @@ fun TimelineScreen(
                             entry = entry,
                             date = date
                         ))
-                    }
-                }
-            }
-        }
-    }
-
-    // Build index of month keys for scroll-to-month
-    val monthKeyIndex = remember(timelineItems) {
-        mutableMapOf<YearMonth, Int>().apply {
-            timelineItems.forEachIndexed { index, item ->
-                if (item.type == "expanded_month" || item.type == "collapsed_month") {
-                    if (!containsKey(item.month)) {
-                        item.month?.let { put(it, index) }
                     }
                 }
             }
@@ -287,29 +278,7 @@ fun TimelineScreen(
                     }
                 }
 
-                // Month selector
-                item(key = "month_selector") {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        MonthSelector(
-                            months = monthGroups.keys.toList(),
-                            selectedMonth = selectedMonth,
-                            onMonthClick = { month ->
-                                selectedMonth = month
-                                if (expandedMonths[month] != true) {
-                                    expandedMonths[month] = true
-                                }
-                                // Scroll to the month header
-                                val targetIndex = monthKeyIndex[month]
-                                if (targetIndex != null) {
-                                    coroutineScope.launch {
-                                        listState.animateScrollToItem(targetIndex)
-                                    }
-                                }
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
+                // Month selector removed — use folding/unfolding directly
 
                 // Empty state
                 if (timelineItems.isEmpty()) {
@@ -396,6 +365,31 @@ fun TimelineScreen(
 
                 // Bottom padding
                 item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
+            }
+
+            // Scroll to top button
+            if (showScrollToTop) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = 16.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                        .clickable {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(0)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = "回到顶部",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -857,38 +851,36 @@ private fun CollapsedMonthHeader(
     entryCount: Int,
     onClick: () -> Unit
 ) {
+    val now = YearMonth.now()
+    val isCurrentMonth = month == now
+    val monthText = if (isCurrentMonth) "本月" else "${month.year}年${month.monthValue}月"
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Axis column with vertical line for continuity
-        Box(
-            modifier = Modifier
-                .width(AXIS_WIDTH)
-                .height(32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                    .width(LINE_WIDTH)
-                    .fillMaxHeight()
-            )
-        }
+        Text(
+            text = monthText,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
 
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                .padding(horizontal = 8.dp, vertical = 3.dp)
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "${month.monthValue}月 · $entryCount",
-                fontSize = 12.sp,
+                text = "$entryCount",
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -899,8 +891,8 @@ private fun CollapsedMonthHeader(
         Icon(
             imageVector = Icons.Default.ExpandMore,
             contentDescription = "展开",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(20.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(18.dp)
         )
     }
 }
@@ -919,13 +911,9 @@ private fun ExpandedMonthHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onCollapse)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Axis spacer
-        Spacer(modifier = Modifier.width(AXIS_WIDTH))
-
         Text(
             text = monthText,
             fontSize = 15.sp,
@@ -933,15 +921,18 @@ private fun ExpandedMonthHeader(
             color = MaterialTheme.colorScheme.onBackground
         )
 
+        Spacer(modifier = Modifier.width(8.dp))
+
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                .padding(horizontal = 6.dp, vertical = 2.dp)
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "$entryCount",
-                fontSize = 10.sp,
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -952,8 +943,8 @@ private fun ExpandedMonthHeader(
         Icon(
             imageVector = Icons.Default.ExpandLess,
             contentDescription = "折叠",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(20.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(18.dp)
         )
     }
 }
