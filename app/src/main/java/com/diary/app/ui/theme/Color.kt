@@ -18,7 +18,7 @@ val FogBlueLightTextTertiary = Color(0xFF8A96A8)
 val FogBlueLightAccent = Color(0xFF6B8DB5)
 val FogBlueLightAccent2 = Color(0xFFB5926B)
 val FogBlueLightCardBg = Color(0xFFFFFFFF)
-val FogBlueLightCardBorder = Color(0x1E8296B4)
+val FogBlueLightCardBorder = Color(0x2E8296B4)
 
 // Tertiary accent
 val FogBlueLightAccent3 = Color(0xFF9B8EBA)
@@ -35,7 +35,7 @@ val FogBlueDarkAccent = Color(0xFF88B0D4)
 val FogBlueDarkAccent2 = Color(0xFFD4A878)
 val FogBlueDarkAccent3 = Color(0xFFA89AC8)
 val FogBlueDarkCardBg = Color(0xFF181A26)
-val FogBlueDarkCardBorder = Color(0x1D8296B4)
+val FogBlueDarkCardBorder = Color(0x2D8296B4)
 
 // ============================================================
 //  Theme B: Moss Green — 苔藓绿
@@ -53,7 +53,7 @@ val MossGreenLightTextTertiary = Color(0xFF8A9480)
 val MossGreenLightAccent = Color(0xFF7BA06E)
 val MossGreenLightAccent2 = Color(0xFFC4A06B)
 val MossGreenLightCardBg = Color(0xFFFCFDFB)
-val MossGreenLightCardBorder = Color(0x1E647A5A)
+val MossGreenLightCardBorder = Color(0x2E647A5A)
 
 // Tertiary accent
 val MossGreenLightAccent3 = Color(0xFFA088B0)
@@ -70,7 +70,7 @@ val MossGreenDarkAccent = Color(0xFF8BC07A)
 val MossGreenDarkAccent2 = Color(0xFFD4B078)
 val MossGreenDarkAccent3 = Color(0xFFB098C4)
 val MossGreenDarkCardBg = Color(0xFF181C16)
-val MossGreenDarkCardBorder = Color(0x14A0B890)
+val MossGreenDarkCardBorder = Color(0x24A0B890)
 
 // ============================================================
 //  Semantic colors

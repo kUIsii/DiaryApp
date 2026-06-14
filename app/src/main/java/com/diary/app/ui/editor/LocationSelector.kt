@@ -57,6 +57,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -296,35 +299,12 @@ fun LocationSelector(
 
             if (showManualInput) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = manualInput,
-                        onValueChange = { manualInput = it },
-                        placeholder = { Text("输入地点名称", fontSize = 14.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    IconButton(
-                        onClick = {
-                            if (manualInput.isNotBlank()) {
-                                onLocationSelected(manualInput.trim(), null, null)
-                                manualInput = ""
-                                showManualInput = false
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "确认",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                ManualInputField(
+                    onConfirm = { name ->
+                        onLocationSelected(name, null, null)
+                        showManualInput = false
                     }
-                }
+                )
             }
         }
 
@@ -406,6 +386,44 @@ fun LocationSelector(
                         Text("取消")
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ManualInputField(
+    onConfirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            placeholder = { Text("输入地点名称", fontSize = 14.sp) },
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
+        )
+        IconButton(
+            onClick = {
+                if (text.isNotBlank()) {
+                    onConfirm(text.trim())
+                }
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = "确认",
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }

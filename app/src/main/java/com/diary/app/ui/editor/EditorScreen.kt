@@ -267,7 +267,8 @@ fun EditorScreen(
     }
 
     LaunchedEffect(isKeyboardVisible) {
-        if (isKeyboardVisible) {
+        // 只在没有打开位置面板时才关闭（位置面板内有输入框需要键盘）
+        if (isKeyboardVisible && activePanel != "location") {
             activePanel = null
         }
     }

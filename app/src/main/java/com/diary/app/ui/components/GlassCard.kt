@@ -45,7 +45,7 @@ fun GlassCard(
     }
 
     // Dark mode: 1.5dp border for more visibility; light mode: 1dp
-    val borderWidth = if (dark) 1.5.dp else 1.dp
+    val borderWidth = if (dark) 1.5.dp else 1.2.dp
 
     val shadowElevation = when {
         enableShadow -> if (dark) 8.dp else 4.dp

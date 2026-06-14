@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
@@ -592,7 +593,7 @@ private fun EntryCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp)
+            .padding(bottom = 8.dp)
             .then(
                 if (isSelected) {
                     Modifier.border(
@@ -620,7 +621,7 @@ private fun EntryCard(
                     onLongClick = onLongClick
                 ),
             cornerRadius = 16.dp,
-            innerPadding = 16.dp
+            innerPadding = 12.dp
         ) {
             Column {
                 if (isSelected) {
@@ -646,130 +647,138 @@ private fun EntryCard(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                // 时间 + 标题同行
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = formatEntryTime(entry.createdAt),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
+                    if (entry.title.isNotBlank()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = entry.title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
-                if (entry.title.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                // 内容预览
+                if (entry.plainText.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = entry.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = cleanPreviewText(entry.plainText),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                if (entry.plainText.isNotBlank()) {
+                // 地点（单独一行，可能较长）
+                if (!entry.location.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = entry.plainText
-                            .replace("\\n", "\n")
-                            .replace("\r\n", "\n")
-                            .replace("\r", "\n"),
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 22.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = entry.location,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
+                // 心情/天气/标签
                 val hasMoodWeather = entry.moodLevel != null || entry.weather != null
                 val hasTags = tags.isNotEmpty()
                 if (hasMoodWeather || hasTags) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            if (entry.moodLevel != null) {
-                                val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = moodIcon,
-                                        contentDescription = "心情",
-                                        tint = moodTint,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = moodLabelForLevel(entry.moodLevel),
-                                        fontSize = 12.sp,
-                                        color = moodTint,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                        if (entry.moodLevel != null) {
+                            val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = moodIcon,
+                                    contentDescription = "心情",
+                                    tint = moodTint,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = moodLabelForLevel(entry.moodLevel),
+                                    fontSize = 11.sp,
+                                    color = moodTint,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
-                            if (entry.weather != null) {
-                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = weatherIcon,
-                                        contentDescription = "天气",
-                                        tint = weatherTint,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = weatherLabelFor(entry.weather),
-                                        fontSize = 12.sp,
-                                        color = weatherTint,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                        }
+                        if (entry.weather != null) {
+                            val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = weatherIcon,
+                                    contentDescription = "天气",
+                                    tint = weatherTint,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = weatherLabelFor(entry.weather),
+                                    fontSize = 11.sp,
+                                    color = weatherTint,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
 
                         if (hasTags) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                tags.forEach { tag ->
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(tag.color.copy(alpha = 0.12f))
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(5.dp)
-                                                .clip(CircleShape)
-                                                .background(tag.color)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = tag.name,
-                                            fontSize = 11.sp,
-                                            color = tag.color,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
+                            tags.take(2).forEach { tag ->
+                                Text(
+                                    text = tag.name,
+                                    fontSize = 10.sp,
+                                    color = tag.color,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(tag.color.copy(alpha = 0.1f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            if (tags.size > 2) {
+                                Text(
+                                    text = "+${tags.size - 2}",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
                             }
                         }
                     }
@@ -777,6 +786,23 @@ private fun EntryCard(
             }
         }
     }
+}
+
+/**
+ * 清理预览文本中的编辑器符号
+ */
+private fun cleanPreviewText(text: String): String {
+    return text
+        .replace("\\n", "\n")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        // 移除 Quill.js checkbox 相关的 Unicode 符号
+        .replace(Regex("[☐☑✓✔✕✖✗✘❎✅❌]"), "")
+        // 移除列表符号（仅行首）
+        .replace(Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE), "")
+        // 移除连续空行，保留最多一个
+        .replace(Regex("\\n{3,}"), "\n\n")
+        .trim()
 }
 
 private fun formatEntryTime(timestamp: Long): String {
