@@ -410,6 +410,13 @@ object BackupManager {
         val tagMap = tags.associateBy { it.id }
         val diaryTagMap = allDiaryTags.groupBy({ it.diaryId }, { tagMap[it.tagId]?.name ?: "" })
 
+        val todos = dao.getAllTodosOnce()
+        val countdowns = dao.getAllCountDownItemsOnce()
+        val capsules = dao.getAllCapsulesOnce()
+        val trash = dao.getAllTrashEntriesOnce()
+        val habitRecords = dao.getAllHabitRecordsOnce()
+        val notifications = dao.getAllNotificationsOnce()
+
         val payload = DiaryBackup(
             app = "DiaryApp",
             version = BuildConfig.VERSION_NAME,
@@ -434,6 +441,89 @@ object BackupManager {
                     name = tag.name,
                     color = tag.color,
                     isPreset = tag.isPreset
+                )
+            },
+            todos = todos.map { todo ->
+                BackupTodo(
+                    title = todo.title,
+                    description = todo.description,
+                    isCompleted = todo.isCompleted,
+                    priority = todo.priority,
+                    dueDate = todo.dueDate,
+                    createdAt = todo.createdAt,
+                    completedAt = todo.completedAt,
+                    sortOrder = todo.sortOrder,
+                    category = todo.category,
+                    reminderTime = todo.reminderTime,
+                    tags = todo.tags,
+                    parentId = todo.parentId,
+                    recurringType = todo.recurringType,
+                    progress = todo.progress,
+                    isPinned = todo.isPinned,
+                    linkedTagIds = todo.linkedTagIds
+                )
+            },
+            countdowns = countdowns.map { item ->
+                BackupCountDown(
+                    title = item.title,
+                    targetDate = item.targetDate,
+                    isCountUp = item.isCountUp,
+                    color = item.color,
+                    isRepeatYearly = item.isRepeatYearly,
+                    isPinned = item.isPinned,
+                    createdAt = item.createdAt
+                )
+            },
+            capsules = capsules.map { capsule ->
+                BackupCapsule(
+                    title = capsule.title,
+                    content = capsule.content,
+                    createdAt = capsule.createdAt,
+                    unlockDate = capsule.unlockDate,
+                    isRead = capsule.isRead
+                )
+            },
+            trash = trash.map { entry ->
+                BackupTrashEntry(
+                    originalId = entry.originalId,
+                    title = entry.title,
+                    content = entry.content,
+                    plainText = entry.plainText,
+                    moodLevel = entry.moodLevel,
+                    weather = entry.weather,
+                    location = entry.location,
+                    latitude = entry.latitude,
+                    longitude = entry.longitude,
+                    isFavorite = entry.isFavorite,
+                    createdAt = entry.createdAt,
+                    updatedAt = entry.updatedAt,
+                    deletedAt = entry.deletedAt
+                )
+            },
+            habitRecords = habitRecords.map { record ->
+                BackupHabitRecord(
+                    todoId = record.todoId,
+                    recordDate = record.recordDate,
+                    source = record.source,
+                    summary = record.summary,
+                    diaryEntryId = record.diaryEntryId,
+                    createdAt = record.createdAt,
+                    updatedAt = record.updatedAt
+                )
+            },
+            notifications = notifications.map { notification ->
+                BackupNotification(
+                    id = notification.id,
+                    type = notification.type,
+                    title = notification.title,
+                    subtitle = notification.subtitle,
+                    iconType = notification.iconType,
+                    colorHex = notification.colorHex,
+                    relatedId = notification.relatedId,
+                    isRead = notification.isRead,
+                    isTrashed = notification.isTrashed,
+                    createdAt = notification.createdAt,
+                    trashedAt = notification.trashedAt
                 )
             }
         )

@@ -56,6 +56,24 @@ interface DiaryDao {
     @Query("DELETE FROM diary_images")
     suspend fun deleteAllImages()
 
+    @Query("DELETE FROM todo_items")
+    suspend fun deleteAllTodos()
+
+    @Query("DELETE FROM habit_records")
+    suspend fun deleteAllHabitRecords()
+
+    @Query("DELETE FROM trash_entries")
+    suspend fun deleteAllTrashEntries()
+
+    @Query("DELETE FROM countdown_items")
+    suspend fun deleteAllCountDownItems()
+
+    @Query("DELETE FROM time_capsules")
+    suspend fun deleteAllCapsules()
+
+    @Query("DELETE FROM notifications")
+    suspend fun deleteAllNotifications()
+
     @Transaction
     suspend fun deleteEntryWithTags(entry: DiaryEntry) {
         deleteTagsForDiary(entry.id)
@@ -249,6 +267,10 @@ interface DiaryDao {
     @Query("SELECT COUNT(*) FROM todo_items WHERE isCompleted = 0 AND parentId IS NULL")
     fun getPendingTodoCount(): Flow<Int>
 
+    // One-shot query for backup
+    @Query("SELECT * FROM todo_items")
+    suspend fun getAllTodosOnce(): List<TodoItem>
+
     // Recurring task queries
     @Query("SELECT * FROM todo_items WHERE recurringType != 'none' AND isCompleted = 1 AND parentId IS NULL")
     suspend fun getCompletedRecurringTodos(): List<TodoItem>
@@ -280,6 +302,10 @@ interface DiaryDao {
 
     @Query("DELETE FROM habit_records WHERE todoId = :todoId AND recordDate = :recordDate")
     suspend fun deleteHabitRecordForDay(todoId: Long, recordDate: Long)
+
+    // One-shot query for backup
+    @Query("SELECT * FROM habit_records")
+    suspend fun getAllHabitRecordsOnce(): List<HabitRecord>
 
     // "On This Day" - get entries from the same month+day in previous years
     // We use SQLite strftime to extract month and day from the epoch timestamp
@@ -368,6 +394,10 @@ interface DiaryDao {
 
     @Query("SELECT * FROM trash_entries WHERE id = :id")
     suspend fun getTrashEntryById(id: Long): TrashEntry?
+
+    // One-shot query for backup
+    @Query("SELECT * FROM trash_entries")
+    suspend fun getAllTrashEntriesOnce(): List<TrashEntry>
 
     // CountDown queries
     @Query("SELECT * FROM countdown_items ORDER BY isPinned DESC, targetDate ASC")

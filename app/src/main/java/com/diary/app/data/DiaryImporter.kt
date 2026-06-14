@@ -11,7 +11,13 @@ data class DiaryBackup(
     val version: String?,
     val exportDate: String?,
     val entries: List<BackupEntry>?,
-    val tags: List<BackupTag>?
+    val tags: List<BackupTag>?,
+    val todos: List<BackupTodo>? = null,
+    val countdowns: List<BackupCountDown>? = null,
+    val capsules: List<BackupCapsule>? = null,
+    val trash: List<BackupTrashEntry>? = null,
+    val habitRecords: List<BackupHabitRecord>? = null,
+    val notifications: List<BackupNotification>? = null
 )
 
 data class BackupEntry(
@@ -32,6 +38,83 @@ data class BackupTag(
     val name: String?,
     val color: Long?,
     val isPreset: Boolean?
+)
+
+data class BackupTodo(
+    val title: String?,
+    val description: String?,
+    val isCompleted: Boolean?,
+    val priority: Int?,
+    val dueDate: Long?,
+    val createdAt: Long?,
+    val completedAt: Long?,
+    val sortOrder: Int?,
+    val category: String?,
+    val reminderTime: Long?,
+    val tags: String?,
+    val parentId: Long?,
+    val recurringType: String?,
+    val progress: Int?,
+    val isPinned: Boolean?,
+    val linkedTagIds: String?
+)
+
+data class BackupCountDown(
+    val title: String?,
+    val targetDate: Long?,
+    val isCountUp: Boolean?,
+    val color: Long?,
+    val isRepeatYearly: Boolean?,
+    val isPinned: Boolean?,
+    val createdAt: Long?
+)
+
+data class BackupCapsule(
+    val title: String?,
+    val content: String?,
+    val createdAt: Long?,
+    val unlockDate: Long?,
+    val isRead: Boolean?
+)
+
+data class BackupTrashEntry(
+    val originalId: Long?,
+    val title: String?,
+    val content: String?,
+    val plainText: String?,
+    val moodLevel: Int?,
+    val weather: String?,
+    val location: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val isFavorite: Boolean?,
+    val createdAt: Long?,
+    val updatedAt: Long?,
+    val deletedAt: Long?
+)
+
+data class BackupHabitRecord(
+    val todoId: Long?,
+    val recordDate: Long?,
+    val source: String?,
+    val summary: String?,
+    val diaryEntryId: Long?,
+    val createdAt: Long?,
+    val updatedAt: Long?
+)
+
+data class BackupNotification(
+    val id: String?,
+    val type: String?,
+    val title: String?,
+    val subtitle: String?,
+    val iconType: String?,
+    val colorHex: Long?,
+    val relatedId: Long?,
+    val isRead: Boolean?,
+    val isTrashed: Boolean?,
+    val createdAt: Long?,
+    val trashedAt: Long?
 )
 
 data class ImportResult(
@@ -72,6 +155,12 @@ object DiaryImporter {
 
         return database.withTransaction {
             // 清空所有现有数据
+            dao.deleteAllNotifications()
+            dao.deleteAllHabitRecords()
+            dao.deleteAllCapsules()
+            dao.deleteAllCountDownItems()
+            dao.deleteAllTodos()
+            dao.deleteAllTrashEntries()
             dao.deleteAllImages()
             dao.deleteAllDiaryTags()
             dao.deleteAllEntries()
@@ -115,6 +204,113 @@ object DiaryImporter {
                     }
                 }
                 importedEntryCount++
+            }
+
+            // 恢复待办事项
+            for (todo in backup.todos.orEmpty()) {
+                dao.insertTodo(
+                    TodoItem(
+                        title = todo.title ?: "",
+                        description = todo.description ?: "",
+                        isCompleted = todo.isCompleted ?: false,
+                        priority = todo.priority ?: 0,
+                        dueDate = todo.dueDate,
+                        createdAt = todo.createdAt ?: now,
+                        completedAt = todo.completedAt,
+                        sortOrder = todo.sortOrder ?: 0,
+                        category = todo.category ?: "task",
+                        reminderTime = todo.reminderTime,
+                        tags = todo.tags ?: "",
+                        parentId = todo.parentId,
+                        recurringType = todo.recurringType ?: "none",
+                        progress = todo.progress ?: 0,
+                        isPinned = todo.isPinned ?: false,
+                        linkedTagIds = todo.linkedTagIds ?: ""
+                    )
+                )
+            }
+
+            // 恢复倒数日
+            for (item in backup.countdowns.orEmpty()) {
+                dao.insertCountDownItem(
+                    CountDownItem(
+                        title = item.title ?: "",
+                        targetDate = item.targetDate ?: now,
+                        isCountUp = item.isCountUp ?: false,
+                        color = item.color ?: 0xFF4A90D9,
+                        isRepeatYearly = item.isRepeatYearly ?: false,
+                        isPinned = item.isPinned ?: false,
+                        createdAt = item.createdAt ?: now
+                    )
+                )
+            }
+
+            // 恢复时间胶囊
+            for (capsule in backup.capsules.orEmpty()) {
+                dao.insertCapsule(
+                    TimeCapsule(
+                        title = capsule.title ?: "",
+                        content = capsule.content ?: "",
+                        createdAt = capsule.createdAt ?: now,
+                        unlockDate = capsule.unlockDate ?: now,
+                        isRead = capsule.isRead ?: false
+                    )
+                )
+            }
+
+            // 恢复回收站
+            for (entry in backup.trash.orEmpty()) {
+                dao.insertTrashEntry(
+                    TrashEntry(
+                        originalId = entry.originalId ?: 0,
+                        title = entry.title ?: "",
+                        content = entry.content ?: "",
+                        plainText = entry.plainText ?: "",
+                        moodLevel = entry.moodLevel,
+                        weather = entry.weather,
+                        location = entry.location,
+                        latitude = entry.latitude,
+                        longitude = entry.longitude,
+                        isFavorite = entry.isFavorite ?: false,
+                        createdAt = entry.createdAt ?: now,
+                        updatedAt = entry.updatedAt ?: now,
+                        deletedAt = entry.deletedAt ?: now
+                    )
+                )
+            }
+
+            // 恢复习惯记录
+            for (record in backup.habitRecords.orEmpty()) {
+                dao.insertHabitRecord(
+                    HabitRecord(
+                        todoId = record.todoId ?: 0,
+                        recordDate = record.recordDate ?: 0,
+                        source = record.source ?: "manual",
+                        summary = record.summary ?: "",
+                        diaryEntryId = record.diaryEntryId,
+                        createdAt = record.createdAt ?: now,
+                        updatedAt = record.updatedAt ?: now
+                    )
+                )
+            }
+
+            // 恢复通知
+            for (notification in backup.notifications.orEmpty()) {
+                dao.insertNotification(
+                    NotificationEntity(
+                        id = notification.id ?: continue,
+                        type = notification.type ?: "",
+                        title = notification.title ?: "",
+                        subtitle = notification.subtitle ?: "",
+                        iconType = notification.iconType ?: "",
+                        colorHex = notification.colorHex ?: 0,
+                        relatedId = notification.relatedId,
+                        isRead = notification.isRead ?: false,
+                        isTrashed = notification.isTrashed ?: false,
+                        createdAt = notification.createdAt ?: now,
+                        trashedAt = notification.trashedAt
+                    )
+                )
             }
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
@@ -177,6 +373,113 @@ object DiaryImporter {
                 }
 
                 importedEntryCount++
+            }
+
+            // 恢复待办事项
+            for (todo in backup.todos.orEmpty()) {
+                dao.insertTodo(
+                    TodoItem(
+                        title = todo.title ?: "",
+                        description = todo.description ?: "",
+                        isCompleted = todo.isCompleted ?: false,
+                        priority = todo.priority ?: 0,
+                        dueDate = todo.dueDate,
+                        createdAt = todo.createdAt ?: now,
+                        completedAt = todo.completedAt,
+                        sortOrder = todo.sortOrder ?: 0,
+                        category = todo.category ?: "task",
+                        reminderTime = todo.reminderTime,
+                        tags = todo.tags ?: "",
+                        parentId = todo.parentId,
+                        recurringType = todo.recurringType ?: "none",
+                        progress = todo.progress ?: 0,
+                        isPinned = todo.isPinned ?: false,
+                        linkedTagIds = todo.linkedTagIds ?: ""
+                    )
+                )
+            }
+
+            // 恢复倒数日
+            for (item in backup.countdowns.orEmpty()) {
+                dao.insertCountDownItem(
+                    CountDownItem(
+                        title = item.title ?: "",
+                        targetDate = item.targetDate ?: now,
+                        isCountUp = item.isCountUp ?: false,
+                        color = item.color ?: 0xFF4A90D9,
+                        isRepeatYearly = item.isRepeatYearly ?: false,
+                        isPinned = item.isPinned ?: false,
+                        createdAt = item.createdAt ?: now
+                    )
+                )
+            }
+
+            // 恢复时间胶囊
+            for (capsule in backup.capsules.orEmpty()) {
+                dao.insertCapsule(
+                    TimeCapsule(
+                        title = capsule.title ?: "",
+                        content = capsule.content ?: "",
+                        createdAt = capsule.createdAt ?: now,
+                        unlockDate = capsule.unlockDate ?: now,
+                        isRead = capsule.isRead ?: false
+                    )
+                )
+            }
+
+            // 恢复回收站
+            for (entry in backup.trash.orEmpty()) {
+                dao.insertTrashEntry(
+                    TrashEntry(
+                        originalId = entry.originalId ?: 0,
+                        title = entry.title ?: "",
+                        content = entry.content ?: "",
+                        plainText = entry.plainText ?: "",
+                        moodLevel = entry.moodLevel,
+                        weather = entry.weather,
+                        location = entry.location,
+                        latitude = entry.latitude,
+                        longitude = entry.longitude,
+                        isFavorite = entry.isFavorite ?: false,
+                        createdAt = entry.createdAt ?: now,
+                        updatedAt = entry.updatedAt ?: now,
+                        deletedAt = entry.deletedAt ?: now
+                    )
+                )
+            }
+
+            // 恢复习惯记录
+            for (record in backup.habitRecords.orEmpty()) {
+                dao.insertHabitRecord(
+                    HabitRecord(
+                        todoId = record.todoId ?: 0,
+                        recordDate = record.recordDate ?: 0,
+                        source = record.source ?: "manual",
+                        summary = record.summary ?: "",
+                        diaryEntryId = record.diaryEntryId,
+                        createdAt = record.createdAt ?: now,
+                        updatedAt = record.updatedAt ?: now
+                    )
+                )
+            }
+
+            // 恢复通知
+            for (notification in backup.notifications.orEmpty()) {
+                dao.insertNotification(
+                    NotificationEntity(
+                        id = notification.id ?: continue,
+                        type = notification.type ?: "",
+                        title = notification.title ?: "",
+                        subtitle = notification.subtitle ?: "",
+                        iconType = notification.iconType ?: "",
+                        colorHex = notification.colorHex ?: 0,
+                        relatedId = notification.relatedId,
+                        isRead = notification.isRead ?: false,
+                        isTrashed = notification.isTrashed ?: false,
+                        createdAt = notification.createdAt ?: now,
+                        trashedAt = notification.trashedAt
+                    )
+                )
             }
 
             ImportResult(
