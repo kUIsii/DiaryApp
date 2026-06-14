@@ -13,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -326,20 +325,19 @@ fun DiaryDetailScreen(
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            BoxWithConstraints {
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    // Header (title + date + mood/weather/location/tags)
-                                    DetailHeaderCompact(
-                                        entry = currentEntry,
-                                        tags = tags,
-                                        textColor = textColor,
-                                        textSecondary = textSecondary
-                                    )
+                            Column {
+                                // Header (title + date + mood/weather/location/tags)
+                                DetailHeaderCompact(
+                                    entry = currentEntry,
+                                    tags = tags,
+                                    textColor = textColor,
+                                    textSecondary = textSecondary
+                                )
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                                    // WebView content
-                                    Box(modifier = Modifier.weight(1f)) {
+                                // WebView content
+                                Box {
                                     if (!contentReady) {
                                         Box(
                                             modifier = Modifier
@@ -476,18 +474,17 @@ fun DiaryDetailScreen(
                                         }
                                     }
                                 }
-
-                                // Timestamps
-                                Spacer(modifier = Modifier.height(8.dp))
-                                DetailTimestamps(
-                                    createdAt = currentEntry.createdAt,
-                                    updatedAt = currentEntry.updatedAt,
-                                    textSecondary = textSecondary,
-                                    plainText = currentEntry.plainText
-                                )
-                            }
                             }
                         }
+
+                        // Timestamps (fixed below the main card, not scrolling)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DetailTimestamps(
+                            createdAt = currentEntry.createdAt,
+                            updatedAt = currentEntry.updatedAt,
+                            textSecondary = textSecondary,
+                            plainText = currentEntry.plainText
+                        )
 
                         // Related entries (outside the main card)
                         if (relatedEntries.isNotEmpty()) {
