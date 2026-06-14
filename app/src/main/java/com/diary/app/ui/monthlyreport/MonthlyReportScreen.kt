@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +64,7 @@ import com.diary.app.ui.components.GradientBackground
 private val moodLabels = listOf("", "很差", "不好", "一般", "不错", "很棒")
 private val monthNames = listOf("", "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月")
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonthlyReportScreen(
     year: Int,
@@ -618,7 +615,7 @@ private fun TagStatsCard(report: MonthlyReport) {
                         color = primary.copy(alpha = 0.5f),
                         modifier = Modifier.width(24.dp)
                     )
-                    val tagColor = Color(tag.color.toULong())
+                    val tagColor = Color(tag.color)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = tagColor.copy(alpha = 0.12f)

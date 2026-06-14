@@ -325,7 +325,7 @@ fun DiaryDetailScreen(
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            Column {
+                            Column(modifier = Modifier.fillMaxSize()) {
                                 // Header (title + date + mood/weather/location/tags)
                                 DetailHeaderCompact(
                                     entry = currentEntry,
@@ -474,6 +474,9 @@ fun DiaryDetailScreen(
                                         }
                                     }
                                 }
+
+                                // Spacer to push timestamps to bottom when content is short
+                                Spacer(modifier = Modifier.weight(1f))
 
                                 // Timestamps
                                 Spacer(modifier = Modifier.height(8.dp))

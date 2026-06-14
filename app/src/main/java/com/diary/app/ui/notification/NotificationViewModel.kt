@@ -240,6 +240,18 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    fun markAllAsRead() {
+        viewModelScope.launch {
+            val current = _uiState.value
+            val unreadIds = current.notifications.filter { item ->
+                val entity = dao.getNotificationById(item.id)
+                entity != null && !entity.isRead
+            }.map { it.id }
+            unreadIds.forEach { id -> dao.markNotificationRead(id) }
+            _uiState.value = current.copy(unreadCount = 0)
+        }
+    }
+
     fun toggleTrashView() {
         val current = _uiState.value
         _uiState.value = current.copy(showTrash = !current.showTrash)

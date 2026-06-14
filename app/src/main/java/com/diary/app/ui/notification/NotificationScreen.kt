@@ -47,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +81,11 @@ fun NotificationScreen(
     viewModel: NotificationViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Mark all notifications as read when entering the screen
+    LaunchedEffect(Unit) {
+        viewModel.markAllAsRead()
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {

@@ -115,15 +115,18 @@ object DiaryMediaManager {
         thumbDimension: Int = 360,
         jpegQuality: Int = 78
     ): ImportedDiaryMedia? {
+        // Read input stream once to avoid issues with content:// URIs that can't be opened twice
+        val imageBytes = openInputStream()?.use { it.readBytes() } ?: return null
+
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openInputStream()?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
         val options = BitmapFactory.Options().apply {
             inSampleSize = calculateImageSampleSize(bounds.outWidth, bounds.outHeight, maxDimension)
             inPreferredConfig = Bitmap.Config.RGB_565
         }
-        val decoded = openInputStream()?.use { BitmapFactory.decodeStream(it, null, options) } ?: return null
+        val decoded = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, options) ?: return null
         val displayBitmap = scaleBitmapIfNeeded(decoded, maxDimension)
         val thumbBitmap = scaleBitmapIfNeeded(displayBitmap, thumbDimension)
 
