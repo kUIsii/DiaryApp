@@ -30,7 +30,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,12 +49,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -88,6 +91,7 @@ fun TimelineScreen(
     val allTags by viewModel.allTags.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filterState by viewModel.filterState.collectAsState()
+    val imageMap by viewModel.imageMap.collectAsState()
 
     val listState = rememberLazyListState()
     var isSearchExpanded by remember { mutableStateOf(false) }
@@ -153,7 +157,6 @@ fun TimelineScreen(
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Search button
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -175,7 +178,6 @@ fun TimelineScreen(
                                 )
                             }
 
-                            // Filter button
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -299,7 +301,7 @@ fun TimelineScreen(
                         val isExpanded = expandedMonths[month] ?: false
                         val monthTotal = monthEntries.size
 
-                        // Month header
+                        // Month header (collapsed state)
                         if (!isExpanded) {
                             item(key = "month_$month") {
                                 CollapsedMonthHeader(
@@ -320,30 +322,34 @@ fun TimelineScreen(
                                     .toLocalDate()
                             }.toSortedMap(compareByDescending { it })
 
+                            // Month collapse header
+                            item(key = "monthheader_$month") {
+                                ExpandedMonthHeader(
+                                    month = month,
+                                    entryCount = monthTotal,
+                                    onCollapse = {
+                                        expandedMonths[month] = false
+                                    }
+                                )
+                            }
+
                             monthDateGroups.forEach { (date, dayEntries) ->
-                                // Day header
+                                // Day header with date capsule
                                 item(key = "dayheader_${date}") {
-                                    DayHeader(
-                                        date = date,
-                                        entryCount = dayEntries.size,
-                                        isCurrentMonth = month == currentMonth,
-                                        onCollapse = {
-                                            expandedMonths[month] = false
-                                        }
-                                    )
+                                    DayHeader(date = date)
                                 }
 
                                 // Entries for this day
                                 dayEntries.forEachIndexed { index, entry ->
                                     item(key = "entry_${entry.id}") {
                                         val tags = tagsMap[entry.id] ?: emptyList()
-                                        val isFirst = index == 0
+                                        val imagePath = imageMap[entry.id]
                                         val isLast = index == dayEntries.size - 1
 
                                         TimelineEntry(
                                             entry = entry,
                                             tags = tags,
-                                            isFirstInDay = isFirst,
+                                            imagePath = imagePath,
                                             isLastInDay = isLast,
                                             onEntryClick = {
                                                 haptic.click()
@@ -489,7 +495,6 @@ private fun CompactFilterPanel(
         innerPadding = 10.dp
     ) {
         Column {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -523,7 +528,6 @@ private fun CompactFilterPanel(
                 }
             }
 
-            // Mood filters
             Text(
                 text = "心情",
                 fontSize = 11.sp,
@@ -553,7 +557,6 @@ private fun CompactFilterPanel(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Weather filters
             Text(
                 text = "天气",
                 fontSize = 11.sp,
@@ -580,7 +583,6 @@ private fun CompactFilterPanel(
                 }
             }
 
-            // Tag filters
             if (allTags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -733,21 +735,16 @@ private fun CollapsedMonthHeader(
     val now = YearMonth.now()
     val isCurrentMonth = month == now
 
-    val monthText = if (isCurrentMonth) {
-        "本月"
-    } else {
-        "${month.year}年${month.monthValue}月"
-    }
+    val monthText = if (isCurrentMonth) "本月" else "${month.monthValue}月"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Collapsed indicator
         Box(
             modifier = Modifier
                 .size(8.dp)
@@ -793,25 +790,64 @@ private fun CollapsedMonthHeader(
 }
 
 @Composable
-private fun DayHeader(
-    date: LocalDate,
+private fun ExpandedMonthHeader(
+    month: YearMonth,
     entryCount: Int,
-    isCurrentMonth: Boolean,
     onCollapse: () -> Unit
 ) {
+    val now = YearMonth.now()
+    val isCurrentMonth = month == now
+
+    val monthText = if (isCurrentMonth) "本月" else "${month.year}年${month.monthValue}月"
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCollapse)
+            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = monthText,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = "$entryCount",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = "折叠",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DayHeader(date: LocalDate) {
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
 
-    val isToday = date == today
-    val isYesterday = date == yesterday
-
-    val dateLabel = when {
-        isToday -> "今天"
-        isYesterday -> "昨天"
-        else -> {
-            val monthDay = date.format(DateTimeFormatter.ofPattern("M.d"))
-            monthDay
-        }
+    val dateLabel = when (date) {
+        today -> "今天"
+        yesterday -> "昨天"
+        else -> date.format(DateTimeFormatter.ofPattern("M.d"))
     }
 
     val weekdayText = when (date.dayOfWeek) {
@@ -824,15 +860,15 @@ private fun DayHeader(
         DayOfWeek.SUNDAY -> "周日"
     }
 
-    val fullDateText = date.format(DateTimeFormatter.ofPattern("M月d日")) + " · $weekdayText"
+    val isToday = date == today
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 8.dp, top = 16.dp, bottom = 8.dp),
+            .padding(start = 8.dp, top = 12.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Date capsule
+        // Date capsule on the timeline
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
@@ -848,7 +884,7 @@ private fun DayHeader(
         ) {
             Text(
                 text = dateLabel,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isToday) {
                     MaterialTheme.colorScheme.primary
@@ -860,20 +896,13 @@ private fun DayHeader(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Text(
-            text = fullDateText,
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Entry count and collapse button
-        Text(
-            text = "$entryCount 篇日记",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (!isToday) {
+            Text(
+                text = "${date.format(DateTimeFormatter.ofPattern("M月d日"))} · $weekdayText",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -882,7 +911,7 @@ private fun DayHeader(
 private fun TimelineEntry(
     entry: DiaryPreview,
     tags: List<TagInfo>,
-    isFirstInDay: Boolean,
+    imagePath: String?,
     isLastInDay: Boolean,
     onEntryClick: () -> Unit
 ) {
@@ -897,15 +926,17 @@ private fun TimelineEntry(
     val moodColor = entry.moodLevel?.let { moodColorForLevel(it) }
         ?: MaterialTheme.colorScheme.primary
 
+    val hasImage = !imagePath.isNullOrBlank()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = if (isLastInDay) 0.dp else 4.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // Timeline axis
+        // Timeline axis (left side)
         Column(
-            modifier = Modifier.width(44.dp),
+            modifier = Modifier.width(50.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Time text
@@ -917,26 +948,24 @@ private fun TimelineEntry(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Dot
+            // Dot with mood color
             Box(
                 modifier = Modifier
-                    .size(if (isFirstInDay) 10.dp else 6.dp)
+                    .size(8.dp)
                     .clip(CircleShape)
                     .background(moodColor)
             )
 
-            // Vertical line (not for last entry)
-            if (!isLastInDay) {
-                Box(
-                    modifier = Modifier
-                        .width(1.5.dp)
-                        .height(80.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                )
-            }
+            // Vertical line (continuous)
+            Box(
+                modifier = Modifier
+                    .width(1.5.dp)
+                    .height(if (isLastInDay) 20.dp else 80.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            )
         }
 
-        // Card
+        // Card (right side)
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -955,133 +984,154 @@ private fun TimelineEntry(
                 cornerRadius = 12.dp,
                 innerPadding = 12.dp
             ) {
-                Column {
-                    // Title
-                    val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
-                    if (entry.title.isNotBlank() && !isDateTitle) {
-                        Text(
-                            text = entry.title,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    // Content preview
-                    if (entry.plainText.isNotBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Content
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Title
+                        val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
                         if (entry.title.isNotBlank() && !isDateTitle) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-                        Text(
-                            text = cleanPreviewText(entry.plainText),
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 18.sp
-                        )
-                    }
-
-                    // Location
-                    if (!entry.location.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = entry.location,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                text = entry.title,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+
+                        // Content preview
+                        if (entry.plainText.isNotBlank()) {
+                            if (entry.title.isNotBlank() && !isDateTitle) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                            Text(
+                                text = cleanPreviewText(entry.plainText),
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = if (hasImage) 1 else 2,
+                                overflow = TextOverflow.Ellipsis,
+                                lineHeight = 18.sp
+                            )
+                        }
+
+                        // Location
+                        if (!entry.location.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = entry.location,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        // Mood + Weather + Tags
+                        val hasMoodWeather = entry.moodLevel != null || entry.weather != null
+                        val hasTags = tags.isNotEmpty()
+                        if (hasMoodWeather || hasTags) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (entry.moodLevel != null) {
+                                    val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = moodIcon,
+                                            contentDescription = "心情",
+                                            tint = moodTint,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = moodLabelForLevel(entry.moodLevel),
+                                            fontSize = 11.sp,
+                                            color = moodTint,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                if (entry.weather != null) {
+                                    val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = weatherIcon,
+                                            contentDescription = "天气",
+                                            tint = weatherTint,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = weatherLabelFor(entry.weather),
+                                            fontSize = 11.sp,
+                                            color = weatherTint,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.weight(1f))
+
+                                if (hasTags) {
+                                    tags.take(1).forEach { tag ->
+                                        Text(
+                                            text = tag.name,
+                                            fontSize = 10.sp,
+                                            color = tag.color,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(tag.color.copy(alpha = 0.1f))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    // Mood + Weather + Tags
-                    val hasMoodWeather = entry.moodLevel != null || entry.weather != null
-                    val hasTags = tags.isNotEmpty()
-                    if (hasMoodWeather || hasTags) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Image thumbnail
+                    if (hasImage) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                         ) {
-                            if (entry.moodLevel != null) {
-                                val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = moodIcon,
-                                        contentDescription = "心情",
-                                        tint = moodTint,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = moodLabelForLevel(entry.moodLevel),
-                                        fontSize = 11.sp,
-                                        color = moodTint,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                            if (entry.weather != null) {
-                                val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = weatherIcon,
-                                        contentDescription = "天气",
-                                        tint = weatherTint,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = weatherLabelFor(entry.weather),
-                                        fontSize = 11.sp,
-                                        color = weatherTint,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            if (hasTags) {
-                                tags.take(1).forEach { tag ->
-                                    Text(
-                                        text = tag.name,
-                                        fontSize = 10.sp,
-                                        color = tag.color,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(tag.color.copy(alpha = 0.1f))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                                if (tags.size > 1) {
-                                    Text(
-                                        text = "+${tags.size - 1}",
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                }
-                            }
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(imagePath)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "日记图片",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 }
