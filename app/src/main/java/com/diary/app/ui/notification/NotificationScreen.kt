@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -284,7 +288,7 @@ private fun NotificationList(
                             initialOffsetY = { it / 5 }
                         )
             ) {
-                NotificationCardWithMenu(
+                SwipeableNotificationCard(
                     item = item,
                     onTrash = { onTrash(item.id) },
                     onClick = {
@@ -307,6 +311,70 @@ private fun NotificationList(
 // endregion
 
 // region 通知卡片
+
+@Composable
+private fun SwipeableNotificationCard(
+    item: NotificationItem,
+    onTrash: () -> Unit,
+    onClick: () -> Unit
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    val threshold = -200f
+
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // 背景：删除图标
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                    RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 20.dp),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "删除",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // 前景：通知卡片
+        Box(
+            modifier = Modifier
+                .graphicsLayer { translationX = offsetX }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = (offsetX + dragAmount).coerceIn(-300f, 0f)
+                            offsetX = newOffset
+                        },
+                        onDragEnd = {
+                            if (offsetX < threshold) {
+                                onTrash()
+                            }
+                            offsetX = 0f
+                        },
+                        onDragCancel = {
+                            offsetX = 0f
+                        }
+                    )
+                }
+        ) {
+            NotificationCardWithMenu(
+                item = item,
+                onTrash = onTrash,
+                onClick = onClick
+            )
+        }
+    }
+}
 
 @Composable
 private fun NotificationCardWithMenu(

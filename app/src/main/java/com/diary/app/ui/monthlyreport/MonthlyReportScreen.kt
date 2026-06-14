@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,8 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
@@ -47,7 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -128,58 +129,46 @@ fun MonthlyReportScreen(
                     }
                 }
             } else {
-                val pageCount = 7
-                val pagerState = rememberPagerState(pageCount = { pageCount })
-
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize()
-                    ) { page ->
-                        when (page) {
-                            0 -> CoverCard(currentReport)
-                            1 -> MoodOverviewCard(currentReport)
-                            2 -> DailyWordCountCard(currentReport)
-                            3 -> LongestEntryCard(currentReport)
-                            4 -> NightWriterCard(currentReport)
-                            5 -> TagStatsCard(currentReport)
-                            6 -> EndingCard(currentReport)
-                        }
-                    }
+                    // 封面卡片
+                    CoverCard(currentReport)
 
-                    // Page indicator
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        repeat(pageCount) { index ->
-                            val isSelected by animateFloatAsState(
-                                targetValue = if (pagerState.currentPage == index) 1f else 0.4f,
-                                animationSpec = tween(300, easing = FastOutSlowInEasing),
-                                label = "indicatorScale"
-                            )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp * isSelected)
-                                    .background(
-                                        if (pagerState.currentPage == index)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                        CircleShape
-                                    )
-                                    .scale(isSelected, isSelected)
-                            )
-                        }
-                    }
+                    // 心情概览
+                    MoodOverviewCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 写作习惯
+                    DailyWordCountCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 最长的一篇
+                    LongestEntryCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 深夜写作者
+                    NightWriterCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 标签统计
+                    TagStatsCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 结尾
+                    EndingCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -201,19 +190,22 @@ private fun CoverCard(report: MonthlyReport) {
         label = "animatedTotalWords"
     )
 
-    Box(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+    GlassCard(
+        cornerRadius = 20.dp,
+        innerPadding = 32.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = "${report.year}",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Thin,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                 letterSpacing = 4.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -221,7 +213,7 @@ private fun CoverCard(report: MonthlyReport) {
                 text = monthNames[report.month],
                 fontSize = 56.sp,
                 fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = 4.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -229,7 +221,7 @@ private fun CoverCard(report: MonthlyReport) {
                 text = "月度报告",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
             Spacer(modifier = Modifier.height(48.dp))
 
@@ -267,7 +259,7 @@ private fun StatColumn(label: String, value: String) {
 // ==================== Card 1: Mood Overview ====================
 @Composable
 private fun MoodOverviewCard(report: MonthlyReport) {
-    CardScaffold(
+    ReportCard(
         title = "心情概览",
         subtitle = "这个月的情绪",
         icon = Icons.Default.Mood
@@ -364,7 +356,7 @@ private fun MoodOverviewCard(report: MonthlyReport) {
 // ==================== Card 2: Daily Word Count ====================
 @Composable
 private fun DailyWordCountCard(report: MonthlyReport) {
-    CardScaffold(
+    ReportCard(
         title = "写作习惯",
         subtitle = "每日字数变化",
         icon = Icons.Default.CalendarMonth
@@ -454,7 +446,7 @@ private fun DailyWordCountCard(report: MonthlyReport) {
 // ==================== Card 3: Longest Entry ====================
 @Composable
 private fun LongestEntryCard(report: MonthlyReport) {
-    CardScaffold(
+    ReportCard(
         title = "最长的一篇",
         subtitle = "这个月写得最多的一天",
         icon = Icons.Default.ShortText
@@ -511,7 +503,7 @@ private fun LongestEntryCard(report: MonthlyReport) {
 // ==================== Card 4: Night Writer ====================
 @Composable
 private fun NightWriterCard(report: MonthlyReport) {
-    CardScaffold(
+    ReportCard(
         title = "深夜写作者",
         subtitle = "凌晨 0-6 点的写作",
         icon = Icons.Default.NightsStay
@@ -593,7 +585,7 @@ private fun NightWriterCard(report: MonthlyReport) {
 // ==================== Card 5: Tag Stats ====================
 @Composable
 private fun TagStatsCard(report: MonthlyReport) {
-    CardScaffold(
+    ReportCard(
         title = "标签统计",
         subtitle = "这个月使用的标签",
         icon = Icons.Default.Tag
@@ -656,13 +648,16 @@ private fun TagStatsCard(report: MonthlyReport) {
 private fun EndingCard(report: MonthlyReport) {
     val primary = MaterialTheme.colorScheme.primary
 
-    Box(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
-        contentAlignment = Alignment.Center
+    GlassCard(
+        cornerRadius = 20.dp,
+        innerPadding = 32.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
                 Icons.Default.Book,
@@ -675,14 +670,14 @@ private fun EndingCard(report: MonthlyReport) {
                 text = "这是你的${monthNames[report.month]}",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "共 ${report.totalEntries} 篇日记",
                 fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -696,65 +691,57 @@ private fun EndingCard(report: MonthlyReport) {
     }
 }
 
-// ==================== Shared Card Scaffold ====================
+// ==================== Shared Report Card ====================
 @Composable
-private fun CardScaffold(
+private fun ReportCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
-    Box(
+    GlassCard(
+        cornerRadius = 20.dp,
+        innerPadding = 20.dp,
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
     ) {
-        GlassCard(
-            cornerRadius = 20.dp,
-            innerPadding = 24.dp,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = primary.copy(alpha = 0.1f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = primary,
+                        modifier = Modifier.padding(8.dp).size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = primary.copy(alpha = 0.1f)
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = primary,
-                                modifier = Modifier.padding(8.dp).size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = title,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontFamily = FontFamily.Default
-                            )
-                            Text(
-                                text = subtitle,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                fontFamily = FontFamily.Default
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        content()
-                    }
+                    Text(
+                        text = title,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontFamily = FontFamily.Default
+                    )
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        fontFamily = FontFamily.Default
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            content()
         }
     }
 }

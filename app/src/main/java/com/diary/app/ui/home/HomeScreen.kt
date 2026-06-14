@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -83,6 +85,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (Long) -> Unit,
@@ -106,6 +109,7 @@ fun HomeScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedEntries by viewModel.selectedEntries.collectAsState()
     val tagsMap by viewModel.tagsMap.collectAsState()
+    val unreadCount by viewModel.unreadNotificationCount.collectAsState()
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showFunctionMenu by remember { mutableStateOf(false) }
@@ -165,6 +169,16 @@ fun HomeScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
+                                if (unreadCount > 0) {
+                                    Badge(
+                                        modifier = Modifier.align(Alignment.TopEnd)
+                                    ) {
+                                        Text(
+                                            text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
                             }
                             Box(
                                 modifier = Modifier

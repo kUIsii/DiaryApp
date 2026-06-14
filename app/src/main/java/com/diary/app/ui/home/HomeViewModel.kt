@@ -99,6 +99,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val allTags: StateFlow<List<com.diary.app.data.Tag>> = dao.getAllTags()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val unreadNotificationCount: StateFlow<Int> = dao.getUnreadNotificationCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val entryDates: StateFlow<Set<LocalDate>> = dao.getAllTimestamps()
         .map { timestamps ->
             timestamps.map { ts ->
