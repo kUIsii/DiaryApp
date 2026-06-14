@@ -1,8 +1,12 @@
 package com.diary.app.ui.timeline
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,13 +18,17 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -65,8 +73,6 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
-import com.diary.app.ui.theme.themeMode
-import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
@@ -78,6 +84,17 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
 import androidx.compose.runtime.mutableStateMapOf
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+
+// Timeline axis dimensions
+private val AXIS_WIDTH = 50.dp
+private val DOT_SIZE = 8.dp
+private val LINE_WIDTH = 1.5.dp
+// Image thumbnail size
+private val IMAGE_SIZE = 90.dp
+// Minimum card height for uniform sizing
+private val MIN_CARD_HEIGHT = 100.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -94,19 +111,11 @@ fun TimelineScreen(
     val imageMap by viewModel.imageMap.collectAsState()
 
     val listState = rememberLazyListState()
-    var isSearchExpanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     var isFilterExpanded by remember { mutableStateOf(false) }
+    var isSearchFocused by remember { mutableStateOf(false) }
 
-    // Group entries by date
-    val dateGroups = remember(entries) {
-        entries.groupBy { entry ->
-            Instant.ofEpochMilli(entry.createdAt)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-        }.toSortedMap(compareByDescending { it })
-    }
-
-    // Group by month for month selector
+    // Group entries by month and date
     val monthGroups = remember(entries) {
         entries.groupBy { entry ->
             val date = Instant.ofEpochMilli(entry.createdAt)
@@ -123,152 +132,166 @@ fun TimelineScreen(
         expandedMonths[currentMonth] = true
     }
 
-    // Selected month for month selector
     var selectedMonth by remember { mutableStateOf(currentMonth) }
+
+    // Build flat list of items for LazyColumn with stable keys
+    data class TimelineItem(val key: String, val type: String, val month: YearMonth? = null, val date: LocalDate? = null, val entry: DiaryPreview? = null)
+
+    val timelineItems = remember(monthGroups, expandedMonths) {
+        val items = mutableListOf<TimelineItem>()
+        monthGroups.forEach { (month, monthEntries) ->
+            val isExpanded = expandedMonths[month] ?: false
+            if (!isExpanded) {
+                items.add(TimelineItem(key = "collapsed_$month", type = "collapsed_month", month = month))
+            } else {
+                items.add(TimelineItem(key = "expanded_$month", type = "expanded_month", month = month))
+                val monthDateGroups = monthEntries.groupBy { entry ->
+                    Instant.ofEpochMilli(entry.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                }.toSortedMap(compareByDescending { it })
+                monthDateGroups.forEach { (date, dayEntries) ->
+                    items.add(TimelineItem(key = "day_$date", type = "day_header", date = date))
+                    dayEntries.forEachIndexed { index, entry ->
+                        items.add(TimelineItem(
+                            key = "entry_${entry.id}",
+                            type = "entry",
+                            entry = entry,
+                            date = date
+                        ))
+                    }
+                }
+            }
+        }
+        items
+    }
+
+    // Build index of month keys for scroll-to-month
+    val monthKeyIndex = remember(timelineItems) {
+        mutableMapOf<YearMonth, Int>().apply {
+            timelineItems.forEachIndexed { index, item ->
+                if (item.type == "expanded_month" || item.type == "collapsed_month") {
+                    if (!containsKey(item.month)) {
+                        item.month?.let { put(it, index) }
+                    }
+                }
+            }
+        }
+    }
 
     GradientBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 // Page header
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "时间线",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "${entries.size} 篇日记",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .clickable {
-                                        isSearchExpanded = !isSearchExpanded
-                                        if (!isSearchExpanded) {
-                                            viewModel.setSearchQuery("")
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    if (isSearchExpanded) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = if (isSearchExpanded) "关闭搜索" else "搜索",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
+                item(key = "header") {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "时间线",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (viewModel.hasActiveFilters()) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        }
-                                    )
-                                    .clickable { isFilterExpanded = !isFilterExpanded },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.FilterList,
-                                    contentDescription = "筛选",
-                                    tint = if (viewModel.hasActiveFilters()) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    modifier = Modifier.size(20.dp)
+                                Text(
+                                    text = "${entries.size} 篇日记",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Search bar (compact)
-                if (isSearchExpanded) {
-                    item {
-                        CompactSearchBar(
+                // Integrated search + filter bar
+                item(key = "search_bar") {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        IntegratedSearchBar(
                             query = searchQuery,
                             onQueryChange = { viewModel.setSearchQuery(it) },
-                            onDismiss = {
-                                isSearchExpanded = false
-                                viewModel.setSearchQuery("")
-                            }
+                            isFocused = isSearchFocused,
+                            onFocusChange = { isSearchFocused = it },
+                            hasActiveFilters = viewModel.hasActiveFilters(),
+                            onFilterClick = { isFilterExpanded = !isFilterExpanded }
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
-                // Filter panel (compact)
-                if (isFilterExpanded) {
-                    item {
-                        CompactFilterPanel(
-                            filterState = filterState,
-                            allTags = allTags,
-                            onMoodToggle = { viewModel.toggleMoodFilter(it) },
-                            onWeatherToggle = { viewModel.toggleWeatherFilter(it) },
-                            onTagToggle = { viewModel.toggleTagFilter(it) },
-                            onClearFilters = { viewModel.clearFilters() },
-                            onDismiss = { isFilterExpanded = false }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                // Filter panel
+                item(key = "filter_panel") {
+                    AnimatedVisibility(
+                        visible = isFilterExpanded,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            CompactFilterPanel(
+                                filterState = filterState,
+                                allTags = allTags,
+                                onMoodToggle = { viewModel.toggleMoodFilter(it) },
+                                onWeatherToggle = { viewModel.toggleWeatherFilter(it) },
+                                onTagToggle = { viewModel.toggleTagFilter(it) },
+                                onClearFilters = { viewModel.clearFilters() },
+                                onDismiss = { isFilterExpanded = false }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
 
                 // Active filters display
                 if (viewModel.hasActiveFilters()) {
-                    item {
-                        ActiveFiltersRow(
-                            filterState = filterState,
-                            allTags = allTags,
-                            onMoodRemove = { viewModel.toggleMoodFilter(it) },
-                            onWeatherRemove = { viewModel.toggleWeatherFilter(it) },
-                            onTagRemove = { viewModel.toggleTagFilter(it) }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                    item(key = "active_filters") {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            ActiveFiltersRow(
+                                filterState = filterState,
+                                allTags = allTags,
+                                onMoodRemove = { viewModel.toggleMoodFilter(it) },
+                                onWeatherRemove = { viewModel.toggleWeatherFilter(it) },
+                                onTagRemove = { viewModel.toggleTagFilter(it) }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
 
                 // Month selector
-                item {
-                    MonthSelector(
-                        months = monthGroups.keys.toList(),
-                        selectedMonth = selectedMonth,
-                        onMonthClick = { month ->
-                            selectedMonth = month
-                            expandedMonths[month] = true
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                item(key = "month_selector") {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        MonthSelector(
+                            months = monthGroups.keys.toList(),
+                            selectedMonth = selectedMonth,
+                            onMonthClick = { month ->
+                                selectedMonth = month
+                                if (expandedMonths[month] != true) {
+                                    expandedMonths[month] = true
+                                }
+                                // Scroll to the month header
+                                val targetIndex = monthKeyIndex[month]
+                                if (targetIndex != null) {
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(targetIndex)
+                                    }
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
 
-                // Timeline entries
-                if (dateGroups.isEmpty()) {
-                    item {
+                // Empty state
+                if (timelineItems.isEmpty()) {
+                    item(key = "empty") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -295,80 +318,162 @@ fun TimelineScreen(
                             }
                         }
                     }
-                } else {
-                    // Display entries grouped by month
-                    monthGroups.forEach { (month, monthEntries) ->
-                        val isExpanded = expandedMonths[month] ?: false
-                        val monthTotal = monthEntries.size
+                }
 
-                        // Month header (collapsed state)
-                        if (!isExpanded) {
-                            item(key = "month_$month") {
+                // Timeline content - continuous axis on the left
+                itemsIndexed(
+                    items = timelineItems,
+                    key = { _, item -> item.key }
+                ) { index, item ->
+                    val nextItem = timelineItems.getOrNull(index + 1)
+                    val isLastInMonth = nextItem == null || nextItem.type == "collapsed_month" || nextItem.type == "expanded_month"
+                    val isLastOfDay = nextItem == null || nextItem.type == "day_header" || nextItem.type == "collapsed_month" || nextItem.type == "expanded_month"
+
+                    when (item.type) {
+                        "collapsed_month" -> {
+                            item.month?.let { month ->
                                 CollapsedMonthHeader(
                                     month = month,
-                                    entryCount = monthTotal,
-                                    onClick = {
-                                        expandedMonths[month] = true
-                                    }
+                                    entryCount = monthGroups[month]?.size ?: 0,
+                                    onClick = { expandedMonths[month] = true }
                                 )
                             }
                         }
-
-                        // Entries for this month (only when expanded)
-                        if (isExpanded) {
-                            val monthDateGroups = monthEntries.groupBy { entry ->
-                                Instant.ofEpochMilli(entry.createdAt)
-                                    .atZone(ZoneId.systemDefault())
-                                    .toLocalDate()
-                            }.toSortedMap(compareByDescending { it })
-
-                            // Month collapse header
-                            item(key = "monthheader_$month") {
+                        "expanded_month" -> {
+                            item.month?.let { month ->
                                 ExpandedMonthHeader(
                                     month = month,
-                                    entryCount = monthTotal,
-                                    onCollapse = {
-                                        expandedMonths[month] = false
-                                    }
+                                    entryCount = monthGroups[month]?.size ?: 0,
+                                    onCollapse = { expandedMonths[month] = false }
                                 )
                             }
+                        }
+                        "day_header" -> {
+                            item.date?.let { date ->
+                                DayHeaderWithAxis(
+                                    date = date,
+                                    isLast = isLastOfDay && isLastInMonth
+                                )
+                            }
+                        }
+                        "entry" -> {
+                            item.entry?.let { entry ->
+                                val tags = tagsMap[entry.id] ?: emptyList()
+                                val imagePath = imageMap[entry.id]
 
-                            monthDateGroups.forEach { (date, dayEntries) ->
-                                // Day header with date capsule
-                                item(key = "dayheader_${date}") {
-                                    DayHeader(date = date)
-                                }
-
-                                // Entries for this day
-                                dayEntries.forEachIndexed { index, entry ->
-                                    item(key = "entry_${entry.id}") {
-                                        val tags = tagsMap[entry.id] ?: emptyList()
-                                        val imagePath = imageMap[entry.id]
-                                        val isLast = index == dayEntries.size - 1
-
-                                        TimelineEntry(
-                                            entry = entry,
-                                            tags = tags,
-                                            imagePath = imagePath,
-                                            isLastInDay = isLast,
-                                            onEntryClick = {
-                                                haptic.click()
-                                                onNavigateToDetail(entry.id)
-                                            }
-                                        )
+                                TimelineEntryWithAxis(
+                                    entry = entry,
+                                    tags = tags,
+                                    imagePath = imagePath,
+                                    isLastInDay = isLastOfDay,
+                                    onEntryClick = {
+                                        haptic.click()
+                                        onNavigateToDetail(entry.id)
                                     }
-                                }
+                                )
                             }
                         }
                     }
                 }
 
                 // Bottom padding
-                item { Spacer(modifier = Modifier.height(80.dp)) }
+                item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }
 }
+
+// ========== Integrated Search Bar ==========
+
+@Composable
+private fun IntegratedSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    isFocused: Boolean,
+    onFocusChange: (Boolean) -> Unit,
+    hasActiveFilters: Boolean,
+    onFilterClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        innerPadding = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(start = 10.dp, end = 6.dp).size(18.dp)
+            )
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "搜索日记...",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+            )
+            if (query.isNotBlank()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "清除",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (hasActiveFilters) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        } else {
+                            Color.Transparent
+                        }
+                    )
+                    .clickable(onClick = onFilterClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.FilterList,
+                    contentDescription = "筛选",
+                    tint = if (hasActiveFilters) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+// ========== Month Selector ==========
 
 @Composable
 private fun MonthSelector(
@@ -421,62 +526,10 @@ private fun MonthSelector(
     }
 }
 
-@Composable
-private fun CompactSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 10.dp,
-        innerPadding = 6.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.padding(horizontal = 8.dp).size(18.dp)
-            )
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "搜索...",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "关闭",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
-}
+// ========== Compact Search Bar (kept for reference, not used) ==========
+// Removed - replaced by IntegratedSearchBar
+
+// ========== Filter Panel ==========
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -651,6 +704,8 @@ private fun CompactFilterChip(
     }
 }
 
+// ========== Active Filters ==========
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActiveFiltersRow(
@@ -726,38 +781,24 @@ private fun ActiveFilterChip(
     }
 }
 
+// ========== Month Headers ==========
+
 @Composable
 private fun CollapsedMonthHeader(
     month: YearMonth,
     entryCount: Int,
     onClick: () -> Unit
 ) {
-    val now = YearMonth.now()
-    val isCurrentMonth = month == now
-
-    val monthText = if (isCurrentMonth) "本月" else "${month.monthValue}月"
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-        )
-
-        Text(
-            text = monthText,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        // Axis spacer
+        Spacer(modifier = Modifier.width(AXIS_WIDTH))
 
         Box(
             modifier = Modifier
@@ -766,18 +807,12 @@ private fun CollapsedMonthHeader(
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
             Text(
-                text = "$entryCount",
-                fontSize = 10.sp,
+                text = "${month.monthValue}月 · $entryCount 篇",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
         }
-
-        Text(
-            text = "篇日记",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -797,17 +832,19 @@ private fun ExpandedMonthHeader(
 ) {
     val now = YearMonth.now()
     val isCurrentMonth = month == now
-
     val monthText = if (isCurrentMonth) "本月" else "${month.year}年${month.monthValue}月"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onCollapse)
-            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Axis spacer
+        Spacer(modifier = Modifier.width(AXIS_WIDTH))
+
         Text(
             text = monthText,
             fontSize = 15.sp,
@@ -839,10 +876,13 @@ private fun ExpandedMonthHeader(
     }
 }
 
+// ========== Day Header with Axis ==========
+
 @Composable
-private fun DayHeader(date: LocalDate) {
+private fun DayHeaderWithAxis(date: LocalDate, isLast: Boolean) {
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
+    val isToday = date == today
 
     val dateLabel = when (date) {
         today -> "今天"
@@ -860,55 +900,86 @@ private fun DayHeader(date: LocalDate) {
         DayOfWeek.SUNDAY -> "周日"
     }
 
-    val isToday = date == today
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 8.dp, top = 12.dp, bottom = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Date capsule on the timeline
+        // Axis column - date capsule centered on the dot position
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(
-                    if (isToday) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    }
-                )
-                .padding(horizontal = 10.dp, vertical = 4.dp),
+                .width(AXIS_WIDTH)
+                .height(44.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = dateLabel,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isToday) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+            // Vertical line continues through the date header
+            Box(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    .width(LINE_WIDTH)
+                    .fillMaxHeight()
             )
+            // Date capsule overlaid on the axis
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (isToday) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                        }
+                    )
+                    .border(
+                        width = if (isToday) 1.dp else 0.5.dp,
+                        color = if (isToday) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        },
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = dateLabel,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isToday) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(8.dp))
 
+        // Date details
         if (!isToday) {
             Text(
-                text = "${date.format(DateTimeFormatter.ofPattern("M月d日"))} · $weekdayText",
+                text = "${date.format(DateTimeFormatter.ofPattern("M月d日"))} $weekdayText",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        } else {
+            Text(
+                text = weekdayText,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
             )
         }
     }
 }
 
+// ========== Timeline Entry with Axis ==========
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TimelineEntry(
+private fun TimelineEntryWithAxis(
     entry: DiaryPreview,
     tags: List<TagInfo>,
     imagePath: String?,
@@ -931,44 +1002,37 @@ private fun TimelineEntry(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = if (isLastInDay) 0.dp else 4.dp),
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 16.dp, vertical = 0.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Timeline axis (left side)
-        Column(
-            modifier = Modifier.width(50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Axis column: dot + vertical line, centered with the card
+        Box(
+            modifier = Modifier
+                .width(AXIS_WIDTH)
+                .height(MIN_CARD_HEIGHT + 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Time text
-            Text(
-                text = formatEntryTime(entry.createdAt),
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Dot with mood color
+            // Vertical line behind the dot
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    .width(LINE_WIDTH)
+                    .fillMaxHeight()
+            )
+            // Dot centered
+            Box(
+                modifier = Modifier
+                    .size(DOT_SIZE)
                     .clip(CircleShape)
                     .background(moodColor)
             )
-
-            // Vertical line (continuous)
-            Box(
-                modifier = Modifier
-                    .width(1.5.dp)
-                    .height(if (isLastInDay) 20.dp else 80.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            )
         }
 
-        // Card (right side)
+        // Card
         Box(
             modifier = Modifier
                 .weight(1f)
+                .padding(bottom = if (isLastInDay) 4.dp else 6.dp, top = 4.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -980,12 +1044,17 @@ private fun TimelineEntry(
                 )
         ) {
             GlassCard(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 cornerRadius = 12.dp,
                 innerPadding = 12.dp
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = MIN_CARD_HEIGHT - 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Content
                     Column(
@@ -1007,13 +1076,13 @@ private fun TimelineEntry(
                         // Content preview
                         if (entry.plainText.isNotBlank()) {
                             if (entry.title.isNotBlank() && !isDateTitle) {
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(3.dp))
                             }
                             Text(
                                 text = cleanPreviewText(entry.plainText),
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = if (hasImage) 1 else 2,
+                                maxLines = if (hasImage) 2 else 3,
                                 overflow = TextOverflow.Ellipsis,
                                 lineHeight = 18.sp
                             )
@@ -1021,7 +1090,7 @@ private fun TimelineEntry(
 
                         // Location
                         if (!entry.location.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1042,7 +1111,7 @@ private fun TimelineEntry(
                             }
                         }
 
-                        // Mood + Weather + Tags
+                        // Mood + Weather + Tags in one row
                         val hasMoodWeather = entry.moodLevel != null || entry.weather != null
                         val hasTags = tags.isNotEmpty()
                         if (hasMoodWeather || hasTags) {
@@ -1050,7 +1119,7 @@ private fun TimelineEntry(
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 if (entry.moodLevel != null) {
                                     val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
@@ -1062,7 +1131,7 @@ private fun TimelineEntry(
                                             imageVector = moodIcon,
                                             contentDescription = "心情",
                                             tint = moodTint,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(13.dp)
                                         )
                                         Text(
                                             text = moodLabelForLevel(entry.moodLevel),
@@ -1082,7 +1151,7 @@ private fun TimelineEntry(
                                             imageVector = weatherIcon,
                                             contentDescription = "天气",
                                             tint = weatherTint,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(13.dp)
                                         )
                                         Text(
                                             text = weatherLabelFor(entry.weather),
@@ -1092,9 +1161,6 @@ private fun TimelineEntry(
                                         )
                                     }
                                 }
-
-                                Spacer(modifier = Modifier.weight(1f))
-
                                 if (hasTags) {
                                     tags.take(1).forEach { tag ->
                                         Text(
@@ -1116,11 +1182,11 @@ private fun TimelineEntry(
 
                     // Image thumbnail
                     if (hasImage) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .size(IMAGE_SIZE)
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                         ) {
                             AsyncImage(
@@ -1140,6 +1206,8 @@ private fun TimelineEntry(
     }
 }
 
+// ========== Utility Functions ==========
+
 private fun cleanPreviewText(text: String): String {
     return text
         .replace("\\n", "\n")
@@ -1151,9 +1219,3 @@ private fun cleanPreviewText(text: String): String {
         .trim()
 }
 
-private fun formatEntryTime(timestamp: Long): String {
-    val localDateTime = Instant.ofEpochMilli(timestamp)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDateTime()
-    return localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-}
