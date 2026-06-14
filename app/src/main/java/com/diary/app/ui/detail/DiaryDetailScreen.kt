@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -325,19 +326,20 @@ fun DiaryDetailScreen(
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                // Header (title + date + mood/weather/location/tags)
-                                DetailHeaderCompact(
-                                    entry = currentEntry,
-                                    tags = tags,
-                                    textColor = textColor,
-                                    textSecondary = textSecondary
-                                )
+                            BoxWithConstraints {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    // Header (title + date + mood/weather/location/tags)
+                                    DetailHeaderCompact(
+                                        entry = currentEntry,
+                                        tags = tags,
+                                        textColor = textColor,
+                                        textSecondary = textSecondary
+                                    )
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
 
-                                // WebView content
-                                Box {
+                                    // WebView content
+                                    Box(modifier = Modifier.weight(1f)) {
                                     if (!contentReady) {
                                         Box(
                                             modifier = Modifier
@@ -475,9 +477,6 @@ fun DiaryDetailScreen(
                                     }
                                 }
 
-                                // Spacer to push timestamps to bottom when content is short
-                                Spacer(modifier = Modifier.weight(1f))
-
                                 // Timestamps
                                 Spacer(modifier = Modifier.height(8.dp))
                                 DetailTimestamps(
@@ -486,6 +485,7 @@ fun DiaryDetailScreen(
                                     textSecondary = textSecondary,
                                     plainText = currentEntry.plainText
                                 )
+                            }
                             }
                         }
 
