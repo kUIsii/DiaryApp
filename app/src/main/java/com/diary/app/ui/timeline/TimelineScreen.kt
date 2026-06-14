@@ -153,23 +153,25 @@ fun TimelineScreen(
     // Build flat list of items for LazyColumn with stable keys
     data class TimelineItem(val key: String, val type: String, val month: YearMonth? = null, val date: LocalDate? = null, val entry: DiaryPreview? = null)
 
-    val timelineItems = remember(monthGroups, expandedMonths) {
-        val items = mutableListOf<TimelineItem>()
+    // Don't wrap in remember — expandedMonths is a SnapshotStateMap (reference-stable),
+    // so remember(key) won't recompute on content changes. Direct computation lets
+    // Compose snapshot tracking detect reads from expandedMonths and recompose correctly.
+    val timelineItems = buildList<TimelineItem> {
         monthGroups.forEach { (month, monthEntries) ->
             val isExpanded = expandedMonths[month] ?: false
             if (!isExpanded) {
-                items.add(TimelineItem(key = "collapsed_$month", type = "collapsed_month", month = month))
+                add(TimelineItem(key = "collapsed_$month", type = "collapsed_month", month = month))
             } else {
-                items.add(TimelineItem(key = "expanded_$month", type = "expanded_month", month = month))
+                add(TimelineItem(key = "expanded_$month", type = "expanded_month", month = month))
                 val monthDateGroups = monthEntries.groupBy { entry ->
                     Instant.ofEpochMilli(entry.createdAt)
                         .atZone(ZoneId.systemDefault())
                         .toLocalDate()
                 }.toSortedMap(compareByDescending { it })
                 monthDateGroups.forEach { (date, dayEntries) ->
-                    items.add(TimelineItem(key = "day_$date", type = "day_header", date = date))
+                    add(TimelineItem(key = "day_$date", type = "day_header", date = date))
                     dayEntries.forEachIndexed { _, entry ->
-                        items.add(TimelineItem(
+                        add(TimelineItem(
                             key = "entry_${entry.id}",
                             type = "entry",
                             entry = entry,
@@ -179,7 +181,6 @@ fun TimelineScreen(
                 }
             }
         }
-        items
     }
 
     // Build index of month keys for scroll-to-month
@@ -623,7 +624,14 @@ private fun CompactFilterPanel(
         innerPadding = 8.dp
     ) {
         Column {
-            // Mood chips
+            // Mood section
+            Text(
+                text = "心情",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -645,9 +653,16 @@ private fun CompactFilterPanel(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Weather chips
+            // Weather section
+            Text(
+                text = "天气",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -668,9 +683,16 @@ private fun CompactFilterPanel(
                 }
             }
 
-            // Tags
+            // Tags section
             if (allTags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "标签",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -964,26 +986,27 @@ private fun DayHeaderWithAxis(date: LocalDate) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Axis column - date capsule centered on the axis
+        // Axis column - date capsule centered, line broken around it
         Box(
             modifier = Modifier
                 .width(AXIS_WIDTH)
-                .height(52.dp),
-            contentAlignment = Alignment.Center
+                .height(56.dp),
         ) {
-            // Vertical line continues through the date header
+            // Top line segment (above capsule)
             Box(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    .align(Alignment.TopCenter)
+                    .height(10.dp)
                     .width(LINE_WIDTH)
-                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             )
-            // Date capsule overlaid on the axis - two lines: date + weekday
+            // Date capsule centered on the axis
             Box(
                 modifier = Modifier
+                    .align(Alignment.Center)
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (isToday) {
@@ -1026,6 +1049,14 @@ private fun DayHeaderWithAxis(date: LocalDate) {
                     )
                 }
             }
+            // Bottom line segment (below capsule)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .height(10.dp)
+                    .width(LINE_WIDTH)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            )
         }
 
         // No redundant text on the right - all info is in the capsule
@@ -1059,14 +1090,15 @@ private fun TimelineEntryWithAxis(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 0.dp),
+            .padding(horizontal = 16.dp, vertical = 0.dp)
+            .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Axis column: dot + vertical line, centered with the card
+        // Axis column: dot + vertical line, fills full row height for continuity
         Box(
             modifier = Modifier
                 .width(AXIS_WIDTH)
-                .height(MIN_CARD_HEIGHT + 8.dp),
+                .fillMaxHeight(),
             contentAlignment = Alignment.Center
         ) {
             // Vertical line behind the dot
