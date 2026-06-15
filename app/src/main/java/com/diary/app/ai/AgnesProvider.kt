@@ -67,8 +67,8 @@ class AgnesProvider(
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Authorization", "Bearer $apiKey")
-            connectTimeout = 15000
-            readTimeout = 30000
+            connectTimeout = 10000
+            readTimeout = 15000
             doOutput = true
         }
 

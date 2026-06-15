@@ -115,11 +115,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     useCache = false
                 )
 
-                val reply = result.getOrNull()?.content?.trim() ?: "暂时想不到说什么..."
-                _chatMessages.value = _chatMessages.value + ChatMessage("assistant", reply, false)
+                val reply = result.getOrNull()?.content?.trim()
+                if (reply.isNullOrBlank()) {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "没想好怎么说"
+                    _chatMessages.value = _chatMessages.value + ChatMessage("assistant", "嗯...$errorMsg", false)
+                } else {
+                    _chatMessages.value = _chatMessages.value + ChatMessage("assistant", reply, false)
+                }
             } catch (e: Exception) {
                 android.util.Log.e("PenPal", "Chat failed", e)
-                _chatMessages.value = _chatMessages.value + ChatMessage("assistant", "网络不太稳定，稍后再试试", false)
+                val msg = when {
+                    e is java.net.SocketTimeoutException -> "等太久了，网络不太好"
+                    e.message?.contains("timeout", true) == true -> "等太久了，网络不太好"
+                    else -> "出了点问题，稍后再聊"
+                }
+                _chatMessages.value = _chatMessages.value + ChatMessage("assistant", msg, false)
             } finally {
                 _chatLoading.value = false
             }
