@@ -75,8 +75,8 @@ class DiaryApplication : Application() {
         ExperimentalFeaturesPreferences.setAiInsightCardEnabled(this, enabled)
     }
 
-    fun setAiPenPalEnabled(enabled: Boolean) {
-        _experimentalFeatures.value = _experimentalFeatures.value.copy(aiPenPalEnabled = enabled)
-        ExperimentalFeaturesPreferences.setAiPenPalEnabled(this, enabled)
+    fun setAiAssistantEnabled(enabled: Boolean) {
+        _experimentalFeatures.value = _experimentalFeatures.value.copy(aiAssistantEnabled = enabled)
+        ExperimentalFeaturesPreferences.setAiAssistantEnabled(this, enabled)
     }
 }

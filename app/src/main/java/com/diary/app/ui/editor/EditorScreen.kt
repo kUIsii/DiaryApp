@@ -40,13 +40,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -148,11 +146,6 @@ fun EditorScreen(
     val recentLocations by viewModel.recentLocations.collectAsState()
 
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
-
-    // AI Pen Pal state
-    val chatMessages by viewModel.chatMessages.collectAsState()
-    val chatLoading by viewModel.chatLoading.collectAsState()
-    val penPalVisible by viewModel.penPalVisible.collectAsState()
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -1038,13 +1031,6 @@ fun EditorScreen(
                     contentDescription = "草稿箱",
                     onClick = { showDraftsDialog = true }
                 )
-                if (experimentalFeatures.aiPenPalEnabled) {
-                    EditorTopIconButton(
-                        icon = Icons.Default.AutoAwesome,
-                        contentDescription = "笔友",
-                        onClick = { viewModel.togglePenPal() }
-                    )
-                }
                 EditorTopIconButton(
                     icon = if (showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                     contentDescription = toolbarVisibilityDescription(showToolbar),
@@ -1371,16 +1357,6 @@ fun EditorScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // AI Pen Pal Chat Panel
-        if (penPalVisible) {
-            PenPalChatPanel(
-                messages = chatMessages,
-                isLoading = chatLoading,
-                onSendMessage = { msg -> viewModel.sendChatMessage(msg, latestPlainText.take(200)) },
-                onDismiss = { viewModel.closePenPal() },
-                onClearHistory = { viewModel.clearChatHistory() }
-            )
-        }
         }
     }
 }
@@ -1687,223 +1663,3 @@ private fun EditorSaveButton(
     }
 }
 
-@Composable
-private fun PenPalChatPanel(
-    messages: List<com.diary.app.ui.editor.EditorViewModel.ChatMessage>,
-    isLoading: Boolean,
-    onSendMessage: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onClearHistory: () -> Unit
-) {
-    var inputText by remember { mutableStateOf("") }
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.lastIndex)
-        }
-    }
-
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn(tween(150)),
-        exit = fadeOut(tween(120)),
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(5f)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxSize(0.55f)
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
-                    .border(
-                        0.5.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
-                        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
-                    )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}
-                    )
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "笔友",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "随叫随到，聊几句就好",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
-                        Row {
-                            if (messages.isNotEmpty()) {
-                                Text(
-                                    text = "清空",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier
-                                        .clickable { onClearHistory() }
-                                        .padding(end = 12.dp)
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "关闭",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .clickable(onClick = onDismiss)
-                                    .padding(5.dp)
-                            )
-                        }
-                    }
-
-                    // Messages
-                    if (messages.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "想聊点什么？",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                        }
-                    } else {
-                        androidx.compose.foundation.lazy.LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            state = listState,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(messages.size) { index ->
-                                val msg = messages[index]
-                                ChatBubble(message = msg)
-                            }
-                            if (isLoading) {
-                                item {
-                                    Text(
-                                        text = "...",
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Input
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .imePadding(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        androidx.compose.material3.OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = {
-                                Text(
-                                    "随便说点什么...",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                )
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(18.dp),
-                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .clickable(enabled = inputText.isNotBlank()) {
-                                    onSendMessage(inputText.trim())
-                                    inputText = ""
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Send,
-                                contentDescription = "发送",
-                                tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChatBubble(message: com.diary.app.ui.editor.EditorViewModel.ChatMessage) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.75f)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (message.isUser) 16.dp else 4.dp,
-                        bottomEnd = if (message.isUser) 4.dp else 16.dp
-                    )
-                )
-                .background(
-                    if (message.isUser) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = message.content,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 19.sp
-            )
-        }
-    }
-}

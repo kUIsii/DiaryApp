@@ -11,7 +11,7 @@ data class ExperimentalFeaturesState(
     val keepCompletedItemsInPlace: Boolean = false,
     val writingMilestonesEnabled: Boolean = false,
     val aiInsightCardEnabled: Boolean = false,
-    val aiPenPalEnabled: Boolean = false
+    val aiAssistantEnabled: Boolean = false
 )
 
 fun resolveMainScreenSwipeTarget(

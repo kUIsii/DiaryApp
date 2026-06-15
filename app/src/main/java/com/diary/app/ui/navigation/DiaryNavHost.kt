@@ -123,6 +123,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
     }
     object Notifications : Screen("notifications", "消息", Icons.Default.Home)
+    object AiAssistant : Screen("ai_assistant", "小墨", Icons.Default.Home)
     object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.Home) {
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
@@ -233,7 +234,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
                     onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
-                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) }
+                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -311,6 +313,14 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToMonthlyReport = { year, month -> navController.navigate(Screen.MonthlyReport.createRoute(year, month)) },
                     onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
+                )
+            }
+            composable(Screen.AiAssistant.route) {
+                val assistantViewModel: com.diary.app.ai.AiAssistantViewModel =
+                    androidx.lifecycle.viewmodel.compose.viewModel()
+                com.diary.app.ui.assistant.AiAssistantScreen(
+                    viewModel = assistantViewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.TimeCapsule.route) {

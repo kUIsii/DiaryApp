@@ -192,13 +192,13 @@ fun ExperimentalFeaturesScreen(
                         ExperimentalFeatureDivider()
                         ExperimentalFeatureRow(
                             icon = Icons.Default.Chat,
-                            title = "AI 笔友",
-                            subtitle = "写日记时随时可以找 AI 聊几句，像笔友一样给点小建议或随口寒暄。",
-                            checked = features.aiPenPalEnabled,
+                            title = "小墨助手",
+                            subtitle = "首页顶栏的专属 AI 助手，熟悉你的日记，可以聊天、分析、给建议。",
+                            checked = features.aiAssistantEnabled,
                             accentColor = accentColor,
                             textColor = textColor,
                             textSecondary = textSecondary,
-                            onCheckedChange = { app.setAiPenPalEnabled(it) }
+                            onCheckedChange = { app.setAiAssistantEnabled(it) }
                         )
                     }
                 }

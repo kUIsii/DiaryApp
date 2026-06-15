@@ -104,6 +104,7 @@ fun HomeScreen(
     onNavigateToExperimentalFeatures: () -> Unit = {},
     onNavigateToTimeCapsule: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToAiAssistant: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -190,6 +191,21 @@ fun HomeScreen(
                                         )
                                     }
                                 }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                    .clickable { onNavigateToAiAssistant() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "小墨",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
                             Box(
                                 modifier = Modifier

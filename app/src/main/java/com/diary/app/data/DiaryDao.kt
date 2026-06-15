@@ -490,6 +490,25 @@ interface DiaryDao {
 
     @Query("SELECT * FROM notifications")
     suspend fun getAllNotificationsOnce(): List<NotificationEntity>
+
+    // Chat messages
+    @Query("SELECT * FROM chat_messages ORDER BY createdAt ASC")
+    fun getAllChatMessages(): Flow<List<ChatMessageEntity>>
+
+    @Query("SELECT * FROM chat_messages ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun getRecentChatMessages(limit: Int): List<ChatMessageEntity>
+
+    @Insert
+    suspend fun insertChatMessage(message: ChatMessageEntity): Long
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun deleteAllChatMessages()
+
+    @Query("SELECT COUNT(*) FROM chat_messages")
+    suspend fun getChatMessageCount(): Int
+
+    @Query("DELETE FROM chat_messages WHERE id IN (SELECT id FROM chat_messages ORDER BY createdAt ASC LIMIT :count)")
+    suspend fun deleteOldestChatMessages(count: Int)
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM
