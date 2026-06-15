@@ -1,7 +1,10 @@
 package com.diary.app.ai
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 
 class AiServiceManager(private val context: Context) {
@@ -44,11 +47,11 @@ class AiServiceManager(private val context: Context) {
         }
 
         return try {
-            val response = provider.chat(request)
-            // 写入缓存
+            val response = withContext(Dispatchers.IO) { provider.chat(request) }
             if (useCache) cacheResponse(request, response)
             Result.success(response)
         } catch (e: Exception) {
+            Log.e("AiService", "Chat failed", e)
             Result.failure(e)
         }
     }

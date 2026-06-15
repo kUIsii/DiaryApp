@@ -111,12 +111,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                         systemPrompt = "你是一个安静的文字伙伴，像笔友一样。用户写日记时偶尔会找你聊几句。回复要简短自然（不超过50个字），温和但不啰嗦，不要提到你是AI。可以给小建议、回应感受、或随口聊几句。",
                         maxTokens = 128,
                         temperature = 0.85f
-                    )
+                    ),
+                    useCache = false
                 )
 
                 val reply = result.getOrNull()?.content?.trim() ?: "暂时想不到说什么..."
                 _chatMessages.value = _chatMessages.value + ChatMessage("assistant", reply, false)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("PenPal", "Chat failed", e)
                 _chatMessages.value = _chatMessages.value + ChatMessage("assistant", "网络不太稳定，稍后再试试", false)
             } finally {
                 _chatLoading.value = false
