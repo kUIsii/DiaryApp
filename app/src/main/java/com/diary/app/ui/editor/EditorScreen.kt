@@ -10,7 +10,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,6 +46,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -147,11 +147,12 @@ fun EditorScreen(
     val currentEntry by viewModel.currentEntry.collectAsState()
     val recentLocations by viewModel.recentLocations.collectAsState()
 
-    // AI feature states
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
-    val aiTitleSuggestion by viewModel.aiTitleSuggestion.collectAsState()
-    val memoryEcho by viewModel.memoryEcho.collectAsState()
-    val aiRecommendedTagIds by viewModel.aiRecommendedTagIds.collectAsState()
+
+    // AI Pen Pal state
+    val chatMessages by viewModel.chatMessages.collectAsState()
+    val chatLoading by viewModel.chatLoading.collectAsState()
+    val penPalVisible by viewModel.penPalVisible.collectAsState()
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -481,16 +482,7 @@ fun EditorScreen(
             if (!isApplyingProgrammaticContent) {
                 viewModel.markContentChanged()
                 contentVersion++
-                // Trigger AI features on content change
-                viewModel.onPlainTextForTitleAndTagsChanged(text, entryTitle)
             }
-        }
-    }
-
-    // Trigger memory echo once when content is long enough
-    LaunchedEffect(latestPlainText.length, selectedMood) {
-        if (latestPlainText.length > 100 || selectedMood != null) {
-            viewModel.triggerMemoryEcho(latestPlainText, selectedMood)
         }
     }
 
@@ -704,16 +696,8 @@ fun EditorScreen(
                     viewModel.onManualSaveCompleted(diaryId)
                     isToolbarLocked = false
                     haptic.success()
-                    // Writing rhythm: show effort-aware message
-                    val saveMessage = if (experimentalFeatures.aiEnabled && experimentalFeatures.aiWritingRhythm
-                        && writingDuration > 900 && charCount > 500) {
-                        val mins = writingDuration / 60
-                        "写了${charCount}字，用了${mins}分钟。辛苦了。"
-                    } else {
-                        "日记已保存"
-                    }
                     snackbarHostState.showSnackbar(
-                        message = saveMessage,
+                        message = "日记已保存",
                         duration = SnackbarDuration.Short
                     )
                     onNavigateBack()
@@ -1054,6 +1038,13 @@ fun EditorScreen(
                     contentDescription = "草稿箱",
                     onClick = { showDraftsDialog = true }
                 )
+                if (experimentalFeatures.aiPenPalEnabled) {
+                    EditorTopIconButton(
+                        icon = Icons.Default.AutoAwesome,
+                        contentDescription = "笔友",
+                        onClick = { viewModel.togglePenPal() }
+                    )
+                }
                 EditorTopIconButton(
                     icon = if (showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                     contentDescription = toolbarVisibilityDescription(showToolbar),
@@ -1105,14 +1096,10 @@ fun EditorScreen(
                     cursorBrush = SolidColor(textColor),
                     decorationBox = { innerTextField ->
                         if (entryTitle.isBlank()) {
-                            val placeholder = aiTitleSuggestion ?: "标题（可选）"
                             Text(
-                                text = placeholder,
+                                text = "标题（可选）",
                                 style = titleTextStyle.copy(
-                                    color = if (aiTitleSuggestion != null)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-                                    else
-                                        textSecondary.copy(alpha = 0.42f)
+                                    color = textSecondary.copy(alpha = 0.42f)
                                 )
                             )
                         }
@@ -1268,71 +1255,10 @@ fun EditorScreen(
                         }
                     }
                     if (writingDuration > 30) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "已写${viewModel.getFormattedDuration()}",
-                                fontSize = 11.sp,
-                                color = textSecondary.copy(alpha = 0.3f)
-                            )
-                            // Writing rhythm breathing dot (shows after 5 min)
-                            if (experimentalFeatures.aiEnabled && experimentalFeatures.aiWritingRhythm && writingDuration > 300) {
-                                var breathAlpha by remember { mutableStateOf(0.3f) }
-                                LaunchedEffect(Unit) {
-                                    while (true) {
-                                        breathAlpha = 1f
-                                        kotlinx.coroutines.delay(1000)
-                                        breathAlpha = 0.3f
-                                        kotlinx.coroutines.delay(1000)
-                                    }
-                                }
-                                val animatedAlpha by animateFloatAsState(
-                                    targetValue = breathAlpha,
-                                    animationSpec = tween(1000),
-                                    label = "breath"
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = animatedAlpha * 0.7f)
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Memory Echo - show at bottom when available
-            if (memoryEcho != null && experimentalFeatures.aiEnabled && experimentalFeatures.aiMemoryEcho) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            modifier = Modifier.size(14.dp)
-                        )
                         Text(
-                            text = "记得那天吗？${memoryEcho!!.summary} -- ${memoryEcho!!.date}",
+                            text = "已写${viewModel.getFormattedDuration()}",
                             fontSize = 11.sp,
-                            color = textSecondary.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = textSecondary.copy(alpha = 0.3f)
                         )
                     }
                 }
@@ -1407,8 +1333,6 @@ fun EditorScreen(
             selectedWeather = selectedWeather,
             allTags = allTags,
             selectedTagIds = selectedTagIds,
-            aiRecommendedTagIds = aiRecommendedTagIds,
-            aiTagIntuitionEnabled = experimentalFeatures.aiEnabled && experimentalFeatures.aiTagIntuition,
             selectedLocation = selectedLocation,
             locationLat = locationLat,
             locationLng = locationLng,
@@ -1446,6 +1370,17 @@ fun EditorScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // AI Pen Pal Chat Panel
+        if (penPalVisible) {
+            PenPalChatPanel(
+                messages = chatMessages,
+                isLoading = chatLoading,
+                onSendMessage = { msg -> viewModel.sendChatMessage(msg, latestPlainText.take(200)) },
+                onDismiss = { viewModel.closePenPal() },
+                onClearHistory = { viewModel.clearChatHistory() }
+            )
+        }
         }
     }
 }
@@ -1518,8 +1453,6 @@ private fun MetadataOverlayPanel(
     selectedWeather: String?,
     allTags: List<Tag>,
     selectedTagIds: Set<Long>,
-    aiRecommendedTagIds: Set<Long> = emptySet(),
-    aiTagIntuitionEnabled: Boolean = false,
     selectedLocation: String?,
     locationLat: Double?,
     locationLng: Double?,
@@ -1633,8 +1566,7 @@ private fun MetadataOverlayPanel(
                             allTags = allTags,
                             selectedTagIds = selectedTagIds,
                             onTagToggle = onTagToggle,
-                            onAddTag = onAddTag,
-                            recommendedTagIds = if (aiTagIntuitionEnabled) aiRecommendedTagIds else emptySet()
+                            onAddTag = onAddTag
                         )
                         "location" -> LocationSelector(
                             selectedLocation = selectedLocation,
@@ -1752,5 +1684,226 @@ private fun EditorSaveButton(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimary
         )
+    }
+}
+
+@Composable
+private fun PenPalChatPanel(
+    messages: List<com.diary.app.ui.editor.EditorViewModel.ChatMessage>,
+    isLoading: Boolean,
+    onSendMessage: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onClearHistory: () -> Unit
+) {
+    var inputText by remember { mutableStateOf("") }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.lastIndex)
+        }
+    }
+
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(120)),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(5f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.55f)
+                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+                        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {}
+                    )
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "笔友",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "随叫随到，聊几句就好",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                        Row {
+                            if (messages.isNotEmpty()) {
+                                Text(
+                                    text = "清空",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier
+                                        .clickable { onClearHistory() }
+                                        .padding(end = 12.dp)
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "关闭",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .clickable(onClick = onDismiss)
+                                    .padding(5.dp)
+                            )
+                        }
+                    }
+
+                    // Messages
+                    if (messages.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "想聊点什么？",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                        }
+                    } else {
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            state = listState,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(messages.size) { index ->
+                                val msg = messages[index]
+                                ChatBubble(message = msg)
+                            }
+                            if (isLoading) {
+                                item {
+                                    Text(
+                                        text = "...",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.padding(start = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Input
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .imePadding(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = inputText,
+                            onValueChange = { inputText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = {
+                                Text(
+                                    "随便说点什么...",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(18.dp),
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable(enabled = inputText.isNotBlank()) {
+                                    onSendMessage(inputText.trim())
+                                    inputText = ""
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Send,
+                                contentDescription = "发送",
+                                tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(message: com.diary.app.ui.editor.EditorViewModel.ChatMessage) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.75f)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = if (message.isUser) 16.dp else 4.dp,
+                        bottomEnd = if (message.isUser) 4.dp else 16.dp
+                    )
+                )
+                .background(
+                    if (message.isUser) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = message.content,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 19.sp
+            )
+        }
     }
 }

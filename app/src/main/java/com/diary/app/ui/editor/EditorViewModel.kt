@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.ai.AiMessage
+import com.diary.app.ai.MilestoneChecker
 import com.diary.app.ai.aiRequest
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.DiaryImage
@@ -14,14 +16,9 @@ import com.diary.app.data.DiaryTag
 import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
 import com.google.gson.Gson
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 data class DraftData(
     val id: String = java.util.UUID.randomUUID().toString(),
@@ -72,6 +69,65 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _writingDuration = MutableStateFlow(0L) // in seconds
     val writingDuration = _writingDuration.asStateFlow()
 
+    // AI Pen Pal chat state
+    data class ChatMessage(val role: String, val content: String, val isUser: Boolean)
+
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val chatMessages = _chatMessages.asStateFlow()
+
+    private val _chatLoading = MutableStateFlow(false)
+    val chatLoading = _chatLoading.asStateFlow()
+
+    private val _penPalVisible = MutableStateFlow(false)
+    val penPalVisible = _penPalVisible.asStateFlow()
+
+    fun togglePenPal() {
+        _penPalVisible.value = !_penPalVisible.value
+    }
+
+    fun closePenPal() {
+        _penPalVisible.value = false
+    }
+
+    fun sendChatMessage(userMessage: String, selectedText: String = "") {
+        if (userMessage.isBlank()) return
+        val app = getApplication<DiaryApplication>()
+        if (!app.experimentalFeatures.value.aiPenPalEnabled) return
+
+        _chatMessages.value = _chatMessages.value + ChatMessage("user", userMessage, true)
+        _chatLoading.value = true
+
+        viewModelScope.launch {
+            try {
+                val contextPrompt = if (selectedText.isNotBlank()) {
+                    "用户在写日记时提到了这段内容：「$selectedText」\n\n用户说：$userMessage\n\n请简短回复，像朋友聊天一样自然，不要太长。"
+                } else {
+                    userMessage
+                }
+
+                val result = app.aiService.chat(
+                    aiRequest(
+                        userMessage = contextPrompt,
+                        systemPrompt = "你是一个安静的文字伙伴，像笔友一样。用户写日记时偶尔会找你聊几句。回复要简短自然（不超过50个字），温和但不啰嗦，不要提到你是AI。可以给小建议、回应感受、或随口聊几句。",
+                        maxTokens = 128,
+                        temperature = 0.85f
+                    )
+                )
+
+                val reply = result.getOrNull()?.content?.trim() ?: "暂时想不到说什么..."
+                _chatMessages.value = _chatMessages.value + ChatMessage("assistant", reply, false)
+            } catch (_: Exception) {
+                _chatMessages.value = _chatMessages.value + ChatMessage("assistant", "网络不太稳定，稍后再试试", false)
+            } finally {
+                _chatLoading.value = false
+            }
+        }
+    }
+
+    fun clearChatHistory() {
+        _chatMessages.value = emptyList()
+    }
+
     fun startWritingTimer() {
         if (writingStartTime == 0L) {
             writingStartTime = System.currentTimeMillis()
@@ -104,136 +160,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun refreshPrompt() {
         _writingPrompt.value = com.diary.app.data.WritingPrompts.getRandomPrompt()
-    }
-
-    // --- AI Silent Title ---
-    private val _aiTitleSuggestion = MutableStateFlow<String?>(null)
-    val aiTitleSuggestion = _aiTitleSuggestion.asStateFlow()
-    private var titleJob: Job? = null
-
-    fun onPlainTextForTitleChanged(plainText: String, currentTitle: String) {
-        val app = getApplication<Application>()
-        val features = (app as DiaryApplication).experimentalFeatures.value
-        if (!features.aiEnabled || !features.aiSilentTitle) return
-        if (plainText.length <= 50 || currentTitle.isNotBlank()) {
-            _aiTitleSuggestion.value = null
-            titleJob?.cancel()
-            return
-        }
-        titleJob?.cancel()
-        titleJob = viewModelScope.launch {
-            delay(3000)
-            try {
-                val aiService = (app as DiaryApplication).aiService
-                val request = aiRequest(
-                    userMessage = plainText.take(500),
-                    systemPrompt = "根据以下日记内容，生成一个简短的中文标题（8字以内）。只输出标题，不要任何解释。",
-                    temperature = 0.6f,
-                    maxTokens = 32
-                )
-                aiService.chat(request, useCache = false).getOrNull()?.let { resp ->
-                    val title = resp.content.trim().take(8)
-                    if (title.isNotBlank()) _aiTitleSuggestion.value = title
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    fun consumeTitleSuggestion() {
-        _aiTitleSuggestion.value = null
-    }
-
-    // --- AI Memory Echo ---
-    data class MemoryEcho(val summary: String, val date: String)
-
-    private val _memoryEcho = MutableStateFlow<MemoryEcho?>(null)
-    val memoryEcho = _memoryEcho.asStateFlow()
-    private var memoryEchoTriggered = false
-
-    fun triggerMemoryEcho(currentPlainText: String, currentMood: Int?) {
-        val app = getApplication<Application>()
-        val features = (app as DiaryApplication).experimentalFeatures.value
-        if (!features.aiEnabled || !features.aiMemoryEcho) return
-        if (memoryEchoTriggered) return
-        if (currentPlainText.length <= 100 && currentMood == null) return
-        memoryEchoTriggered = true
-
-        viewModelScope.launch {
-            try {
-                val previews = dao.getAllPreviewsOnce()
-                val recent30 = previews.sortedByDescending { it.createdAt }.take(30)
-                if (recent30.isEmpty()) return@launch
-
-                val snippets = recent30.mapIndexed { idx, p ->
-                    val date = Instant.ofEpochMilli(p.createdAt)
-                        .atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                    val text = p.plainText.take(80)
-                    "[${idx + 1}] $date: $text"
-                }.joinToString("\n")
-
-                val aiService = (app as DiaryApplication).aiService
-                val request = aiRequest(
-                    userMessage = "当前内容：${currentPlainText.take(200)}\n\n历史日记：\n$snippets",
-                    systemPrompt = "从以下历史日记片段中，选出与当前内容情感最相关的一条。输出格式：[序号]。只输出数字。",
-                    temperature = 0.3f,
-                    maxTokens = 8
-                )
-                val result = aiService.chat(request, useCache = false).getOrNull()
-                val idx = result?.content?.trim()?.filter { it.isDigit() }?.toIntOrNull()
-                if (idx != null && idx in 1..recent30.size) {
-                    val matched = recent30[idx - 1]
-                    val date = Instant.ofEpochMilli(matched.createdAt)
-                        .atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("M月d日"))
-                    val summary = matched.plainText.take(40)
-                    _memoryEcho.value = MemoryEcho(summary, date)
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    // --- AI Tag Intuition ---
-    private val _aiRecommendedTagIds = MutableStateFlow<Set<Long>>(emptySet())
-    val aiRecommendedTagIds = _aiRecommendedTagIds.asStateFlow()
-    private var tagJob: Job? = null
-
-    fun onPlainTextForTagsChanged(plainText: String) {
-        val app = getApplication<Application>()
-        val features = (app as DiaryApplication).experimentalFeatures.value
-        if (!features.aiEnabled || !features.aiTagIntuition) return
-        if (plainText.length <= 80) {
-            _aiRecommendedTagIds.value = emptySet()
-            tagJob?.cancel()
-            return
-        }
-        tagJob?.cancel()
-        tagJob = viewModelScope.launch {
-            delay(2000)
-            try {
-                val tags = _allTags.value
-                if (tags.isEmpty()) return@launch
-                val tagNames = tags.joinToString("、") { it.name }
-                val aiService = (app as DiaryApplication).aiService
-                val request = aiRequest(
-                    userMessage = "日记内容：${plainText.take(300)}\n\n标签列表：$tagNames",
-                    systemPrompt = "从以下标签列表中选出最相关的2-3个，只输出标签名，逗号分隔。不要输出其他内容。",
-                    temperature = 0.3f,
-                    maxTokens = 32
-                )
-                val result = aiService.chat(request, useCache = false).getOrNull()
-                if (result != null) {
-                    val names = result.content.trim().split(",", "，", " ").map { it.trim() }
-                    val matched = tags.filter { tag -> names.any { it == tag.name } }.map { it.id }.toSet()
-                    if (matched.isNotEmpty()) _aiRecommendedTagIds.value = matched
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    fun onPlainTextForTitleAndTagsChanged(plainText: String, currentTitle: String) {
-        onPlainTextForTitleChanged(plainText, currentTitle)
-        onPlainTextForTagsChanged(plainText)
     }
 
     fun markContentChanged() {
@@ -453,6 +379,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
         clearDraftsForSavedEntry(diaryId)
         _hasUnsavedChanges.value = false
+
+        // Check writing milestones (non-blocking)
+        val app = getApplication<DiaryApplication>()
+        val features = app.experimentalFeatures.value
+        if (features.writingMilestonesEnabled) {
+            try {
+                MilestoneChecker.checkAndNotify(app, dao)
+            } catch (_: Exception) {}
+        }
 
         return entryId
     }

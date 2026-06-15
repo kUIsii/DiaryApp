@@ -10,8 +10,8 @@ object AiConfigStore {
     private const val KEY_AI_API_KEY = "ai_api_key"
     private const val KEY_AI_ENDPOINT = "ai_endpoint"
 
-    private const val DEFAULT_ENDPOINT = "https://api-inference.modelscope.cn/v1/"
-    private const val DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+    private const val DEFAULT_ENDPOINT = "https://apihub.agnes-ai.com/v1/"
+    private const val DEFAULT_MODEL = "agnes-2.0-flash"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -23,7 +23,7 @@ object AiConfigStore {
     }
 
     fun getActiveProvider(context: Context): String =
-        prefs(context).getString(KEY_AI_PROVIDER, "modelscope") ?: "modelscope"
+        prefs(context).getString(KEY_AI_PROVIDER, "agnes") ?: "agnes"
 
     fun setActiveProvider(context: Context, provider: String) {
         prefs(context).edit().putString(KEY_AI_PROVIDER, provider).apply()

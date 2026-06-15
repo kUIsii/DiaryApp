@@ -6,28 +6,18 @@ object ExperimentalFeaturesPreferences {
     private const val PREFS_NAME = "diary_prefs"
     private const val KEY_MAIN_SCREEN_SWIPE = "experimental_main_screen_swipe"
     private const val KEY_KEEP_COMPLETED_IN_PLACE = "experimental_keep_completed_in_place"
-    private const val KEY_AI_ENABLED = "ai_enabled"
-    private const val KEY_AI_SILENT_TITLE = "ai_silent_title"
-    private const val KEY_AI_MEMORY_ECHO = "ai_memory_echo"
-    private const val KEY_AI_ON_THIS_DAY = "ai_on_this_day"
-    private const val KEY_AI_MOOD_TREND = "ai_mood_trend"
-    private const val KEY_AI_WRITING_RHYTHM = "ai_writing_rhythm"
-    private const val KEY_AI_TAG_INTUITION = "ai_tag_intuition"
-    private const val KEY_AI_MILESTONES = "ai_milestones"
+    private const val KEY_WRITING_MILESTONES = "experimental_writing_milestones"
+    private const val KEY_AI_INSIGHT_CARD = "experimental_ai_insight_card"
+    private const val KEY_AI_PEN_PAL = "experimental_ai_pen_pal"
 
     fun getState(context: Context): ExperimentalFeaturesState {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return ExperimentalFeaturesState(
             mainScreenSwipeEnabled = prefs.getBoolean(KEY_MAIN_SCREEN_SWIPE, false),
             keepCompletedItemsInPlace = prefs.getBoolean(KEY_KEEP_COMPLETED_IN_PLACE, false),
-            aiEnabled = prefs.getBoolean(KEY_AI_ENABLED, false),
-            aiSilentTitle = prefs.getBoolean(KEY_AI_SILENT_TITLE, false),
-            aiMemoryEcho = prefs.getBoolean(KEY_AI_MEMORY_ECHO, false),
-            aiOnThisDay = prefs.getBoolean(KEY_AI_ON_THIS_DAY, false),
-            aiMoodTrend = prefs.getBoolean(KEY_AI_MOOD_TREND, false),
-            aiWritingRhythm = prefs.getBoolean(KEY_AI_WRITING_RHYTHM, false),
-            aiTagIntuition = prefs.getBoolean(KEY_AI_TAG_INTUITION, false),
-            aiMilestones = prefs.getBoolean(KEY_AI_MILESTONES, false)
+            writingMilestonesEnabled = prefs.getBoolean(KEY_WRITING_MILESTONES, false),
+            aiInsightCardEnabled = prefs.getBoolean(KEY_AI_INSIGHT_CARD, false),
+            aiPenPalEnabled = prefs.getBoolean(KEY_AI_PEN_PAL, false)
         )
     }
 
@@ -41,43 +31,18 @@ object ExperimentalFeaturesPreferences {
             .edit().putBoolean(KEY_KEEP_COMPLETED_IN_PLACE, enabled).apply()
     }
 
-    fun setAiEnabled(context: Context, enabled: Boolean) {
+    fun setWritingMilestonesEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_ENABLED, enabled).apply()
+            .edit().putBoolean(KEY_WRITING_MILESTONES, enabled).apply()
     }
 
-    fun setAiSilentTitle(context: Context, enabled: Boolean) {
+    fun setAiInsightCardEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_SILENT_TITLE, enabled).apply()
+            .edit().putBoolean(KEY_AI_INSIGHT_CARD, enabled).apply()
     }
 
-    fun setAiMemoryEcho(context: Context, enabled: Boolean) {
+    fun setAiPenPalEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_MEMORY_ECHO, enabled).apply()
-    }
-
-    fun setAiOnThisDay(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_ON_THIS_DAY, enabled).apply()
-    }
-
-    fun setAiMoodTrend(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_MOOD_TREND, enabled).apply()
-    }
-
-    fun setAiWritingRhythm(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_WRITING_RHYTHM, enabled).apply()
-    }
-
-    fun setAiTagIntuition(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_TAG_INTUITION, enabled).apply()
-    }
-
-    fun setAiMilestones(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_AI_MILESTONES, enabled).apply()
+            .edit().putBoolean(KEY_AI_PEN_PAL, enabled).apply()
     }
 }

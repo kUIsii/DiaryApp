@@ -1,7 +1,6 @@
 package com.diary.app.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -48,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -79,7 +79,6 @@ import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.media.MediaLibraryScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
-import com.diary.app.ui.review.DiaryReviewScreen
 import com.diary.app.ui.settings.SettingsScreen
 import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.ui.timeline.TimelineScreen
@@ -272,12 +271,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.TagManagement.route) {
                 TagManagementScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Review.route) {
-                DiaryReviewScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
-                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(
@@ -505,7 +498,7 @@ private fun DiaryBottomNavItem(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1.0f,
+        targetValue = if (isSelected) 1.1f else 1.0f,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
         label = "iconScale"
     )
@@ -519,21 +512,22 @@ private fun DiaryBottomNavItem(
         animationSpec = tween(200),
         label = "textColor"
     )
-    val indicatorWidth by animateDpAsState(
-        targetValue = if (isSelected) 20.dp else 0.dp,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
-        label = "indicatorWidth"
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) primaryColor.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = tween(200),
+        label = "backgroundColor"
     )
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -546,7 +540,7 @@ private fun DiaryBottomNavItem(
                     contentDescription = item.screen.title,
                     tint = iconColor,
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(22.dp)
                         .graphicsLayer {
                             scaleX = iconScale
                             scaleY = iconScale
@@ -564,7 +558,7 @@ private fun DiaryBottomNavItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
             Text(
                 text = item.screen.title,
@@ -572,16 +566,6 @@ private fun DiaryBottomNavItem(
                 fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Box(
-                modifier = Modifier
-                    .width(indicatorWidth)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
-                    .background(primaryColor)
             )
         }
     }

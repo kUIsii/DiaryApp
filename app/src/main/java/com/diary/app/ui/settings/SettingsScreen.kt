@@ -29,17 +29,24 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,13 +66,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
+import com.diary.app.ai.AiConfigStore
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -84,6 +94,12 @@ fun SettingsScreen(
 
     var showContent by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showContent = true }
+
+    // AI config state
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    var testResult by remember { mutableStateOf<String?>(null) }
+    var isTesting by remember { mutableStateOf(false) }
+    val isAiConfigured = remember { AiConfigStore.isConfigured(context) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -293,6 +309,111 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                SettingsStaggeredItem(index = 8, showContent = showContent) {
+                    SectionHeader(title = "AI 服务", icon = Icons.Default.AutoAwesome, color = MaterialTheme.colorScheme.tertiary)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingsStaggeredItem(index = 9, showContent = showContent) {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 24.dp
+                    ) {
+                        Column {
+                            SettingsNavigateItem(
+                                icon = Icons.Default.Key,
+                                title = "API Key",
+                                subtitle = if (isAiConfigured) "已配置" else "未配置",
+                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.tertiary,
+                                textColor = textColor,
+                                textTertiary = textTertiary,
+                                onClick = { showApiKeyDialog = true }
+                            )
+                            SettingDivider()
+                            SettingsNavigateItem(
+                                icon = Icons.Default.AutoAwesome,
+                                title = "连接测试",
+                                subtitle = when {
+                                    isTesting -> "测试中..."
+                                    testResult != null -> testResult!!
+                                    isAiConfigured -> "Agnes 2.0 Flash (免费)"
+                                    else -> "请先配置 API Key"
+                                },
+                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                iconTint = MaterialTheme.colorScheme.tertiary,
+                                textColor = textColor,
+                                textTertiary = textTertiary,
+                                onClick = if (isAiConfigured && !isTesting) {
+                                    {
+                                        isTesting = true
+                                        testResult = null
+                                        kotlinx.coroutines.MainScope().launch {
+                                            try {
+                                                val result = app.aiService.chat(
+                                                    com.diary.app.ai.aiRequest("hi", maxTokens = 10)
+                                                )
+                                                testResult = result.fold(
+                                                    onSuccess = { "连接成功" },
+                                                    onFailure = { "失败: ${it.message}" }
+                                                )
+                                            } catch (e: Exception) {
+                                                testResult = "失败: ${e.message}"
+                                            } finally {
+                                                isTesting = false
+                                            }
+                                        }
+                                    }
+                                } else null
+                            )
+                        }
+                    }
+                }
+
+                if (showApiKeyDialog) {
+                    var apiKeyInput by remember { mutableStateOf(AiConfigStore.getApiKey(context)) }
+                    var endpointInput by remember { mutableStateOf(AiConfigStore.getEndpoint(context)) }
+                    AlertDialog(
+                        onDismissRequest = { showApiKeyDialog = false },
+                        title = { Text("AI 配置") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedTextField(
+                                    value = apiKeyInput,
+                                    onValueChange = { apiKeyInput = it },
+                                    label = { Text("API Key") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = endpointInput,
+                                    onValueChange = { endpointInput = it },
+                                    label = { Text("Endpoint") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    text = "默认使用 Agnes AI 免费服务，无需修改 Endpoint",
+                                    fontSize = 12.sp,
+                                    color = textTertiary
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                AiConfigStore.setApiKey(context, apiKeyInput.trim())
+                                AiConfigStore.setEndpoint(context, endpointInput.trim())
+                                AiConfigStore.setActiveProvider(context, "agnes")
+                                showApiKeyDialog = false
+                            }) { Text("保存") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showApiKeyDialog = false }) { Text("取消") }
+                        }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
