@@ -289,7 +289,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
         // 2. 胶囊到期通知
         val capsules = dao.getAllCapsulesOnce()
-        capsules.filter { it.unlockDate < tomorrowMillis && !it.isRead }.forEach { capsule ->
+        capsules.filter { it.unlockDate < tomorrowMillis && !it.isOpened }.forEach { capsule ->
             items.add(CapsuleUnlockNotification(capsule))
         }
 

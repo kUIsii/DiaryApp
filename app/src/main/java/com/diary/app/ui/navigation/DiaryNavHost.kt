@@ -328,13 +328,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.CreateCapsule.route) {
-                val parentEntry = navController.getBackStackEntry(Screen.TimeCapsule.route)
                 val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
-                    androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+                    androidx.lifecycle.viewmodel.compose.viewModel()
                 CreateCapsuleScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onCreateCapsule = { title, content, unlockDate ->
-                        capsuleViewModel.createCapsule(title, content, unlockDate)
+                    onCreateCapsule = { title, content, unlockDate, theme, imageUri, unlockHour, unlockMinute ->
+                        capsuleViewModel.createCapsule(title, content, unlockDate, theme, imageUri, unlockHour, unlockMinute)
                         navController.popBackStack()
                     }
                 )
@@ -344,9 +343,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 arguments = listOf(navArgument("capsuleId") { type = NavType.LongType })
             ) { backStackEntry ->
                 val capsuleId = backStackEntry.arguments?.getLong("capsuleId") ?: -1L
-                val parentEntry = navController.getBackStackEntry(Screen.TimeCapsule.route)
                 val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
-                    androidx.lifecycle.viewmodel.compose.viewModel(parentEntry)
+                    androidx.lifecycle.viewmodel.compose.viewModel()
                 ReadCapsuleScreen(
                     capsuleId = capsuleId,
                     onNavigateBack = { navController.popBackStack() },
