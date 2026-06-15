@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
@@ -81,7 +82,8 @@ fun ExperimentalFeaturesScreen(
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }
     var isTesting by remember { mutableStateOf(false) }
-    val isAiConfigured = remember { AiConfigStore.isConfigured(context) }
+    var configVersion by remember { mutableStateOf(0) }
+    val isAiConfigured = remember(configVersion) { AiConfigStore.isConfigured(context) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -204,18 +206,17 @@ fun ExperimentalFeaturesScreen(
                     cornerRadius = 24.dp
                 ) {
                     Column {
-                        ExperimentalFeatureRow(
+                        ExperimentalNavigateRow(
                             icon = Icons.Default.Key,
                             title = "API Key",
                             subtitle = if (isAiConfigured) "已配置" else "点击配置 Agnes AI 密钥",
-                            checked = false,
                             accentColor = accentColor,
                             textColor = textColor,
                             textSecondary = textSecondary,
-                            onCheckedChange = { showApiKeyDialog = true }
+                            onClick = { showApiKeyDialog = true }
                         )
                         ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
+                        ExperimentalNavigateRow(
                             icon = Icons.Default.AutoAwesome,
                             title = "连接测试",
                             subtitle = when {
@@ -224,12 +225,11 @@ fun ExperimentalFeaturesScreen(
                                 isAiConfigured -> "Agnes 2.0 Flash (免费)"
                                 else -> "请先配置 API Key"
                             },
-                            checked = false,
                             accentColor = accentColor,
                             textColor = textColor,
                             textSecondary = textSecondary,
-                            onCheckedChange = {
-                                if (isAiConfigured && !isTesting) {
+                            onClick = if (isAiConfigured && !isTesting) {
+                                {
                                     isTesting = true
                                     testResult = null
                                     MainScope().launch {
@@ -248,7 +248,7 @@ fun ExperimentalFeaturesScreen(
                                         }
                                     }
                                 }
-                            }
+                            } else null
                         )
                     }
                 }
@@ -265,6 +265,7 @@ fun ExperimentalFeaturesScreen(
                                     value = apiKeyInput,
                                     onValueChange = { apiKeyInput = it },
                                     label = { Text("API Key") },
+                                    placeholder = { Text("粘贴你的 Agnes API Key") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -272,21 +273,28 @@ fun ExperimentalFeaturesScreen(
                                     value = endpointInput,
                                     onValueChange = { endpointInput = it },
                                     label = { Text("Endpoint") },
+                                    placeholder = { Text("https://apihub.agnes-ai.com/v1/") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(
-                                    text = "默认使用 Agnes AI 免费服务，无需修改 Endpoint",
+                                    text = "填入 Base URL 即可，不需要加 chat/completions。\n默认 Agnes AI 免费服务，无需修改。",
                                     fontSize = 12.sp,
-                                    color = textSecondary
+                                    color = textSecondary,
+                                    lineHeight = 18.sp
                                 )
                             }
                         },
                         confirmButton = {
                             TextButton(onClick = {
                                 AiConfigStore.setApiKey(context, apiKeyInput.trim())
-                                AiConfigStore.setEndpoint(context, endpointInput.trim())
+                                val cleanedEndpoint = endpointInput.trim()
+                                    .removeSuffix("/")
+                                    .removeSuffix("chat/completions")
+                                    .trimEnd('/') + "/"
+                                AiConfigStore.setEndpoint(context, cleanedEndpoint)
                                 AiConfigStore.setActiveProvider(context, "agnes")
+                                configVersion++
                                 showApiKeyDialog = false
                             }) { Text("保存") }
                         },
@@ -390,4 +398,84 @@ private fun ExperimentalFeatureDivider() {
             .height(1.dp)
             .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
     )
+}
+
+@Composable
+private fun ExperimentalNavigateRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accentColor: Color,
+    textColor: Color,
+    textSecondary: Color,
+    onClick: (() -> Unit)? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.985f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "navigateRowScale"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = onClick != null
+            ) { onClick?.invoke() }
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accentColor.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.size(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                color = textColor,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = textSecondary,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(top = 3.dp, end = 8.dp)
+            )
+        }
+
+        if (onClick != null) {
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = textSecondary,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }

@@ -58,7 +58,11 @@ class AgnesProvider(
         request: AiRequest,
         model: String
     ): AiResponse {
-        val url = URL("${endpoint}chat/completions")
+        val cleanEndpoint = endpoint
+            .removeSuffix("/")
+            .removeSuffix("chat/completions")
+            .trimEnd('/') + "/"
+        val url = URL("${cleanEndpoint}chat/completions")
         val conn = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
