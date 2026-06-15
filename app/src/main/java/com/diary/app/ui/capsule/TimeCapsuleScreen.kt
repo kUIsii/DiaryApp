@@ -3,12 +3,9 @@ package com.diary.app.ui.capsule
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,12 +29,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,14 +50,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,7 +66,6 @@ import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.rememberHapticFeedback
-import com.diary.app.ui.theme.AnimationConfig
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -380,8 +371,6 @@ private fun SummaryCard(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-            Spacer(modifier = Modifier.height(14.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 MetricBlock(label = "总数", value = total.toString(), modifier = Modifier.weight(1f))
@@ -434,12 +423,6 @@ private fun SectionHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(accent, CircleShape)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = title,
             fontSize = 15.sp,
@@ -450,7 +433,7 @@ private fun SectionHeader(
         Text(
             text = "$count",
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
 }
@@ -465,45 +448,31 @@ private fun SealedCapsuleCard(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "sealed")
 
-    // Pulsing glow animation
+    // Subtle breathing glow animation
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.8f,
+        initialValue = 0.15f,
+        targetValue = 0.35f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
+            animation = tween(3000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glow"
     )
 
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-
     val themeColor = capsuleThemeColor(capsule.theme)
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(pulseScale)
-    ) {
-        // Glow background
+    Box(modifier = Modifier.fillMaxWidth()) {
+        // Subtle glow background
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .padding(4.dp)
-                .alpha(glowAlpha * 0.3f)
-                .blur(20.dp)
+                .alpha(glowAlpha)
+                .blur(24.dp)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            themeColor.copy(alpha = 0.4f),
+                            themeColor.copy(alpha = 0.3f),
                             Color.Transparent
                         )
                     ),
@@ -523,26 +492,21 @@ private fun SealedCapsuleCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Envelope icon with glow
+                // Envelope icon
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(48.dp)
                         .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    themeColor.copy(alpha = 0.15f),
-                                    themeColor.copy(alpha = 0.08f)
-                                )
-                            ),
-                            RoundedCornerShape(16.dp)
+                            themeColor.copy(alpha = 0.1f),
+                            RoundedCornerShape(14.dp)
                         )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mail,
                         contentDescription = null,
                         tint = themeColor,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
@@ -551,24 +515,28 @@ private fun SealedCapsuleCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "你有一封未拆的信",
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "点击拆开这封来自过去的信",
+                        text = "点击拆开",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 }
 
-                IconButton(onClick = onDelete) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -591,11 +559,6 @@ private fun LockedCapsuleCard(
     val daysRemaining = remember(capsule, now) {
         ChronoUnit.DAYS.between(now, unlockDate).toInt().coerceAtLeast(0)
     }
-    val createdText = remember(capsule) {
-        val created = Instant.ofEpochMilli(capsule.createdAt)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
-        "${created.year}年${created.monthValue}月${created.dayOfMonth}日"
-    }
 
     GlassCard(
         cornerRadius = 20.dp,
@@ -604,15 +567,20 @@ private fun LockedCapsuleCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Lock icon
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                        RoundedCornerShape(14.dp)
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(12.dp).size(22.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
@@ -620,24 +588,28 @@ private fun LockedCapsuleCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "一封来自过去的信",
-                    fontSize = 17.sp,
+                    text = "等待解锁",
+                    fontSize = 16.sp,
                     fontFamily = FontFamily.Serif,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MetadataPill(text = createdText)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    MetadataPill(text = "$daysRemaining 天后解锁")
-                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "还有 $daysRemaining 天",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
             }
 
-            IconButton(onClick = onDelete) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -652,16 +624,6 @@ private fun OpenedCapsuleCard(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val createdText = remember(capsule) {
-        val created = Instant.ofEpochMilli(capsule.createdAt)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
-        "${created.year}年${created.monthValue}月${created.dayOfMonth}日"
-    }
-    val unlockText = remember(capsule) {
-        val unlock = Instant.ofEpochMilli(capsule.unlockDate)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
-        "${unlock.year}年${unlock.monthValue}月${unlock.dayOfMonth}日"
-    }
     val previewText = remember(capsule.content) {
         capsule.content.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "没有正文预览" }
     }
@@ -675,78 +637,70 @@ private fun OpenedCapsuleCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Column {
-            // Theme color bar
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Theme color indicator
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
+                    .size(48.dp)
                     .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(themeColor, themeColor.copy(alpha = 0.3f))
-                        ),
-                        RoundedCornerShape(1.5.dp)
-                    )
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = capsule.title,
-                        fontSize = 17.sp,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = previewText,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                // Image thumbnail if exists
-                if (!capsule.imageUri.isNullOrEmpty()) {
-                    Spacer(modifier = Modifier.width(12.dp))
-                    AsyncImage(
-                        model = capsule.imageUri,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                }
+                        themeColor.copy(alpha = 0.1f),
+                        RoundedCornerShape(14.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mail,
+                    contentDescription = null,
+                    tint = themeColor,
+                    modifier = Modifier.size(22.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = capsule.title,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = previewText,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Image thumbnail if exists
+            if (!capsule.imageUri.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.width(12.dp))
+                AsyncImage(
+                    model = capsule.imageUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                )
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp)
             ) {
-                MetadataPill(text = createdText)
-                Spacer(modifier = Modifier.width(8.dp))
-                MetadataPill(text = "解锁于 $unlockText")
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -756,8 +710,7 @@ private fun OpenedCapsuleCard(
 private fun MetadataPill(text: String) {
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
     ) {
         Text(
             text = text,

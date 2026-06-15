@@ -12,7 +12,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,10 +34,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,12 +60,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -306,102 +301,70 @@ fun ReadCapsuleScreen(
                     // Content (after opening)
                     AnimatedVisibility(
                         visible = isOpened,
-                        enter = fadeIn(tween(400)) + slideInVertically(
-                            tween(500, easing = FastOutSlowInEasing),
-                            initialOffsetY = { it / 3 }
+                        enter = fadeIn(tween(500)) + slideInVertically(
+                            tween(600, easing = FastOutSlowInEasing),
+                            initialOffsetY = { it / 4 }
                         )
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            // Theme color bar
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(4.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                capsuleThemeColor(currentCapsule.theme),
-                                                capsuleThemeColor(currentCapsule.theme).copy(alpha = 0.2f)
-                                            )
-                                        ),
-                                        RoundedCornerShape(2.dp)
-                                    )
+                            // Title
+                            Text(
+                                text = currentCapsule.title,
+                                fontSize = 26.sp,
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
-                            GlassCard(
-                                cornerRadius = 22.dp,
-                                innerPadding = 18.dp,
-                                modifier = Modifier.fillMaxWidth(),
-                                enableShadow = true,
-                                gradientColors = listOf(
-                                    capsuleThemeColor(currentCapsule.theme).copy(alpha = 0.04f),
-                                    Color.Transparent
-                                )
+                            // Time info
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Column {
-                                    // Title
-                                    Text(
-                                        text = currentCapsule.title,
-                                        fontSize = 24.sp,
-                                        fontFamily = FontFamily.Serif,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    // Time info
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        InfoPanel(
-                                            label = "写于",
-                                            value = formatTimestamp(currentCapsule.createdAt),
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        InfoPanel(
-                                            label = "解锁于",
-                                            value = formatTimestamp(currentCapsule.unlockDate),
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(18.dp))
-                                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                                    Spacer(modifier = Modifier.height(18.dp))
-
-                                    // Image if exists
-                                    if (!currentCapsule.imageUri.isNullOrEmpty()) {
-                                        AsyncImage(
-                                            model = currentCapsule.imageUri,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.FillWidth,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(16.dp))
-                                        )
-                                        Spacer(modifier = Modifier.height(18.dp))
-                                    }
-
-                                    // Content
-                                    Text(
-                                        text = currentCapsule.content,
-                                        fontSize = 16.sp,
-                                        fontFamily = FontFamily.Serif,
-                                        lineHeight = 28.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                InfoPanel(
+                                    label = "写于",
+                                    value = formatTimestamp(currentCapsule.createdAt),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                InfoPanel(
+                                    label = "解锁于",
+                                    value = formatTimestamp(currentCapsule.unlockDate),
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            // Image if exists
+                            if (!currentCapsule.imageUri.isNullOrEmpty()) {
+                                AsyncImage(
+                                    model = currentCapsule.imageUri,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
+                            }
+
+                            // Content
+                            Text(
+                                text = currentCapsule.content,
+                                fontSize = 16.sp,
+                                fontFamily = FontFamily.Serif,
+                                lineHeight = 28.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
@@ -419,16 +382,15 @@ private fun InfoPanel(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = label,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 fontSize = 13.sp,

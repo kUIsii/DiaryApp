@@ -3,10 +3,6 @@ package com.diary.app.ui.capsule
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,10 +28,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -62,7 +56,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
@@ -394,53 +387,38 @@ fun CreateCapsuleScreen(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             CapsuleTheme.entries.forEach { theme ->
                                 val colors = capsuleThemeColors(theme)
                                 val isSelected = theme == selectedTheme
-                                val scale by animateFloatAsState(
-                                    targetValue = if (isSelected) 1.05f else 1f,
-                                    animationSpec = spring(
-                                        dampingRatio = 0.6f,
-                                        stiffness = 800f
-                                    ),
-                                    label = "themeScale"
-                                )
-                                val borderColor by animateColorAsState(
-                                    targetValue = if (isSelected) colors.primary
-                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                                    label = "themeBorder"
-                                )
 
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = if (isSelected) colors.primary.copy(alpha = 0.1f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                                    border = BorderStroke(1.5.dp, borderColor),
-                                    modifier = Modifier
-                                        .scale(scale)
-                                        .clickable {
-                                            haptic.click()
-                                            selectedTheme = theme
-                                        }
+                                    color = if (isSelected) colors.primary.copy(alpha = 0.12f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                                    modifier = Modifier.clickable {
+                                        haptic.click()
+                                        selectedTheme = theme
+                                    }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(10.dp)
+                                                .size(12.dp)
                                                 .background(colors.primary, CircleShape)
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = colors.label,
-                                            fontSize = 13.sp,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                                             color = if (isSelected) colors.primary
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -459,99 +437,78 @@ fun CreateCapsuleScreen(
                 ) {
                     Column {
                         Text(
-                            text = "解锁方式",
+                            text = "解锁时间",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        // Date picker row
+                        // Date and time in one row
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { showDatePicker = true }
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = themeColors.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "解锁日期",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                                Text(
-                                    text = when {
-                                        isRandomMode -> "随机惊喜，某天你会收到"
-                                        selectedDate != null -> "${selectedDate!!.year}年${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日"
-                                        else -> "选择哪天打开"
-                                    },
-                                    fontSize = 15.sp,
-                                    color = if (selectedDate != null || isRandomMode)
-                                        MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                            if (selectedDate != null && !isRandomMode) {
-                                IconButton(
-                                    onClick = { selectedDate = null },
-                                    modifier = Modifier.size(24.dp)
+                            // Date picker
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { showDatePicker = true }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "清除",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    Text(
+                                        text = "日期",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = when {
+                                            isRandomMode -> "随机"
+                                            selectedDate != null -> "${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日"
+                                            else -> "选择日期"
+                                        },
+                                        fontSize = 15.sp,
+                                        color = if (selectedDate != null || isRandomMode)
+                                            MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+
+                            // Time picker
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { showTimePicker = true }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp)
+                                ) {
+                                    Text(
+                                        text = "时间",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}",
+                                        fontSize = 15.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        // Time picker row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { showTimePicker = true }
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                tint = themeColors.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "解锁时间",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                                Text(
-                                    text = "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}",
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Random surprise button
+                        // Random surprise toggle
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -562,8 +519,8 @@ fun CreateCapsuleScreen(
                                     if (isRandomMode) selectedDate = null
                                 }
                                 .background(
-                                    if (isRandomMode) themeColors.primary.copy(alpha = 0.1f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    if (isRandomMode) themeColors.primary.copy(alpha = 0.08f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
                                 )
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -573,19 +530,20 @@ fun CreateCapsuleScreen(
                                 contentDescription = null,
                                 tint = if (isRandomMode) themeColors.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "随机惊喜",
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isRandomMode) FontWeight.Medium else FontWeight.Normal,
                                     color = if (isRandomMode) themeColors.primary
                                     else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "3-12个月后的某天，突然收到这封信",
-                                    fontSize = 11.sp,
+                                    text = "3-12个月后的某天收到",
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             }
@@ -593,38 +551,31 @@ fun CreateCapsuleScreen(
                     }
                 }
 
-                // Bottom toolbar: image attachment
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // Image attachment button
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { imageLauncher.launch("image/*") }
                 ) {
-                    // Image attachment button
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { imageLauncher.launch("image/*") }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (imageUri != null) "已添加图片" else "添加图片",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.AddPhotoAlternate,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (imageUri != null) "已添加图片" else "添加图片",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
