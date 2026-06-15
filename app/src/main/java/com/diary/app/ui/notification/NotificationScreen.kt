@@ -7,6 +7,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -109,6 +112,33 @@ fun NotificationScreen(
                     onNavigateToAnnualReport = onNavigateToAnnualReport
                 )
             } else {
+                // 主内容区，支持左右滑切换分类
+                var categoryDragTotal by remember { mutableStateOf(0f) }
+                val categories = NotificationCategory.entries
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { categoryDragTotal = 0f },
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    categoryDragTotal += dragAmount
+                                },
+                                onDragEnd = {
+                                    val threshold = 80f
+                                    val currentIndex = categories.indexOf(uiState.selectedCategory)
+                                    if (categoryDragTotal < -threshold && currentIndex < categories.lastIndex) {
+                                        viewModel.selectCategory(categories[currentIndex + 1])
+                                    } else if (categoryDragTotal > threshold && currentIndex > 0) {
+                                        viewModel.selectCategory(categories[currentIndex - 1])
+                                    }
+                                    categoryDragTotal = 0f
+                                }
+                            )
+                        }
+                ) {
                 // 分类 Tab
                 CategoryTabRow(
                     selectedCategory = uiState.selectedCategory,
@@ -134,6 +164,7 @@ fun NotificationScreen(
                         onNavigateToAnnualReport = onNavigateToAnnualReport
                     )
                 }
+                } // end swipe Column
             }
         }
     }
@@ -575,6 +606,7 @@ private fun TrashView(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TrashedNotificationCard(
     item: NotificationItem,
@@ -582,22 +614,25 @@ private fun TrashedNotificationCard(
     onPermanentDelete: () -> Unit,
     onClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val (icon, iconColor, title, subtitle) = getNotificationStyle(item)
     val clickable = item is CapsuleUnlockNotification ||
             item is OnThisDayNotification ||
             item is MonthlyReportNotification ||
             item is AnnualReportNotification
 
-    GlassCard(
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(enabled = clickable, onClick = onClick)
-    ) {
-        Column {
-            // 通知内容
+    Box {
+        GlassCard(
+            cornerRadius = 16.dp,
+            innerPadding = 16.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { showMenu = true }
+                )
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -630,45 +665,32 @@ private fun TrashedNotificationCard(
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 操作按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onRestore) {
-                    Icon(
-                        Icons.Default.Restore,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "恢复",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 13.sp
-                    )
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("恢复") },
+                leadingIcon = {
+                    Icon(Icons.Default.Restore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                onClick = {
+                    showMenu = false
+                    onRestore()
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onPermanentDelete) {
-                    Icon(
-                        Icons.Default.DeleteForever,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "永久删除",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp
-                    )
+            )
+            DropdownMenuItem(
+                text = { Text("永久删除") },
+                leadingIcon = {
+                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                },
+                onClick = {
+                    showMenu = false
+                    onPermanentDelete()
                 }
-            }
+            )
         }
     }
 }
