@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
@@ -44,6 +45,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.diary.app.ai.AiConfigStore
+import com.diary.app.ai.AiUsageTracker
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
@@ -249,6 +251,17 @@ fun ExperimentalFeaturesScreen(
                                     }
                                 }
                             } else null
+                        )
+                        ExperimentalFeatureDivider()
+                        val usage = remember(configVersion) { AiUsageTracker.getTodayStats(context) }
+                        ExperimentalNavigateRow(
+                            icon = Icons.Default.Info,
+                            title = "今日用量",
+                            subtitle = if (usage.requests > 0) "${usage.requests} 次请求，${usage.tokens} tokens" else "今天还没有使用",
+                            accentColor = accentColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onClick = null
                         )
                     }
                 }

@@ -16,7 +16,8 @@ data class AiRequest(
 data class AiResponse(
     val content: String,
     val model: String,
-    val providerId: String
+    val providerId: String,
+    val totalTokens: Int = 0
 )
 
 data class AiStreamChunk(

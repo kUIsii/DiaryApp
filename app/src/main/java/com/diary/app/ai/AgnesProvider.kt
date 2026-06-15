@@ -103,10 +103,14 @@ class AgnesProvider(
                 .getAsJsonObject("message")
                 .get("content").asString
 
+            val totalTokens = json.getAsJsonObject("usage")
+                ?.get("total_tokens")?.asInt ?: 0
+
             return AiResponse(
                 content = content,
                 model = json.get("model")?.asString ?: model,
-                providerId = id
+                providerId = id,
+                totalTokens = totalTokens
             )
         } finally {
             conn.disconnect()
