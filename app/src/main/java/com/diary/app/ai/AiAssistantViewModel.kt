@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.ChatConversationEntity
 import com.diary.app.data.ChatMessageEntity
+import com.diary.app.data.DiaryPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -291,6 +292,26 @@ $context"""
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.deleteChatMessagesByConversation(convId) }
             _messages.value = emptyList()
+        }
+    }
+
+    // Search related diary entries based on keywords
+    suspend fun searchRelatedEntries(keywords: String): List<DiaryPreview> {
+        return try {
+            val words = keywords.split(Regex("[\\s,，。、；;！!？?]+"))
+                .filter { it.length >= 2 }
+                .take(5)
+            if (words.isEmpty()) return emptyList()
+
+            val allResults = mutableMapOf<Long, DiaryPreview>()
+            for (word in words) {
+                val results = dao.searchPreviewsOnce(word)
+                results.forEach { allResults[it.id] = it }
+            }
+            allResults.values.sortedByDescending { it.createdAt }.take(3)
+        } catch (e: Exception) {
+            Log.e("AiAssistant", "Failed to search related entries", e)
+            emptyList()
         }
     }
 }

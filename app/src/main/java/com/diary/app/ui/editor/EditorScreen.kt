@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
@@ -151,6 +152,7 @@ fun EditorScreen(
     // AI assistant panel state
     var showAiPanel by remember { mutableStateOf(false) }
     var selectedEditorText by remember { mutableStateOf<String?>(null) }
+    var showPolishButton by remember { mutableStateOf(false) }
     val aiViewModel: com.diary.app.ai.AiAssistantViewModel = viewModel()
     val aiMessages by aiViewModel.messages.collectAsState()
     val aiLoading by aiViewModel.loading.collectAsState()
@@ -162,6 +164,9 @@ fun EditorScreen(
         jsBridge.selectedText.collect { text ->
             if (text.isNotBlank()) {
                 selectedEditorText = text
+                showPolishButton = true
+            } else {
+                showPolishButton = false
             }
         }
     }
@@ -1353,6 +1358,40 @@ fun EditorScreen(
                 )
             }
         }
+
+        // Floating polish button when text is selected
+        AnimatedVisibility(
+            visible = showPolishButton && experimentalFeatures.floatingBubbleEnabled && experimentalFeatures.aiAssistantEnabled,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 80.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable {
+                        showPolishButton = false
+                        showAiPanel = true
+                        // Send polish request with selected text
+                        val textToPolish = selectedEditorText ?: ""
+                        if (textToPolish.isNotBlank()) {
+                            aiViewModel.sendMessage("帮我润色修改这段文字，保持原意但让表达更流畅：\n\n$textToPolish")
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "AI 润色",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
         MetadataOverlayPanel(
             activePanel = activePanel,
             selectedMood = selectedMood,
@@ -1412,6 +1451,16 @@ fun EditorScreen(
                     selectedEditorText = null
                 },
                 onResend = { text -> aiViewModel.sendMessage(text) },
+                onContinueWriting = {
+                    // Get current content and send continue writing request
+                    webView?.evaluateJavascript("getPlainText()") { text ->
+                        val clean = text?.removeSurrounding("\"")?.replace("\\n", "\n")?.replace("\\t", "\t") ?: ""
+                        if (clean.isNotBlank()) {
+                            aiViewModel.sendMessage("请帮我续写这段日记，保持风格一致，自然地接着写下去：\n\n$clean")
+                            showAiPanel = true
+                        }
+                    }
+                },
                 onSwitchConversation = { aiViewModel.switchConversation(it) },
                 onCreateNewConversation = { aiViewModel.createNewConversation() },
                 onDeleteConversation = { aiViewModel.deleteConversation(it) },

@@ -87,6 +87,9 @@ interface DiaryDao {
     @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchPreviews(query: String): Flow<List<DiaryPreview>>
 
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
+    suspend fun searchPreviewsOnce(query: String): List<DiaryPreview>
+
     @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun toggleFavorite(id: Long, isFavorite: Boolean)
 

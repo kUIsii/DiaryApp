@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Send
@@ -39,6 +40,7 @@ fun EditorAiPanel(
     currentConversationId: Long,
     onSendMessage: (String) -> Unit,
     onResend: ((String) -> Unit)? = null,
+    onContinueWriting: (() -> Unit)? = null,
     onSwitchConversation: (Long) -> Unit,
     onCreateNewConversation: () -> Unit,
     onDeleteConversation: (Long) -> Unit,
@@ -226,6 +228,7 @@ fun EditorAiPanel(
                 // Input area
                 EditorAiInput(
                     onSendMessage = onSendMessage,
+                    onContinueWriting = onContinueWriting,
                     quotedText = quotedText
                 )
             }
@@ -347,6 +350,7 @@ private fun EditorChatBubble(
 @Composable
 private fun EditorAiInput(
     onSendMessage: (String) -> Unit,
+    onContinueWriting: (() -> Unit)? = null,
     quotedText: String? = null
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -421,6 +425,26 @@ private fun EditorAiInput(
             }
 
             Spacer(modifier = Modifier.width(8.dp))
+
+            // Continue writing button
+            if (onContinueWriting != null) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { onContinueWriting() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "续写",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
 
             Box(
                 modifier = Modifier
