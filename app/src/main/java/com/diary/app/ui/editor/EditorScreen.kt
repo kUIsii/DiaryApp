@@ -154,6 +154,8 @@ fun EditorScreen(
     val aiViewModel: com.diary.app.ai.AiAssistantViewModel = viewModel()
     val aiMessages by aiViewModel.messages.collectAsState()
     val aiLoading by aiViewModel.loading.collectAsState()
+    val aiConversations by aiViewModel.conversations.collectAsState()
+    val aiCurrentConversationId by aiViewModel.currentConversationId.collectAsState()
 
     // Collect selected text from WebView
     LaunchedEffect(Unit) {
@@ -1403,10 +1405,16 @@ fun EditorScreen(
                 visible = showAiPanel,
                 messages = aiMessages,
                 loading = aiLoading,
+                conversations = aiConversations,
+                currentConversationId = aiCurrentConversationId,
                 onSendMessage = { text ->
                     aiViewModel.sendMessage(text)
                     selectedEditorText = null
                 },
+                onResend = { text -> aiViewModel.sendMessage(text) },
+                onSwitchConversation = { aiViewModel.switchConversation(it) },
+                onCreateNewConversation = { aiViewModel.createNewConversation() },
+                onDeleteConversation = { aiViewModel.deleteConversation(it) },
                 onDismiss = { showAiPanel = false },
                 quotedText = selectedEditorText
             )
