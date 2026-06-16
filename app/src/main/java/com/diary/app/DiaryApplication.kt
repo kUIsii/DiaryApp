@@ -79,4 +79,9 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = _experimentalFeatures.value.copy(aiAssistantEnabled = enabled)
         ExperimentalFeaturesPreferences.setAiAssistantEnabled(this, enabled)
     }
+
+    fun setFloatingBubbleEnabled(enabled: Boolean) {
+        _experimentalFeatures.value = _experimentalFeatures.value.copy(floatingBubbleEnabled = enabled)
+        ExperimentalFeaturesPreferences.setFloatingBubbleEnabled(this, enabled)
+    }
 }

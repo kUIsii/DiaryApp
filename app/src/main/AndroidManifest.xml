@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".DiaryApplication"
@@ -113,6 +115,12 @@
             android:name=".widget.CountDownWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
+
+        <!-- Floating Service -->
+        <service
+            android:name=".ui.floating.FloatingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
     </application>
 
 </manifest>

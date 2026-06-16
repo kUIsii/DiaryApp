@@ -9,6 +9,7 @@ object ExperimentalFeaturesPreferences {
     private const val KEY_WRITING_MILESTONES = "experimental_writing_milestones"
     private const val KEY_AI_INSIGHT_CARD = "experimental_ai_insight_card"
     private const val KEY_AI_ASSISTANT = "experimental_ai_assistant"
+    private const val KEY_FLOATING_BUBBLE = "experimental_floating_bubble"
 
     fun getState(context: Context): ExperimentalFeaturesState {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -17,7 +18,8 @@ object ExperimentalFeaturesPreferences {
             keepCompletedItemsInPlace = prefs.getBoolean(KEY_KEEP_COMPLETED_IN_PLACE, false),
             writingMilestonesEnabled = prefs.getBoolean(KEY_WRITING_MILESTONES, false),
             aiInsightCardEnabled = prefs.getBoolean(KEY_AI_INSIGHT_CARD, false),
-            aiAssistantEnabled = prefs.getBoolean(KEY_AI_ASSISTANT, prefs.getBoolean("experimental_ai_pen_pal", false))
+            aiAssistantEnabled = prefs.getBoolean(KEY_AI_ASSISTANT, prefs.getBoolean("experimental_ai_pen_pal", false)),
+            floatingBubbleEnabled = prefs.getBoolean(KEY_FLOATING_BUBBLE, false)
         )
     }
 
@@ -44,5 +46,10 @@ object ExperimentalFeaturesPreferences {
     fun setAiAssistantEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_AI_ASSISTANT, enabled).apply()
+    }
+
+    fun setFloatingBubbleEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_FLOATING_BUBBLE, enabled).apply()
     }
 }

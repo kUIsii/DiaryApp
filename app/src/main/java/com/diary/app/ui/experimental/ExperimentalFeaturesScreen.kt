@@ -30,12 +30,18 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import com.diary.app.ui.floating.FloatingService
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -273,6 +279,43 @@ fun ExperimentalFeaturesScreen(
                             textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
                             textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
                             onCheckedChange = { if (isAiConfigured) app.setAiAssistantEnabled(it) }
+                        )
+                        ExperimentalFeatureDivider()
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.ChatBubbleOutline,
+                            title = "悬浮球助手",
+                            subtitle = if (isAiConfigured) "在任意界面使用小墨，支持截图" else "需要先配置 API Key",
+                            checked = features.floatingBubbleEnabled && isAiConfigured,
+                            accentColor = accentColor,
+                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
+                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
+                            onCheckedChange = { enabled ->
+                                if (isAiConfigured) {
+                                    app.setFloatingBubbleEnabled(enabled)
+                                    if (enabled) {
+                                        // Check overlay permission
+                                        if (!Settings.canDrawOverlays(context)) {
+                                            val intent = Intent(
+                                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                Uri.parse("package:${context.packageName}")
+                                            )
+                                            context.startActivity(intent)
+                                        } else {
+                                            // Start floating service
+                                            val serviceIntent = Intent(context, FloatingService::class.java)
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                context.startForegroundService(serviceIntent)
+                                            } else {
+                                                context.startService(serviceIntent)
+                                            }
+                                        }
+                                    } else {
+                                        // Stop floating service
+                                        val serviceIntent = Intent(context, FloatingService::class.java)
+                                        context.stopService(serviceIntent)
+                                    }
+                                }
+                            }
                         )
                     }
                 }
