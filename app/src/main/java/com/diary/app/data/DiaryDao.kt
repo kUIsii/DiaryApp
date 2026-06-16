@@ -528,6 +528,9 @@ interface DiaryDao {
 
     @Query("DELETE FROM chat_conversations WHERE id = :id")
     suspend fun deleteConversation(id: Long)
+
+    @Query("UPDATE chat_messages SET conversationId = :newConversationId WHERE conversationId = 0")
+    suspend fun migrateOldMessages(newConversationId: Long)
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

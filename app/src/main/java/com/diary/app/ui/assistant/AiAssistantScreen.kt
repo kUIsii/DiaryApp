@@ -418,7 +418,7 @@ private fun ConversationItem(
 @Composable
 private fun ChatBubble(message: AssistantMessage, onResend: ((String) -> Unit)? = null) {
     val isUser = message.isUser
-    val isTimeoutError = !isUser && message.content.contains("网络不太好")
+    val isTimeoutError = !isUser && (message.content.contains("网络不太好") || message.content.contains("稍后再聊"))
 
     Column {
         Row(

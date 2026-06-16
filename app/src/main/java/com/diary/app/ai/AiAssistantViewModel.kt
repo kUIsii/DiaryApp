@@ -61,9 +61,14 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                 _currentConversationId.value = id
                 _conversations.value = listOf(ConversationInfo(id, "新对话", System.currentTimeMillis()))
             } else {
+                // Fix: migrate old messages with conversationId=0 to the first conversation
+                val firstConvId = convs.first().id
+                withContext(Dispatchers.IO) {
+                    dao.migrateOldMessages(firstConvId)
+                }
                 _conversations.value = convs.map { ConversationInfo(it.id, it.title, it.updatedAt) }
-                _currentConversationId.value = convs.first().id
-                loadMessages(convs.first().id)
+                _currentConversationId.value = firstConvId
+                loadMessages(firstConvId)
             }
         }
     }
