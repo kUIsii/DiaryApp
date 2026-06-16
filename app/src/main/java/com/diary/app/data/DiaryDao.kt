@@ -392,6 +392,14 @@ interface DiaryDao {
     """)
     suspend fun getRecentLocations(): List<RecentLocation>
 
+    @Query("""
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        FROM diary_entries
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        ORDER BY createdAt DESC
+    """)
+    suspend fun getEntriesWithLocation(): List<DiaryPreview>
+
     @Query("DELETE FROM trash_entries WHERE deletedAt < :before")
     suspend fun deleteTrashEntriesBefore(before: Long)
 

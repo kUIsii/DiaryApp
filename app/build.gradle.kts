@@ -13,7 +13,7 @@ val localProps = Properties().apply {
 
 android {
     namespace = "com.diary.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.diary.app"
@@ -63,8 +63,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 111
-            versionName = "2.64.15-experimental"
+            versionCode = 112
+            versionName = "2.64.16-experimental"
         }
     }
 
@@ -126,6 +126,9 @@ dependencies {
 
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")
+
+    // Health Connect API
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
     testImplementation("junit:junit:4.13.2")
 

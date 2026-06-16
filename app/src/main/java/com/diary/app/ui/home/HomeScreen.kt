@@ -107,6 +107,9 @@ fun HomeScreen(
     onNavigateToTimeCapsule: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
+    onNavigateToHealth: () -> Unit = {},
+    onNavigateToDiaryMap: () -> Unit = {},
+    onNavigateToBiography: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -335,8 +338,8 @@ fun HomeScreen(
             FunctionMenu(
                 expanded = showFunctionMenu,
                 onDismiss = { showFunctionMenu = false },
-                items = listOf(
-                    FunctionMenuItem(
+                items = buildList {
+                    add(FunctionMenuItem(
                         id = "random",
                         title = "随机回顾",
                         icon = Icons.Default.Shuffle,
@@ -349,8 +352,8 @@ fun HomeScreen(
                                 }
                             }
                         }
-                    ),
-                    FunctionMenuItem(
+                    ))
+                    add(FunctionMenuItem(
                         id = "experimental",
                         title = "实验功能",
                         icon = Icons.Default.AutoAwesome,
@@ -358,8 +361,8 @@ fun HomeScreen(
                             showFunctionMenu = false
                             onNavigateToExperimentalFeatures()
                         }
-                    ),
-                    FunctionMenuItem(
+                    ))
+                    add(FunctionMenuItem(
                         id = "media",
                         title = "媒体库",
                         icon = Icons.Default.Collections,
@@ -367,8 +370,8 @@ fun HomeScreen(
                             showFunctionMenu = false
                             onNavigateToMediaLibrary()
                         }
-                    ),
-                    FunctionMenuItem(
+                    ))
+                    add(FunctionMenuItem(
                         id = "stats",
                         title = "统计",
                         icon = Icons.Default.BarChart,
@@ -376,8 +379,8 @@ fun HomeScreen(
                             showFunctionMenu = false
                             onNavigateToStats()
                         }
-                    ),
-                    FunctionMenuItem(
+                    ))
+                    add(FunctionMenuItem(
                         id = "countdown",
                         title = "倒数日",
                         icon = Icons.Default.Timer,
@@ -385,8 +388,8 @@ fun HomeScreen(
                             showFunctionMenu = false
                             onNavigateToCountDown()
                         }
-                    ),
-                    FunctionMenuItem(
+                    ))
+                    add(FunctionMenuItem(
                         id = "capsule",
                         title = "时间胶囊",
                         icon = Icons.Default.MarkEmailUnread,
@@ -394,8 +397,41 @@ fun HomeScreen(
                             showFunctionMenu = false
                             onNavigateToTimeCapsule()
                         }
-                    )
-                )
+                    ))
+                    if (features.healthDataEnabled) {
+                        add(FunctionMenuItem(
+                            id = "health",
+                            title = "健康数据",
+                            icon = Icons.Default.Favorite,
+                            onClick = {
+                                showFunctionMenu = false
+                                onNavigateToHealth()
+                            }
+                        ))
+                    }
+                    if (features.diaryMapEnabled) {
+                        add(FunctionMenuItem(
+                            id = "map",
+                            title = "日记地图",
+                            icon = Icons.Default.LocationOn,
+                            onClick = {
+                                showFunctionMenu = false
+                                onNavigateToDiaryMap()
+                            }
+                        ))
+                    }
+                    if (features.aiBiographyEnabled) {
+                        add(FunctionMenuItem(
+                            id = "biography",
+                            title = "AI 传记",
+                            icon = Icons.Default.AutoAwesome,
+                            onClick = {
+                                showFunctionMenu = false
+                                onNavigateToBiography()
+                            }
+                        ))
+                    }
+                }
             )
 
             if (showDeleteConfirm) {

@@ -84,4 +84,19 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = _experimentalFeatures.value.copy(floatingBubbleEnabled = enabled)
         ExperimentalFeaturesPreferences.setFloatingBubbleEnabled(this, enabled)
     }
+
+    fun setHealthDataEnabled(enabled: Boolean) {
+        _experimentalFeatures.value = _experimentalFeatures.value.copy(healthDataEnabled = enabled)
+        ExperimentalFeaturesPreferences.setHealthDataEnabled(this, enabled)
+    }
+
+    fun setDiaryMapEnabled(enabled: Boolean) {
+        _experimentalFeatures.value = _experimentalFeatures.value.copy(diaryMapEnabled = enabled)
+        ExperimentalFeaturesPreferences.setDiaryMapEnabled(this, enabled)
+    }
+
+    fun setAiBiographyEnabled(enabled: Boolean) {
+        _experimentalFeatures.value = _experimentalFeatures.value.copy(aiBiographyEnabled = enabled)
+        ExperimentalFeaturesPreferences.setAiBiographyEnabled(this, enabled)
+    }
 }

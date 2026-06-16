@@ -12,7 +12,10 @@ data class ExperimentalFeaturesState(
     val writingMilestonesEnabled: Boolean = false,
     val aiInsightCardEnabled: Boolean = false,
     val aiAssistantEnabled: Boolean = false,
-    val floatingBubbleEnabled: Boolean = false
+    val floatingBubbleEnabled: Boolean = false,
+    val healthDataEnabled: Boolean = false,
+    val diaryMapEnabled: Boolean = false,
+    val aiBiographyEnabled: Boolean = false
 )
 
 fun resolveMainScreenSwipeTarget(

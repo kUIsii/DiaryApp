@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; }
+#map { width: 100%; height: 100%; }
+.custom-marker {
+    background: none;
+    border: none;
+}
+.marker-pin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50% 50% 50% 0;
+    background: #5C6BC0;
+    position: relative;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.marker-pin::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+}
+.marker-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #E91E63;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.leaflet-popup-content {
+    margin: 10px 14px;
+    font-family: -apple-system, sans-serif;
+}
+.popup-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+.popup-location {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 2px;
+}
+.popup-date {
+    font-size: 11px;
+    color: #999;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+var map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false
+}).setView([35.8617, 104.1954], 4);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+var markerGroup = [];
+
+window.setMarkers = function(markers) {
+    // Clear existing markers
+    markerGroup.forEach(function(m) { map.removeLayer(m); });
+    markerGroup = [];
+
+    if (!markers || markers.length === 0) return;
+
+    // Group nearby markers
+    var groups = {};
+    markers.forEach(function(m) {
+        var key = m.lat.toFixed(3) + ',' + m.lng.toFixed(3);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(m);
+    });
+
+    var bounds = [];
+
+    Object.keys(groups).forEach(function(key) {
+        var group = groups[key];
+        var m = group[0];
+        bounds.push([m.lat, m.lng]);
+
+        var icon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div class="marker-pin">' +
+                  (group.length > 1 ? '<span class="marker-count">' + group.length + '</span>' : '') +
+                  '</div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+            popupAnchor: [0, -30]
+        });
+
+        var marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
+
+        var content = '';
+        group.forEach(function(item) {
+            content += '<div style="padding: 6px 0; border-bottom: 1px solid #eee;">' +
+                       '<div class="popup-title">' + item.title + '</div>' +
+                       (item.location ? '<div class="popup-location">' + item.location + '</div>' : '') +
+                       '<div class="popup-date">' + item.date + '</div>' +
+                       '</div>';
+        });
+
+        marker.bindPopup(content, { maxWidth: 250 });
+
+        marker.on('click', function() {
+            if (window.MapBridge) {
+                window.MapBridge.onMarkerClick(m.id);
+            }
+        });
+
+        markerGroup.push(marker);
+    });
+
+    if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+};
+</script>
+</body>
+</html>

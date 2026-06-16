@@ -86,6 +86,9 @@ import com.diary.app.ui.todo.TodoScreen
 import com.diary.app.ui.trash.TrashScreen
 import com.diary.app.ui.monthlyreport.MonthlyReportScreen
 import com.diary.app.ui.annualreport.AnnualReportScreen
+import com.diary.app.ui.health.HealthScreen
+import com.diary.app.ui.map.DiaryMapScreen
+import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.update.ChangelogScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
@@ -128,6 +131,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
     object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.Home)
+    object Health : Screen("health", "健康数据", Icons.Default.Home)
+    object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.Home)
+    object Biography : Screen("biography", "AI 传记", Icons.Default.Home)
 }
 
 data class BottomNavItem(
@@ -235,7 +241,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onNavigateToHealth = { navController.navigate(Screen.Health.route) },
+                    onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
+                    onNavigateToBiography = { navController.navigate(Screen.Biography.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -257,7 +266,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     }
                 )
             }
-            composable(Screen.Stats.route) { StatsScreen() }
+            composable(Screen.Stats.route) {
+                StatsScreen(
+                    onNavigateToHealth = { navController.navigate(Screen.Health.route) }
+                )
+            }
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
@@ -374,6 +387,22 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.AnnualReport.route) {
                 AnnualReportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Health.route) {
+                HealthScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.DiaryMap.route) {
+                DiaryMapScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.Biography.route) {
+                BiographyScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

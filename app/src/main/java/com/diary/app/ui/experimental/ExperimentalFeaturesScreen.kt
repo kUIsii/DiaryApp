@@ -36,6 +36,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
@@ -285,6 +288,55 @@ fun ExperimentalFeaturesScreen(
                             textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
                             textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
                             onCheckedChange = { if (isAiConfigured) app.setFloatingBubbleEnabled(it) }
+                        )
+                    }
+                }
+
+                // New features section
+                Text(
+                    text = "新功能",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textSecondary,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
+
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 24.dp
+                ) {
+                    Column {
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.Favorite,
+                            title = "健康数据",
+                            subtitle = "连接 Health Connect，查看步数、睡眠、心率等健康数据",
+                            checked = features.healthDataEnabled,
+                            accentColor = accentColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onCheckedChange = { app.setHealthDataEnabled(it) }
+                        )
+                        ExperimentalFeatureDivider()
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.Map,
+                            title = "日记地图",
+                            subtitle = "在地图上查看写过日记的位置，回顾你的足迹",
+                            checked = features.diaryMapEnabled,
+                            accentColor = accentColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onCheckedChange = { app.setDiaryMapEnabled(it) }
+                        )
+                        ExperimentalFeatureDivider()
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.AutoStories,
+                            title = "AI 传记",
+                            subtitle = if (isAiConfigured) "根据日记内容 AI 生成你的个人传记" else "需要先配置 API Key",
+                            checked = features.aiBiographyEnabled && isAiConfigured,
+                            accentColor = accentColor,
+                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
+                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
+                            onCheckedChange = { if (isAiConfigured) app.setAiBiographyEnabled(it) }
                         )
                     }
                 }
