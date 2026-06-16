@@ -216,6 +216,9 @@ private fun MapWebView(
                 settings.domStorageEnabled = true
                 settings.allowFileAccess = true
                 settings.allowContentAccess = true
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
 
                 addJavascriptInterface(object {
                     @JavascriptInterface
