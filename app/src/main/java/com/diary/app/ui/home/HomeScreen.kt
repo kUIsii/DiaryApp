@@ -852,6 +852,11 @@ private fun EntryCard(
     }
 }
 
+// Pre-compiled regex patterns for cleanPreviewText
+private val CHECKBOX_REGEX = Regex("[☐☑✓✔✕✖✗✘❎✅❌]")
+private val LIST_SYMBOL_REGEX = Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE)
+private val MULTI_NEWLINE_REGEX = Regex("\\n{3,}")
+
 /**
  * 清理预览文本中的编辑器符号
  */
@@ -860,12 +865,9 @@ private fun cleanPreviewText(text: String): String {
         .replace("\\n", "\n")
         .replace("\r\n", "\n")
         .replace("\r", "\n")
-        // 移除 Quill.js checkbox 相关的 Unicode 符号
-        .replace(Regex("[☐☑✓✔✕✖✗✘❎✅❌]"), "")
-        // 移除列表符号（仅行首）
-        .replace(Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE), "")
-        // 移除连续空行，保留最多一个
-        .replace(Regex("\\n{3,}"), "\n\n")
+        .replace(CHECKBOX_REGEX, "")
+        .replace(LIST_SYMBOL_REGEX, "")
+        .replace(MULTI_NEWLINE_REGEX, "\n\n")
         .trim()
 }
 

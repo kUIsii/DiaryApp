@@ -261,20 +261,18 @@ class AnnualReportViewModel(application: Application) : AndroidViewModel(applica
         zone: ZoneId
     ): PhotoStats {
         val entryIds = entries.map { it.id }
-        var totalPhotos = 0
+        val allImages = dao.getImagesForEntries(entryIds)
+        val imagesByEntry = allImages.groupBy { it.entryId }
+
+        var totalPhotos = allImages.size
         var maxPhotosInSingleEntry = 0
         var maxPhotosEntryTitle = ""
         var maxPhotosEntryDate: LocalDate? = null
 
-        // 遍历每个条目的图片
         for (entryId in entryIds) {
-            val images = dao.getImagesForEntry(entryId)
-            totalPhotos += images.size
-
-            if (images.size > maxPhotosInSingleEntry) {
-                maxPhotosInSingleEntry = images.size
-
-                // 获取对应的日记标题和日期
+            val count = imagesByEntry[entryId]?.size ?: 0
+            if (count > maxPhotosInSingleEntry) {
+                maxPhotosInSingleEntry = count
                 val entry = entries.find { it.id == entryId }
                 if (entry != null) {
                     maxPhotosEntryTitle = entry.title

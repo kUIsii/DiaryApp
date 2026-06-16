@@ -367,27 +367,34 @@ fun DiaryDetailScreen(
                                                         super.onPageFinished(view, url)
                                                         evaluateJavascript("setTheme('${if (isDark) "dark" else "light"}')", null)
                                                         if (currentEntry.content.isNotBlank()) {
-                                                            try {
-                                                                var safeContent = currentEntry.content.replace(
-                                                                    Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
-                                                                ) { match ->
-                                                                    "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
-                                                                }
-                                                                safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)
-                                                                if (safeContent.length > maxContentSize) {
+                                                            scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                                                                try {
+                                                                    var safeContent = currentEntry.content.replace(
+                                                                        Regex("\"file://([^\"]*diary_media[^\"]*?)\"")
+                                                                    ) { match ->
+                                                                        "\"${WebViewAssetHelper.toWebViewUrlFromFileUrl("file://${match.groupValues[1]}")}\""
+                                                                    }
+                                                                    safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)
+                                                                    val js = if (safeContent.length > maxContentSize) {
+                                                                        val fallback = currentEntry.plainText.take(5000)
+                                                                        "setContent(${org.json.JSONObject.quote(fallback)})"
+                                                                    } else {
+                                                                        val encoded = android.util.Base64.encodeToString(
+                                                                            safeContent.toByteArray(Charsets.UTF_8),
+                                                                            android.util.Base64.NO_WRAP
+                                                                        )
+                                                                        "setContentFromBase64('$encoded')"
+                                                                    }
+                                                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                                                        evaluateJavascript(js, null)
+                                                                    }
+                                                                } catch (e: Exception) {
+                                                                    e.printStackTrace()
                                                                     val fallback = currentEntry.plainText.take(5000)
-                                                                    evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
-                                                                } else {
-                                                                    val encoded = android.util.Base64.encodeToString(
-                                                                        safeContent.toByteArray(Charsets.UTF_8),
-                                                                        android.util.Base64.NO_WRAP
-                                                                    )
-                                                                    evaluateJavascript("setContentFromBase64('$encoded')", null)
+                                                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                                                        evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
+                                                                    }
                                                                 }
-                                                            } catch (e: Exception) {
-                                                                e.printStackTrace()
-                                                                val fallback = currentEntry.plainText.take(5000)
-                                                                evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
                                                             }
                                                         } else if (currentEntry.plainText.isNotBlank()) {
                                                             val fallback = currentEntry.plainText.take(5000)

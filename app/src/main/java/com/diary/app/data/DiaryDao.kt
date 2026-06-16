@@ -378,6 +378,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_images WHERE entryId = :entryId ORDER BY sortOrder ASC")
     suspend fun getImagesForEntry(entryId: Long): List<DiaryImage>
 
+    @Query("SELECT * FROM diary_images WHERE entryId IN (:entryIds)")
+    suspend fun getImagesForEntries(entryIds: List<Long>): List<DiaryImage>
+
     @Query("DELETE FROM diary_images WHERE entryId = :entryId")
     suspend fun deleteImagesForEntry(entryId: Long)
 
