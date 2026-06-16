@@ -280,6 +280,8 @@ abstract class DiaryDatabase : RoomDatabase() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
                             try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (_: Exception) {}
+                            // Backfill diary_images for entries that were saved before image tracking existed
+                            try { backfillDiaryImages(db, context) } catch (_: Exception) {}
                         }
                     })
                     .build()
@@ -300,6 +302,69 @@ abstract class DiaryDatabase : RoomDatabase() {
                     INSTANCE = freshInstance
                     freshInstance
                 }
+            }
+        }
+
+        /**
+         * One-time backfill: populate diary_images for entries that were saved
+         * before the image tracking feature existed. Uses raw SQL to extract
+         * media references from content without depending on Kotlin helpers.
+         */
+        private fun backfillDiaryImages(db: SupportSQLiteDatabase, context: Context) {
+            // Only run if diary_images is empty (first launch after upgrade)
+            val countCursor = db.query("SELECT COUNT(*) FROM diary_images")
+            val imageCount = if (countCursor.moveToFirst()) countCursor.getInt(0) else 0
+            countCursor.close()
+            if (imageCount > 0) return
+
+            val mediaDir = java.io.File(context.filesDir, "diary_media")
+            val thumbDir = java.io.File(mediaDir, "thumbs")
+
+            // Read all entries with content
+            val cursor = db.query("SELECT id, content FROM diary_entries")
+            val idIdx = cursor.getColumnIndex("id")
+            val contentIdx = cursor.getColumnIndex("content")
+
+            val now = System.currentTimeMillis()
+            var backfillCount = 0
+
+            while (cursor.moveToNext()) {
+                val entryId = cursor.getLong(idIdx)
+                val content = cursor.getString(contentIdx) ?: continue
+                if (content.isBlank()) continue
+
+                // Extract media names using the same regexes as DiaryMediaManager
+                val names = linkedSetOf<String>()
+                Regex("diary-media://([^\"'\\s}]+)").findAll(content).forEach {
+                    names.add(it.groupValues[1])
+                }
+                Regex("https://appassets/diary_media/((?!thumbs/)[^\"'\\s}]+)").findAll(content).forEach {
+                    names.add(it.groupValues[1])
+                }
+                Regex("file://([^\"']*diary_media[\\\\/]((?!thumbs[\\\\/])[^\"'\\\\/]+))").findAll(content).forEach {
+                    names.add(it.groupValues[2])
+                }
+
+                names.forEachIndexed { index, mediaName ->
+                    val displayFile = java.io.File(mediaDir, mediaName)
+                    val thumbFile = java.io.File(thumbDir, mediaName)
+                    val localPath = displayFile.absolutePath
+                    val thumbPath = if (thumbFile.exists()) thumbFile.absolutePath else null
+
+                    db.execSQL(
+                        """INSERT OR IGNORE INTO diary_images
+                           (entryId, localPath, thumbPath, mediaName, mediaRef, mimeType, fileSize, sortOrder, createdAt)
+                           VALUES (?, ?, ?, ?, ?, 'image/jpeg', ?, ?, ?)""",
+                        arrayOf(entryId, localPath, thumbPath, mediaName, "diary-media://$mediaName",
+                            if (displayFile.exists()) displayFile.length() else 0L, index, now)
+                    )
+                    backfillCount++
+                }
+            }
+            cursor.close()
+
+            if (backfillCount > 0) {
+                android.util.Log.d("DiaryDatabase", "Backfilled $backfillCount diary_images for existing entries")
             }
         }
     }
