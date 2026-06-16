@@ -112,8 +112,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
     var dragStartLat, dragStartLng;
 
     function getTileUrl(x, y, z) {
-        var s = ((x + y) % 4) + 1;
-        return 'https://webrd0' + s + '.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=' + x + '&y=' + y + '&z=' + z;
+        // Try multiple tile servers for reliability
+        var servers = [
+            'https://wprd01.is.autonavi.com/appmaptile?x=' + x + '&y=' + y + '&z=' + z + '&lang=zh_cn&size=1&scl=1&style=7',
+            'https://wprd02.is.autonavi.com/appmaptile?x=' + x + '&y=' + y + '&z=' + z + '&lang=zh_cn&size=1&scl=1&style=7',
+            'https://wprd03.is.autonavi.com/appmaptile?x=' + x + '&y=' + y + '&z=' + z + '&lang=zh_cn&size=1&scl=1&style=7',
+            'https://wprd04.is.autonavi.com/appmaptile?x=' + x + '&y=' + y + '&z=' + z + '&lang=zh_cn&size=1&scl=1&style=7'
+        ];
+        return servers[(x + y) % servers.length];
     }
 
     function latLngToPixel(lat, lng, z) {
@@ -154,6 +160,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
                 img.style.width = '256px';
                 img.style.height = '256px';
                 img.draggable = false;
+                img.onerror = function() {
+                    this.style.background = '#e8e8e8';
+                    this.style.border = '1px solid #ddd';
+                };
                 mapEl.appendChild(img);
             }
         }

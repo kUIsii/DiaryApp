@@ -307,17 +307,6 @@ fun ExperimentalFeaturesScreen(
                 ) {
                     Column {
                         ExperimentalFeatureRow(
-                            icon = Icons.Default.Favorite,
-                            title = "健康数据",
-                            subtitle = "连接 Health Connect，查看步数、睡眠、心率等健康数据",
-                            checked = features.healthDataEnabled,
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onCheckedChange = { app.setHealthDataEnabled(it) }
-                        )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
                             icon = Icons.Default.Map,
                             title = "日记地图",
                             subtitle = "在地图上查看写过日记的位置，回顾你的足迹",
