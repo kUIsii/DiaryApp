@@ -921,7 +921,7 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(36.dp)
+                                .height(40.dp)
                                 .padding(2.dp)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(bgColor)

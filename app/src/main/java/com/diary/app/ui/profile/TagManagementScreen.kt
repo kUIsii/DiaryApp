@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,7 +99,7 @@ fun TagManagementScreen(
     val dao = database.diaryDao()
     val scope = rememberCoroutineScope()
 
-    val allTags by dao.getAllTags().collectAsState(initial = emptyList())
+    val allTags by dao.getAllTags().collectAsStateWithLifecycle(initialValue = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
     var editingTag by remember { mutableStateOf<Tag?>(null) }
     var showBackupDialog by remember { mutableStateOf(false) }
@@ -278,7 +279,7 @@ private fun TopBar(
         // Round back button
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 .clickable(onClick = onNavigateBack),
@@ -475,7 +476,7 @@ private fun DeleteButton(onClick: () -> Unit) {
 
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(40.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -695,7 +696,7 @@ private fun ColorCircle(color: Color, isSelected: Boolean, onClick: () -> Unit) 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(40.dp)
+            .size(44.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
