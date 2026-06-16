@@ -3,32 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; }
-#map { width: 100%; height: 100%; }
-.custom-marker {
-    background: none;
-    border: none;
-}
-.marker-pin {
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, sans-serif; }
+#map { width: 100%; height: 100%; position: relative; background: #e8e8e8; }
+.tile { position: absolute; }
+.marker {
+    position: absolute;
     width: 28px;
     height: 28px;
     border-radius: 50% 50% 50% 0;
     background: #5C6BC0;
-    position: relative;
     transform: rotate(-45deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
-.marker-pin::after {
+.marker::after {
     content: '';
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: white;
 }
@@ -47,107 +44,350 @@ html, body { width: 100%; height: 100%; }
     align-items: center;
     justify-content: center;
     border: 2px solid white;
+    transform: rotate(45deg);
 }
-.leaflet-popup-content-wrapper {
+.popup {
+    position: absolute;
+    background: white;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    padding: 12px 16px;
+    z-index: 100;
+    min-width: 200px;
+    max-width: 280px;
+    display: none;
 }
-.leaflet-popup-content {
-    margin: 10px 14px;
-    font-family: -apple-system, sans-serif;
+.popup-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
+.popup-location { font-size: 12px; color: #666; margin-bottom: 2px; }
+.popup-date { font-size: 11px; color: #999; }
+.popup-item { padding: 6px 0; border-bottom: 1px solid #eee; }
+.popup-item:last-child { border-bottom: none; }
+.zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 16px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
-.popup-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 4px;
+.zoom-btn {
+    width: 36px;
+    height: 36px;
+    background: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.popup-location {
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 2px;
-}
-.popup-date {
-    font-size: 11px;
-    color: #999;
-}
+.zoom-btn:active { background: #f0f0f0; }
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="popup" id="popup"></div>
+<div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">-</button>
+</div>
 <script>
-var map = L.map('map', {
-    zoomControl: false,
-    attributionControl: false
-}).setView([35.8617, 104.1954], 4);
+var mapEl = document.getElementById('map');
+var popupEl = document.getElementById('popup');
 
-L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-    maxZoom: 18,
-    subdomains: ['1', '2', '3', '4']
-}).addTo(map);
+// Map state
+var centerLat = 35.86;
+var centerLng = 104.19;
+var zoom = 4;
+var markers = [];
+var allMarkers = [];
 
-L.control.zoom({ position: 'bottomright' }).addTo(map);
+// Tile server (Gaode)
+function getTileUrl(x, y, z) {
+    var s = (x + y) % 4 + 1;
+    return 'https://webrd0' + s + '.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=' + x + '&y=' + y + '&z=' + z;
+}
 
-var markerGroup = [];
+// Convert lat/lng to pixel
+function latLngToPixel(lat, lng, z) {
+    var scale = 256 * Math.pow(2, z);
+    var x = (lng + 180) / 360 * scale;
+    var sinLat = Math.sin(lat * Math.PI / 180);
+    var y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
+    return { x: x, y: y };
+}
 
-window.setMarkers = function(markers) {
-    // Clear existing markers
-    markerGroup.forEach(function(m) { map.removeLayer(m); });
-    markerGroup = [];
+// Convert pixel to lat/lng
+function pixelToLatLng(px, py, z) {
+    var scale = 256 * Math.pow(2, z);
+    var lng = px / scale * 360 - 180;
+    var n = Math.PI - 2 * Math.PI * py / scale;
+    var lat = Math.atan(Math.sinh(n)) * 180 / Math.PI;
+    return { lat: lat, lng: lng };
+}
 
-    if (!markers || markers.length === 0) return;
+// Render tiles
+function renderTiles() {
+    // Remove old tiles
+    var oldTiles = mapEl.querySelectorAll('.tile');
+    oldTiles.forEach(function(t) { t.remove(); });
 
+    var w = mapEl.clientWidth;
+    var h = mapEl.clientHeight;
+    var scale = 256 * Math.pow(2, zoom);
+    var center = latLngToPixel(centerLat, centerLng, zoom);
+    var startX = center.x - w / 2;
+    var startY = center.y - h / 2;
+
+    var tileStartX = Math.floor(startX / 256);
+    var tileStartY = Math.floor(startY / 256);
+    var tileEndX = Math.ceil((startX + w) / 256);
+    var tileEndY = Math.ceil((startY + h) / 256);
+
+    for (var tx = tileStartX; tx <= tileEndX; tx++) {
+        for (var ty = tileStartY; ty <= tileEndY; ty++) {
+            if (tx < 0 || ty < 0 || tx >= Math.pow(2, zoom) || ty >= Math.pow(2, zoom)) continue;
+            var img = document.createElement('img');
+            img.className = 'tile';
+            img.src = getTileUrl(tx, ty, zoom);
+            img.style.left = (tx * 256 - startX) + 'px';
+            img.style.top = (ty * 256 - startY) + 'px';
+            img.style.width = '256px';
+            img.style.height = '256px';
+            img.draggable = false;
+            mapEl.appendChild(img);
+        }
+    }
+}
+
+// Render markers
+function renderMarkers() {
+    // Remove old markers
+    var oldMarkers = mapEl.querySelectorAll('.marker');
+    oldMarkers.forEach(function(m) { m.remove(); });
+
+    var w = mapEl.clientWidth;
+    var h = mapEl.clientHeight;
+    var center = latLngToPixel(centerLat, centerLng, zoom);
+
+    allMarkers.forEach(function(m) {
+        var pos = latLngToPixel(m.lat, m.lng, zoom);
+        var screenX = pos.x - center.x + w / 2;
+        var screenY = pos.y - center.y + h / 2;
+
+        // Only show if on screen
+        if (screenX < -50 || screenX > w + 50 || screenY < -50 || screenY > h + 50) return;
+
+        var el = document.createElement('div');
+        el.className = 'marker';
+        el.style.left = (screenX - 14) + 'px';
+        el.style.top = (screenY - 28) + 'px';
+
+        if (m.count > 1) {
+            var badge = document.createElement('span');
+            badge.className = 'marker-count';
+            badge.textContent = m.count;
+            el.appendChild(badge);
+        }
+
+        el.onclick = function(e) {
+            e.stopPropagation();
+            showPopup(m, screenX, screenY);
+            if (window.MapBridge) {
+                window.MapBridge.onMarkerClick(m.id);
+            }
+        };
+
+        mapEl.appendChild(el);
+    });
+}
+
+// Show popup
+function showPopup(marker, x, y) {
+    var html = '';
+    marker.items.forEach(function(item) {
+        html += '<div class="popup-item">' +
+                '<div class="popup-title">' + item.title + '</div>' +
+                (item.location ? '<div class="popup-location">' + item.location + '</div>' : '') +
+                '<div class="popup-date">' + item.date + '</div>' +
+                '</div>';
+    });
+    popupEl.innerHTML = html;
+    popupEl.style.display = 'block';
+    popupEl.style.left = Math.min(x, mapEl.clientWidth - 290) + 'px';
+    popupEl.style.top = (y - 40) + 'px';
+}
+
+// Hide popup
+function hidePopup() {
+    popupEl.style.display = 'none';
+}
+
+// Full render
+function render() {
+    renderTiles();
+    renderMarkers();
+}
+
+// Zoom
+function zoomIn() {
+    if (zoom < 18) { zoom++; render(); }
+}
+function zoomOut() {
+    if (zoom > 1) { zoom--; render(); }
+}
+
+// Pan
+var isDragging = false;
+var dragStartX, dragStartY;
+var dragStartLat, dragStartLng;
+
+mapEl.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('marker')) return;
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartLat = centerLat;
+    dragStartLng = centerLng;
+    hidePopup();
+});
+
+document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    var dx = e.clientX - dragStartX;
+    var dy = e.clientY - dragStartY;
+    var scale = 256 * Math.pow(2, zoom);
+    var dlng = -dx / scale * 360;
+    var dlat = dy / scale * 360 * Math.cos(centerLat * Math.PI / 180);
+    centerLat = dragStartLat + dlat;
+    centerLng = dragStartLng + dlng;
+    render();
+});
+
+document.addEventListener('mouseup', function() {
+    isDragging = false;
+});
+
+// Touch support
+mapEl.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+        var touch = e.touches[0];
+        if (e.target.classList.contains('marker')) return;
+        isDragging = true;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        dragStartLat = centerLat;
+        dragStartLng = centerLng;
+        hidePopup();
+    }
+}, { passive: true });
+
+mapEl.addEventListener('touchmove', function(e) {
+    if (!isDragging || e.touches.length !== 1) return;
+    var touch = e.touches[0];
+    var dx = touch.clientX - dragStartX;
+    var dy = touch.clientY - dragStartY;
+    var scale = 256 * Math.pow(2, zoom);
+    var dlng = -dx / scale * 360;
+    var dlat = dy / scale * 360 * Math.cos(centerLat * Math.PI / 180);
+    centerLat = dragStartLat + dlat;
+    centerLng = dragStartLng + dlng;
+    render();
+}, { passive: true });
+
+mapEl.addEventListener('touchend', function() {
+    isDragging = false;
+}, { passive: true });
+
+// Double click zoom
+mapEl.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+    if (zoom < 18) {
+        zoom++;
+        var rect = mapEl.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+        var center = latLngToPixel(centerLat, centerLng, zoom - 1);
+        var newCenter = pixelToLatLng(center.x - mapEl.clientWidth / 2 + x, center.y - mapEl.clientHeight / 2 + y, zoom);
+        centerLat = newCenter.lat;
+        centerLng = newCenter.lng;
+        render();
+    }
+});
+
+// Click to hide popup
+mapEl.addEventListener('click', function(e) {
+    if (!e.target.classList.contains('marker')) {
+        hidePopup();
+    }
+});
+
+// Set markers from outside
+window.setMarkers = function(data) {
     // Group nearby markers
     var groups = {};
-    markers.forEach(function(m) {
-        var key = m.lat.toFixed(3) + ',' + m.lng.toFixed(3);
+    data.forEach(function(m) {
+        var key = m.lat.toFixed(2) + ',' + m.lng.toFixed(2);
         if (!groups[key]) groups[key] = [];
         groups[key].push(m);
     });
 
+    allMarkers = [];
     var bounds = [];
 
     Object.keys(groups).forEach(function(key) {
         var group = groups[key];
         var m = group[0];
         bounds.push([m.lat, m.lng]);
-
-        var icon = L.divIcon({
-            className: 'custom-marker',
-            html: '<div class="marker-pin">' +
-                  (group.length > 1 ? '<span class="marker-count">' + group.length + '</span>' : '') +
-                  '</div>',
-            iconSize: [28, 28],
-            iconAnchor: [14, 28],
-            popupAnchor: [0, -30]
+        allMarkers.push({
+            id: m.id,
+            lat: m.lat,
+            lng: m.lng,
+            count: group.length,
+            items: group
         });
-
-        var marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
-
-        var content = '';
-        group.forEach(function(item) {
-            content += '<div style="padding: 6px 0; border-bottom: 1px solid #eee;">' +
-                       '<div class="popup-title">' + item.title + '</div>' +
-                       (item.location ? '<div class="popup-location">' + item.location + '</div>' : '') +
-                       '<div class="popup-date">' + item.date + '</div>' +
-                       '</div>';
-        });
-
-        marker.bindPopup(content, { maxWidth: 250 });
-
-        marker.on('click', function() {
-            if (window.MapBridge) {
-                window.MapBridge.onMarkerClick(m.id);
-            }
-        });
-
-        markerGroup.push(marker);
     });
 
+    // Fit bounds
     if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        var minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+        bounds.forEach(function(b) {
+            if (b[0] < minLat) minLat = b[0];
+            if (b[0] > maxLat) maxLat = b[0];
+            if (b[1] < minLng) minLng = b[1];
+            if (b[1] > maxLng) maxLng = b[1];
+        });
+        centerLat = (minLat + maxLat) / 2;
+        centerLng = (minLng + maxLng) / 2;
+
+        // Calculate zoom to fit
+        var latDiff = maxLat - minLat;
+        var lngDiff = maxLng - minLng;
+        if (latDiff > 0 || lngDiff > 0) {
+            for (var z = 18; z >= 1; z--) {
+                var scale = 256 * Math.pow(2, z);
+                var pixelDiff = Math.max(latDiff, lngDiff) / 360 * scale;
+                if (pixelDiff < mapEl.clientWidth * 0.8) {
+                    zoom = z;
+                    break;
+                }
+            }
+        }
     }
+
+    render();
 };
+
+// Initial render
+window.addEventListener('load', function() {
+    render();
+});
+window.addEventListener('resize', function() {
+    render();
+});
 </script>
 </body>
 </html>

@@ -65,11 +65,12 @@ class BiographyViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isGenerating = true, error = null, biography = "")
             try {
-                // Check if AI is configured
-                if (!app.aiService.isAiEnabled()) {
+                // Check if AI is configured (just need API key)
+                val provider = app.aiService.getActiveProvider()
+                if (provider == null) {
                     _uiState.value = _uiState.value.copy(
                         isGenerating = false,
-                        error = "请先在设置中配置 AI 服务（需要 API Key）"
+                        error = "请先在设置中配置 AI 服务"
                     )
                     return@launch
                 }
