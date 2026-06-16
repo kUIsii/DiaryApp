@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
@@ -146,6 +147,22 @@ fun EditorScreen(
     val recentLocations by viewModel.recentLocations.collectAsState()
 
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
+
+    // AI assistant panel state
+    var showAiPanel by remember { mutableStateOf(false) }
+    var selectedEditorText by remember { mutableStateOf<String?>(null) }
+    val aiViewModel: com.diary.app.ai.AiAssistantViewModel = viewModel()
+    val aiMessages by aiViewModel.messages.collectAsState()
+    val aiLoading by aiViewModel.loading.collectAsState()
+
+    // Collect selected text from WebView
+    LaunchedEffect(Unit) {
+        jsBridge.selectedText.collect { text ->
+            if (text.isNotBlank()) {
+                selectedEditorText = text
+            }
+        }
+    }
 
     var selectedMood by remember { mutableStateOf<Int?>(null) }
     var selectedWeather by remember { mutableStateOf<String?>(null) }
@@ -1031,6 +1048,27 @@ fun EditorScreen(
                     contentDescription = "草稿箱",
                     onClick = { showDraftsDialog = true }
                 )
+                if (experimentalFeatures.floatingBubbleEnabled && experimentalFeatures.aiAssistantEnabled) {
+                    EditorTopIconButton(
+                        icon = Icons.Default.ChatBubbleOutline,
+                        contentDescription = "小墨助手",
+                        onClick = {
+                            showAiPanel = !showAiPanel
+                            if (showAiPanel) {
+                                // Get selected text when opening
+                                webView?.evaluateJavascript(
+                                    "(function(){var s=window.getSelection();return s?s.toString():''})()"
+                                ) { text ->
+                                    val clean = text?.removeSurrounding("\"")?.replace("\\n", "\n")?.replace("\\t", "\t") ?: ""
+                                    if (clean.isNotBlank()) {
+                                        selectedEditorText = clean
+                                    }
+                                }
+                            }
+                        },
+                        tint = if (showAiPanel) MaterialTheme.colorScheme.primary else null
+                    )
+                }
                 EditorTopIconButton(
                     icon = if (showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                     contentDescription = toolbarVisibilityDescription(showToolbar),
@@ -1357,6 +1395,23 @@ fun EditorScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
+        // AI Assistant Panel
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            EditorAiPanel(
+                visible = showAiPanel,
+                messages = aiMessages,
+                loading = aiLoading,
+                onSendMessage = { text ->
+                    aiViewModel.sendMessage(text)
+                    selectedEditorText = null
+                },
+                onDismiss = { showAiPanel = false },
+                quotedText = selectedEditorText
+            )
+        }
+
         }
     }
 }
@@ -1563,7 +1618,8 @@ private fun EditorTopIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tint: Color? = null
 ) {
     val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f)
     Box(
@@ -1578,7 +1634,7 @@ private fun EditorTopIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
             modifier = Modifier.size(19.dp)
         )
     }

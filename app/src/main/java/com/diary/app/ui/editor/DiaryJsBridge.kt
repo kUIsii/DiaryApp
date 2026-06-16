@@ -47,4 +47,13 @@ class DiaryJsBridge {
     fun requestInsertLink() {
         _linkInsertRequest.tryEmit(Unit)
     }
+
+    // Selected text for AI assistant
+    private val _selectedText = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val selectedText: SharedFlow<String> = _selectedText.asSharedFlow()
+
+    @JavascriptInterface
+    fun onSelectedText(text: String) {
+        _selectedText.tryEmit(text)
+    }
 }
