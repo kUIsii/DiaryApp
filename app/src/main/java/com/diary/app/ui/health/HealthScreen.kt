@@ -85,7 +85,7 @@ fun HealthScreen(
                     EmptyState(
                         icon = Icons.Default.MonitorHeart,
                         title = "健康数据功能不可用",
-                        subtitle = "此功能需要 Google Play 服务支持\n华为等设备暂不兼容",
+                        subtitle = "设备不支持健康数据获取\n需要 Google Play 服务或步数传感器",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -121,6 +121,22 @@ fun HealthScreen(
                     viewModel = viewModel,
                     onRefresh = { viewModel.loadData() }
                 )
+                // Show sensor fallback notice
+                if (state.useSensorFallback) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "使用手机传感器计步，仅显示步数数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     }
@@ -181,7 +197,7 @@ private fun HealthContent(
                 // Today
                 state.todayData?.let { data ->
                     item {
-                        TodayOverview(data, viewModel)
+                        TodayOverview(data, viewModel, state.useSensorFallback)
                     }
                 }
             }
@@ -189,7 +205,7 @@ private fun HealthContent(
                 // Weekly
                 if (state.weeklyData.isNotEmpty()) {
                     item {
-                        WeeklyOverview(state.weeklyData, viewModel)
+                        WeeklyOverview(state.weeklyData, viewModel, state.useSensorFallback)
                     }
                 }
             }
@@ -197,7 +213,7 @@ private fun HealthContent(
                 // Monthly
                 if (state.monthlyData.isNotEmpty()) {
                     item {
-                        MonthlyOverview(state.monthlyData, viewModel)
+                        MonthlyOverview(state.monthlyData, viewModel, state.useSensorFallback)
                     }
                 }
             }
@@ -232,7 +248,7 @@ private fun HealthContent(
 }
 
 @Composable
-private fun TodayOverview(data: DailyHealthData, viewModel: HealthViewModel) {
+private fun TodayOverview(data: DailyHealthData, viewModel: HealthViewModel, sensorFallback: Boolean = false) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Steps card
         GlassCard {
@@ -249,7 +265,7 @@ private fun TodayOverview(data: DailyHealthData, viewModel: HealthViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${data.steps}",
+                        text = if (data.steps > 0) "${data.steps}" else "--",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -275,8 +291,8 @@ private fun TodayOverview(data: DailyHealthData, viewModel: HealthViewModel) {
             }
         }
 
-        // Heart rate card
-        if (data.heartRateAvg > 0) {
+        // Heart rate card (only show when not using sensor fallback)
+        if (!sensorFallback && data.heartRateAvg > 0) {
             GlassCard {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -313,50 +329,52 @@ private fun TodayOverview(data: DailyHealthData, viewModel: HealthViewModel) {
             }
         }
 
-        // Grid: sleep, calories, distance, exercise
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SmallMetricCard(
-                icon = Icons.Default.Bedtime,
-                label = "睡眠",
-                value = viewModel.formatSleepDuration(data.sleepMinutes),
-                color = Color(0xFF5C6BC0),
-                modifier = Modifier.weight(1f)
-            )
-            SmallMetricCard(
-                icon = Icons.Default.LocalFireDepartment,
-                label = "消耗",
-                value = "${data.caloriesBurned.toInt()} 千卡",
-                color = Color(0xFFFF7043),
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SmallMetricCard(
-                icon = Icons.Default.Route,
-                label = "距离",
-                value = viewModel.formatDistance(data.distanceMeters),
-                color = Color(0xFF26A69A),
-                modifier = Modifier.weight(1f)
-            )
-            SmallMetricCard(
-                icon = Icons.Default.FitnessCenter,
-                label = "运动",
-                value = "${data.exerciseMinutes} 分钟",
-                color = Color(0xFFAB47BC),
-                modifier = Modifier.weight(1f)
-            )
+        // Grid: sleep, calories, distance, exercise (only when not using sensor fallback)
+        if (!sensorFallback) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallMetricCard(
+                    icon = Icons.Default.Bedtime,
+                    label = "睡眠",
+                    value = viewModel.formatSleepDuration(data.sleepMinutes),
+                    color = Color(0xFF5C6BC0),
+                    modifier = Modifier.weight(1f)
+                )
+                SmallMetricCard(
+                    icon = Icons.Default.LocalFireDepartment,
+                    label = "消耗",
+                    value = "${data.caloriesBurned.toInt()} 千卡",
+                    color = Color(0xFFFF7043),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallMetricCard(
+                    icon = Icons.Default.Route,
+                    label = "距离",
+                    value = viewModel.formatDistance(data.distanceMeters),
+                    color = Color(0xFF26A69A),
+                    modifier = Modifier.weight(1f)
+                )
+                SmallMetricCard(
+                    icon = Icons.Default.FitnessCenter,
+                    label = "运动",
+                    value = "${data.exerciseMinutes} 分钟",
+                    color = Color(0xFFAB47BC),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun WeeklyOverview(data: List<DailyHealthData>, viewModel: HealthViewModel) {
+private fun WeeklyOverview(data: List<DailyHealthData>, viewModel: HealthViewModel, sensorFallback: Boolean = false) {
     val avgSteps = data.map { it.steps }.average().toLong()
     val avgSleep = data.map { it.sleepMinutes }.average().toLong()
     val totalCalories = data.sumOf { it.caloriesBurned }
@@ -396,55 +414,79 @@ private fun WeeklyOverview(data: List<DailyHealthData>, viewModel: HealthViewMod
             }
         }
 
-        // Sleep trend
-        GlassCard {
-            Column {
-                Text(
-                    text = "本周睡眠趋势",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                WeeklyBarChart(
-                    data = data.map { it.sleepMinutes.toFloat() },
-                    labels = data.map { "${it.date.dayOfMonth}" },
-                    color = Color(0xFF5C6BC0)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "日均 ${viewModel.formatSleepDuration(avgSleep)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // Sleep trend (only when not using sensor fallback)
+        if (!sensorFallback) {
+            GlassCard {
+                Column {
+                    Text(
+                        text = "本周睡眠趋势",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    WeeklyBarChart(
+                        data = data.map { it.sleepMinutes.toFloat() },
+                        labels = data.map { "${it.date.dayOfMonth}" },
+                        color = Color(0xFF5C6BC0)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "日均 ${viewModel.formatSleepDuration(avgSleep)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
         // Summary cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SmallMetricCard(
-                icon = Icons.Default.LocalFireDepartment,
-                label = "总消耗",
-                value = "${totalCalories.toInt()} 千卡",
-                color = Color(0xFFFF7043),
-                modifier = Modifier.weight(1f)
-            )
-            SmallMetricCard(
-                icon = Icons.Default.DirectionsWalk,
-                label = "日均步数",
-                value = "$avgSteps",
-                color = Color(0xFF4CAF50),
-                modifier = Modifier.weight(1f)
-            )
+        if (sensorFallback) {
+            // Sensor mode: only show step stats
+            GlassCard {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "日均 $avgSteps 步",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "本周总计 ${data.sumOf { it.steps }} 步",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallMetricCard(
+                    icon = Icons.Default.LocalFireDepartment,
+                    label = "总消耗",
+                    value = "${totalCalories.toInt()} 千卡",
+                    color = Color(0xFFFF7043),
+                    modifier = Modifier.weight(1f)
+                )
+                SmallMetricCard(
+                    icon = Icons.Default.DirectionsWalk,
+                    label = "日均步数",
+                    value = "$avgSteps",
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun MonthlyOverview(data: List<DailyHealthData>, viewModel: HealthViewModel) {
+private fun MonthlyOverview(data: List<DailyHealthData>, viewModel: HealthViewModel, sensorFallback: Boolean = false) {
     val avgSteps = data.map { it.steps }.average().toLong()
     val avgSleep = data.map { it.sleepMinutes }.average().toLong()
     val activeDays = data.count { it.steps > 0 }
@@ -487,24 +529,45 @@ private fun MonthlyOverview(data: List<DailyHealthData>, viewModel: HealthViewMo
         }
 
         // Summary
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SmallMetricCard(
-                icon = Icons.Default.Bedtime,
-                label = "日均睡眠",
-                value = viewModel.formatSleepDuration(avgSleep),
-                color = Color(0xFF5C6BC0),
-                modifier = Modifier.weight(1f)
-            )
-            SmallMetricCard(
-                icon = Icons.Default.DirectionsWalk,
-                label = "日均步数",
-                value = "$avgSteps",
-                color = Color(0xFF4CAF50),
-                modifier = Modifier.weight(1f)
-            )
+        if (sensorFallback) {
+            GlassCard {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "日均 $avgSteps 步",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "本月总计 ${data.sumOf { it.steps }} 步",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallMetricCard(
+                    icon = Icons.Default.Bedtime,
+                    label = "日均睡眠",
+                    value = viewModel.formatSleepDuration(avgSleep),
+                    color = Color(0xFF5C6BC0),
+                    modifier = Modifier.weight(1f)
+                )
+                SmallMetricCard(
+                    icon = Icons.Default.DirectionsWalk,
+                    label = "日均步数",
+                    value = "$avgSteps",
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
