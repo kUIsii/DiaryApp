@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, NotificationEntity::class, ChatMessageEntity::class],
-    version = 18,
+    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class],
+    version = 19,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -246,6 +246,26 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create conversations table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS chat_conversations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL DEFAULT '新对话',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """)
+                // Add conversationId to chat_messages
+                db.execSQL("ALTER TABLE chat_messages ADD COLUMN conversationId INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_chat_messages_conversationId ON chat_messages (conversationId)")
+                // Create a default conversation for existing messages
+                db.execSQL("INSERT INTO chat_conversations (title, createdAt, updatedAt) VALUES ('默认对话', ${System.currentTimeMillis()}, ${System.currentTimeMillis()})")
+                db.execSQL("UPDATE chat_messages SET conversationId = (SELECT id FROM chat_conversations LIMIT 1)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 try {
@@ -253,7 +273,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                         context.applicationContext,
                         DiaryDatabase::class.java,
                         "diary_database"
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                     .fallbackToDestructiveMigrationOnDowngrade()
                     .fallbackToDestructiveMigration()
                     .addCallback(object : RoomDatabase.Callback() {

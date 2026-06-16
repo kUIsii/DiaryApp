@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.data.ChatConversationEntity
 import com.diary.app.data.ChatMessageEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,12 @@ data class AssistantMessage(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+data class ConversationInfo(
+    val id: Long,
+    val title: String,
+    val updatedAt: Long
+)
+
 class AiAssistantViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as DiaryApplication
@@ -33,30 +40,100 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    private val _initialized = MutableStateFlow(false)
+    private val _conversations = MutableStateFlow<List<ConversationInfo>>(emptyList())
+    val conversations: StateFlow<List<ConversationInfo>> = _conversations.asStateFlow()
+
+    private val _currentConversationId = MutableStateFlow<Long>(0)
+    val currentConversationId: StateFlow<Long> = _currentConversationId.asStateFlow()
 
     init {
-        loadHistory()
+        loadConversations()
     }
 
-    private fun loadHistory() {
+    private fun loadConversations() {
         viewModelScope.launch {
-            val entities = withContext(Dispatchers.IO) { dao.getRecentChatMessages(100) }
+            val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }
+            if (convs.isEmpty()) {
+                // Create a default conversation
+                val id = withContext(Dispatchers.IO) {
+                    dao.insertConversation(ChatConversationEntity(title = "新对话"))
+                }
+                _currentConversationId.value = id
+                _conversations.value = listOf(ConversationInfo(id, "新对话", System.currentTimeMillis()))
+            } else {
+                _conversations.value = convs.map { ConversationInfo(it.id, it.title, it.updatedAt) }
+                _currentConversationId.value = convs.first().id
+                loadMessages(convs.first().id)
+            }
+        }
+    }
+
+    private fun loadMessages(conversationId: Long) {
+        viewModelScope.launch {
+            val entities = withContext(Dispatchers.IO) { dao.getRecentChatMessages(conversationId, 100) }
             _messages.value = entities.reversed().map {
                 AssistantMessage(it.id, it.role, it.content, it.role == "user", it.createdAt)
             }
-            _initialized.value = true
+        }
+    }
+
+    fun switchConversation(conversationId: Long) {
+        _currentConversationId.value = conversationId
+        loadMessages(conversationId)
+    }
+
+    fun createNewConversation() {
+        viewModelScope.launch {
+            val id = withContext(Dispatchers.IO) {
+                dao.insertConversation(ChatConversationEntity(title = "新对话"))
+            }
+            _currentConversationId.value = id
+            _messages.value = emptyList()
+            // Refresh conversation list
+            val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }
+            _conversations.value = convs.map { ConversationInfo(it.id, it.title, it.updatedAt) }
+        }
+    }
+
+    fun deleteConversation(conversationId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.deleteConversation(conversationId) }
+            // If deleting current conversation, switch to another or create new
+            if (_currentConversationId.value == conversationId) {
+                val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }
+                if (convs.isEmpty()) {
+                    createNewConversation()
+                } else {
+                    switchConversation(convs.first().id)
+                }
+            }
+            // Refresh list
+            val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }
+            _conversations.value = convs.map { ConversationInfo(it.id, it.title, it.updatedAt) }
         }
     }
 
     fun sendMessage(userMessage: String) {
         if (userMessage.isBlank()) return
+        val convId = _currentConversationId.value
+        if (convId == 0L) return
 
         viewModelScope.launch {
             // Save user message
-            val userEntity = ChatMessageEntity(role = "user", content = userMessage)
+            val userEntity = ChatMessageEntity(conversationId = convId, role = "user", content = userMessage)
             val userId = withContext(Dispatchers.IO) { dao.insertChatMessage(userEntity) }
             _messages.value = _messages.value + AssistantMessage(userId, "user", userMessage, true)
+
+            // Update conversation title if first message
+            if (_messages.value.size == 1) {
+                val title = userMessage.take(20) + if (userMessage.length > 20) "..." else ""
+                withContext(Dispatchers.IO) {
+                    dao.insertConversation(ChatConversationEntity(id = convId, title = title))
+                }
+                // Refresh conversation list
+                val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }
+                _conversations.value = convs.map { ConversationInfo(it.id, it.title, it.updatedAt) }
+            }
 
             _loading.value = true
             try {
@@ -103,12 +180,12 @@ $context"""
 
                 val reply = result.getOrNull()?.content?.trim()
                 if (!reply.isNullOrBlank()) {
-                    val assistantEntity = ChatMessageEntity(role = "assistant", content = reply)
+                    val assistantEntity = ChatMessageEntity(conversationId = convId, role = "assistant", content = reply)
                     val assistantId = withContext(Dispatchers.IO) { dao.insertChatMessage(assistantEntity) }
                     _messages.value = _messages.value + AssistantMessage(assistantId, "assistant", reply, false)
                 } else {
                     val errorMsg = result.exceptionOrNull()?.message ?: "没想好怎么说"
-                    val errEntity = ChatMessageEntity(role = "assistant", content = "嗯...$errorMsg")
+                    val errEntity = ChatMessageEntity(conversationId = convId, role = "assistant", content = "嗯...$errorMsg")
                     val errId = withContext(Dispatchers.IO) { dao.insertChatMessage(errEntity) }
                     _messages.value = _messages.value + AssistantMessage(errId, "assistant", "嗯...$errorMsg", false)
                 }
@@ -119,18 +196,21 @@ $context"""
                     e.message?.contains("timeout", true) == true -> "等太久了，网络不太好"
                     else -> "出了点问题，稍后再聊"
                 }
-                val errEntity = ChatMessageEntity(role = "assistant", content = msg)
+                val errEntity = ChatMessageEntity(conversationId = convId, role = "assistant", content = msg)
                 val errId = withContext(Dispatchers.IO) { dao.insertChatMessage(errEntity) }
                 _messages.value = _messages.value + AssistantMessage(errId, "assistant", msg, false)
             } finally {
                 _loading.value = false
             }
 
+            // Update conversation time
+            withContext(Dispatchers.IO) { dao.updateConversationTime(convId) }
+
             // Trim old messages if too many
             withContext(Dispatchers.IO) {
-                val count = dao.getChatMessageCount()
+                val count = dao.getChatMessageCount(convId)
                 if (count > 200) {
-                    dao.deleteOldestChatMessages(count - 200)
+                    dao.deleteOldestChatMessages(convId, count - 200)
                 }
             }
         }
@@ -209,8 +289,10 @@ $context"""
     }
 
     fun clearHistory() {
+        val convId = _currentConversationId.value
+        if (convId == 0L) return
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { dao.deleteAllChatMessages() }
+            withContext(Dispatchers.IO) { dao.deleteChatMessagesByConversation(convId) }
             _messages.value = emptyList()
         }
     }
