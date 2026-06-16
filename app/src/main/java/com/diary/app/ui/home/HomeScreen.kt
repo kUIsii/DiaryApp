@@ -254,7 +254,24 @@ fun HomeScreen(
                         calendarMode = calendarMode,
                         onModeChange = { calendarMode = it }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Quick access feature row
+                item {
+                    QuickAccessRow(
+                        onStats = onNavigateToStats,
+                        onMedia = onNavigateToMediaLibrary,
+                        onCountDown = onNavigateToCountDown,
+                        onCapsule = onNavigateToTimeCapsule,
+                        onRandom = {
+                            scope.launch {
+                                val randomId = viewModel.getRandomEntryId()
+                                if (randomId != null) onNavigateToDetail(randomId)
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 selectedDate?.let { currentDate ->
@@ -941,5 +958,58 @@ private fun FAB(onClick: () -> Unit) {
                 modifier = Modifier.size(24.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun QuickAccessRow(
+    onStats: () -> Unit,
+    onMedia: () -> Unit,
+    onCountDown: () -> Unit,
+    onCapsule: () -> Unit,
+    onRandom: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        QuickAccessItem(Icons.Default.BarChart, "统计", onStats)
+        QuickAccessItem(Icons.Default.Collections, "媒体库", onMedia)
+        QuickAccessItem(Icons.Default.Timer, "倒数日", onCountDown)
+        QuickAccessItem(Icons.Default.MarkEmailUnread, "胶囊", onCapsule)
+        QuickAccessItem(Icons.Default.Shuffle, "随机", onRandom)
+    }
+}
+
+@Composable
+private fun QuickAccessItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
