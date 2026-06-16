@@ -314,11 +314,13 @@ private fun MoodJourneyCard(report: AnnualReport) {
         ) {
             if (validData.size < 2) return@Canvas
 
-            val points = validData.map { (i, mood) ->
-                Offset(
-                    x = size.width * i / 11f,
-                    y = size.height * (1f - (mood!! - 1f) / 4f)
-                )
+            val points = validData.mapNotNull { (i, mood) ->
+                mood?.let { m ->
+                    Offset(
+                        x = size.width * i / 11f,
+                        y = size.height * (1f - (m - 1f) / 4f)
+                    )
+                }
             }
 
             // Draw grid lines

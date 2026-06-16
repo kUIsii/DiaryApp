@@ -129,15 +129,17 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        if (ChangelogCache.isValid()) {
-            releases = ChangelogCache.releases!!
+        val cached = ChangelogCache.releases
+        if (ChangelogCache.isValid() && cached != null) {
+            releases = cached
             isLoading = false
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {
+            var conn: HttpURLConnection? = null
             try {
                 val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases?per_page=30")
-                val conn = url.openConnection() as HttpURLConnection
+                conn = url.openConnection() as HttpURLConnection
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
                     conn.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
@@ -145,7 +147,7 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                 conn.connectTimeout = 10000
                 conn.readTimeout = 10000
                 if (conn.responseCode == 200) {
-                    val json = conn.inputStream.bufferedReader().readText()
+                    val json = conn.inputStream.bufferedReader().use { it.readText() }
                     try {
                         val data = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
                         ChangelogCache.set(data)
@@ -161,6 +163,7 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
             } catch (e: Exception) {
                 error = e.message ?: "网络连接失败"
             } finally {
+                conn?.disconnect()
                 isLoading = false
             }
         }

@@ -247,6 +247,7 @@ fun CreateCapsuleScreen(
                         onClick = {
                             if (canSubmit) {
                                 haptic.success()
+                                val date = selectedDate
                                 val unlockMillis = when {
                                     isRandomMode -> {
                                         val randomDays = (90..365).random()
@@ -257,9 +258,8 @@ fun CreateCapsuleScreen(
                                             .toInstant()
                                             .toEpochMilli()
                                     }
-                                    selectedDate != null -> {
-                                        selectedDate!!
-                                            .atTime(selectedHour, selectedMinute)
+                                    date != null -> {
+                                        date.atTime(selectedHour, selectedMinute)
                                             .atZone(ZoneId.systemDefault())
                                             .toInstant()
                                             .toEpochMilli()
@@ -527,10 +527,11 @@ fun CreateCapsuleScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
+                        val date = selectedDate
                         Text(
                             text = when {
                                 isRandomMode -> "解锁：随机惊喜"
-                                selectedDate != null -> "解锁：${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日 ${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}"
+                                date != null -> "解锁：${date.monthValue}月${date.dayOfMonth}日 ${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}"
                                 else -> "设置解锁时间"
                             },
                             fontSize = 15.sp,
@@ -567,10 +568,11 @@ fun CreateCapsuleScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.width(60.dp)
                                 )
+                                val date = selectedDate
                                 Text(
                                     text = when {
                                         isRandomMode -> "随机"
-                                        selectedDate != null -> "${selectedDate!!.year}年${selectedDate!!.monthValue}月${selectedDate!!.dayOfMonth}日"
+                                        date != null -> "${date.year}年${date.monthValue}月${date.dayOfMonth}日"
                                         else -> "选择日期"
                                     },
                                     fontSize = 14.sp,

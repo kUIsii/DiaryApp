@@ -170,9 +170,9 @@ $context"""
 
         // Mood distribution
         val moodCounts = previews.groupBy { it.moodLevel }.mapValues { it.value.size }
-        val moodSummary = moodCounts.filterKeys { it != null }
-            .map { (level, count) -> "${com.diary.app.ui.components.moodLabelForLevel(level!!)} $count 次" }
-            .joinToString("、")
+        val moodSummary = moodCounts.entries.mapNotNull { (level, count) ->
+            level?.let { "${com.diary.app.ui.components.moodLabelForLevel(it)} $count 次" }
+        }.joinToString("、")
         if (moodSummary.isNotBlank()) {
             sb.appendLine("心情分布：$moodSummary")
         }

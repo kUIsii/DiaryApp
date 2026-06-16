@@ -197,7 +197,7 @@ class AnnualReportViewModel(application: Application) : AndroidViewModel(applica
         val mostActiveDay = dayLabels[mostActiveDayIdx.coerceIn(0, 6)]
 
         // Weather mood
-        val weatherGroups = entries.filter { !it.weather.isNullOrBlank() }.groupBy { it.weather!! }
+        val weatherGroups = entries.groupBy { it.weather ?: "" }.filter { it.key.isNotBlank() }
         val weatherMood = weatherGroups.map { (weather, group) ->
             val moods = group.mapNotNull { it.moodLevel }
             WeatherMood(

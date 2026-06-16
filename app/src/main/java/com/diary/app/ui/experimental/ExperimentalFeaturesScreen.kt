@@ -50,13 +50,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.diary.app.ai.AiConfigStore
 import com.diary.app.ai.AiUsageTracker
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +83,7 @@ fun ExperimentalFeaturesScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
+    val scope = rememberCoroutineScope()
 
     // AI config state
     var showApiKeyDialog by remember { mutableStateOf(false) }
@@ -219,7 +220,7 @@ fun ExperimentalFeaturesScreen(
                                 {
                                     isTesting = true
                                     testResult = null
-                                    MainScope().launch {
+                                    scope.launch {
                                         try {
                                             val result = app.aiService.chat(
                                                 com.diary.app.ai.aiRequest("hi", maxTokens = 10)

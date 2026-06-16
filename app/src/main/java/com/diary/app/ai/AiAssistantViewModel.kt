@@ -244,8 +244,9 @@ $context"""
             // Mood distribution
             val moodCounts = previews.groupBy { it.moodLevel }.mapValues { it.value.size }
             val topMood = moodCounts.filterKeys { it != null }.maxByOrNull { it.value }
-            if (topMood != null) {
-                sb.appendLine("最常见的心情：${moodLabel(topMood.key!!)}（${topMood.value}次）")
+            val topMoodKey = topMood?.key
+            if (topMoodKey != null) {
+                sb.appendLine("最常见的心情：${moodLabel(topMoodKey)}（${topMood.value}次）")
             }
 
             // Recent 7 days mood trend

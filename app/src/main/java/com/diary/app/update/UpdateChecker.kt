@@ -31,12 +31,13 @@ object UpdateChecker {
 
     suspend fun checkForUpdate(context: Context, currentVersionName: String): UpdateInfo? {
         return withContext(Dispatchers.IO) {
+            var connection: HttpURLConnection? = null
             try {
                 val isExperimental = BuildConfig.FLAVOR == "experimental"
                 val url = URL(
                     "https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases"
                 )
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
                     connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
@@ -48,7 +49,7 @@ object UpdateChecker {
                     return@withContext null
                 }
 
-                val json = connection.inputStream.bufferedReader().readText()
+                val json = connection.inputStream.bufferedReader().use { it.readText() }
                 val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java)
 
                 val matchingRelease = releases.filter { release ->
@@ -89,6 +90,8 @@ object UpdateChecker {
                 )
             } catch (e: Exception) {
                 null
+            } finally {
+                connection?.disconnect()
             }
         }
     }

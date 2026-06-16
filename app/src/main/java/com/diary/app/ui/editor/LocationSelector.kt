@@ -46,6 +46,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -311,6 +312,15 @@ fun LocationSelector(
         // Map picker dialog
         if (showMapPicker) {
             val mainHandler = Handler(Looper.getMainLooper())
+            var mapWebView by remember { mutableStateOf<WebView?>(null) }
+            DisposableEffect(Unit) {
+                onDispose {
+                    mapWebView?.apply {
+                        stopLoading()
+                        destroy()
+                    }
+                }
+            }
             AlertDialog(
                 onDismissRequest = { showMapPicker = false },
                 title = { Text("地图选点") },
@@ -325,6 +335,7 @@ fun LocationSelector(
                             AndroidView(
                                 factory = { ctx ->
                                     WebView(ctx).apply {
+                                        mapWebView = this
                                         webViewClient = WebViewClient()
                                         settings.javaScriptEnabled = true
                                         settings.domStorageEnabled = true
