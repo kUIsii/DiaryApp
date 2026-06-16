@@ -63,8 +63,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 118
-            versionName = "2.64.22-experimental"
+            versionCode = 119
+            versionName = "2.64.23-experimental"
         }
     }
 
@@ -114,9 +114,6 @@ dependencies {
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")
-
-    // Accompanist
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")

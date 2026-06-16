@@ -148,6 +148,21 @@ interface DiaryDao {
     """)
     fun getAllDiaryTagPairs(): Flow<List<DiaryTagPair>>
 
+    @Query("""
+        SELECT dt.diaryId, t.id as tagId, t.name, t.color
+        FROM diary_tag_cross_ref dt
+        INNER JOIN tags t ON dt.tagId = t.id
+    """)
+    suspend fun getAllDiaryTagPairsOnce(): List<DiaryTagPair>
+
+    @Query("""
+        SELECT id, title,
+        CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        FROM diary_entries WHERE id IN (:ids)
+    """)
+    suspend fun getPreviewsByIds(ids: List<Long>): List<DiaryPreview>
+
     // Random entry
     @Query("SELECT id FROM diary_entries ORDER BY RANDOM() LIMIT 1")
     suspend fun getRandomEntryId(): Long?

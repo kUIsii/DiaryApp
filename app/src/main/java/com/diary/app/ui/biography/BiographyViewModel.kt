@@ -170,9 +170,8 @@ $context"""
 
         // Mood distribution
         val moodCounts = previews.groupBy { it.moodLevel }.mapValues { it.value.size }
-        val moodLabels = mapOf(1 to "开心", 2 to "平静", 3 to "一般", 4 to "低落", 5 to "难过", 6 to "焦虑")
         val moodSummary = moodCounts.filterKeys { it != null }
-            .map { (level, count) -> "${moodLabels[level] ?: "未知"} $count 次" }
+            .map { (level, count) -> "${com.diary.app.ui.components.moodLabelForLevel(level!!)} $count 次" }
             .joinToString("、")
         if (moodSummary.isNotBlank()) {
             sb.appendLine("心情分布：$moodSummary")
@@ -193,7 +192,7 @@ $context"""
         for (entry in samples) {
             val date = java.text.SimpleDateFormat("yyyy年M月d日", java.util.Locale.CHINA)
                 .format(java.util.Date(entry.createdAt))
-            val mood = entry.moodLevel?.let { moodLabels[it] } ?: ""
+            val mood = entry.moodLevel?.let { com.diary.app.ui.components.moodLabelForLevel(it) } ?: ""
             val preview = entry.plainText.take(150)
             sb.appendLine("[$date] ${if (mood.isNotEmpty()) "($mood) " else ""}${entry.title}: $preview")
         }

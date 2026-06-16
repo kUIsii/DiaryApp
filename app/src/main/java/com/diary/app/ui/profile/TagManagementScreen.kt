@@ -106,6 +106,7 @@ fun TagManagementScreen(
     var backups by remember { mutableStateOf(loadBackupList(context)) }
     var showBackupListDialog by remember { mutableStateOf(false) }
     var pendingRestoreBackup by remember { mutableStateOf<TagBackup?>(null) }
+    var deletingTag by remember { mutableStateOf<Tag?>(null) }
 
     // Stagger animation state
     var showContent by remember { mutableStateOf(false) }
@@ -176,6 +177,24 @@ fun TagManagementScreen(
         )
     }
 
+    val currentDeletingTag = deletingTag
+    if (currentDeletingTag != null) {
+        AlertDialog(
+            onDismissRequest = { deletingTag = null },
+            title = { Text("删除分类") },
+            text = { Text("确定要删除「${currentDeletingTag.name}」吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { dao.deleteTag(currentDeletingTag) }
+                    deletingTag = null
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingTag = null }) { Text("取消") }
+            }
+        )
+    }
+
     if (showBackupListDialog) {
         BackupListDialog(
             backups = backups,
@@ -220,7 +239,7 @@ fun TagManagementScreen(
                         showContent = showContent,
                         tag = tag,
                         onEdit = { editingTag = tag },
-                        onDelete = { scope.launch { dao.deleteTag(tag) } }
+                        onDelete = { deletingTag = tag }
                     )
                 }
 

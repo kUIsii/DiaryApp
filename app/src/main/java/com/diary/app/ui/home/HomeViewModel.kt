@@ -12,10 +12,12 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
 import com.diary.app.data.normalizeContentForExport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -63,7 +65,7 @@ data class SearchFilters(
     val isActive: Boolean get() = moodLevel != null || weather != null || dateRangeStart != null || dateRangeEnd != null
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
 
@@ -72,6 +74,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
+    private val debouncedSearchQuery = _searchQuery.debounce(300L)
 
     private val _selectedTagFilter = MutableStateFlow<Long?>(null)
     val selectedTagFilter: StateFlow<Long?> = _selectedTagFilter
@@ -174,7 +177,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val filteredEntries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
         _selectedDate,
-        _searchQuery,
+        debouncedSearchQuery,
         _selectedTagFilter,
         tagsMap
     ) { entries, date, query, tagFilter, tags ->

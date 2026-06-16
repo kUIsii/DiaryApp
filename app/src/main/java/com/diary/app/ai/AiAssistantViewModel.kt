@@ -248,6 +248,47 @@ $context"""
                 sb.appendLine("最常见的心情：${moodLabel(topMood.key!!)}（${topMood.value}次）")
             }
 
+            // Recent 7 days mood trend
+            val recent7Days = previews.filter {
+                it.createdAt >= today.minusDays(7).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }.sortedBy { it.createdAt }
+            if (recent7Days.isNotEmpty()) {
+                val moodTrend = recent7Days.mapNotNull { entry ->
+                    entry.moodLevel?.let { moodLabel(it) }
+                }
+                if (moodTrend.isNotEmpty()) {
+                    sb.appendLine("最近7天心情变化：${moodTrend.joinToString(" -> ")}")
+                }
+            }
+
+            // Tags
+            try {
+                val tags = dao.getAllTagsOnce()
+                if (tags.isNotEmpty()) {
+                    sb.appendLine("用户使用的分类标签：${tags.joinToString("、") { it.name }}")
+                }
+            } catch (_: Exception) {}
+
+            // Frequent locations
+            try {
+                val locations = dao.getRecentLocations()
+                if (locations.isNotEmpty()) {
+                    sb.appendLine("常去的地点：${locations.take(5).joinToString("、") { it.location }}")
+                }
+            } catch (_: Exception) {}
+
+            // Writing time pattern
+            val hourCounts = previews.groupBy {
+                java.time.Instant.ofEpochMilli(it.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .hour
+            }.mapValues { it.value.size }
+            val topHours = hourCounts.entries.sortedByDescending { it.value }.take(3)
+            if (topHours.isNotEmpty()) {
+                val timeLabels = topHours.map { "${it.key}点(${it.value}次)" }
+                sb.appendLine("最常写作的时间段：${timeLabels.joinToString("、")}")
+            }
+
             // Random selection of entries (not just recent ones)
             val randomEntries = previews.shuffled().take(3)
             sb.appendLine("\n随机抽取的几篇日记片段：")
@@ -276,15 +317,8 @@ $context"""
         }
     }
 
-    private fun moodLabel(level: Int): String = when (level) {
-        1 -> "开心"
-        2 -> "平静"
-        3 -> "一般"
-        4 -> "低落"
-        5 -> "难过"
-        6 -> "焦虑"
-        else -> ""
-    }
+    private fun moodLabel(level: Int): String =
+        com.diary.app.ui.components.moodLabelForLevel(level)
 
     fun clearHistory() {
         val convId = _currentConversationId.value

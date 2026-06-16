@@ -8,10 +8,12 @@ import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryImage
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.home.TagInfo
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +28,7 @@ data class FilterState(
     val selectedTagIds: Set<Long> = emptySet(),
 )
 
+@OptIn(FlowPreview::class)
 class TimelineViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
 
@@ -34,6 +37,7 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
+    private val debouncedSearchQuery = _searchQuery.debounce(300L)
 
     private val _filterState = MutableStateFlow(FilterState())
     val filterState: StateFlow<FilterState> = _filterState
@@ -84,7 +88,7 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
     // Filtered and searched entries
     val entries: StateFlow<List<DiaryPreview>> = combine(
         allEntries,
-        _searchQuery,
+        debouncedSearchQuery,
         _filterState,
         tagsMap
     ) { entries, query, filter, tags ->

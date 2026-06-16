@@ -237,6 +237,7 @@ fun EditorScreen(
     var isApplyingProgrammaticContent by remember { mutableStateOf(false) }
     var metadataVersion by remember { mutableIntStateOf(0) }
     var isExitingEditor by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
     var pendingImageWebUrl by remember { mutableStateOf<String?>(null) }
 
     fun insertImageIntoEditor(imageWebUrl: String) {
@@ -674,9 +675,12 @@ fun EditorScreen(
     )
 
     fun saveCurrentEntry() {
+        if (isSaving || isExitingEditor) return
+        isSaving = true
         isExitingEditor = true
         val wv = webView
         if (wv == null) {
+            isSaving = false
             isExitingEditor = false
             onNavigateBack()
             return
@@ -687,6 +691,7 @@ fun EditorScreen(
                 val cleanPlain = unescapeEvaluateJsResult(plain)
                 val saveTitle = entryTitle.ifBlank { dateTitle }
                 if (cleanPlain.isBlank() && saveTitle.isBlank()) {
+                    isSaving = false
                     isExitingEditor = false
                     onNavigateBack()
                     return@plainCallback
@@ -1087,7 +1092,7 @@ fun EditorScreen(
                         isToolbarLocked = true
                     }
                 )
-                EditorSaveButton(onClick = { saveCurrentEntry() })
+                EditorSaveButton(onClick = { saveCurrentEntry() }, enabled = !isSaving)
             }
 
             // Date + time (compact single line)
@@ -1756,19 +1761,20 @@ private fun EditorMetaPill(
 
 @Composable
 private fun EditorSaveButton(
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Box(
         modifier = Modifier
             .height(36.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
+            .background(if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "保存",
+            text = if (enabled) "保存" else "保存中...",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimary

@@ -48,22 +48,46 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
                 }
                 _tags.value = dao.getTagInfoForDiary(id)
 
-                // Load related entries from the same day in previous years (lightweight query)
+                // Load related entries: same day in previous years + same tags
                 val entry = _entry.value
                 if (entry != null) {
                     val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
                         .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
+                    // Same day in previous years
                     val monthDayEntries = dao.getPreviewsByMonthDay(entryDate.monthValue, entryDate.dayOfMonth)
-                    val related = monthDayEntries.filter { other ->
+                    val sameDayRelated = monthDayEntries.filter { other ->
                         other.id != entry.id && run {
                             val otherDate = java.time.Instant.ofEpochMilli(other.createdAt)
                                 .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
                             otherDate.year != entryDate.year
                         }
-                    }.sortedByDescending { it.createdAt }.take(3)
+                    }
 
-                    _relatedEntries.value = related
+                    // Same tags
+                    val currentTagIds = _tags.value.map { it.id }.toSet()
+                    val sameTagRelated = if (currentTagIds.isNotEmpty()) {
+                        val allPairs = dao.getAllDiaryTagPairsOnce()
+                        val entryIdsByTag = allPairs
+                            .filter { it.tagId in currentTagIds && it.diaryId != entry.id }
+                            .groupBy { it.diaryId }
+                            .mapValues { it.value.size }
+                        val topEntryIds = entryIdsByTag.entries
+                            .sortedByDescending { it.value }
+                            .take(5)
+                            .map { it.key }
+                        if (topEntryIds.isNotEmpty()) {
+                            dao.getPreviewsByIds(topEntryIds)
+                        } else emptyList()
+                    } else emptyList()
+
+                    // Combine and deduplicate, prioritize same-day matches
+                    val combined = (sameDayRelated + sameTagRelated)
+                        .distinctBy { it.id }
+                        .sortedByDescending { it.createdAt }
+                        .take(5)
+
+                    _relatedEntries.value = combined
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
