@@ -128,7 +128,7 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
             if (_messages.value.size == 1) {
                 val title = userMessage.take(20) + if (userMessage.length > 20) "..." else ""
                 withContext(Dispatchers.IO) {
-                    dao.insertConversation(ChatConversationEntity(id = convId, title = title))
+                    dao.updateConversationTitle(convId, title)
                 }
                 // Refresh conversation list
                 val convs = withContext(Dispatchers.IO) { dao.getAllConversationsOnce() }

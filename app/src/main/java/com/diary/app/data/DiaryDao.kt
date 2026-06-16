@@ -520,6 +520,9 @@ interface DiaryDao {
     @Insert
     suspend fun insertConversation(conversation: ChatConversationEntity): Long
 
+    @Query("UPDATE chat_conversations SET title = :title, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateConversationTitle(id: Long, title: String, updatedAt: Long = System.currentTimeMillis())
+
     @Query("UPDATE chat_conversations SET updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateConversationTime(id: Long, updatedAt: Long = System.currentTimeMillis())
 
