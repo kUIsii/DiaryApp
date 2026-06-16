@@ -134,6 +134,7 @@ fun ExperimentalFeaturesScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // General features
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 24.dp
@@ -160,14 +161,7 @@ fun ExperimentalFeaturesScreen(
                             textSecondary = textSecondary,
                             onCheckedChange = { app.setKeepCompletedItemsInPlace(it) }
                         )
-                    }
-                }
-
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 24.dp
-                ) {
-                    Column {
+                        ExperimentalFeatureDivider()
                         ExperimentalFeatureRow(
                             icon = Icons.Default.EmojiEvents,
                             title = "写作里程碑",
@@ -178,30 +172,17 @@ fun ExperimentalFeaturesScreen(
                             textSecondary = textSecondary,
                             onCheckedChange = { app.setWritingMilestonesEnabled(it) }
                         )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.Lightbulb,
-                            title = "AI 洞察卡片",
-                            subtitle = "首页偶尔出现轻量的 AI 提示，可能是心情回应、写作鼓励或小发现。",
-                            checked = features.aiInsightCardEnabled,
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onCheckedChange = { app.setAiInsightCardEnabled(it) }
-                        )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.Chat,
-                            title = "小墨助手",
-                            subtitle = "首页顶栏的专属 AI 助手，熟悉你的日记，可以聊天、分析、给建议。",
-                            checked = features.aiAssistantEnabled,
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onCheckedChange = { app.setAiAssistantEnabled(it) }
-                        )
                     }
                 }
+
+                // AI features section
+                Text(
+                    text = "AI 功能",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textSecondary,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
 
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -210,7 +191,7 @@ fun ExperimentalFeaturesScreen(
                     Column {
                         ExperimentalNavigateRow(
                             icon = Icons.Default.Key,
-                            title = "API Key",
+                            title = "API 配置",
                             subtitle = if (isAiConfigured) "已配置" else "点击配置 Agnes AI 密钥",
                             accentColor = accentColor,
                             textColor = textColor,
@@ -262,6 +243,36 @@ fun ExperimentalFeaturesScreen(
                             textColor = textColor,
                             textSecondary = textSecondary,
                             onClick = null
+                        )
+                    }
+                }
+
+                // AI features that require API
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 24.dp
+                ) {
+                    Column {
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.Lightbulb,
+                            title = "AI 洞察卡片",
+                            subtitle = if (isAiConfigured) "首页偶尔出现轻量的 AI 提示" else "需要先配置 API Key",
+                            checked = features.aiInsightCardEnabled && isAiConfigured,
+                            accentColor = accentColor,
+                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
+                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
+                            onCheckedChange = { if (isAiConfigured) app.setAiInsightCardEnabled(it) }
+                        )
+                        ExperimentalFeatureDivider()
+                        ExperimentalFeatureRow(
+                            icon = Icons.Default.Chat,
+                            title = "小墨助手",
+                            subtitle = if (isAiConfigured) "首页顶栏的专属 AI 助手，熟悉你的日记" else "需要先配置 API Key",
+                            checked = features.aiAssistantEnabled && isAiConfigured,
+                            accentColor = accentColor,
+                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
+                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
+                            onCheckedChange = { if (isAiConfigured) app.setAiAssistantEnabled(it) }
                         )
                     }
                 }

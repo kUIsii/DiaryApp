@@ -68,15 +68,25 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                     AiMessage(role = it.role, content = it.content)
                 }
 
-                val systemPrompt = """你是这个日记应用里的专属助手，名叫小墨。你熟悉用户的日记记录，像一个老朋友一样了解ta。
+                val systemPrompt = """你是小墨，这个日记应用里的聊天伙伴。你看过用户的日记，了解ta的生活。
 
-你的特点：
-- 自然、温暖、真实，不要说客套话
-- 回复长度随意，该长则长该短则短，像正常聊天
-- 不主动评判用户，但可以给出真实的想法和建议
-- 可以聊日记内容、心情、生活，也可以聊任何话题
-- 如果用户问你能做什么，如实说明：你可以聊天、分析日记、给建议、帮忙整理想法等
-- 不要反复强调自己是AI
+说话风格：
+- 像朋友聊天一样自然，不要太正式
+- 不要用任何格式符号（比如星号、井号、破折号列表），就用普通文字
+- 回复适中长度，不要太短显得敷衍，也不要太长像在写文章
+- 可以有自己的想法，不用总是赞同用户
+- 偶尔可以问问用户的近况，但不要每次都问
+
+你能做的事：
+- 聊天，聊日记内容、心情、生活琐事
+- 帮用户整理思路、分析问题
+- 给建议，但不是说教
+- 如果用户问你能做什么，直接说
+
+不要做的事：
+- 不要说"作为AI"、"我可以帮你"这类话
+- 不要用markdown格式
+- 不要每次开头都问好
 
 $context"""
 
@@ -129,20 +139,11 @@ $context"""
     private suspend fun buildContext(): String {
         return try {
             val previews = dao.getAllPreviewsOnce()
-            val recent = previews.sortedByDescending { it.createdAt }.take(5)
+            if (previews.isEmpty()) return "用户还没有写过日记。"
 
-            if (recent.isEmpty()) return "用户还没有写过日记。"
+            val sb = StringBuilder()
 
-            val sb = StringBuilder("以下是用户最近的日记摘要，供你了解ta的近况：\n")
-            for (entry in recent) {
-                val date = java.text.SimpleDateFormat("MM月dd日", java.util.Locale.CHINA)
-                    .format(java.util.Date(entry.createdAt))
-                val mood = entry.moodLevel?.let { moodLabel(it) } ?: ""
-                val preview = entry.plainText.take(100)
-                sb.append("- [$date] ${entry.title}${if (mood.isNotEmpty()) " ($mood)" else ""}: $preview\n")
-            }
-
-            // Add streak info
+            // Streak info
             val dates = previews.map {
                 java.time.Instant.ofEpochMilli(it.createdAt)
                     .atZone(java.time.ZoneId.systemDefault())
@@ -155,7 +156,40 @@ $context"""
                 val expected = today.minusDays(i.toLong())
                 if (dates[i] == expected) streak++ else break
             }
-            if (streak > 0) sb.append("- 当前连续写作 $streak 天\n")
+
+            val totalEntries = previews.size
+            val totalDays = dates.size
+
+            sb.appendLine("用户已写作 $totalEntries 篇日记，跨越 $totalDays 天。")
+            if (streak > 0) sb.appendLine("当前连续写作 $streak 天。")
+
+            // Mood distribution
+            val moodCounts = previews.groupBy { it.moodLevel }.mapValues { it.value.size }
+            val topMood = moodCounts.filterKeys { it != null }.maxByOrNull { it.value }
+            if (topMood != null) {
+                sb.appendLine("最常见的心情：${moodLabel(topMood.key!!)}（${topMood.value}次）")
+            }
+
+            // Random selection of entries (not just recent ones)
+            val randomEntries = previews.shuffled().take(3)
+            sb.appendLine("\n随机抽取的几篇日记片段：")
+            for (entry in randomEntries) {
+                val date = java.text.SimpleDateFormat("MM月dd日", java.util.Locale.CHINA)
+                    .format(java.util.Date(entry.createdAt))
+                val preview = entry.plainText.take(80)
+                sb.appendLine("- [$date] ${entry.title}: $preview...")
+            }
+
+            // Recent entries
+            val recent = previews.sortedByDescending { it.createdAt }.take(3)
+            sb.appendLine("\n最近的日记：")
+            for (entry in recent) {
+                val date = java.text.SimpleDateFormat("MM月dd日", java.util.Locale.CHINA)
+                    .format(java.util.Date(entry.createdAt))
+                val mood = entry.moodLevel?.let { moodLabel(it) } ?: ""
+                val preview = entry.plainText.take(60)
+                sb.appendLine("- [$date] ${entry.title}${if (mood.isNotEmpty()) " ($mood)" else ""}: $preview...")
+            }
 
             sb.toString()
         } catch (e: Exception) {

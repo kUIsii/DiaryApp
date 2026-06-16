@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -111,6 +112,7 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val app = context.applicationContext as DiaryApplication
+    val features by app.experimentalFeatures.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -192,20 +194,22 @@ fun HomeScreen(
                                     }
                                 }
                             }
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                    .clickable { onNavigateToAiAssistant() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "小墨",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            if (features.aiAssistantEnabled) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clickable { onNavigateToAiAssistant() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Chat,
+                                        contentDescription = "小墨",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                             Box(
                                 modifier = Modifier
