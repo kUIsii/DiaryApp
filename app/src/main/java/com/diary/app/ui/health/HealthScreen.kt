@@ -77,12 +77,18 @@ fun HealthScreen(
     GradientBackground {
         when {
             !state.isAvailable -> {
-                EmptyState(
-                    icon = Icons.Default.MonitorHeart,
-                    title = "Health Connect 不可用",
-                    subtitle = "请先安装 Health Connect 应用",
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    EmptyState(
+                        icon = Icons.Default.MonitorHeart,
+                        title = "健康数据功能不可用",
+                        subtitle = "此功能需要 Google Play 服务支持\n华为等设备暂不兼容",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
             !state.hasPermission -> {
                 Column(

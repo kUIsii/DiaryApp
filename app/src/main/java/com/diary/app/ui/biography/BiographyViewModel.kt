@@ -65,6 +65,15 @@ class BiographyViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isGenerating = true, error = null, biography = "")
             try {
+                // Check if AI is configured
+                if (!app.aiService.isAiEnabled()) {
+                    _uiState.value = _uiState.value.copy(
+                        isGenerating = false,
+                        error = "请先在设置中配置 AI 服务（需要 API Key）"
+                    )
+                    return@launch
+                }
+
                 val previews = withContext(Dispatchers.IO) { dao.getAllPreviewsOnce() }
                 if (previews.isEmpty()) {
                     _uiState.value = _uiState.value.copy(
@@ -114,16 +123,31 @@ $context"""
                         biography = reply
                     )
                 } else {
+                    val ex = result.exceptionOrNull()
+                    val errorMsg = when {
+                        ex == null -> "生成失败"
+                        ex.message?.contains("NotConfigured") == true -> "请先在设置中配置 AI 服务"
+                        ex.message?.contains("unexpected end of stream") == true -> "网络连接中断，请检查网络后重试"
+                        ex.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                        ex.message?.contains("Unable to resolve host") == true -> "无法连接到 AI 服务器，请检查网络"
+                        else -> "生成失败：${ex.message}"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isGenerating = false,
-                        error = result.exceptionOrNull()?.message ?: "生成失败"
+                        error = errorMsg
                     )
                 }
             } catch (e: Exception) {
                 Log.e("Biography", "Generation failed", e)
+                val errorMsg = when {
+                    e.message?.contains("unexpected end of stream") == true -> "网络连接中断，请检查网络后重试"
+                    e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                    e.message?.contains("Unable to resolve host") == true -> "无法连接到 AI 服务器，请检查网络"
+                    else -> "出了点问题，稍后再试"
+                }
                 _uiState.value = _uiState.value.copy(
                     isGenerating = false,
-                    error = "出了点问题，稍后再试"
+                    error = errorMsg
                 )
             }
         }
