@@ -31,17 +31,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.MapView
-import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
@@ -203,14 +205,33 @@ private fun AmapView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val mapView = remember { MapView(context) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(Unit) {
-        mapView.onCreate(Bundle())
-        mapView.onResume()
+    // Create MapView with proper lifecycle management
+    val mapView = remember {
+        MapView(context).apply {
+            // Initialize the map
+            onCreate(Bundle())
+        }
+    }
+
+    // Manage lifecycle
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                Lifecycle.Event.ON_ANY -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
-            mapView.onPause()
+            lifecycleOwner.lifecycle.removeObserver(observer)
             mapView.onDestroy()
         }
     }
@@ -218,42 +239,48 @@ private fun AmapView(
     AndroidView(
         modifier = modifier,
         factory = { mapView },
-        update = { mapView ->
-            val aMap = mapView.map
+        update = { mv ->
+            val aMap = mv.map
 
-            // Clear existing markers
+            // Only update markers if they changed
             aMap.clear()
 
-            // Add markers
-            val boundsBuilder = LatLngBounds.Builder()
-            markers.forEach { marker ->
-                val position = LatLng(marker.latitude, marker.longitude)
-                val markerOptions = MarkerOptions()
-                    .position(position)
-                    .title(marker.title)
-                    .snippet(marker.location.ifBlank { null })
-
-                aMap.addMarker(markerOptions)
-                boundsBuilder.include(position)
-            }
-
-            // Move camera to show all markers
             if (markers.isNotEmpty()) {
-                val bounds = boundsBuilder.build()
-                val padding = 100 // pixels
-                aMap.animateCamera(
-                    CameraUpdateFactory.newLatLngBounds(bounds, padding)
-                )
-            }
+                val boundsBuilder = LatLngBounds.Builder()
+                markers.forEach { marker ->
+                    val position = LatLng(marker.latitude, marker.longitude)
+                    val markerOptions = MarkerOptions()
+                        .position(position)
+                        .title(marker.title)
+                        .snippet(marker.location.ifBlank { null })
 
-            // Set marker click listener
-            aMap.setOnMarkerClickListener { amapMarker ->
-                val clickedMarker = markers.find {
-                    it.latitude == amapMarker.position.latitude &&
-                    it.longitude == amapMarker.position.longitude
+                    aMap.addMarker(markerOptions)
+                    boundsBuilder.include(position)
                 }
-                clickedMarker?.let { onMarkerClick(it.id) }
-                true
+
+                // Move camera to show all markers
+                try {
+                    val bounds = boundsBuilder.build()
+                    val padding = 100
+                    aMap.animateCamera(
+                        CameraUpdateFactory.newLatLngBounds(bounds, padding)
+                    )
+                } catch (e: Exception) {
+                    // If bounds calculation fails, just show China
+                    aMap.moveCamera(
+                        CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
+                    )
+                }
+
+                // Set marker click listener
+                aMap.setOnMarkerClickListener { amapMarker ->
+                    val clickedMarker = markers.find {
+                        it.latitude == amapMarker.position.latitude &&
+                        it.longitude == amapMarker.position.longitude
+                    }
+                    clickedMarker?.let { onMarkerClick(it.id) }
+                    true
+                }
             }
         }
     )

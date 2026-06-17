@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.focus.FocusRequester
@@ -327,12 +328,25 @@ fun LocationSelector(
                                 .height(400.dp)
                                 .clip(RoundedCornerShape(12.dp))
                         ) {
-                            val mapView = remember { MapView(context) }
-                            DisposableEffect(Unit) {
-                                mapView.onCreate(Bundle())
-                                mapView.onResume()
+                            val lifecycleOwner = LocalLifecycleOwner.current
+                            val mapView = remember {
+                                MapView(context).apply {
+                                    onCreate(Bundle())
+                                }
+                            }
+                            DisposableEffect(lifecycleOwner) {
+                                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                    when (event) {
+                                        androidx.lifecycle.Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
+                                        androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                                        androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                                        androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                                        else -> {}
+                                    }
+                                }
+                                lifecycleOwner.lifecycle.addObserver(observer)
                                 onDispose {
-                                    mapView.onPause()
+                                    lifecycleOwner.lifecycle.removeObserver(observer)
                                     mapView.onDestroy()
                                 }
                             }
