@@ -7,6 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -266,6 +267,8 @@ fun DiaryAppTheme(
         }
     }
 
+    val typography = remember(fontScale) { scaledTypography(fontScale) }
+
     CompositionLocalProvider(
         LocalThemeMode provides themeMode,
         LocalExtendedColors provides extendedColors,
@@ -273,7 +276,7 @@ fun DiaryAppTheme(
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = scaledTypography(fontScale)
+            typography = typography
         ) {
             content()
         }

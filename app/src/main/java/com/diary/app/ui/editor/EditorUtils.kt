@@ -238,13 +238,3 @@ internal fun isMeaningfulDraft(snapshot: EditorSnapshot): Boolean {
         snapshot.tagIds.isNotEmpty() ||
         !snapshot.location?.trim().isNullOrEmpty()
 }
-
-internal fun isEditorDirty(base: EditorSnapshot, current: EditorSnapshot): Boolean {
-    val defaultTitle = current.defaultTitle.ifBlank { base.defaultTitle }
-    return normalizedTitle(base.title, defaultTitle) != normalizedTitle(current.title, defaultTitle) ||
-        normalizedPlainText(base.plainText) != normalizedPlainText(current.plainText) ||
-        base.moodLevel != current.moodLevel ||
-        base.weather?.trim() != current.weather?.trim() ||
-        base.tagIds != current.tagIds ||
-        base.location?.trim() != current.location?.trim()
-}

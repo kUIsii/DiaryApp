@@ -27,7 +27,7 @@ class HapticFeedbackHelper(
 
     /** Medium feedback for successful operations (save, create) */
     fun success() {
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
     /** Heavy feedback for destructive operations (delete) */

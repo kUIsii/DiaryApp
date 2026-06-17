@@ -89,9 +89,6 @@ object InsightGenerator {
             "pattern" -> {
                 val recentWeathers = recentEntries.mapNotNull { it.weather }.groupingBy { it }.eachCount()
                 val topWeather = recentWeathers.maxByOrNull { it.value }?.key
-                val recentTags = recentEntries.flatMap { entry ->
-                    entry.plainText.take(50).split("，", "。", "、", " ").filter { it.length in 2..4 }
-                }.take(5)
                 "你是一个安静的文字伙伴。用户最近常在${topWeather ?: "各种天气"}写日记。请用一句话（不超过25个字）自然地提及这个习惯，不要提到AI，像朋友随口一提。"
             }
             "greeting" -> {

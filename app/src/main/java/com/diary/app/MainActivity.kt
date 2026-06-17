@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -100,8 +102,8 @@ class MainActivity : FragmentActivity() {
                                 var pinError by remember { mutableStateOf(false) }
 
                                 PinEntryScreen(
-                                    title = "输入PIN码",
-                                    subtitle = if (biometricLockEnabled) "或切换到生物识别" else "",
+                                    title = stringResource(R.string.enter_pin),
+                                    subtitle = if (biometricLockEnabled) stringResource(R.string.switch_to_biometric) else "",
                                     hint = BiometricHelper.getPinHint(context),
                                     lockoutSeconds = BiometricHelper.getLockoutRemainingSeconds(context),
                                     onPinEntered = { pin ->
@@ -111,7 +113,7 @@ class MainActivity : FragmentActivity() {
                                         } else {
                                             pinError = true
                                             if (BiometricHelper.isLockedOut(context)) {
-                                                Toast.makeText(context, "输入错误次数过多，请等待", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, context.getString(R.string.too_many_attempts), Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     },
@@ -121,7 +123,7 @@ class MainActivity : FragmentActivity() {
                                 )
 
                                 // Version info at the bottom
-                                val versionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                val versionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
@@ -168,7 +170,7 @@ class MainActivity : FragmentActivity() {
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     // Breathing lock icon
-                                    val biometricTextColor = if (themeMode.isDarkStatic()) Color.White else Color(0xFF1A1A1A)
+                                    val biometricTextColor = if (themeMode.isDarkStatic()) Color.White else MaterialTheme.colorScheme.onBackground
                                     Icon(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = null,
@@ -182,7 +184,7 @@ class MainActivity : FragmentActivity() {
 
                                     // App name
                                     Text(
-                                        text = "日记本",
+                                        text = stringResource(R.string.app_lock_title),
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = biometricTextColor,
@@ -193,7 +195,7 @@ class MainActivity : FragmentActivity() {
 
                                     // Subtitle
                                     Text(
-                                        text = "记录生活的每一刻",
+                                        text = stringResource(R.string.app_lock_subtitle),
                                         fontSize = 14.sp,
                                         color = biometricTextColor.copy(alpha = 0.55f),
                                         letterSpacing = 2.sp
@@ -237,7 +239,7 @@ class MainActivity : FragmentActivity() {
                                         )
                                         Spacer(modifier = Modifier.size(10.dp))
                                         Text(
-                                            text = "解锁",
+                                            text = stringResource(R.string.unlock),
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Medium,
                                             letterSpacing = 1.sp
@@ -247,9 +249,9 @@ class MainActivity : FragmentActivity() {
 
                                 // Switch to PIN button (only if PIN is also enabled)
                                 if (pinLockEnabled) {
-                                    val switchPinColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                    val switchPinColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                     Text(
-                                        text = "使用PIN码",
+                                        text = stringResource(R.string.use_pin),
                                         fontSize = 13.sp,
                                         color = switchPinColor,
                                         modifier = Modifier
@@ -260,7 +262,7 @@ class MainActivity : FragmentActivity() {
                                 }
 
                                 // Version info at the bottom
-                                val biometricVersionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else Color(0xFF1A1A1A).copy(alpha = 0.5f)
+                                val biometricVersionColor = if (themeMode.isDarkStatic()) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,

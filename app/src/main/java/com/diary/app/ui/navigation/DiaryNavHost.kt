@@ -61,6 +61,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -286,13 +287,14 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Tools.route) {
+                val toolsScope = rememberCoroutineScope()
                 ToolsScreen(
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
                     onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
                     onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
                     onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
                     onNavigateToRandom = {
-                        kotlinx.coroutines.MainScope().launch {
+                        toolsScope.launch {
                             val dao = (app as? com.diary.app.DiaryApplication)?.database?.diaryDao()
                             val randomId = dao?.getRandomEntryId()
                             if (randomId != null) {

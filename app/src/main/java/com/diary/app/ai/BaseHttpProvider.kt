@@ -95,9 +95,10 @@ abstract class BaseHttpProvider(
             val responseBody = conn.inputStream.bufferedReader().readText()
             val json = JsonParser.parseString(responseBody).asJsonObject
 
-            val content = json
-                .getAsJsonArray("choices")
-                .get(0).asJsonObject
+            val choices = json.getAsJsonArray("choices")
+                ?: throw AiError.ParseError("API返回空的choices数组")
+            if (choices.size() == 0) throw AiError.ParseError("choices数组为空")
+            val content = choices.get(0).asJsonObject
                 .getAsJsonObject("message")
                 .get("content").asString
 

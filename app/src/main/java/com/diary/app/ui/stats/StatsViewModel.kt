@@ -85,10 +85,6 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
     private val _heatmapRange = MutableStateFlow(HeatmapRange.ONE_MONTH)
 
-    fun toggleHeatmapRange() {
-        // Only one range now, no-op
-    }
-
     fun setHeatmapRange(range: HeatmapRange) {
         _heatmapRange.value = range
     }

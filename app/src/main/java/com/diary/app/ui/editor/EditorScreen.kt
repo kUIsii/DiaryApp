@@ -329,7 +329,7 @@ fun EditorScreen(
             if (diaryId != null && entry.content.isNotBlank()) {
                 // Strip inline Base64 data URLs to prevent memory crash
                 var safeContent = entry.content.replace(
-                    Regex("\"data:image/[^\"]{0,5000000}\""),
+                    Regex("\"data:image/[^\"]*?\""),
                     "\"\""
                 )
                 safeContent = DiaryMediaManager.contentToWebViewUrls(context, safeContent)

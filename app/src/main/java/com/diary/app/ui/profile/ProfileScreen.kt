@@ -673,28 +673,6 @@ private fun CollapsibleSection(
     }
 }
 
-// --- Section Group Header ---
-
-@Composable
-private fun SectionGroupHeader(
-    icon: ImageVector,
-    bg: Color,
-    tint: Color,
-    title: String,
-    subtitle: String,
-    textColor: Color,
-    textTertiary: Color
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconCircle(icon = icon, bg = bg, tint = tint)
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
-            Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
-        }
-    }
-}
-
 // --- Clickable Setting Row ---
 
 @Composable

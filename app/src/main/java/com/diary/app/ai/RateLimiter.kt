@@ -14,6 +14,7 @@ class RateLimiter(private val context: Context) {
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val gson = com.google.gson.Gson()
 
     data class UsageStats(
         val dailyTotal: Int,
@@ -36,7 +37,7 @@ class RateLimiter(private val context: Context) {
 
         val modelUsage = getModelUsageMap().toMutableMap()
         modelUsage[model] = (modelUsage[model] ?: 0) + 1
-        val json = com.google.gson.Gson().toJson(modelUsage)
+        val json = gson.toJson(modelUsage)
         prefs.edit().putString(KEY_MODEL_USAGE, json).apply()
     }
 
@@ -58,7 +59,7 @@ class RateLimiter(private val context: Context) {
             val type = com.google.gson.reflect.TypeToken.getParameterized(
                 Map::class.java, String::class.java, Integer::class.java
             ).type
-            val raw: Map<String, Int> = com.google.gson.Gson().fromJson(json, type)
+            val raw: Map<String, Int> = gson.fromJson(json, type)
             raw.mapValues { it.value.toInt() }
         } catch (e: Exception) {
             emptyMap()

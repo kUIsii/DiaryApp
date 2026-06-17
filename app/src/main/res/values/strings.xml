@@ -3,6 +3,13 @@
     <!-- App -->
     <string name="app_name">日记</string>
     <string name="app_subtitle">记录生活的每一天</string>
+    <string name="app_lock_title">日记本</string>
+    <string name="app_lock_subtitle">记录生活的每一刻</string>
+    <string name="unlock">解锁</string>
+    <string name="use_pin">使用PIN码</string>
+    <string name="enter_pin">输入PIN码</string>
+    <string name="switch_to_biometric">或切换到生物识别</string>
+    <string name="too_many_attempts">输入错误次数过多，请等待</string>
     <string name="made_with_love">Made with </string>
     <string name="made_by"> by Diary Team</string>
 

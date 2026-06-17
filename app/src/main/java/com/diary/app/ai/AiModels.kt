@@ -36,6 +36,7 @@ sealed class AiError : Exception() {
         override val message = "网络不可用"
     }
     data class ApiError(val code: Int, override val message: String) : AiError()
+    data class ParseError(override val message: String) : AiError()
     data class Unknown(override val cause: Throwable?) : AiError() {
         override val message = cause?.message ?: "未知错误"
     }
