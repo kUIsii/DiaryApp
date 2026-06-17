@@ -319,13 +319,17 @@ fun DiaryDetailScreen(
                         // Everything in one scrollable card
                         GlassCard(
                             cornerRadius = 16.dp,
-                            innerPadding = 12.dp,
+                            innerPadding = 0.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .verticalScroll(rememberScrollState())
                         ) {
-                            Column {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(12.dp)
+                            ) {
                                 // Header (title + date + mood/weather/location/tags)
                                 DetailHeaderCompact(
                                     entry = currentEntry,
