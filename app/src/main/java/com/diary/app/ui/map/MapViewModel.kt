@@ -68,19 +68,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
 
-                // Calculate stats
-                val uniqueLocations = markers.map { it.location }.filter { it.isNotBlank() }.distinct().size
-                val cities = markers.map { extractCity(it.location) }.filter { it.isNotBlank() }.distinct().size
-                val firstDate = markers.minByOrNull { it.createdAt }?.createdAt
-                val lastDate = markers.maxByOrNull { it.createdAt }?.createdAt
-
-                val stats = MapStats(
-                    totalEntries = markers.size,
-                    uniqueLocations = uniqueLocations,
-                    citiesVisited = cities,
-                    firstEntryDate = firstDate,
-                    lastEntryDate = lastDate
-                )
+                val stats = computeMapStats(markers)
 
                 _uiState.value = MapUiState(
                     isLoading = false,
@@ -97,14 +85,28 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(selectedMarker = marker)
     }
 
-    private fun extractCity(location: String): String {
-        // Try to extract city name from location string
-        // Common patterns: "City, Country", "City", "District, City, Province"
-        val parts = location.split(",").map { it.trim() }
-        return when {
-            parts.size >= 2 -> parts[parts.size - 2] // Second to last is usually city
-            parts.size == 1 -> parts[0]
-            else -> ""
-        }
+    private fun extractCity(location: String): String = extractCityFromLocation(location)
+}
+
+internal fun extractCityFromLocation(location: String): String {
+    val parts = location.split(",").map { it.trim() }
+    return when {
+        parts.size >= 2 -> parts[parts.size - 2]
+        parts.size == 1 -> parts[0]
+        else -> ""
     }
+}
+
+internal fun computeMapStats(markers: List<MapMarker>): MapStats {
+    val uniqueLocations = markers.map { it.location }.filter { it.isNotBlank() }.distinct().size
+    val cities = markers.map { extractCityFromLocation(it.location) }.filter { it.isNotBlank() }.distinct().size
+    val firstDate = markers.minByOrNull { it.createdAt }?.createdAt
+    val lastDate = markers.maxByOrNull { it.createdAt }?.createdAt
+    return MapStats(
+        totalEntries = markers.size,
+        uniqueLocations = uniqueLocations,
+        citiesVisited = cities,
+        firstEntryDate = firstDate,
+        lastEntryDate = lastDate
+    )
 }

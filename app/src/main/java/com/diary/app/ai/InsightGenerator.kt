@@ -51,10 +51,7 @@ object InsightGenerator {
         return insight
     }
 
-    private fun pickInsightType(lastType: String): String {
-        val types = listOf("mood", "encourage", "pattern", "greeting")
-        return types.filter { it != lastType }.random()
-    }
+    private fun pickInsightType(lastType: String): String = pickInsightTypeExcluding(lastType)
 
     private suspend fun generateWithAi(
         aiService: AiServiceManager,
@@ -125,46 +122,55 @@ object InsightGenerator {
     }
 
     private fun generateLocal(entries: List<DiaryPreview>, type: String): AiInsight? {
-        val today = LocalDate.now()
-        val recentEntries = entries.filter {
-            val date = Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
-            ChronoUnit.DAYS.between(date, today) <= 7
-        }
+        return generateLocalInsight(entries, type)
+    }
+}
 
-        return when (type) {
-            "encourage" -> {
-                val daysSinceFirst = entries.minByOrNull { it.createdAt }?.let {
-                    ChronoUnit.DAYS.between(
-                        Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate(),
-                        today
-                    )
-                } ?: 0
-                when {
-                    daysSinceFirst >= 100 -> AiInsight("已经坚持了这么久，真好", type)
-                    daysSinceFirst >= 30 -> AiInsight("一个月了，你的坚持有了重量", type)
-                    entries.size >= 50 -> AiInsight("不知不觉，已经写了这么多", type)
-                    else -> AiInsight("每一天的记录都值得", type)
-                }
+internal fun pickInsightTypeExcluding(lastType: String): String {
+    val types = listOf("mood", "encourage", "pattern", "greeting")
+    return types.filter { it != lastType }.random()
+}
+
+internal fun generateLocalInsight(entries: List<DiaryPreview>, type: String): AiInsight? {
+    val today = LocalDate.now()
+    val recentEntries = entries.filter {
+        val date = Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        ChronoUnit.DAYS.between(date, today) <= 7
+    }
+
+    return when (type) {
+        "encourage" -> {
+            val daysSinceFirst = entries.minByOrNull { it.createdAt }?.let {
+                ChronoUnit.DAYS.between(
+                    Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate(),
+                    today
+                )
+            } ?: 0
+            when {
+                daysSinceFirst >= 100 -> AiInsight("已经坚持了这么久，真好", type)
+                daysSinceFirst >= 30 -> AiInsight("一个月了，你的坚持有了重量", type)
+                entries.size >= 50 -> AiInsight("不知不觉，已经写了这么多", type)
+                else -> AiInsight("每一天的记录都值得", type)
             }
-            "mood" -> {
-                val recentMoods = recentEntries.mapNotNull { it.moodLevel }
-                val avg = if (recentMoods.isNotEmpty()) recentMoods.average() else null
-                when {
-                    avg != null && avg >= 4 -> AiInsight("最近状态不错，继续保持", type)
-                    avg != null && avg < 2.5 -> AiInsight("低落的时候，写下来也是一种力量", type)
-                    else -> AiInsight("今天也来写点什么吧", type)
-                }
-            }
-            "greeting" -> {
-                val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-                when {
-                    hour < 6 -> AiInsight("夜深了，还在想什么呢", type)
-                    hour < 12 -> AiInsight("新的一天，从记录开始", type)
-                    hour < 18 -> AiInsight("下午好，有什么想说的吗", type)
-                    else -> AiInsight("晚上好，今天过得怎么样", type)
-                }
-            }
-            else -> null
         }
+        "mood" -> {
+            val recentMoods = recentEntries.mapNotNull { it.moodLevel }
+            val avg = if (recentMoods.isNotEmpty()) recentMoods.average() else null
+            when {
+                avg != null && avg >= 4 -> AiInsight("最近状态不错，继续保持", type)
+                avg != null && avg < 2.5 -> AiInsight("低落的时候，写下来也是一种力量", type)
+                else -> AiInsight("今天也来写点什么吧", type)
+            }
+        }
+        "greeting" -> {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            when {
+                hour < 6 -> AiInsight("夜深了，还在想什么呢", type)
+                hour < 12 -> AiInsight("新的一天，从记录开始", type)
+                hour < 18 -> AiInsight("下午好，有什么想说的吗", type)
+                else -> AiInsight("晚上好，今天过得怎么样", type)
+            }
+        }
+        else -> null
     }
 }

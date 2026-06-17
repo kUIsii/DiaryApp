@@ -25,10 +25,8 @@ class RateLimiter(private val context: Context) {
     fun canMakeRequest(model: String): Boolean {
         resetIfNewDay()
         val total = prefs.getInt(KEY_DAILY_TOTAL, 0)
-        if (total >= DAILY_LIMIT) return false
         val modelCount = getModelUsage(model)
-        if (modelCount >= MODEL_LIMIT) return false
-        return true
+        return canMakeRequestInternal(total, modelCount)
     }
 
     fun recordRequest(model: String) {
@@ -78,4 +76,15 @@ class RateLimiter(private val context: Context) {
                 .apply()
         }
     }
+}
+
+internal fun canMakeRequestInternal(
+    dailyTotal: Int,
+    modelCount: Int,
+    dailyLimit: Int = 2000,
+    modelLimit: Int = 200
+): Boolean {
+    if (dailyTotal >= dailyLimit) return false
+    if (modelCount >= modelLimit) return false
+    return true
 }
