@@ -75,6 +75,7 @@ import coil.request.ImageRequest
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.cleanPreviewText
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
@@ -1286,23 +1287,5 @@ private fun TimelineEntryWithAxis(
             }
         }
     }
-}
-
-// ========== Utility Functions ==========
-
-// Pre-compiled regex patterns for cleanPreviewText
-private val TL_CHECKBOX_REGEX = Regex("[☐☑✓✔✕✖✗✘❎✅❌]")
-private val TL_LIST_SYMBOL_REGEX = Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE)
-private val TL_MULTI_NEWLINE_REGEX = Regex("\\n{3,}")
-
-private fun cleanPreviewText(text: String): String {
-    return text
-        .replace("\\n", "\n")
-        .replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace(TL_CHECKBOX_REGEX, "")
-        .replace(TL_LIST_SYMBOL_REGEX, "")
-        .replace(TL_MULTI_NEWLINE_REGEX, "\n\n")
-        .trim()
 }
 

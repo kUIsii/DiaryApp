@@ -59,6 +59,7 @@ import com.diary.app.health.InsightType
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.SectionTitle
 
 @Composable
 fun HealthScreen(
@@ -739,33 +740,6 @@ private fun MetricIcon(icon: ImageVector, color: Color) {
             contentDescription = null,
             modifier = Modifier.size(22.dp),
             tint = color
-        )
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(16.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                        )
-                    )
-                )
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

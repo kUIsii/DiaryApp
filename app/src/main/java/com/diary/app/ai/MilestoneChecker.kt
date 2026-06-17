@@ -3,6 +3,7 @@ package com.diary.app.ai
 import android.content.Context
 import com.diary.app.data.DiaryDao
 import com.diary.app.data.NotificationEntity
+import com.diary.app.ui.components.formatWordCountWithUnit
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -55,7 +56,7 @@ object MilestoneChecker {
                 NotificationEntity(
                     id = "words_$newWordMilestone",
                     type = "milestone",
-                    title = "累计写作 ${formatWordCount(newWordMilestone)}",
+                    title = "累计写作 ${formatWordCountWithUnit(newWordMilestone)}",
                     subtitle = getWordSubtitle(newWordMilestone),
                     iconType = "milestone",
                     colorHex = 0xFF667EEA,
@@ -101,11 +102,5 @@ object MilestoneChecker {
         200000 -> "二十万字的积累，文字是最好的朋友"
         500000 -> "五十万字的宇宙，每一段都是珍贵记忆"
         else -> "继续书写，记录美好生活"
-    }
-
-    private fun formatWordCount(count: Int): String = when {
-        count >= 10000 -> "${count / 10000}万字"
-        count >= 1000 -> "${count / 1000}千字"
-        else -> "${count}字"
     }
 }

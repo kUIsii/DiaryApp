@@ -78,14 +78,14 @@ import com.diary.app.ui.components.FunctionMenu
 import com.diary.app.ui.components.FunctionMenuItem
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.cleanPreviewText
+import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -840,32 +840,6 @@ private fun EntryCard(
             }
         }
     }
-}
-
-// Pre-compiled regex patterns for cleanPreviewText
-private val CHECKBOX_REGEX = Regex("[☐☑✓✔✕✖✗✘❎✅❌]")
-private val LIST_SYMBOL_REGEX = Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE)
-private val MULTI_NEWLINE_REGEX = Regex("\\n{3,}")
-
-/**
- * 清理预览文本中的编辑器符号
- */
-private fun cleanPreviewText(text: String): String {
-    return text
-        .replace("\\n", "\n")
-        .replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace(CHECKBOX_REGEX, "")
-        .replace(LIST_SYMBOL_REGEX, "")
-        .replace(MULTI_NEWLINE_REGEX, "\n\n")
-        .trim()
-}
-
-private fun formatEntryTime(timestamp: Long): String {
-    val localDateTime = Instant.ofEpochMilli(timestamp)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDateTime()
-    return localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 }
 
 @Composable

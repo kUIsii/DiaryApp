@@ -47,17 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryPreview
+import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.formatEntryDateTime
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.home.TagInfo
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun FavoritesScreen(
@@ -173,7 +172,11 @@ fun FavoritesScreen(
                 // Entries
                 if (filteredEntries.isEmpty()) {
                     item {
-                        EmptyState()
+                        EmptyState(
+                            icon = Icons.Default.Favorite,
+                            title = "暂无收藏",
+                            subtitle = "在日记详情页点击收藏按钮添加"
+                        )
                     }
                 } else {
                     itemsIndexed(
@@ -194,40 +197,6 @@ fun FavoritesScreen(
                 // Bottom padding
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-        }
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 80.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = null,
-                tint = onSurfaceVariant.copy(alpha = 0.25f),
-                modifier = Modifier.size(56.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "暂无收藏",
-                fontSize = 16.sp,
-                color = onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "在日记详情页点击收藏按钮添加",
-                fontSize = 13.sp,
-                color = onSurfaceVariant.copy(alpha = 0.6f)
-            )
         }
     }
 }
@@ -273,7 +242,7 @@ private fun FavoriteEntryCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = formatEntryTime(entry.createdAt),
+                    text = formatEntryDateTime(entry.createdAt),
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
@@ -386,11 +355,4 @@ private fun FavoriteEntryCard(
             }
         }
     }
-}
-
-private fun formatEntryTime(timestamp: Long): String {
-    val localDateTime = Instant.ofEpochMilli(timestamp)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDateTime()
-    return localDateTime.format(DateTimeFormatter.ofPattern("M月d日 HH:mm"))
 }

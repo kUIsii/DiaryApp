@@ -104,6 +104,7 @@ import com.diary.app.biometric.BiometricHelper
 import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
@@ -789,21 +790,6 @@ private fun SwitchSettingRow(
                 checkedTrackColor = accentColor.copy(alpha = 0.5f)
             )
         )
-    }
-}
-
-// --- Icon Circle ---
-
-@Composable
-private fun IconCircle(icon: ImageVector, bg: Color, tint: Color) {
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
     }
 }
 

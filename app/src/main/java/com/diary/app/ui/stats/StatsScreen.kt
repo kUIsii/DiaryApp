@@ -70,6 +70,9 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.EmptyState
+import com.diary.app.ui.components.SectionTitle
+import com.diary.app.ui.components.formatEntryTime
+import com.diary.app.ui.components.formatWordCount
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
 import androidx.compose.ui.res.stringResource
@@ -465,71 +468,6 @@ private fun OverviewCard(
                 color = contentColor.copy(alpha = 0.7f)
             )
         }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(16.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                        )
-                    )
-                )
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-// ── Word count ──
-
-@Composable
-private fun WordStatItem(
-    icon: ImageVector,
-    label: String,
-    value: String
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-private fun formatWordCount(count: Int): String {
-    return when {
-        count >= 10000 -> String.format("%.1f万", count / 10000.0)
-        count >= 1000 -> String.format("%.1fk", count / 1000.0)
-        else -> "$count"
     }
 }
 
@@ -1079,10 +1017,4 @@ private fun TagRow(
             textAlign = TextAlign.End
         )
     }
-}
-
-private fun formatEntryTime(timestamp: Long): String {
-    val dateTime = Instant.ofEpochMilli(timestamp)
-        .atZone(ZoneId.systemDefault()).toLocalDateTime()
-    return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 }
