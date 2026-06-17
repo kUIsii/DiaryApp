@@ -493,16 +493,6 @@ fun DiaryDetailScreen(
                             plainText = currentEntry.plainText
                         )
 
-                        // Related entries (outside the main card)
-                        if (relatedEntries.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            RelatedEntriesSection(
-                                entries = relatedEntries,
-                                onEntryClick = { onNavigateToDetail(it.id) },
-                                textSecondary = textSecondary
-                            )
-                        }
-
                         // Random entry button
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard(

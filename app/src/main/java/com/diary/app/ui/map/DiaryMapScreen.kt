@@ -1,11 +1,15 @@
 package com.diary.app.ui.map
 
 import android.os.Bundle
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,10 +18,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,7 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +72,7 @@ fun DiaryMapScreen(
     viewModel: MapViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showList by remember { mutableStateOf(false) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -86,7 +98,7 @@ fun DiaryMapScreen(
                     )
                 }
                 Spacer(modifier = Modifier.size(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "日记地图",
                         fontSize = 20.sp,
@@ -98,6 +110,28 @@ fun DiaryMapScreen(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+
+                // Toggle list view button
+                if (state.markers.isNotEmpty()) {
+                    IconButton(
+                        onClick = { showList = !showList },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (showList) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                    ) {
+                        Icon(
+                            if (showList) Icons.Default.Map else Icons.Default.List,
+                            contentDescription = if (showList) "地图" else "列表",
+                            tint = if (showList) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -116,78 +150,45 @@ fun DiaryMapScreen(
                     )
                 }
                 else -> {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Amap SDK MapView
-                        AmapView(
+                    if (showList) {
+                        // List view
+                        LocationList(
                             markers = state.markers,
-                            onMarkerClick = { markerId ->
-                                val marker = state.markers.find { it.id == markerId }
+                            onMarkerClick = { marker ->
                                 viewModel.selectMarker(marker)
+                                showList = false
                             },
-                            modifier = Modifier.fillMaxSize()
+                            onNavigateToDetail = onNavigateToDetail,
+                            modifier = Modifier.weight(1f)
                         )
+                    } else {
+                        // Map view
+                        Box(modifier = Modifier.weight(1f)) {
+                            AmapView(
+                                markers = state.markers,
+                                selectedMarker = state.selectedMarker,
+                                onMarkerClick = { markerId ->
+                                    val marker = state.markers.find { it.id == markerId }
+                                    viewModel.selectMarker(marker)
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
 
-                        // Selected marker info card
-                        state.selectedMarker?.let { marker ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .align(Alignment.BottomCenter)
-                                    .padding(16.dp)
-                            ) {
-                                GlassCard(
+                            // Selected marker info card
+                            state.selectedMarker?.let { marker ->
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .align(Alignment.BottomCenter)
+                                        .padding(16.dp)
+                                ) {
+                                    MarkerInfoCard(
+                                        marker = marker,
+                                        onClick = {
                                             onNavigateToDetail(marker.id)
                                             viewModel.selectMarker(null)
                                         }
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.LocationOn,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = marker.title,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 15.sp,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            if (marker.location.isNotBlank()) {
-                                                Text(
-                                                    text = marker.location,
-                                                    fontSize = 12.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                            Text(
-                                                text = formatDate(marker.createdAt),
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                            )
-                                        }
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -199,18 +200,163 @@ fun DiaryMapScreen(
 }
 
 @Composable
+private fun MarkerInfoCard(
+    marker: MapMarker,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = marker.title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (marker.location.isNotBlank()) {
+                    Text(
+                        text = marker.location,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = formatDate(marker.createdAt),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+            Text(
+                text = "查看",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun LocationList(
+    markers: List<MapMarker>,
+    onMarkerClick: (MapMarker) -> Unit,
+    onNavigateToDetail: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Group markers by location
+    val groupedMarkers = markers.groupBy { it.location.ifBlank { "未知位置" } }
+
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        groupedMarkers.forEach { (location, locationMarkers) ->
+            item {
+                Text(
+                    text = location,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+            items(locationMarkers) { marker ->
+                LocationListItem(
+                    marker = marker,
+                    onClick = { onNavigateToDetail(marker.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationListItem(
+    marker: MapMarker,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        cornerRadius = 16.dp,
+        innerPadding = 14.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = marker.title,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = formatDate(marker.createdAt),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AmapView(
     markers: List<MapMarker>,
+    selectedMarker: MapMarker?,
     onMarkerClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Create MapView without calling onCreate here - let lifecycle handle it
     val mapView = remember { MapView(context) }
 
-    // Manage lifecycle - single point for all lifecycle events
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -225,7 +371,6 @@ private fun AmapView(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
 
-        // If lifecycle is already at least CREATED, call onCreate manually
         if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
             mapView.onCreate(Bundle())
         }
@@ -243,7 +388,6 @@ private fun AmapView(
             try {
                 val aMap = mv.map ?: return@AndroidView
 
-                // Only update markers if they changed
                 aMap.clear()
 
                 if (markers.isNotEmpty()) {
@@ -259,21 +403,28 @@ private fun AmapView(
                         boundsBuilder.include(position)
                     }
 
-                    // Move camera to show all markers
-                    try {
-                        val bounds = boundsBuilder.build()
-                        val padding = 100
+                    // If a marker is selected, zoom to it
+                    if (selectedMarker != null) {
                         aMap.animateCamera(
-                            CameraUpdateFactory.newLatLngBounds(bounds, padding)
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(selectedMarker.latitude, selectedMarker.longitude),
+                                15f
+                            )
                         )
-                    } catch (e: Exception) {
-                        // If bounds calculation fails, just show China
-                        aMap.moveCamera(
-                            CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
-                        )
+                    } else {
+                        // Show all markers
+                        try {
+                            val bounds = boundsBuilder.build()
+                            aMap.animateCamera(
+                                CameraUpdateFactory.newLatLngBounds(bounds, 100)
+                            )
+                        } catch (e: Exception) {
+                            aMap.moveCamera(
+                                CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
+                            )
+                        }
                     }
 
-                    // Set marker click listener
                     aMap.setOnMarkerClickListener { amapMarker ->
                         val clickedMarker = markers.find {
                             it.latitude == amapMarker.position.latitude &&
@@ -283,7 +434,6 @@ private fun AmapView(
                         true
                     }
                 } else {
-                    // No markers, show China view
                     aMap.moveCamera(
                         CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
                     )
