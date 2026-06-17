@@ -207,15 +207,10 @@ private fun AmapView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Create MapView with proper lifecycle management
-    val mapView = remember {
-        MapView(context).apply {
-            // Initialize the map
-            onCreate(Bundle())
-        }
-    }
+    // Create MapView without calling onCreate here - let lifecycle handle it
+    val mapView = remember { MapView(context) }
 
-    // Manage lifecycle
+    // Manage lifecycle - single point for all lifecycle events
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -229,6 +224,11 @@ private fun AmapView(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+
+        // If lifecycle is already at least CREATED, call onCreate manually
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
+            mapView.onCreate(Bundle())
+        }
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)

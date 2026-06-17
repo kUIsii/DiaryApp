@@ -329,11 +329,7 @@ fun LocationSelector(
                                 .clip(RoundedCornerShape(12.dp))
                         ) {
                             val lifecycleOwner = LocalLifecycleOwner.current
-                            val mapView = remember {
-                                MapView(context).apply {
-                                    onCreate(Bundle())
-                                }
-                            }
+                            val mapView = remember { MapView(context) }
                             DisposableEffect(lifecycleOwner) {
                                 val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
                                     when (event) {
@@ -345,6 +341,10 @@ fun LocationSelector(
                                     }
                                 }
                                 lifecycleOwner.lifecycle.addObserver(observer)
+                                // If lifecycle is already at least CREATED, call onCreate manually
+                                if (lifecycleOwner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.CREATED)) {
+                                    mapView.onCreate(Bundle())
+                                }
                                 onDispose {
                                     lifecycleOwner.lifecycle.removeObserver(observer)
                                     mapView.onDestroy()

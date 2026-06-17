@@ -5,15 +5,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,7 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,89 +93,53 @@ fun ToolsScreen(
     )
 
     GradientBackground {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header
-            item {
-                Text(
-                    text = "工具",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = textColor,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = "探索更多实用功能",
-                    fontSize = 14.sp,
-                    color = textSecondary
-                )
-            }
-
-            // Featured tools - 2x2 grid style
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Featured item 1 - Data Stats (larger)
-                    FeaturedToolCard(
-                        icon = Icons.Default.BarChart,
-                        label = "数据统计",
-                        description = "查看写作数据和趋势",
-                        gradient = Brush.linearGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.15f),
-                                primaryColor.copy(alpha = 0.05f)
-                            )
+            // Header - spans full width
+            item(span = { GridItemSpan(2) }) {
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    Text(
+                        text = "工具",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold
                         ),
-                        onClick = onNavigateToStats,
-                        modifier = Modifier.weight(1f)
+                        color = textColor
                     )
-                    // Featured item 2 - Media Library (larger)
-                    FeaturedToolCard(
-                        icon = Icons.Default.Collections,
-                        label = "媒体库",
-                        description = "浏览所有图片和视频",
-                        gradient = Brush.linearGradient(
-                            colors = listOf(
-                                secondaryColor.copy(alpha = 0.15f),
-                                secondaryColor.copy(alpha = 0.05f)
-                            )
-                        ),
-                        onClick = onNavigateToMediaLibrary,
-                        modifier = Modifier.weight(1f)
+                    Text(
+                        text = "探索更多实用功能",
+                        fontSize = 14.sp,
+                        color = textSecondary
                     )
                 }
             }
 
-            // Other tools - horizontal scroll or list
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    toolItems.drop(2).forEach { item ->
-                        ToolListItem(
-                            icon = item.icon,
-                            label = item.label,
-                            description = item.description,
-                            onClick = item.onClick
-                        )
-                    }
-                }
+            // Core tools grid
+            items(toolItems.size) { index ->
+                val item = toolItems[index]
+                val isFirstTwo = index < 2
+                ToolGridCard(
+                    icon = item.icon,
+                    label = item.label,
+                    description = item.description,
+                    isFeatured = isFirstTwo,
+                    primaryColor = primaryColor,
+                    secondaryColor = secondaryColor,
+                    index = index,
+                    onClick = item.onClick
+                )
             }
 
-            // Experimental section
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
+            // Experimental section divider - spans full width
+            item(span = { GridItemSpan(2) }) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -191,30 +158,24 @@ fun ToolsScreen(
                 }
             }
 
-            // Experimental items
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    experimentalItems.forEach { item ->
-                        ExperimentalListItem(
-                            icon = item.icon,
-                            label = item.label,
-                            description = item.description,
-                            onClick = item.onClick
-                        )
-                    }
-                }
+            // Experimental items grid
+            items(experimentalItems.size) { index ->
+                val item = experimentalItems[index]
+                ExperimentalGridCard(
+                    icon = item.icon,
+                    label = item.label,
+                    description = item.description,
+                    onClick = item.onClick
+                )
             }
 
-            // More experimental button
-            item {
+            // More experimental button - spans full width
+            item(span = { GridItemSpan(2) }) {
                 MoreExperimentalButton(onClick = onNavigateToExperimental)
             }
 
             // Bottom spacing
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -222,19 +183,55 @@ fun ToolsScreen(
 }
 
 @Composable
-private fun FeaturedToolCard(
+private fun ToolGridCard(
     icon: ImageVector,
     label: String,
     description: String,
-    gradient: Brush,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    isFeatured: Boolean,
+    primaryColor: androidx.compose.ui.graphics.Color,
+    secondaryColor: androidx.compose.ui.graphics.Color,
+    index: Int,
+    onClick: () -> Unit
 ) {
+    val gradient = when (index) {
+        0 -> Brush.linearGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = 0.18f),
+                primaryColor.copy(alpha = 0.06f)
+            )
+        )
+        1 -> Brush.linearGradient(
+            colors = listOf(
+                secondaryColor.copy(alpha = 0.18f),
+                secondaryColor.copy(alpha = 0.06f)
+            )
+        )
+        2 -> Brush.linearGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = 0.12f),
+                primaryColor.copy(alpha = 0.04f)
+            )
+        )
+        3 -> Brush.linearGradient(
+            colors = listOf(
+                secondaryColor.copy(alpha = 0.12f),
+                secondaryColor.copy(alpha = 0.04f)
+            )
+        )
+        else -> Brush.linearGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = 0.10f),
+                primaryColor.copy(alpha = 0.03f)
+            )
+        )
+    }
+
     GlassCard(
         cornerRadius = 20.dp,
         innerPadding = 16.dp,
-        modifier = modifier
-            .height(140.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.1f)
             .clickable(onClick = onClick)
     ) {
         Column(
@@ -243,8 +240,8 @@ private fun FeaturedToolCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(gradient),
                 contentAlignment = Alignment.Center
             ) {
@@ -252,7 +249,7 @@ private fun FeaturedToolCard(
                     imageVector = icon,
                     contentDescription = label,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
             Column {
@@ -269,7 +266,7 @@ private fun FeaturedToolCard(
                     text = description,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -278,126 +275,73 @@ private fun FeaturedToolCard(
 }
 
 @Composable
-private fun ToolListItem(
+private fun ExperimentalGridCard(
     icon: ImageVector,
     label: String,
     description: String,
     onClick: () -> Unit
 ) {
     GlassCard(
-        cornerRadius = 16.dp,
+        cornerRadius = 20.dp,
         innerPadding = 16.dp,
         modifier = Modifier
             .fillMaxWidth()
+            .aspectRatio(1.1f)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Beta",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
                     text = label,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExperimentalListItem(
-    icon: ImageVector,
-    label: String,
-    description: String,
-    onClick: () -> Unit
-) {
-    GlassCard(
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = description,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Beta",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
