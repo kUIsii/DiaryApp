@@ -268,7 +268,7 @@ $context"""
                 if (tags.isNotEmpty()) {
                     sb.appendLine("用户使用的分类标签：${tags.joinToString("、") { it.name }}")
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { Log.e("AiAssistantViewModel", "Failed to load tags for context", e) }
 
             // Frequent locations
             try {
@@ -276,7 +276,7 @@ $context"""
                 if (locations.isNotEmpty()) {
                     sb.appendLine("常去的地点：${locations.take(5).joinToString("、") { it.location }}")
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { Log.e("AiAssistantViewModel", "Failed to load locations for context", e) }
 
             // Writing time pattern
             val hourCounts = previews.groupBy {

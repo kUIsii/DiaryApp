@@ -324,7 +324,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _aiInsight.value = InsightGenerator.generate(app, dao, app.aiService)
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { android.util.Log.e("HomeViewModel", "Failed to load AI insight", e) }
         }
     }
 

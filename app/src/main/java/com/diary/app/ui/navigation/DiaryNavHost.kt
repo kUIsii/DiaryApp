@@ -27,11 +27,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonalInjury
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +76,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -92,6 +113,8 @@ import com.diary.app.ui.map.DiaryMapScreen
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -100,8 +123,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
     object Stats : Screen("stats", "统计", Icons.Default.BarChart)
     object Profile : Screen("profile", "我的", Icons.Default.Person)
-    object ExperimentalFeatures : Screen("experimental_features", "实验功能", Icons.Default.Home)
-    object Editor : Screen("editor?diaryId={diaryId}&draftId={draftId}", "编辑日记", Icons.Default.Home) {
+    object ExperimentalFeatures : Screen("experimental_features", "实验功能", Icons.Default.Science)
+    object Editor : Screen("editor?diaryId={diaryId}&draftId={draftId}", "编辑日记", Icons.Default.Edit) {
         fun createRoute(diaryId: Long? = null, draftId: String? = null): String {
             val params = mutableListOf<String>()
             if (diaryId != null) params.add("diaryId=$diaryId")
@@ -110,33 +133,32 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         }
     }
 
-    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Home) {
+    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Article) {
         fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
 
-    object Changelog : Screen("changelog", "更新日志", Icons.Default.Home)
-    object TagManagement : Screen("tag_management", "分类管理", Icons.Default.Home)
-    object Review : Screen("review", "日记回顾", Icons.Default.Home)
-    object Settings : Screen("settings", "设置", Icons.Default.Home)
-    object Backup : Screen("backup", "备份", Icons.Default.Home)
-    object Favorites : Screen("favorites", "收藏夹", Icons.Default.Home)
-    object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Home)
-    object Trash : Screen("trash", "回收站", Icons.Default.Home)
-    object CountDown : Screen("countdown", "倒数日", Icons.Default.Home)
-    object TimeCapsule : Screen("time_capsule", "时间胶囊", Icons.Default.Home)
-    object CreateCapsule : Screen("create_capsule", "写胶囊", Icons.Default.Home)
-    object ReadCapsule : Screen("read_capsule/{capsuleId}", "读胶囊", Icons.Default.Home) {
+    object Changelog : Screen("changelog", "更新日志", Icons.Default.History)
+    object TagManagement : Screen("tag_management", "分类管理", Icons.Default.Label)
+    object Settings : Screen("settings", "设置", Icons.Default.Settings)
+    object Backup : Screen("backup", "备份", Icons.Default.Backup)
+    object Favorites : Screen("favorites", "收藏夹", Icons.Default.Favorite)
+    object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Image)
+    object Trash : Screen("trash", "回收站", Icons.Default.Delete)
+    object CountDown : Screen("countdown", "倒数日", Icons.Default.Timer)
+    object TimeCapsule : Screen("time_capsule", "时间胶囊", Icons.Default.Schedule)
+    object CreateCapsule : Screen("create_capsule", "写胶囊", Icons.Default.Schedule)
+    object ReadCapsule : Screen("read_capsule/{capsuleId}", "读胶囊", Icons.Default.Schedule) {
         fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
     }
-    object Notifications : Screen("notifications", "消息", Icons.Default.Home)
-    object AiAssistant : Screen("ai_assistant", "小墨", Icons.Default.Home)
-    object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.Home) {
+    object Notifications : Screen("notifications", "消息", Icons.Default.Notifications)
+    object AiAssistant : Screen("ai_assistant", "小墨", Icons.Default.AutoAwesome)
+    object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.CalendarMonth) {
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
-    object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.Home)
-    object Health : Screen("health", "健康数据", Icons.Default.Home)
-    object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.Home)
-    object Biography : Screen("biography", "AI 传记", Icons.Default.Home)
+    object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.BarChart)
+    object Health : Screen("health", "健康数据", Icons.Default.HealthAndSafety)
+    object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.LocationOn)
+    object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
 }
 
 data class BottomNavItem(
@@ -235,7 +257,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 HomeScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
-                    onNavigateToReview = { navController.navigate(Screen.Review.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
@@ -263,7 +284,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
                     onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
                     onNavigateToRandom = {
-                        // Navigate to a random diary entry
+                        kotlinx.coroutines.MainScope().launch {
+                            val dao = (app as? com.diary.app.DiaryApplication)?.database?.diaryDao()
+                            val randomId = dao?.getRandomEntryId()
+                            if (randomId != null) {
+                                navController.navigate(Screen.Detail.createRoute(randomId))
+                            }
+                        }
                     },
                     onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
                     onNavigateToBiography = { navController.navigate(Screen.Biography.route) },

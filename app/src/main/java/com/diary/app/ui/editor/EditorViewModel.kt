@@ -2,6 +2,7 @@ package com.diary.app.ui.editor
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
@@ -125,7 +126,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     },
                     onFailure = { }
                 )
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { Log.e("EditorViewModel", "Failed to suggest title", e) }
             finally { _isGeneratingTitle.value = false }
         }
     }
@@ -362,7 +363,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         if (features.writingMilestonesEnabled) {
             try {
                 MilestoneChecker.checkAndNotify(app, dao)
-            } catch (_: Exception) {}
+            } catch (e: Exception) { Log.w("EditorViewModel", "Failed to check writing milestones", e) }
         }
 
         return entryId

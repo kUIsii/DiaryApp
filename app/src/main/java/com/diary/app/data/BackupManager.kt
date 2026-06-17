@@ -13,6 +13,7 @@ import android.content.ContentValues
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import android.util.Log
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -78,6 +79,7 @@ object BackupManager {
         return try {
             BackupFrequency.valueOf(name ?: BackupFrequency.WEEKLY.name)
         } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to parse backup frequency, using default")
             BackupFrequency.WEEKLY
         }
     }
@@ -133,6 +135,7 @@ object BackupManager {
             val type = object : TypeToken<List<BackupRecord>>() {}.type
             Gson().fromJson(json, type) ?: emptyList()
         } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to parse backup history")
             emptyList()
         }
     }
@@ -206,7 +209,10 @@ object BackupManager {
                 val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
                 readBackupJsonFromFile(file)
             }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to read from downloads: $fileName")
+            null
+        }
     }
 
     private fun deleteDownloadsFile(context: Context, fileName: String) {
@@ -219,7 +225,9 @@ object BackupManager {
                 val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
                 if (file.exists()) file.delete()
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to delete downloads file: $fileName")
+        }
     }
 
     private fun writeToDownloads(context: Context, fileName: String, data: ByteArray): String {
@@ -327,6 +335,7 @@ object BackupManager {
                 if (file.exists()) file.readBytes() else null
             }
         } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to read backup package bytes: $fileName")
             null
         }
     }
@@ -626,7 +635,10 @@ object BackupManager {
                 val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
                 readBackupJsonFromFile(file)
             }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to read download backup: $fileName")
+            null
+        }
     }
 
     fun readBackupForImport(context: Context, fileName: String): PendingBackupImport? {
@@ -648,6 +660,7 @@ object BackupManager {
                 readPendingImportFromFile(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName))
             }
         } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to read backup for import: $fileName")
             null
         }
     }
@@ -692,7 +705,10 @@ object BackupManager {
                 val entryCount = try {
                     val parsed = Gson().fromJson(readBackupJsonFromFile(file), DiaryBackup::class.java)
                     parsed?.entries?.size ?: 0
-                } catch (_: Exception) { 0 }
+                } catch (_: Exception) {
+                    Log.w("BackupManager", "Failed to count entries in backup file: ${file.name}")
+                    0
+                }
                 addBackupRecord(context, BackupRecord(
                     fileName = file.name,
                     filePath = file.absolutePath,
@@ -726,7 +742,10 @@ object BackupManager {
         return try {
             val file = File(getBackupDir(), fileName)
             readBackupJsonFromFile(file)
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            Log.w("BackupManager", "Failed to read backup JSON from dir: $fileName")
+            null
+        }
     }
 
     private fun readBackupJsonFromFile(file: File): String? {
@@ -808,7 +827,10 @@ object BackupManager {
 
                 val entryCount = try {
                     Gson().fromJson(content, DiaryBackup::class.java)?.entries?.size ?: 0
-                } catch (_: Exception) { 0 }
+                } catch (_: Exception) {
+                    Log.w("BackupManager", "Failed to count entries in migration")
+                    0
+                }
 
                 history.add(0, BackupRecord(
                     fileName = oldFile.fileName,
@@ -821,7 +843,9 @@ object BackupManager {
             }
 
             if (changed) saveHistory(context, history)
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            Log.e("BackupManager", "Failed to migrate backups from downloads", e)
+        }
     }
 
 }

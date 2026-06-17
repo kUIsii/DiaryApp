@@ -41,7 +41,7 @@ class DiaryApplication : Application() {
             MapsInitializer.updatePrivacyShow(this, true, true)
             MapsInitializer.updatePrivacyAgree(this, true)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("DiaryApplication", "Failed to initialize Amap SDK", e)
         }
     }
 

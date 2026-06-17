@@ -90,7 +90,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
                     _relatedEntries.value = combined
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                android.util.Log.e("DiaryDetailViewModel", "Failed to load diary entry", e)
                 _loadError.value = true
             }
         }
@@ -125,7 +125,7 @@ class DiaryDetailViewModel(application: Application) : AndroidViewModel(applicat
             sb.toString()
         } catch (e: Exception) {
             // If stripping fails, return content as-is but log
-            e.printStackTrace()
+            android.util.Log.e("DiaryDetailViewModel", "Failed to strip Base64 from content", e)
             content
         }
     }

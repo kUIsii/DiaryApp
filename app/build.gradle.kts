@@ -29,6 +29,9 @@ android {
         buildConfigField("String", "GITHUB_OWNER", "\"kUIsii\"")
         buildConfigField("String", "GITHUB_REPO", "\"DiaryApp\"")
         buildConfigField("String", "GITHUB_TOKEN", "\"${localProps.getProperty("GITHUB_TOKEN", "")}\"")
+        buildConfigField("String", "AMAP_API_KEY", "\"${localProps.getProperty("AMAP_API_KEY", "")}\"")
+
+        manifestPlaceholders["AMAP_API_KEY"] = localProps.getProperty("AMAP_API_KEY", "")
     }
 
     signingConfigs {
@@ -63,8 +66,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 26438
-            versionName = "2.64.38-experimental"
+            versionCode = 26439
+            versionName = "2.64.39-experimental"
         }
     }
 

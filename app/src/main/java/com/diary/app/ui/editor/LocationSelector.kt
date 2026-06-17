@@ -3,6 +3,7 @@ package com.diary.app.ui.editor
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
@@ -382,7 +383,7 @@ fun LocationSelector(
                                             )
                                         }
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        Log.e("LocationSelector", "Failed to move map camera", e)
                                     }
                                 }
                             )
@@ -408,7 +409,7 @@ fun LocationSelector(
                                         val uri = Uri.parse("https://www.google.com/maps?q=$lat,$lng")
                                         val intent = Intent(Intent.ACTION_VIEW, uri)
                                         context.startActivity(intent)
-                                    } catch (_: Exception) {}
+                                    } catch (e: Exception) { Log.w("LocationSelector", "Failed to open map in browser", e) }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -560,12 +561,12 @@ private fun getCurrentLocation(
                                 onResult(placeName, lat, lng)
                                 return
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) { Log.w("LocationSelector", "Geocoder lookup failed", e) }
                         onResult("${lat.toString().take(7)}, ${lng.toString().take(7)}", lat, lng)
                         return
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) { Log.w("LocationSelector", "Failed to get location from provider", e) }
         }
         onResult(null, null, null)
     } catch (e: Exception) {

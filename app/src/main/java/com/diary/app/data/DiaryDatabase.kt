@@ -268,38 +268,28 @@ abstract class DiaryDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
-                try {
-                    val instance = Room.databaseBuilder(
-                        context.applicationContext,
-                        DiaryDatabase::class.java,
-                        "diary_database"
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
-                    .fallbackToDestructiveMigrationOnDowngrade()
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onOpen(db: SupportSQLiteDatabase) {
-                            super.onOpen(db)
-                            try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) { e.printStackTrace() }
-                            // Backfill diary_images for entries that were saved before image tracking existed
-                            try { backfillDiaryImages(db, context) } catch (e: Exception) { e.printStackTrace() }
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    DiaryDatabase::class.java,
+                    "diary_database"
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) {
+                            android.util.Log.w("DiaryDatabase", "Failed to drop index", e)
                         }
-                    })
-                    .build()
-                    // Force migration execution now so we can catch failures
-                    instance.openHelper.writableDatabase
-                    INSTANCE = instance
-                    instance
-                } catch (e: Exception) {
-                    android.util.Log.e("DiaryDatabase", "Database init failed, attempting destructive recovery", e)
-                    context.deleteDatabase("diary_database")
-                    val freshInstance = Room.databaseBuilder(
-                        context.applicationContext,
-                        DiaryDatabase::class.java,
-                        "diary_database"
-                    ).fallbackToDestructiveMigrationOnDowngrade()
-                    .build()
-                    INSTANCE = freshInstance
-                    freshInstance
-                }
+                        // Backfill diary_images for entries that were saved before image tracking existed
+                        try { backfillDiaryImages(db, context) } catch (e: Exception) {
+                            android.util.Log.w("DiaryDatabase", "Failed to backfill diary images", e)
+                        }
+                    }
+                })
+                .build()
+                // Force migration execution now so we can catch failures early
+                instance.openHelper.writableDatabase
+                INSTANCE = instance
+                instance
             }
         }
 

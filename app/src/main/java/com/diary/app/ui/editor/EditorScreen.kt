@@ -2,6 +2,7 @@ package com.diary.app.ui.editor
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -438,7 +439,7 @@ fun EditorScreen(
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("EditorScreen", "Failed to import image", e)
                 scope.launch {
                     snackbarHostState.showSnackbar(
                         message = "图片插入失败，请重试",
@@ -462,7 +463,7 @@ fun EditorScreen(
                 val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
                 webView?.evaluateJavascript("insertMedia('video', '${escapeForJs(webViewUrl)}')", null)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("EditorScreen", "Failed to insert video", e)
             }
         }
     }
@@ -480,7 +481,7 @@ fun EditorScreen(
                 val webViewUrl = WebViewAssetHelper.toWebViewUrl(outputFile.absolutePath)
                 webView?.evaluateJavascript("insertMedia('audio', '${escapeForJs(webViewUrl)}')", null)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("EditorScreen", "Failed to insert audio", e)
             }
         }
     }
@@ -526,7 +527,7 @@ fun EditorScreen(
                 val map = mutableMapOf<String, Any>()
                 parsed.keys().forEach { key -> map[key] = parsed.get(key) }
                 activeFormats = map
-            } catch (_: Exception) {}
+            } catch (e: Exception) { Log.w("EditorScreen", "Failed to parse format state", e) }
         }
     }
 
@@ -1336,7 +1337,7 @@ fun EditorScreen(
                                                 }
                                                 return android.webkit.WebResourceResponse(mime, null, file.inputStream())
                                             }
-                                        } catch (_: Exception) {}
+                                        } catch (e: Exception) { Log.w("EditorScreen", "Failed to load media file for WebView", e) }
                                     }
                                     return super.shouldInterceptRequest(view, request)
                                 }

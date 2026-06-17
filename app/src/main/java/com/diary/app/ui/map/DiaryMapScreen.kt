@@ -373,7 +373,7 @@ private fun MapViewWithLocation(
                         }
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    android.util.Log.e("DiaryMapScreen", "Failed to update map", e)
                 }
             }
         )

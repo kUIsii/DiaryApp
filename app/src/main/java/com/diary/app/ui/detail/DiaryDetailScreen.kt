@@ -389,7 +389,7 @@ fun DiaryDetailScreen(
                                                                         evaluateJavascript(js, null)
                                                                     }
                                                                 } catch (e: Exception) {
-                                                                    e.printStackTrace()
+                                                                    android.util.Log.e("DiaryDetailScreen", "Failed to load content", e)
                                                                     val fallback = currentEntry.plainText.take(5000)
                                                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                                                         evaluateJavascript("setContent(${org.json.JSONObject.quote(fallback)})", null)
@@ -423,7 +423,7 @@ fun DiaryDetailScreen(
                                                                     }
                                                                     return android.webkit.WebResourceResponse(mime, null, file.inputStream())
                                                                 }
-                                                            } catch (_: Exception) {}
+                                                            } catch (e: Exception) { android.util.Log.w("DiaryDetailScreen", "Failed to load media file", e) }
                                                         }
                                                         return super.shouldInterceptRequest(view, request)
                                                     }
