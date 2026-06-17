@@ -1,5 +1,6 @@
 package com.diary.app.ui.tools
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -312,7 +313,7 @@ private fun ToolItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
+            .background(color = bgColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -326,7 +327,7 @@ private fun ToolItem(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(sectionIconBg(colorIndex)),
+                .background(color = sectionIconBg(colorIndex)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -379,7 +380,7 @@ private fun ExperimentalEntry(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
+            .background(color = bgColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -393,7 +394,7 @@ private fun ExperimentalEntry(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(sectionIconBg(colorIndex)),
+                .background(color = sectionIconBg(colorIndex)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
