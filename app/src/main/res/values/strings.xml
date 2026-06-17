@@ -212,6 +212,7 @@
     <string name="stats_weekly_writing">每周写作</string>
     <string name="stats_most_active_day">最活跃日</string>
     <string name="stats_active_time">活跃时段</string>
+    <string name="stats_heatmap_day_description">%1$d月%2$d日，写了%3$d篇日记</string>
 
     <!-- Profile Screen -->
     <string name="profile_appearance">外观设置</string>

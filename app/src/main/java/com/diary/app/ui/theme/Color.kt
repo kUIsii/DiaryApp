@@ -82,6 +82,23 @@ val ErrorColor = Color(0xFFE07070)
 val InfoColor = Color(0xFF7BA7E0)
 
 // ============================================================
+//  Heatmap colors (theme-aware)
+// ============================================================
+
+val HeatmapLevel0 = Color(0x00000000) // transparent, uses surfaceVariant
+val HeatmapLevel1 = Color(0xFFC8E6C9)
+val HeatmapLevel2 = Color(0xFF81C784)
+val HeatmapLevel3 = Color(0xFF4CAF50)
+val HeatmapLevel4 = Color(0xFF2E7D32)
+val HeatmapLevel5 = Color(0xFF1B5E20)
+
+val HeatmapDarkLevel1 = Color(0xFF1B3A1B)
+val HeatmapDarkLevel2 = Color(0xFF2E5A2E)
+val HeatmapDarkLevel3 = Color(0xFF3E7A3E)
+val HeatmapDarkLevel4 = Color(0xFF559A55)
+val HeatmapDarkLevel5 = Color(0xFF70B870)
+
+// ============================================================
 //  Mood colors
 // ============================================================
 
@@ -108,38 +125,23 @@ val WeatherStormy = Color(0xFF9878B8)
 val WeatherWindy = Color(0xFF78B8B0)
 
 // ============================================================
-//  Legacy aliases (keep for backward compatibility)
-//  Mapped to Fog Blue-Gray
+//  Legacy aliases (used by Theme.kt, GlassCard, GradientBackground)
 // ============================================================
 
 val PrimaryBlue = FogBlueLightAccent
-val PrimaryBlueVariant = FogBlueDarkAccent
 val SecondaryBlue = FogBlueLightAccent2
-val AccentBlue = FogBlueLightAccent
 val DarkAccentStart = FogBlueDarkAccent
 val DarkAccentEnd = FogBlueDarkAccent2
 
 val LightBackgroundStart = FogBlueLightBg1
 val LightBackgroundMid = FogBlueLightBg2
 val LightBackgroundEnd = FogBlueLightBg3
-val LightSurface = FogBlueLightSurface
-val LightTextPrimary = FogBlueLightTextPrimary
-val LightTextSecondary = FogBlueLightTextSecondary
-val LightTextTertiary = FogBlueLightTextTertiary
-val LightAccentStart = FogBlueLightAccent
-val LightAccentEnd = FogBlueLightAccent2
-val LightCardBackground = FogBlueLightCardBg
-val LightCardBorder = FogBlueLightCardBorder
 
 val DarkBackgroundStart = FogBlueDarkBg1
 val DarkBackgroundMid = FogBlueDarkBg2
 val DarkBackgroundEnd = FogBlueDarkBg3
 val DarkSurface = FogBlueDarkSurface
-val DarkTextPrimary = FogBlueDarkTextPrimary
 val DarkTextSecondary = FogBlueDarkTextSecondary
-val DarkTextTertiary = FogBlueDarkTextTertiary
-val DarkCardBackground = FogBlueDarkCardBg
-val DarkCardBorder = FogBlueDarkCardBorder
 
 val PureLightBackground = FogBlueLightBg1
 val PureLightSurface = FogBlueLightSurface
@@ -147,7 +149,6 @@ val PureLightCardBackground = FogBlueLightCardBg
 val PureLightCardBorder = FogBlueLightCardBorder
 
 val PureDarkBackground = FogBlueDarkBg1
-val PureDarkSurface = FogBlueDarkSurface
 val PureDarkCardBackground = FogBlueDarkCardBg
 val PureDarkCardBorder = FogBlueDarkCardBorder
 
@@ -164,32 +165,16 @@ val PureDarkSecondary = Color(0xFFBA9478)
 val PureDarkOnBackground = FogBlueDarkTextPrimary
 val PureDarkOnSurface = Color(0xFFB8D0E0)
 
-// ============================================================
-//  Legacy green aliases (backward compatibility)
-// ============================================================
-
 val MossGreenLightBackgroundStart = MossGreenLightBg1
 val MossGreenLightBackgroundMid = MossGreenLightBg2
 val MossGreenLightBackgroundEnd = MossGreenLightBg3
-val MossGreenLightSurfaceOld = MossGreenLightSurface
-val MossGreenLightSurfaceBorder = MossGreenLightCardBorder
-val MossGreenLightTextPrimaryOld = MossGreenLightTextPrimary
-val MossGreenLightTextSecondaryOld = MossGreenLightTextSecondary
-val MossGreenLightTextTertiaryOld = MossGreenLightTextTertiary
 val MossGreenLightAccentStart = MossGreenLightAccent
 val MossGreenLightAccentEnd = MossGreenLightAccent2
 val MossGreenLightCardBackground = MossGreenLightCardBg
-val MossGreenLightCardBorderOld = MossGreenLightCardBorder
 
 val MossGreenDarkBackgroundStart = MossGreenDarkBg1
 val MossGreenDarkBackgroundMid = MossGreenDarkBg2
 val MossGreenDarkBackgroundEnd = MossGreenDarkBg3
-val MossGreenDarkSurfaceOld = MossGreenDarkSurface
-val MossGreenDarkSurfaceBorder = MossGreenDarkCardBorder
-val MossGreenDarkTextPrimaryOld = MossGreenDarkTextPrimary
-val MossGreenDarkTextSecondaryOld = MossGreenDarkTextSecondary
-val MossGreenDarkTextTertiaryOld = MossGreenDarkTextTertiary
 val MossGreenDarkAccentStart = MossGreenDarkAccent
 val MossGreenDarkAccentEnd = MossGreenDarkAccent2
 val MossGreenDarkCardBackground = MossGreenDarkCardBg
-val MossGreenDarkCardBorderOld = MossGreenDarkCardBorder

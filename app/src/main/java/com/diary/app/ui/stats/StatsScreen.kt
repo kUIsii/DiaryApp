@@ -49,6 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -69,6 +71,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.theme.isDark
+import com.diary.app.ui.theme.themeMode
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.SectionTitle
 import com.diary.app.ui.components.formatEntryTime
@@ -424,11 +428,11 @@ private fun OverviewCard(
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
 
-    Box(
+    GlassCard(
+        cornerRadius = 12.dp,
+        innerPadding = 12.dp,
+        gradientColors = gradientColors,
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Brush.linearGradient(gradientColors))
-            .padding(12.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -816,6 +820,7 @@ private fun DiaryHeatmap(
 @Composable
 private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Unit = {}) {
     if (data.isEmpty()) return
+    val dark = themeMode().isDark()
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val today = LocalDate.now()
@@ -850,14 +855,31 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                 for (i in 0 until 7) {
                     val day = week.getOrNull(i)
                     if (day != null) {
-                        val bgColor = when {
-                            day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
-                            day.count == 1 -> Color(0xFFC8E6C9) // light green
-                            day.count == 2 -> Color(0xFF81C784) // medium green
-                            day.count == 3 -> Color(0xFF4CAF50) // green
-                            day.count == 4 -> Color(0xFF2E7D32) // dark green
-                            else -> Color(0xFF1B5E20) // deep green
+                        val bgColor = if (dark) {
+                            when {
+                                day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
+                                day.count == 1 -> com.diary.app.ui.theme.HeatmapDarkLevel1
+                                day.count == 2 -> com.diary.app.ui.theme.HeatmapDarkLevel2
+                                day.count == 3 -> com.diary.app.ui.theme.HeatmapDarkLevel3
+                                day.count == 4 -> com.diary.app.ui.theme.HeatmapDarkLevel4
+                                else -> com.diary.app.ui.theme.HeatmapDarkLevel5
+                            }
+                        } else {
+                            when {
+                                day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
+                                day.count == 1 -> com.diary.app.ui.theme.HeatmapLevel1
+                                day.count == 2 -> com.diary.app.ui.theme.HeatmapLevel2
+                                day.count == 3 -> com.diary.app.ui.theme.HeatmapLevel3
+                                day.count == 4 -> com.diary.app.ui.theme.HeatmapLevel4
+                                else -> com.diary.app.ui.theme.HeatmapLevel5
+                            }
                         }
+                        val dayDescription = androidx.compose.ui.res.stringResource(
+                            R.string.stats_heatmap_day_description,
+                            day.date.monthValue,
+                            day.date.dayOfMonth,
+                            day.count
+                        )
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -865,7 +887,10 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                                 .padding(2.dp)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(bgColor)
-                                .clickable { onDayClick(day.date) },
+                                .clickable { onDayClick(day.date) }
+                                .semantics {
+                                    contentDescription = dayDescription
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(

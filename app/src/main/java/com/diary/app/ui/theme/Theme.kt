@@ -113,8 +113,8 @@ val LocalExtendedColors = staticCompositionLocalOf {
         success = SuccessColor,
         warning = WarningColor,
         info = InfoColor,
-        gradientStart = PrimaryBlue,
-        gradientEnd = SecondaryBlue
+        gradientStart = FogBlueLightAccent,
+        gradientEnd = FogBlueLightAccent2
     )
 }
 

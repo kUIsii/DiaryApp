@@ -114,6 +114,27 @@ import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
+// Sub-page transition specs: slide from right + fade
+private fun subPageEnterTransition() = slideInHorizontally(
+    initialOffsetX = { it },
+    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+) + fadeIn(animationSpec = tween(200))
+
+private fun subPageExitTransition() = slideOutHorizontally(
+    targetOffsetX = { -it / 3 },
+    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+) + fadeOut(animationSpec = tween(200))
+
+private fun subPagePopEnterTransition() = slideInHorizontally(
+    initialOffsetX = { -it / 3 },
+    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+) + fadeIn(animationSpec = tween(200))
+
+private fun subPagePopExitTransition() = slideOutHorizontally(
+    targetOffsetX = { it },
+    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+) + fadeOut(animationSpec = tween(200))
+
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
     object Timeline : Screen("timeline", "时间线", Icons.Default.CalendarMonth)
@@ -256,16 +277,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
-                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
-                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
-                    onNavigateToStats = { navController.navigate(Screen.Stats.route) },
-                    onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
-                    onNavigateToExperimentalFeatures = { navController.navigate(Screen.ExperimentalFeatures.route) },
-                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
-                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
-                    onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
-                    onNavigateToBiography = { navController.navigate(Screen.Biography.route) }
+                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -291,7 +303,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
                     onNavigateToBiography = { navController.navigate(Screen.Biography.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
-                    onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) }
+                    onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
+                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
                 )
             }
             composable(Screen.Todo.route) {
@@ -321,13 +335,31 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
 
-            composable(Screen.Changelog.route) {
+            composable(
+                Screen.Changelog.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 ChangelogScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(Screen.TagManagement.route) {
+            composable(
+                Screen.TagManagement.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 TagManagementScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(Screen.Settings.route) {
+            composable(
+                Screen.Settings.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
@@ -335,31 +367,67 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) }
                 )
             }
-            composable(Screen.Backup.route) {
+            composable(
+                Screen.Backup.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 BackupScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(Screen.Favorites.route) {
+            composable(
+                Screen.Favorites.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 FavoritesScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(Screen.MediaLibrary.route) {
+            composable(
+                Screen.MediaLibrary.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 MediaLibraryScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(Screen.Trash.route) {
+            composable(
+                Screen.Trash.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 TrashScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(Screen.CountDown.route) {
+            composable(
+                Screen.CountDown.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 CountDownScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(Screen.Notifications.route) {
+            composable(
+                Screen.Notifications.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 NotificationScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCapsule = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
@@ -368,7 +436,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
                 )
             }
-            composable(Screen.AiAssistant.route) {
+            composable(
+                Screen.AiAssistant.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 val assistantViewModel: com.diary.app.ai.AiAssistantViewModel =
                     androidx.lifecycle.viewmodel.compose.viewModel()
                 com.diary.app.ui.assistant.AiAssistantScreen(
@@ -376,14 +450,26 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.TimeCapsule.route) {
+            composable(
+                Screen.TimeCapsule.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 TimeCapsuleScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCreate = { navController.navigate(Screen.CreateCapsule.route) },
                     onNavigateToRead = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) }
                 )
             }
-            composable(Screen.CreateCapsule.route) {
+            composable(
+                Screen.CreateCapsule.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
                     androidx.lifecycle.viewmodel.compose.viewModel()
                 CreateCapsuleScreen(
@@ -396,7 +482,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(
                 route = Screen.ReadCapsule.route,
-                arguments = listOf(navArgument("capsuleId") { type = NavType.LongType })
+                arguments = listOf(navArgument("capsuleId") { type = NavType.LongType }),
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
             ) { backStackEntry ->
                 val capsuleId = backStackEntry.arguments?.getLong("capsuleId") ?: -1L
                 val capsuleViewModel: com.diary.app.ui.capsule.TimeCapsuleViewModel =
@@ -407,7 +497,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     viewModel = capsuleViewModel
                 )
             }
-            composable(Screen.ExperimentalFeatures.route) {
+            composable(
+                Screen.ExperimentalFeatures.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 ExperimentalFeaturesScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(
@@ -415,7 +511,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 arguments = listOf(
                     navArgument("year") { type = NavType.IntType },
                     navArgument("month") { type = NavType.IntType }
-                )
+                ),
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
             ) { backStackEntry ->
                 val year = backStackEntry.arguments?.getInt("year") ?: 2026
                 val month = backStackEntry.arguments?.getInt("month") ?: 1
@@ -425,18 +525,36 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.AnnualReport.route) {
+            composable(
+                Screen.AnnualReport.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 AnnualReportScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.DiaryMap.route) {
+            composable(
+                Screen.DiaryMap.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 DiaryMapScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(Screen.Biography.route) {
+            composable(
+                Screen.Biography.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
                 BiographyScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )

@@ -845,7 +845,11 @@ private fun BottomActionButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = androidx.compose.material.ripple.rememberRipple(bounded = true),
+                onClick = onClick
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Icon(

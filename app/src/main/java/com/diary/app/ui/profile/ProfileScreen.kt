@@ -859,8 +859,8 @@ private fun ThemeCardSelector(
         ) {
             SchemeCard(
                 label = "雾蓝灰",
-                previewStart = Color(0xFFF5F7FA),
-                previewEnd = Color(0xFF6B8DB5),
+                previewStart = if (isDark) com.diary.app.ui.theme.FogBlueDarkBg1 else com.diary.app.ui.theme.FogBlueLightBg1,
+                previewEnd = if (isDark) com.diary.app.ui.theme.FogBlueDarkAccent else com.diary.app.ui.theme.FogBlueLightAccent,
                 isSelected = !isCurrentGreen,
                 onClick = {
                     val newMode = if (isDark) ThemeMode.PURE_DARK else ThemeMode.PURE_LIGHT
@@ -870,8 +870,8 @@ private fun ThemeCardSelector(
             )
             SchemeCard(
                 label = "苔藓绿",
-                previewStart = Color(0xFFF6F7F4),
-                previewEnd = Color(0xFF7BA06E),
+                previewStart = if (isDark) com.diary.app.ui.theme.MossGreenDarkBg1 else com.diary.app.ui.theme.MossGreenLightBg1,
+                previewEnd = if (isDark) com.diary.app.ui.theme.MossGreenDarkAccent else com.diary.app.ui.theme.MossGreenLightAccent,
                 isSelected = isCurrentGreen,
                 onClick = {
                     val newMode = if (isDark) ThemeMode.MOSS_GREEN_DARK else ThemeMode.MOSS_GREEN_LIGHT

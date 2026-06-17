@@ -75,8 +75,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ai.AiInsight
 import com.diary.app.data.DiaryPreview
-import com.diary.app.ui.components.FunctionMenu
-import com.diary.app.ui.components.FunctionMenuItem
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.cleanPreviewText
@@ -89,24 +87,14 @@ import com.diary.app.ui.components.weatherLabelFor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToEditor: (Long?) -> Unit,
-    onNavigateToReview: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
-    onNavigateToCountDown: () -> Unit = {},
     onNavigateToTimeline: () -> Unit = {},
-    onNavigateToStats: () -> Unit = {},
-    onNavigateToMediaLibrary: () -> Unit = {},
-    onNavigateToExperimentalFeatures: () -> Unit = {},
-    onNavigateToTimeCapsule: () -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {},
-    onNavigateToAiAssistant: () -> Unit = {},
-    onNavigateToDiaryMap: () -> Unit = {},
-    onNavigateToBiography: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -128,7 +116,6 @@ fun HomeScreen(
     }
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
-    var showFunctionMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
@@ -183,65 +170,7 @@ fun HomeScreen(
                             )
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                    .clickable { onNavigateToNotifications() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "消息",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                if (unreadCount > 0) {
-                                    Badge(
-                                        modifier = Modifier.align(Alignment.TopEnd)
-                                    ) {
-                                        Text(
-                                            text = if (unreadCount > 99) "99+" else unreadCount.toString(),
-                                            fontSize = 10.sp
-                                        )
-                                    }
-                                }
-                            }
-                            if (features.aiAssistantEnabled) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                        .clickable { onNavigateToAiAssistant() },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ChatBubbleOutline,
-                                        contentDescription = "小墨",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                    .clickable { showFunctionMenu = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "功能",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
+                        // Top-right buttons removed - functionality moved to Tools page
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -305,28 +234,30 @@ fun HomeScreen(
                         items = selectedEntries,
                         key = { _, entry -> entry.id }
                     ) { _, entry ->
-                        EntryCard(
-                            entry = entry,
-                            tags = tagsMap[entry.id] ?: emptyList(),
-                            imagePath = imageMap[entry.id],
-                            isSelected = entry.id in multiSelectState.selectedIds,
-                            onClick = {
-                                haptic.click()
-                                if (multiSelectState.isEnabled) {
-                                    multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                } else {
-                                    onNavigateToDetail(entry.id)
+                        Box(modifier = Modifier.animateItemPlacement()) {
+                            EntryCard(
+                                entry = entry,
+                                tags = tagsMap[entry.id] ?: emptyList(),
+                                imagePath = imageMap[entry.id],
+                                isSelected = entry.id in multiSelectState.selectedIds,
+                                onClick = {
+                                    haptic.click()
+                                    if (multiSelectState.isEnabled) {
+                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        onNavigateToDetail(entry.id)
+                                    }
+                                },
+                                onLongClick = {
+                                    haptic.click()
+                                    multiSelectState = if (multiSelectState.isEnabled) {
+                                        multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        HomeMultiSelectState.startSelection(entry.id)
+                                    }
                                 }
-                            },
-                            onLongClick = {
-                                haptic.click()
-                                multiSelectState = if (multiSelectState.isEnabled) {
-                                    multiSelectState.toggleSelection(entry.id)
-                                } else {
-                                    HomeMultiSelectState.startSelection(entry.id)
-                                }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
 
@@ -336,97 +267,6 @@ fun HomeScreen(
             if (!multiSelectState.isEnabled) {
                 FAB(onClick = { onNavigateToEditor(null) })
             }
-
-            val menuItems = remember(features) {
-                buildList {
-                    add(FunctionMenuItem(
-                        id = "random",
-                        title = "随机回顾",
-                        icon = Icons.Default.Shuffle,
-                        onClick = {
-                            showFunctionMenu = false
-                            scope.launch {
-                                val randomId = viewModel.getRandomEntryId()
-                                if (randomId != null) {
-                                    onNavigateToDetail(randomId)
-                                }
-                            }
-                        }
-                    ))
-                    add(FunctionMenuItem(
-                        id = "experimental",
-                        title = "实验功能",
-                        icon = Icons.Default.AutoAwesome,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToExperimentalFeatures()
-                        }
-                    ))
-                    add(FunctionMenuItem(
-                        id = "media",
-                        title = "媒体库",
-                        icon = Icons.Default.Collections,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToMediaLibrary()
-                        }
-                    ))
-                    add(FunctionMenuItem(
-                        id = "stats",
-                        title = "统计",
-                        icon = Icons.Default.BarChart,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToStats()
-                        }
-                    ))
-                    add(FunctionMenuItem(
-                        id = "countdown",
-                        title = "倒数日",
-                        icon = Icons.Default.Timer,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToCountDown()
-                        }
-                    ))
-                    add(FunctionMenuItem(
-                        id = "capsule",
-                        title = "时间胶囊",
-                        icon = Icons.Default.MarkEmailUnread,
-                        onClick = {
-                            showFunctionMenu = false
-                            onNavigateToTimeCapsule()
-                        }
-                    ))
-                    if (features.diaryMapEnabled) {
-                        add(FunctionMenuItem(
-                            id = "map",
-                            title = "日记地图",
-                            icon = Icons.Default.LocationOn,
-                            onClick = {
-                                showFunctionMenu = false
-                                onNavigateToDiaryMap()
-                            }
-                        ))
-                    }
-                    if (features.aiBiographyEnabled) {
-                        add(FunctionMenuItem(
-                            id = "biography",
-                            title = "AI 传记",
-                            icon = Icons.Default.AutoAwesome,
-                            onClick = {
-                                showFunctionMenu = false
-                                onNavigateToBiography()
-                            }
-                        ))
-                    }
-                }
-            }
-            FunctionMenu(
-                expanded = showFunctionMenu,
-                onDismiss = { showFunctionMenu = false },
-                items = menuItems
-            )
 
             if (showDeleteConfirm) {
                 AlertDialog(
@@ -609,36 +449,12 @@ private fun HeaderActionButton(
 
 @Composable
 private fun NoEntriesForDate() {
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = onSurfaceVariant.copy(alpha = 0.25f),
-                modifier = Modifier.size(56.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "这一天还没有日记",
-                fontSize = 16.sp,
-                color = onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "点击下方按钮开始记录",
-                fontSize = 13.sp,
-                color = onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        }
-    }
+    com.diary.app.ui.components.EmptyState(
+        icon = Icons.Default.CalendarMonth,
+        title = "这一天还没有日记",
+        subtitle = "点击下方按钮开始记录",
+        iconSize = 56.dp
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -753,38 +569,16 @@ private fun EntryCard(
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            val file = java.io.File(imagePath)
-                            if (file.exists()) {
-                                val bitmap = remember(imagePath) {
-                                    try {
-                                        android.graphics.BitmapFactory.decodeFile(imagePath)?.let { bmp ->
-                                            val targetSize = 112
-                                            val scale = maxOf(targetSize.toFloat() / bmp.width, targetSize.toFloat() / bmp.height)
-                                            val w = (bmp.width * scale).toInt()
-                                            val h = (bmp.height * scale).toInt()
-                                            val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, w, h, true)
-                                            val cropped = android.graphics.Bitmap.createBitmap(
-                                                scaled,
-                                                (scaled.width - targetSize) / 2,
-                                                (scaled.height - targetSize) / 2,
-                                                targetSize,
-                                                targetSize
-                                            )
-                                            if (cropped !== bmp) bmp.recycle()
-                                            if (cropped !== scaled) scaled.recycle()
-                                            cropped
-                                        }
-                                    } catch (_: Exception) { null }
-                                }
-                                if (bitmap != null) {
-                                    androidx.compose.foundation.Image(
-                                        bitmap = bitmap.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                    )
-                                }
-                            }
+                            coil.compose.AsyncImage(
+                                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                    .data(java.io.File(imagePath))
+                                    .size(112)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
                         }
                     }
                 }
@@ -934,81 +728,23 @@ private fun InsightCard(insight: AiInsight) {
 
 @Composable
 private fun FAB(onClick: () -> Unit) {
-    val fabColor = MaterialTheme.colorScheme.primary
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(end = 20.dp, bottom = 16.dp),
         contentAlignment = Alignment.BottomEnd
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(fabColor.copy(alpha = 0.9f))
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
+        androidx.compose.material3.FloatingActionButton(
+            onClick = onClick,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = RoundedCornerShape(16.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "新建日记",
-                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun QuickAccessRow(
-    onStats: () -> Unit,
-    onMedia: () -> Unit,
-    onCountDown: () -> Unit,
-    onCapsule: () -> Unit,
-    onRandom: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        QuickAccessItem(Icons.Default.BarChart, "统计", onStats)
-        QuickAccessItem(Icons.Default.Collections, "媒体库", onMedia)
-        QuickAccessItem(Icons.Default.Timer, "倒数日", onCountDown)
-        QuickAccessItem(Icons.Default.MarkEmailUnread, "胶囊", onCapsule)
-        QuickAccessItem(Icons.Default.Shuffle, "随机", onRandom)
-    }
-}
-
-@Composable
-private fun QuickAccessItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

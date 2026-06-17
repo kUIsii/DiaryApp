@@ -23,11 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,25 +42,13 @@ fun EmptyState(
     iconSize: Dp = 72.dp,
     action: @Composable (() -> Unit)? = null
 ) {
+    // Single subtle breathing animation
     val infiniteTransition = rememberInfiniteTransition(label = "emptyState")
-
-    // Gentle floating animation (3-second cycle)
-    val floatY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = -6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "floatY"
-    )
-
-    // Subtle breathing scale
     val breathScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.05f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = FastOutSlowInEasing),
+            animation = tween(3000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathScale"
@@ -78,13 +64,11 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Icon with gradient background circle
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(iconSize + 32.dp)
                 .scale(breathScale)
-                .graphicsLayer { translationY = floatY }
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(

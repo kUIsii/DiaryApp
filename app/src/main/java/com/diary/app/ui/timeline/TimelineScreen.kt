@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -248,8 +250,8 @@ fun TimelineScreen(
                 item(key = "filter_panel") {
                     AnimatedVisibility(
                         visible = isFilterExpanded,
-                        enter = expandVertically(),
-                        exit = shrinkVertically()
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                             CompactFilterPanel(
@@ -546,62 +548,6 @@ private fun CompactSearchRow(
         }
     }
 }
-
-// ========== Month Selector ==========
-
-@Composable
-private fun MonthSelector(
-    months: List<YearMonth>,
-    selectedMonth: YearMonth,
-    onMonthClick: (YearMonth) -> Unit
-) {
-    val scrollState = rememberScrollState()
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        months.forEach { month ->
-            val isSelected = month == selectedMonth
-            val monthText = if (month == YearMonth.now()) {
-                "本月"
-            } else {
-                "${month.monthValue}月"
-            }
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        }
-                    )
-                    .clickable { onMonthClick(month) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = monthText,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-        }
-    }
-}
-
-// ========== Compact Search Bar (kept for reference, not used) ==========
-// Removed - replaced by IntegratedSearchBar
 
 // ========== Filter Panel ==========
 
