@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -43,13 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 @Composable
@@ -69,55 +68,32 @@ fun ToolsScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header with accent tint
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = 0.06f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
-            ) {
-                Text(
-                    text = "工具",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor,
-                    letterSpacing = (-1).sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "探索更多可能",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = textSecondary,
-                    letterSpacing = 0.5.sp
-                )
-            }
+            // Header
+            Text(
+                text = "工具",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor,
+                letterSpacing = (-0.5).sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 创作与记录
                 ToolSection(
                     title = "创作与记录",
-                    accentColor = accentColor,
-                    surfaceColor = surfaceColor,
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    accentColor = accentColor
                 ) {
                     ToolItem(
                         icon = Icons.Default.BarChart,
@@ -128,7 +104,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToStats
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.Collections,
                         label = "媒体库",
@@ -138,7 +113,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToMediaLibrary
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.Tag,
                         label = "标签管理",
@@ -153,10 +127,9 @@ fun ToolsScreen(
                 // 回忆与探索
                 ToolSection(
                     title = "回忆与探索",
-                    accentColor = accentColor,
-                    surfaceColor = surfaceColor,
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    accentColor = accentColor
                 ) {
                     ToolItem(
                         icon = Icons.Default.Timer,
@@ -167,7 +140,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToCountDown
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.MarkEmailUnread,
                         label = "时间胶囊",
@@ -177,7 +149,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToTimeCapsule
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.Map,
                         label = "日记地图",
@@ -187,7 +158,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToDiaryMap
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.Shuffle,
                         label = "随机回顾",
@@ -202,10 +172,9 @@ fun ToolsScreen(
                 // AI 伙伴
                 ToolSection(
                     title = "AI 伙伴",
-                    accentColor = accentColor,
-                    surfaceColor = surfaceColor,
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    accentColor = accentColor
                 ) {
                     ToolItem(
                         icon = Icons.Default.ChatBubbleOutline,
@@ -216,7 +185,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToAiAssistant
                     )
-                    ToolDivider(accentColor)
                     ToolItem(
                         icon = Icons.Default.AutoAwesome,
                         label = "AI 传记",
@@ -231,10 +199,9 @@ fun ToolsScreen(
                 // 其他
                 ToolSection(
                     title = "其他",
-                    accentColor = accentColor,
-                    surfaceColor = surfaceColor,
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    accentColor = accentColor
                 ) {
                     ToolItem(
                         icon = Icons.Default.Notifications,
@@ -245,7 +212,6 @@ fun ToolsScreen(
                         textSecondary = textSecondary,
                         onClick = onNavigateToNotifications
                     )
-                    ToolDivider(accentColor)
                     ExperimentalEntry(
                         accentColor = accentColor,
                         textColor = textColor,
@@ -263,55 +229,28 @@ fun ToolsScreen(
 @Composable
 private fun ToolSection(
     title: String,
-    accentColor: Color,
-    surfaceColor: Color,
     textColor: Color,
     textSecondary: Color,
+    accentColor: Color,
     content: @Composable () -> Unit
 ) {
     Column {
-        // Section title with accent line
-        Row(
-            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(accentColor)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = textColor,
-                letterSpacing = 0.5.sp
-            )
-        }
+        // Section title - bold, larger
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = textColor,
+            letterSpacing = 0.2.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp)
+        )
 
-        // Card with gradient background
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            surfaceColor,
-                            accentColor.copy(alpha = 0.03f)
-                        )
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    color = accentColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(20.dp)
-                )
+        // Card
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 20.dp
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Column {
                 content()
             }
         }
@@ -351,49 +290,40 @@ private fun ToolItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = 14.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon with gradient background
+        // Icon with solid background
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.15f),
-                            accentColor.copy(alpha = 0.05f)
-                        )
-                    )
-                ),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(accentColor.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = textColor,
-                letterSpacing = 0.1.sp
+                fontWeight = FontWeight.Medium,
+                color = textColor
             )
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Normal,
                 color = textSecondary,
-                letterSpacing = 0.2.sp
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
     }
@@ -429,82 +359,46 @@ private fun ExperimentalEntry(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = 14.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon with gradient background
+        // Icon with solid background
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.15f),
-                            accentColor.copy(alpha = 0.05f)
-                        )
-                    )
-                ),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(accentColor.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.LocationOn,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Text(
             text = "实验性功能",
             fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = textColor,
-            letterSpacing = 0.1.sp,
             modifier = Modifier.weight(1f)
         )
 
-        // Beta badge with accent gradient
-        Box(
+        Text(
+            text = "Beta",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = accentColor,
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
                 .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.15f),
-                            accentColor.copy(alpha = 0.08f)
-                        )
-                    )
+                    accentColor.copy(alpha = 0.1f),
+                    RoundedCornerShape(4.dp)
                 )
-                .padding(horizontal = 8.dp, vertical = 3.dp)
-        ) {
-            Text(
-                text = "Beta",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = accentColor
-            )
-        }
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
-}
-
-@Composable
-private fun ToolDivider(accentColor: Color) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(0.5.dp)
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.08f),
-                        accentColor.copy(alpha = 0.15f),
-                        accentColor.copy(alpha = 0.08f)
-                    )
-                )
-            )
-    )
 }
