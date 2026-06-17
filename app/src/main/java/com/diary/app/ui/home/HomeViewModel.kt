@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -277,9 +279,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun favoriteEntries(ids: Set<Long>) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            ids.forEach { id ->
-                dao.toggleFavorite(id, true)
-            }
+            dao.batchSetFavorite(ids.toList(), true)
         }
     }
 
@@ -306,10 +306,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteEntries(ids: Set<Long>) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            ids.forEach { id ->
-                val entry = dao.getEntryByIdSafe(id) ?: return@forEach
-                dao.insertTrashEntry(toTrashEntry(entry))
-                dao.deleteEntryWithTags(entry)
+            val entries = dao.getEntriesByIdsSafe(ids.toList())
+            if (entries.isNotEmpty()) {
+                val trashEntries = entries.map { toTrashEntry(it) }
+                dao.insertTrashEntries(trashEntries)
+                dao.deleteEntriesWithTags(entries)
             }
         }
     }
@@ -353,21 +354,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Selected entries for the selected date
-    val selectedEntries: StateFlow<List<DiaryPreview>> = combine(
-        allEntries,
-        _selectedDate
-    ) { entries, date ->
-        if (date == null) {
-            emptyList()
-        } else {
-            entries.filter { entry ->
-                val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate()
-                entryDate == date
-            }.sortedByDescending { it.createdAt }
+    // Selected entries for the selected date - uses DB query instead of client-side filtering
+    val selectedEntries: StateFlow<List<DiaryPreview>> = _selectedDate
+        .flatMapLatest { date ->
+            if (date == null) {
+                flowOf(emptyList())
+            } else {
+                val zone = ZoneId.systemDefault()
+                val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                dao.getPreviewsByDateRangeFlow(startOfDay, endOfDay)
+            }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
 }

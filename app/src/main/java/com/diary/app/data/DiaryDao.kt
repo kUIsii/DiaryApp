@@ -81,6 +81,26 @@ interface DiaryDao {
         deleteEntry(entry)
     }
 
+    @Transaction
+    suspend fun deleteEntriesWithTags(entries: List<DiaryEntry>) {
+        entries.forEach { entry ->
+            deleteTagsForDiary(entry.id)
+            deleteImagesForEntry(entry.id)
+            deleteEntry(entry)
+        }
+    }
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrashEntries(trashEntries: List<TrashEntry>)
+
+    @Query("""
+        SELECT id, title,
+        CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        FROM diary_entries WHERE id IN (:ids)
+    """)
+    suspend fun getEntriesByIdsSafe(ids: List<Long>): List<DiaryEntry>
+
     @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
 
@@ -92,6 +112,9 @@ interface DiaryDao {
 
     @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun toggleFavorite(id: Long, isFavorite: Boolean)
+
+    @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id IN (:ids)")
+    suspend fun batchSetFavorite(ids: List<Long>, isFavorite: Boolean)
 
     @Query("SELECT * FROM diary_entries WHERE isFavorite = 1 ORDER BY createdAt DESC")
     fun getFavoriteEntries(): Flow<List<DiaryEntry>>
@@ -353,6 +376,9 @@ interface DiaryDao {
 
     @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
     suspend fun getPreviewsByDateRange(start: Long, end: Long): List<DiaryPreview>
+
+    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
+    fun getPreviewsByDateRangeFlow(start: Long, end: Long): Flow<List<DiaryPreview>>
 
     // Get entries matching month+day across all years (for review)
     @Query("""

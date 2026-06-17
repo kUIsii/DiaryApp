@@ -1,10 +1,7 @@
 package com.diary.app.ui.home
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -293,38 +290,28 @@ fun HomeScreen(
                     itemsIndexed(
                         items = selectedEntries,
                         key = { _, entry -> entry.id }
-                    ) { index, entry ->
-                        val enterDelay = (index * 60).coerceAtMost(400)
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                slideInVertically(
-                                    animationSpec = tween(300, delayMillis = enterDelay),
-                                    initialOffsetY = { it / 5 }
-                                )
-                        ) {
-                            EntryCard(
-                                entry = entry,
-                                tags = tagsMap[entry.id] ?: emptyList(),
-                                isSelected = entry.id in multiSelectState.selectedIds,
-                                onClick = {
-                                    haptic.click()
-                                    if (multiSelectState.isEnabled) {
-                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                    } else {
-                                        onNavigateToDetail(entry.id)
-                                    }
-                                },
-                                onLongClick = {
-                                    haptic.click()
-                                    multiSelectState = if (multiSelectState.isEnabled) {
-                                        multiSelectState.toggleSelection(entry.id)
-                                    } else {
-                                        HomeMultiSelectState.startSelection(entry.id)
-                                    }
+                    ) { _, entry ->
+                        EntryCard(
+                            entry = entry,
+                            tags = tagsMap[entry.id] ?: emptyList(),
+                            isSelected = entry.id in multiSelectState.selectedIds,
+                            onClick = {
+                                haptic.click()
+                                if (multiSelectState.isEnabled) {
+                                    multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                } else {
+                                    onNavigateToDetail(entry.id)
                                 }
-                            )
-                        }
+                            },
+                            onLongClick = {
+                                haptic.click()
+                                multiSelectState = if (multiSelectState.isEnabled) {
+                                    multiSelectState.toggleSelection(entry.id)
+                                } else {
+                                    HomeMultiSelectState.startSelection(entry.id)
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -335,10 +322,8 @@ fun HomeScreen(
                 FAB(onClick = { onNavigateToEditor(null) })
             }
 
-            FunctionMenu(
-                expanded = showFunctionMenu,
-                onDismiss = { showFunctionMenu = false },
-                items = buildList {
+            val menuItems = remember(features) {
+                buildList {
                     add(FunctionMenuItem(
                         id = "random",
                         title = "随机回顾",
@@ -432,6 +417,11 @@ fun HomeScreen(
                         ))
                     }
                 }
+            }
+            FunctionMenu(
+                expanded = showFunctionMenu,
+                onDismiss = { showFunctionMenu = false },
+                items = menuItems
             )
 
             if (showDeleteConfirm) {

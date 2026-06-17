@@ -100,6 +100,8 @@ private val LINE_WIDTH = 1.5.dp
 private val IMAGE_SIZE = 90.dp
 // Minimum card height for uniform sizing
 private val MIN_CARD_HEIGHT = 100.dp
+// Pre-compiled date title pattern
+private val DATE_TITLE_REGEX = Regex("\\d{4}年\\d{1,2}月\\d{1,2}日")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -1141,7 +1143,7 @@ private fun TimelineEntryWithAxis(
                         modifier = Modifier.weight(1f)
                     ) {
                         // Title
-                        val isDateTitle = entry.title.matches(Regex("\\d{4}年\\d{1,2}月\\d{1,2}日"))
+                        val isDateTitle = entry.title.matches(DATE_TITLE_REGEX)
                         if (entry.title.isNotBlank() && !isDateTitle) {
                             Text(
                                 text = entry.title,
@@ -1288,14 +1290,19 @@ private fun TimelineEntryWithAxis(
 
 // ========== Utility Functions ==========
 
+// Pre-compiled regex patterns for cleanPreviewText
+private val TL_CHECKBOX_REGEX = Regex("[☐☑✓✔✕✖✗✘❎✅❌]")
+private val TL_LIST_SYMBOL_REGEX = Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE)
+private val TL_MULTI_NEWLINE_REGEX = Regex("\\n{3,}")
+
 private fun cleanPreviewText(text: String): String {
     return text
         .replace("\\n", "\n")
         .replace("\r\n", "\n")
         .replace("\r", "\n")
-        .replace(Regex("[☐☑✓✔✕✖✗✘❎✅❌]"), "")
-        .replace(Regex("^[•·‣⁃]\\s*", RegexOption.MULTILINE), "")
-        .replace(Regex("\\n{3,}"), "\n\n")
+        .replace(TL_CHECKBOX_REGEX, "")
+        .replace(TL_LIST_SYMBOL_REGEX, "")
+        .replace(TL_MULTI_NEWLINE_REGEX, "\n\n")
         .trim()
 }
 

@@ -1,10 +1,7 @@
 package com.diary.app.ui.favorites
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -182,25 +179,15 @@ fun FavoritesScreen(
                     itemsIndexed(
                         items = filteredEntries,
                         key = { _, entry -> entry.id }
-                    ) { index, entry ->
-                        val enterDelay = (index * 60).coerceAtMost(400)
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
-                        ) {
-                            FavoriteEntryCard(
-                                entry = entry,
-                                tags = tagsMap[entry.id] ?: emptyList(),
-                                onClick = {
-                                    haptic.click()
-                                    onNavigateToDetail(entry.id)
-                                }
-                            )
-                        }
+                    ) { _, entry ->
+                        FavoriteEntryCard(
+                            entry = entry,
+                            tags = tagsMap[entry.id] ?: emptyList(),
+                            onClick = {
+                                haptic.click()
+                                onNavigateToDetail(entry.id)
+                            }
+                        )
                     }
                 }
 

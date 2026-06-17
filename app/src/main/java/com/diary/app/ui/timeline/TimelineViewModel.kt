@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
-import com.diary.app.data.DiaryImage
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.home.TagInfo
 import kotlinx.coroutines.FlowPreview
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -61,29 +59,18 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Image map: entryId -> first image path
-    private val _imageMap = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val imageMap: StateFlow<Map<Long, String>> = _imageMap
-
-    init {
-        loadImages()
-    }
-
-    private fun loadImages() {
-        viewModelScope.launch {
-            dao.getAllImagesFlow().collect { images ->
-                // Group by entryId and take the first image for each entry
-                val map = images.groupBy { it.entryId }
-                    .mapValues { (_, entryImages) ->
-                        entryImages.minByOrNull { it.sortOrder }?.thumbPath
-                            ?: entryImages.minByOrNull { it.sortOrder }?.localPath
-                            ?: ""
-                    }
-                    .filter { it.value.isNotBlank() }
-                _imageMap.value = map
-            }
+    // Image map: entryId -> first image path - uses stateIn for proper lifecycle management
+    val imageMap: StateFlow<Map<Long, String>> = dao.getAllImagesFlow()
+        .map { images ->
+            images.groupBy { it.entryId }
+                .mapValues { (_, entryImages) ->
+                    entryImages.minByOrNull { it.sortOrder }?.thumbPath
+                        ?: entryImages.minByOrNull { it.sortOrder }?.localPath
+                        ?: ""
+                }
+                .filter { it.value.isNotBlank() }
         }
-    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // Filtered and searched entries
     val entries: StateFlow<List<DiaryPreview>> = combine(
