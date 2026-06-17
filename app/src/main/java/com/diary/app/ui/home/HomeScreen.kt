@@ -257,23 +257,6 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Quick access feature row
-                item {
-                    QuickAccessRow(
-                        onStats = onNavigateToStats,
-                        onMedia = onNavigateToMediaLibrary,
-                        onCountDown = onNavigateToCountDown,
-                        onCapsule = onNavigateToTimeCapsule,
-                        onRandom = {
-                            scope.launch {
-                                val randomId = viewModel.getRandomEntryId()
-                                if (randomId != null) onNavigateToDetail(randomId)
-                            }
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
                 selectedDate?.let { currentDate ->
                     item {
                         SelectedDateHeader(

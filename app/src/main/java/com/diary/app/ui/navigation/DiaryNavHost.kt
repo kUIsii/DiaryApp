@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -89,11 +90,13 @@ import com.diary.app.ui.annualreport.AnnualReportScreen
 import com.diary.app.ui.health.HealthScreen
 import com.diary.app.ui.map.DiaryMapScreen
 import com.diary.app.ui.biography.BiographyScreen
+import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
     object Timeline : Screen("timeline", "时间线", Icons.Default.CalendarMonth)
+    object Tools : Screen("tools", "工具", Icons.Default.Widgets)
     object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
     object Stats : Screen("stats", "统计", Icons.Default.BarChart)
     object Profile : Screen("profile", "我的", Icons.Default.Person)
@@ -145,6 +148,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home),
     BottomNavItem(Screen.Timeline),
+    BottomNavItem(Screen.Tools),
     BottomNavItem(Screen.Todo),
     BottomNavItem(Screen.Profile)
 )
@@ -250,6 +254,21 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Timeline.route) {
                 TimelineScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(Screen.Tools.route) {
+                ToolsScreen(
+                    onNavigateToStats = { navController.navigate(Screen.Stats.route) },
+                    onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
+                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
+                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
+                    onNavigateToRandom = {
+                        // Navigate to a random diary entry
+                    },
+                    onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
+                    onNavigateToBiography = { navController.navigate(Screen.Biography.route) },
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) }
                 )
             }
             composable(Screen.Todo.route) {
