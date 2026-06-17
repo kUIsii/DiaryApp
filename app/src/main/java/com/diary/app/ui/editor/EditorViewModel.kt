@@ -103,6 +103,41 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _writingPrompt.value = com.diary.app.data.WritingPrompts.getRandomPrompt()
     }
 
+    // Title suggestion
+    private val _titleSuggestion = MutableStateFlow<String?>(null)
+    val titleSuggestion = _titleSuggestion.asStateFlow()
+    private val _isGeneratingTitle = MutableStateFlow(false)
+    val isGeneratingTitle = _isGeneratingTitle.asStateFlow()
+
+    fun suggestTitle(content: String) {
+        if (content.length < 50 || _isGeneratingTitle.value) return
+        _isGeneratingTitle.value = true
+        viewModelScope.launch {
+            try {
+                val app = getApplication<Application>() as DiaryApplication
+                val aiService = app.aiService
+                val prompt = "请根据以下日记内容生成一个简短的标题（10字以内，不要引号和标点）：\n\n${content.take(500)}"
+                val result = aiService.chat(aiRequest(prompt, maxTokens = 30))
+                result.fold(
+                    onSuccess = { response ->
+                        val title = response.content.trim().removeSurrounding("\"").removeSurrounding("'").take(20)
+                        if (title.isNotBlank()) _titleSuggestion.value = title
+                    },
+                    onFailure = { }
+                )
+            } catch (_: Exception) { }
+            finally { _isGeneratingTitle.value = false }
+        }
+    }
+
+    fun acceptTitleSuggestion(title: String) {
+        _titleSuggestion.value = null
+    }
+
+    fun dismissTitleSuggestion() {
+        _titleSuggestion.value = null
+    }
+
     fun markContentChanged() {
         _hasUnsavedChanges.value = true
     }

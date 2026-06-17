@@ -124,7 +124,13 @@ fun TagManagementScreen(
             title = "新增分类",
             onDismiss = { showAddDialog = false },
             onConfirm = { name, color ->
-                scope.launch { dao.insertTag(Tag(name = name, color = color)) }
+                scope.launch {
+                    try {
+                        dao.insertTag(Tag(name = name, color = color))
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(context, "添加失败: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
                 showAddDialog = false
             }
         )
@@ -137,7 +143,13 @@ fun TagManagementScreen(
             title = "编辑分类",
             onDismiss = { editingTag = null },
             onConfirm = { name, color ->
-                scope.launch { dao.updateTagById(tag.id, name, color) }
+                scope.launch {
+                    try {
+                        dao.updateTagById(tag.id, name, color)
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(context, "更新失败: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
                 editingTag = null
             }
         )
@@ -186,7 +198,13 @@ fun TagManagementScreen(
             text = { Text("确定要删除「${currentDeletingTag.name}」吗？") },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch { dao.deleteTag(currentDeletingTag) }
+                    scope.launch {
+                        try {
+                            dao.deleteTag(currentDeletingTag)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "删除失败: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     deletingTag = null
                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
             },

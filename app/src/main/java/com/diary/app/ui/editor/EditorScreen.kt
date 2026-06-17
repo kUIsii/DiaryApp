@@ -146,6 +146,9 @@ fun EditorScreen(
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
     val currentEntry by viewModel.currentEntry.collectAsState()
     val recentLocations by viewModel.recentLocations.collectAsState()
+    val writingPrompt by viewModel.writingPrompt.collectAsState()
+    val titleSuggestion by viewModel.titleSuggestion.collectAsState()
+    val isGeneratingTitle by viewModel.isGeneratingTitle.collectAsState()
 
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
 
@@ -281,6 +284,7 @@ fun EditorScreen(
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
         viewModel.startWritingTimer()
+        if (diaryId == null) viewModel.loadWritingPrompt()
     }
 
     // Load draft when opened with draftId
@@ -500,6 +504,10 @@ fun EditorScreen(
             if (!isApplyingProgrammaticContent) {
                 viewModel.markContentChanged()
                 contentVersion++
+                // Trigger title suggestion when content reaches 50 chars and title is blank
+                if (text.length >= 50 && entryTitle.isBlank()) {
+                    viewModel.suggestTitle(text)
+                }
             }
         }
     }
@@ -1144,6 +1152,47 @@ fun EditorScreen(
                 )
             }
 
+            // Title suggestion
+            val currentTitleSuggestion = titleSuggestion
+            if (currentTitleSuggestion != null && entryTitle.isBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "AI 建议：",
+                        fontSize = 12.sp,
+                        color = textSecondary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = currentTitleSuggestion,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable {
+                                entryTitle = currentTitleSuggestion
+                                viewModel.acceptTitleSuggestion(currentTitleSuggestion)
+                                viewModel.markContentChanged()
+                            }
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = textSecondary.copy(alpha = 0.3f),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { viewModel.dismissTitleSuggestion() }
+                    )
+                }
+            }
+
             EditorMetadataStrip(
                 selectedMood = selectedMood,
                 selectedWeather = selectedWeather,
@@ -1199,6 +1248,62 @@ fun EditorScreen(
                     .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
             ) {
                 val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
+
+                // Writing prompt overlay (shown when editor is empty)
+                val currentPrompt = writingPrompt
+                if (charCount == 0 && currentPrompt.isNotBlank() && diaryId == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp, vertical = 40.dp)
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
+                                // Click to use the prompt
+                                webView?.evaluateJavascript(
+                                    "setContent(${org.json.JSONObject.quote(currentPrompt)})",
+                                    null
+                                )
+                                viewModel.markContentChanged()
+                            },
+                        contentAlignment = Alignment.TopStart
+                    ) {
+                        Column {
+                            Text(
+                                text = "写作提示",
+                                fontSize = 12.sp,
+                                color = textSecondary.copy(alpha = 0.4f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = currentPrompt,
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.35f),
+                                lineHeight = 24.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { viewModel.refreshPrompt() }
+                            ) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "换一个",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
+                }
 
                 AndroidView(
                     factory = { ctx ->

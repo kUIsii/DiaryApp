@@ -66,6 +66,7 @@ data class HeatmapDay(
 )
 
 data class StatsState(
+    val isLoading: Boolean = true,
     val totalEntries: Int = 0,
     val currentStreak: Int = 0,
     val thisMonthEntries: Int = 0,
@@ -130,6 +131,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             .sortedByDescending { it.count }
 
         StatsState(
+            isLoading = false,
             totalEntries = entries.size,
             currentStreak = streak,
             thisMonthEntries = thisMonth,

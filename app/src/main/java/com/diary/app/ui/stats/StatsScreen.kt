@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -179,7 +180,18 @@ fun StatsScreen(
     }
 
     GradientBackground {
-        if (state.totalEntries == 0) {
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                )
+            }
+        } else if (state.totalEntries == 0) {
             EmptyState(
                 icon = Icons.Default.SelfImprovement,
                 title = stringResource(R.string.stats_no_entries),
