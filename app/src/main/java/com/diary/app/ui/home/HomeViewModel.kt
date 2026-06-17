@@ -323,7 +323,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _aiInsight.value = InsightGenerator.generate(app, dao, app.aiService)
-            } catch (_: Exception) {}
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 

@@ -102,7 +102,7 @@ fun DiaryDetailScreen(
     onNavigateToDetail: (Long) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val themeMode by app.themeMode.collectAsState()
     val isDark = themeMode.isDark()
 

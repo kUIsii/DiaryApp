@@ -130,7 +130,7 @@ fun EditorScreen(
     val timeText = currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val themeMode by app.themeMode.collectAsState()
     val isDark = themeMode.isDark()
 
@@ -1424,7 +1424,7 @@ fun EditorScreen(
                             activeCategory = cat
                             keepToolbarOpen = true
                             val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                            imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                            imm.hideSoftInputFromWindow((context as? android.app.Activity)?.currentFocus?.windowToken, 0)
                         }
                     },
                     activeFormats = activeFormats,
@@ -1440,7 +1440,7 @@ fun EditorScreen(
                     },
                     onHideKeyboard = {
                         val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                        imm.hideSoftInputFromWindow((context as android.app.Activity).currentFocus?.windowToken, 0)
+                        imm.hideSoftInputFromWindow((context as? android.app.Activity)?.currentFocus?.windowToken, 0)
                     },
                     onShowKeyboard = {
                         webView?.requestFocus()

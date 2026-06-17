@@ -94,7 +94,7 @@ fun TagManagementScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as com.diary.app.DiaryApplication
+    val app = context.applicationContext as? com.diary.app.DiaryApplication ?: return
     val database = app.database
     val dao = database.diaryDao()
     val scope = rememberCoroutineScope()

@@ -115,7 +115,7 @@ fun HomeScreen(
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val features by app.experimentalFeatures.collectAsState()
     val entryDates by viewModel.entryDates.collectAsState()
     val dayInfoMap by viewModel.dayInfoMap.collectAsState()
@@ -235,9 +235,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                if (aiInsight != null) {
+                aiInsight?.let { insight ->
                     item {
-                        InsightCard(insight = aiInsight!!)
+                        InsightCard(insight = insight)
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }

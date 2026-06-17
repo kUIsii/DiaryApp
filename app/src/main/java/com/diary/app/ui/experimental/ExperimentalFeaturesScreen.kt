@@ -77,7 +77,7 @@ fun ExperimentalFeaturesScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val features by app.experimentalFeatures.collectAsState()
 
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -209,7 +209,7 @@ fun ExperimentalFeaturesScreen(
                             title = "连接测试",
                             subtitle = when {
                                 isTesting -> "测试中..."
-                                testResult != null -> testResult!!
+                                testResult != null -> testResult ?: ""
                                 isAiConfigured -> "Agnes 2.0 Flash (免费)"
                                 else -> "请先配置 API Key"
                             },

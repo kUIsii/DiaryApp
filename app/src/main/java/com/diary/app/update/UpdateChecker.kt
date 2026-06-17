@@ -37,7 +37,7 @@ object UpdateChecker {
                 val url = URL(
                     "https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases"
                 )
-                connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
                     connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")

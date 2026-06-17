@@ -155,7 +155,7 @@ val bottomNavItems = listOf(
 
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
-    val app = LocalContext.current.applicationContext as DiaryApplication
+    val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
     val experimentalFeatures by app.experimentalFeatures.collectAsState()

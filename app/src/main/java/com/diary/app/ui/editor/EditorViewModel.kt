@@ -114,7 +114,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _isGeneratingTitle.value = true
         viewModelScope.launch {
             try {
-                val app = getApplication<Application>() as DiaryApplication
+                val app = getApplication<DiaryApplication>()
                 val aiService = app.aiService
                 val prompt = "请根据以下日记内容生成一个简短的标题（10字以内，不要引号和标点）：\n\n${content.take(500)}"
                 val result = aiService.chat(aiRequest(prompt, maxTokens = 30))
@@ -125,7 +125,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     },
                     onFailure = { }
                 )
-            } catch (_: Exception) { }
+            } catch (e: Exception) { e.printStackTrace() }
             finally { _isGeneratingTitle.value = false }
         }
     }

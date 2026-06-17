@@ -97,7 +97,7 @@ fun BackupScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val dao = app.database.diaryDao()
     val scope = rememberCoroutineScope()
 

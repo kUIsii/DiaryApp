@@ -278,9 +278,9 @@ abstract class DiaryDatabase : RoomDatabase() {
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (_: Exception) {}
+                            try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) { e.printStackTrace() }
                             // Backfill diary_images for entries that were saved before image tracking existed
-                            try { backfillDiaryImages(db, context) } catch (_: Exception) {}
+                            try { backfillDiaryImages(db, context) } catch (e: Exception) { e.printStackTrace() }
                         }
                     })
                     .build()

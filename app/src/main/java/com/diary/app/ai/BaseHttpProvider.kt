@@ -61,7 +61,7 @@ abstract class BaseHttpProvider(
         model: String
     ): AiResponse {
         val url = URL("${cleanEndpoint(endpoint)}chat/completions")
-        val conn = (url.openConnection() as HttpURLConnection).apply {
+        val conn = (url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Authorization", "Bearer $apiKey")

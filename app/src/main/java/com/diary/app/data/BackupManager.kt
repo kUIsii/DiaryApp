@@ -821,7 +821,7 @@ object BackupManager {
             }
 
             if (changed) saveHistory(context, history)
-        } catch (_: Exception) {}
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
 }

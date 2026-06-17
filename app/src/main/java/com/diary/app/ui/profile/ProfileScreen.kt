@@ -170,7 +170,7 @@ fun ProfileScreen(
     onNavigateToBackup: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as DiaryApplication
+    val app = context.applicationContext as? DiaryApplication ?: return
     val currentThemeMode by app.themeMode.collectAsState()
     val scope = rememberCoroutineScope()
     var isChecking by remember { mutableStateOf(false) }

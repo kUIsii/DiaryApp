@@ -106,7 +106,7 @@ fun TodoScreen(
     viewModel: TodoViewModel = viewModel(),
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
-    val app = LocalContext.current.applicationContext as DiaryApplication
+    val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
     val haptic = rememberHapticFeedback()
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val allTodos by viewModel.allTodos.collectAsState()
