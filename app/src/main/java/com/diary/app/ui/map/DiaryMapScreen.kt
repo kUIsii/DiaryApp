@@ -70,6 +70,7 @@ import com.diary.app.ui.components.GradientBackground
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun DiaryMapScreen(
@@ -90,6 +91,11 @@ fun DiaryMapScreen(
                 onNavigateBack = onNavigateBack,
                 onToggleView = { showList = !showList }
             )
+
+            // Stats card
+            if (!state.isLoading && state.markers.isNotEmpty()) {
+                MapStatsCard(stats = state.stats)
+            }
 
             when {
                 state.isLoading -> {
@@ -221,6 +227,71 @@ private fun MapTopBar(
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun MapStatsCard(stats: MapStats) {
+    GlassCard(
+        cornerRadius = 16.dp,
+        innerPadding = 14.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(
+                value = stats.totalEntries.toString(),
+                label = "日记"
+            )
+            StatItem(
+                value = stats.uniqueLocations.toString(),
+                label = "地点"
+            )
+            StatItem(
+                value = stats.citiesVisited.toString(),
+                label = "城市"
+            )
+            if (stats.firstEntryDate != null) {
+                StatItem(
+                    value = calculateDuration(stats.firstEntryDate),
+                    label = "记录"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private fun calculateDuration(startDate: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - startDate
+    val days = TimeUnit.MILLISECONDS.toDays(diff)
+    return when {
+        days < 30 -> "${days}天"
+        days < 365 -> "${days / 30}月"
+        else -> "${days / 365}年"
     }
 }
 

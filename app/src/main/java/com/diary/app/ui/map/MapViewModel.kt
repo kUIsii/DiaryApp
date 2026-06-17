@@ -22,10 +22,19 @@ data class MapMarker(
     val moodLevel: Int?
 )
 
+data class MapStats(
+    val totalEntries: Int = 0,
+    val uniqueLocations: Int = 0,
+    val citiesVisited: Int = 0,
+    val firstEntryDate: Long? = null,
+    val lastEntryDate: Long? = null
+)
+
 data class MapUiState(
     val isLoading: Boolean = true,
     val markers: List<MapMarker> = emptyList(),
     val selectedMarker: MapMarker? = null,
+    val stats: MapStats = MapStats(),
     val error: String? = null
 )
 
@@ -58,7 +67,26 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                         moodLevel = entry.moodLevel
                     )
                 }
-                _uiState.value = MapUiState(isLoading = false, markers = markers)
+
+                // Calculate stats
+                val uniqueLocations = markers.map { it.location }.filter { it.isNotBlank() }.distinct().size
+                val cities = markers.map { extractCity(it.location) }.filter { it.isNotBlank() }.distinct().size
+                val firstDate = markers.minByOrNull { it.createdAt }?.createdAt
+                val lastDate = markers.maxByOrNull { it.createdAt }?.createdAt
+
+                val stats = MapStats(
+                    totalEntries = markers.size,
+                    uniqueLocations = uniqueLocations,
+                    citiesVisited = cities,
+                    firstEntryDate = firstDate,
+                    lastEntryDate = lastDate
+                )
+
+                _uiState.value = MapUiState(
+                    isLoading = false,
+                    markers = markers,
+                    stats = stats
+                )
             } catch (e: Exception) {
                 _uiState.value = MapUiState(isLoading = false, error = e.message)
             }
@@ -67,5 +95,16 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectMarker(marker: MapMarker?) {
         _uiState.value = _uiState.value.copy(selectedMarker = marker)
+    }
+
+    private fun extractCity(location: String): String {
+        // Try to extract city name from location string
+        // Common patterns: "City, Country", "City", "District, City, Province"
+        val parts = location.split(",").map { it.trim() }
+        return when {
+            parts.size >= 2 -> parts[parts.size - 2] // Second to last is usually city
+            parts.size == 1 -> parts[0]
+            else -> ""
+        }
     }
 }
