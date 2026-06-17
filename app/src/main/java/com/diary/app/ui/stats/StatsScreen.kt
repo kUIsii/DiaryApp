@@ -82,7 +82,6 @@ import kotlin.math.roundToInt
 
 @Composable
 fun StatsScreen(
-    onNavigateToHealth: () -> Unit = {},
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -222,15 +221,6 @@ fun StatsScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        TextButton(onClick = onNavigateToHealth) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("健康数据")
-                        }
                     }
                 }
 

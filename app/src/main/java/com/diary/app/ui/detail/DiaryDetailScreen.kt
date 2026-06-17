@@ -645,13 +645,13 @@ private fun DetailHeaderCompact(
                 }
 
                 if (entry.moodLevel != null && (entry.weather != null || locationText != null || tags.isNotEmpty())) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "\u00B7",
-                        fontSize = 14.sp,
+                        text = "|",
+                        fontSize = 12.sp,
                         color = textSecondary.copy(alpha = 0.3f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Weather
@@ -674,13 +674,13 @@ private fun DetailHeaderCompact(
                 }
 
                 if (entry.weather != null && (locationText != null || tags.isNotEmpty())) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "\u00B7",
-                        fontSize = 14.sp,
+                        text = "|",
+                        fontSize = 12.sp,
                         color = textSecondary.copy(alpha = 0.3f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Location
@@ -703,28 +703,32 @@ private fun DetailHeaderCompact(
                 }
 
                 if (locationText != null && tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "\u00B7",
-                        fontSize = 14.sp,
+                        text = "|",
+                        fontSize = 12.sp,
                         color = textSecondary.copy(alpha = 0.3f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Tags
                 tags.forEach { tag ->
                     val tagColor = Color(tag.color)
-                    Text(
-                        text = tag.name,
-                        fontSize = 11.sp,
-                        color = tagColor,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(tagColor.copy(alpha = 0.1f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(tagColor.copy(alpha = 0.6f))
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = tag.name,
+                            fontSize = 12.sp,
+                            color = tagColor.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
@@ -836,22 +840,21 @@ private fun BottomActionButton(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = label,
-            fontSize = 12.sp,
-            color = tint,
-            fontWeight = FontWeight.Medium
+            fontSize = 11.sp,
+            color = tint
         )
     }
 }

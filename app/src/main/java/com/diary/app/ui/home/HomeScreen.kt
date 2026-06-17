@@ -105,7 +105,6 @@ fun HomeScreen(
     onNavigateToTimeCapsule: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
-    onNavigateToHealth: () -> Unit = {},
     onNavigateToDiaryMap: () -> Unit = {},
     onNavigateToBiography: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
@@ -153,6 +152,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 item {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -173,7 +173,7 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             val today = LocalDate.now()
                             val dateStr = today.format(DateTimeFormatter.ofPattern("M月d日 EEEE", java.util.Locale.CHINA))
                             Text(
@@ -398,17 +398,6 @@ fun HomeScreen(
                             onNavigateToTimeCapsule()
                         }
                     ))
-                    if (features.healthDataEnabled) {
-                        add(FunctionMenuItem(
-                            id = "health",
-                            title = "健康数据",
-                            icon = Icons.Default.Favorite,
-                            onClick = {
-                                showFunctionMenu = false
-                                onNavigateToHealth()
-                            }
-                        ))
-                    }
                     if (features.diaryMapEnabled) {
                         add(FunctionMenuItem(
                             id = "map",
@@ -830,27 +819,49 @@ private fun EntryCard(
                 ) {
                     if (entry.moodLevel != null) {
                         val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Icon(
-                            imageVector = moodIcon,
-                            contentDescription = "心情",
-                            tint = moodTint,
-                            modifier = Modifier.size(14.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = moodIcon,
+                                contentDescription = "心情",
+                                tint = moodTint,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = moodLabelForLevel(entry.moodLevel),
+                                fontSize = 11.sp,
+                                color = moodTint,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                     if (entry.weather != null) {
                         val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                        Icon(
-                            imageVector = weatherIcon,
-                            contentDescription = "天气",
-                            tint = weatherTint,
-                            modifier = Modifier.size(14.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = weatherIcon,
+                                contentDescription = "天气",
+                                tint = weatherTint,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = weatherLabelFor(entry.weather),
+                                fontSize = 11.sp,
+                                color = weatherTint,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
 
                     if (tags.isNotEmpty()) {
-                        tags.take(1).forEach { tag ->
+                        tags.take(2).forEach { tag ->
                             Text(
                                 text = tag.name,
                                 fontSize = 10.sp,
@@ -861,6 +872,13 @@ private fun EntryCard(
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(tag.color.copy(alpha = 0.1f))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (tags.size > 2) {
+                            Text(
+                                text = "+${tags.size - 2}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                         }
                     }

@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
@@ -108,7 +107,6 @@ import com.diary.app.ui.todo.TodoScreen
 import com.diary.app.ui.trash.TrashScreen
 import com.diary.app.ui.monthlyreport.MonthlyReportScreen
 import com.diary.app.ui.annualreport.AnnualReportScreen
-import com.diary.app.ui.health.HealthScreen
 import com.diary.app.ui.map.DiaryMapScreen
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
@@ -156,7 +154,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
     object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.BarChart)
-    object Health : Screen("health", "健康数据", Icons.Default.HealthAndSafety)
     object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.LocationOn)
     object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
 }
@@ -267,7 +264,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
-                    onNavigateToHealth = { navController.navigate(Screen.Health.route) },
                     onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
                     onNavigateToBiography = { navController.navigate(Screen.Biography.route) }
                 )
@@ -313,9 +309,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Stats.route) {
-                StatsScreen(
-                    onNavigateToHealth = { navController.navigate(Screen.Health.route) }
-                )
+                StatsScreen()
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -433,11 +427,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.AnnualReport.route) {
                 AnnualReportScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable(Screen.Health.route) {
-                HealthScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
