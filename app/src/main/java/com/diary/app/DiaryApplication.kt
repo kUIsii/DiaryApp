@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.di.AppContainer
 import com.diary.app.reminder.ReminderReceiver
@@ -34,6 +35,14 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
         TodoReminderManager.createNotificationChannel(this)
+
+        // Initialize Amap SDK
+        try {
+            MapsInitializer.updatePrivacyShow(this, true, true)
+            MapsInitializer.updatePrivacyAgree(this, true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun createNotificationChannel() {

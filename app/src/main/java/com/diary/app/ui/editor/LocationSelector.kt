@@ -353,32 +353,36 @@ fun LocationSelector(
                             AndroidView(
                                 factory = { mapView },
                                 update = { mv ->
-                                    val aMap = mv.map
-                                    val initialLatLng = if (latitude != null && longitude != null) {
-                                        LatLng(latitude, longitude)
-                                    } else {
-                                        LatLng(31.23, 121.47) // Shanghai default
-                                    }
-                                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialLatLng, 12f))
+                                    try {
+                                        val aMap = mv.map ?: return@AndroidView
+                                        val initialLatLng = if (latitude != null && longitude != null) {
+                                            LatLng(latitude, longitude)
+                                        } else {
+                                            LatLng(31.23, 121.47) // Shanghai default
+                                        }
+                                        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialLatLng, 12f))
 
-                                    // Add initial marker if exists
-                                    if (latitude != null && longitude != null) {
-                                        aMap.addMarker(
-                                            MarkerOptions()
-                                                .position(LatLng(latitude, longitude))
-                                                .title(selectedLocation ?: "已选位置")
-                                        )
-                                    }
+                                        // Add initial marker if exists
+                                        if (latitude != null && longitude != null) {
+                                            aMap.addMarker(
+                                                MarkerOptions()
+                                                    .position(LatLng(latitude, longitude))
+                                                    .title(selectedLocation ?: "已选位置")
+                                            )
+                                        }
 
-                                    aMap.setOnMapClickListener { latLng ->
-                                        selectedLatLng = latLng
-                                        selectedName = "${latLng.latitude.toString().take(7)}, ${latLng.longitude.toString().take(7)}"
-                                        aMap.clear()
-                                        aMap.addMarker(
-                                            MarkerOptions()
-                                                .position(latLng)
-                                                .title("选中位置")
-                                        )
+                                        aMap.setOnMapClickListener { latLng ->
+                                            selectedLatLng = latLng
+                                            selectedName = "${latLng.latitude.toString().take(7)}, ${latLng.longitude.toString().take(7)}"
+                                            aMap.clear()
+                                            aMap.addMarker(
+                                                MarkerOptions()
+                                                    .position(latLng)
+                                                    .title("选中位置")
+                                            )
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
                                     }
                                 }
                             )

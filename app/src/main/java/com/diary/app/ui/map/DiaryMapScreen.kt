@@ -240,47 +240,56 @@ private fun AmapView(
         modifier = modifier,
         factory = { mapView },
         update = { mv ->
-            val aMap = mv.map
+            try {
+                val aMap = mv.map ?: return@AndroidView
 
-            // Only update markers if they changed
-            aMap.clear()
+                // Only update markers if they changed
+                aMap.clear()
 
-            if (markers.isNotEmpty()) {
-                val boundsBuilder = LatLngBounds.Builder()
-                markers.forEach { marker ->
-                    val position = LatLng(marker.latitude, marker.longitude)
-                    val markerOptions = MarkerOptions()
-                        .position(position)
-                        .title(marker.title)
-                        .snippet(marker.location.ifBlank { null })
+                if (markers.isNotEmpty()) {
+                    val boundsBuilder = LatLngBounds.Builder()
+                    markers.forEach { marker ->
+                        val position = LatLng(marker.latitude, marker.longitude)
+                        val markerOptions = MarkerOptions()
+                            .position(position)
+                            .title(marker.title)
+                            .snippet(marker.location.ifBlank { null })
 
-                    aMap.addMarker(markerOptions)
-                    boundsBuilder.include(position)
-                }
+                        aMap.addMarker(markerOptions)
+                        boundsBuilder.include(position)
+                    }
 
-                // Move camera to show all markers
-                try {
-                    val bounds = boundsBuilder.build()
-                    val padding = 100
-                    aMap.animateCamera(
-                        CameraUpdateFactory.newLatLngBounds(bounds, padding)
-                    )
-                } catch (e: Exception) {
-                    // If bounds calculation fails, just show China
+                    // Move camera to show all markers
+                    try {
+                        val bounds = boundsBuilder.build()
+                        val padding = 100
+                        aMap.animateCamera(
+                            CameraUpdateFactory.newLatLngBounds(bounds, padding)
+                        )
+                    } catch (e: Exception) {
+                        // If bounds calculation fails, just show China
+                        aMap.moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
+                        )
+                    }
+
+                    // Set marker click listener
+                    aMap.setOnMarkerClickListener { amapMarker ->
+                        val clickedMarker = markers.find {
+                            it.latitude == amapMarker.position.latitude &&
+                            it.longitude == amapMarker.position.longitude
+                        }
+                        clickedMarker?.let { onMarkerClick(it.id) }
+                        true
+                    }
+                } else {
+                    // No markers, show China view
                     aMap.moveCamera(
                         CameraUpdateFactory.newLatLngZoom(LatLng(35.86, 104.19), 4f)
                     )
                 }
-
-                // Set marker click listener
-                aMap.setOnMarkerClickListener { amapMarker ->
-                    val clickedMarker = markers.find {
-                        it.latitude == amapMarker.position.latitude &&
-                        it.longitude == amapMarker.position.longitude
-                    }
-                    clickedMarker?.let { onMarkerClick(it.id) }
-                    true
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     )

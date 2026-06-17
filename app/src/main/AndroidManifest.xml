@@ -39,6 +39,9 @@
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="675be68ec0ddba496f92b9263395da6a" />
+
+        <!-- 高德地图需要的 HTTP 库 -->
+        <uses-library android:name="org.apache.http.legacy" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
