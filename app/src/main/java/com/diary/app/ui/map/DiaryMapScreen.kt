@@ -416,7 +416,7 @@ private fun MapViewWithLocation(
                         }
                         IconButton(
                             onClick = onBack,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 Icons.Default.Close,

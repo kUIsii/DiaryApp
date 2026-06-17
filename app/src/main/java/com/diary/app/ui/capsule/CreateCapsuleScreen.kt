@@ -386,7 +386,7 @@ fun CreateCapsuleScreen(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(8.dp)
-                                .size(32.dp)
+                                .size(40.dp)
                                 .background(
                                     Color.Black.copy(alpha = 0.5f),
                                     CircleShape

@@ -969,7 +969,7 @@ fun EditorScreen(
                                         showDraftsDialog = false
                                         showDraftsDialog = true // Refresh
                                     },
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
                                         Icons.Default.Close,
@@ -1029,7 +1029,7 @@ fun EditorScreen(
                             onNavigateBack()
                         }
                     },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,

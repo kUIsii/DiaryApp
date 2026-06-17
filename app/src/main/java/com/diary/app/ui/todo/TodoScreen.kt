@@ -1040,7 +1040,7 @@ private fun HabitDetailDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = onEdit) { Text("编辑", fontSize = 12.sp) }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = null)
+                            Icon(Icons.Default.Close, contentDescription = "关闭")
                         }
                     }
                 }
@@ -1111,7 +1111,7 @@ private fun HabitCalendar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { onMonthChange(-1) }) {
-                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = null)
+                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "上一月")
                     }
                     Text(
                         text = selectedMonth.format(DateTimeFormatter.ofPattern("yyyy年M月")),
@@ -1120,7 +1120,7 @@ private fun HabitCalendar(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     IconButton(onClick = { onMonthChange(1) }) {
-                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = "下一月")
                     }
                 }
                 TextButton(onClick = onJumpToToday) {

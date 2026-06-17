@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -84,16 +85,17 @@ fun TagChip(
         // Remove button
         if (showRemove) {
             Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "移除",
-                tint = color.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .clickable { onRemove() }
-                    .padding(2.dp)
-            )
+            IconButton(
+                onClick = { onRemove() },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "移除",
+                    tint = color.copy(alpha = 0.7f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }

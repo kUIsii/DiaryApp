@@ -304,14 +304,17 @@ private fun CountDownItemCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                     }
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clickable { onDelete() }
-                    )
+                    IconButton(
+                        onClick = { onDelete() },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

@@ -431,7 +431,7 @@ fun BackupScreen(
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.navigate_back),
                         tint = textSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -774,18 +774,18 @@ private fun BackupHistoryItem(
                 }
             }
 
-            IconButton(onClick = onRename, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onRename, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = null,
+                    contentDescription = "重命名",
                     tint = textSecondary,
                     modifier = Modifier.size(18.dp)
                 )
             }
-            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = null,
+                    contentDescription = "删除",
                     tint = textTertiary,
                     modifier = Modifier.size(18.dp)
                 )

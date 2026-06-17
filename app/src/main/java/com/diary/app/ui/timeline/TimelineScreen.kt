@@ -445,7 +445,7 @@ private fun IntegratedSearchBar(
             if (query.isNotBlank()) {
                 IconButton(
                     onClick = { onQueryChange("") },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -458,7 +458,7 @@ private fun IntegratedSearchBar(
             Box(
                 modifier = Modifier
                     .padding(end = 4.dp)
-                    .size(34.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(
                         if (hasActiveFilters) {

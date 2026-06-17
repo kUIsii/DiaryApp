@@ -189,7 +189,7 @@ fun LocationSelector(
                 Spacer(modifier = Modifier.width(4.dp))
                 IconButton(
                     onClick = { onLocationSelected(null, null, null) },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Text(
                         text = "清除",

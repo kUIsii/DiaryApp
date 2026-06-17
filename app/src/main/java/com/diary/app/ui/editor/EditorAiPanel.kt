@@ -74,7 +74,7 @@ fun EditorAiPanel(
                     // History button
                     IconButton(
                         onClick = { showHistory = !showHistory },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             Icons.Default.History,
@@ -103,7 +103,7 @@ fun EditorAiPanel(
                             onCreateNewConversation()
                             showHistory = false
                         },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             Icons.Default.Add,
@@ -114,7 +114,7 @@ fun EditorAiPanel(
                     }
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             Icons.Default.Close,
@@ -273,7 +273,7 @@ private fun ConversationHistoryItem(
         }
         IconButton(
             onClick = onDelete,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(40.dp)
         ) {
             Icon(
                 Icons.Default.Close,
