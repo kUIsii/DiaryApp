@@ -51,6 +51,41 @@ import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
+// Section icon colors — same approach as ProfileScreen
+@Composable
+private fun sectionIconBg(index: Int): Color {
+    val p = MaterialTheme.colorScheme.primary
+    val s = MaterialTheme.colorScheme.secondary
+    val t = MaterialTheme.colorScheme.tertiary
+    return when (index) {
+        0 -> p.copy(alpha = 0.12f)
+        1 -> s.copy(alpha = 0.13f)
+        2 -> t.copy(alpha = 0.12f)
+        3 -> p.copy(alpha = 0.08f)
+        else -> p.copy(alpha = 0.10f)
+    }
+}
+
+@Composable
+private fun sectionIconTint(index: Int): Color {
+    val p = MaterialTheme.colorScheme.primary
+    val s = MaterialTheme.colorScheme.secondary
+    val t = MaterialTheme.colorScheme.tertiary
+    val gray = MaterialTheme.colorScheme.onSurfaceVariant
+    return when (index) {
+        0 -> p
+        1 -> s
+        2 -> t
+        3 -> Color(
+            (p.red * 0.6f + gray.red * 0.4f),
+            (p.green * 0.6f + gray.green * 0.4f),
+            (p.blue * 0.6f + gray.blue * 0.4f),
+            1f
+        )
+        else -> p
+    }
+}
+
 @Composable
 fun ToolsScreen(
     onNavigateToStats: () -> Unit = {},
@@ -67,7 +102,6 @@ fun ToolsScreen(
 ) {
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val accentColor = MaterialTheme.colorScheme.primary
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -86,20 +120,20 @@ fun ToolsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 创作与记录
+                // 创作与记录 — primary color
                 ToolSection(
                     title = "创作与记录",
+                    colorIndex = 0,
                     textColor = textColor,
-                    textSecondary = textSecondary,
-                    accentColor = accentColor
+                    textSecondary = textSecondary
                 ) {
                     ToolItem(
                         icon = Icons.Default.BarChart,
                         label = "数据统计",
                         subtitle = "查看你的写作轨迹",
-                        accentColor = accentColor,
+                        colorIndex = 0,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToStats
@@ -108,7 +142,7 @@ fun ToolsScreen(
                         icon = Icons.Default.Collections,
                         label = "媒体库",
                         subtitle = "浏览所有图片和视频",
-                        accentColor = accentColor,
+                        colorIndex = 0,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToMediaLibrary
@@ -117,25 +151,25 @@ fun ToolsScreen(
                         icon = Icons.Default.Tag,
                         label = "标签管理",
                         subtitle = "整理你的日记分类",
-                        accentColor = accentColor,
+                        colorIndex = 0,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToTagManagement
                     )
                 }
 
-                // 回忆与探索
+                // 回忆与探索 — secondary color
                 ToolSection(
                     title = "回忆与探索",
+                    colorIndex = 1,
                     textColor = textColor,
-                    textSecondary = textSecondary,
-                    accentColor = accentColor
+                    textSecondary = textSecondary
                 ) {
                     ToolItem(
                         icon = Icons.Default.Timer,
                         label = "倒数日",
                         subtitle = "重要日期倒计时",
-                        accentColor = accentColor,
+                        colorIndex = 1,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToCountDown
@@ -144,7 +178,7 @@ fun ToolsScreen(
                         icon = Icons.Default.MarkEmailUnread,
                         label = "时间胶囊",
                         subtitle = "给未来的自己写信",
-                        accentColor = accentColor,
+                        colorIndex = 1,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToTimeCapsule
@@ -153,7 +187,7 @@ fun ToolsScreen(
                         icon = Icons.Default.Map,
                         label = "日记地图",
                         subtitle = "在地图上回顾足迹",
-                        accentColor = accentColor,
+                        colorIndex = 1,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToDiaryMap
@@ -162,25 +196,25 @@ fun ToolsScreen(
                         icon = Icons.Default.Shuffle,
                         label = "随机回顾",
                         subtitle = "随机打开一篇日记",
-                        accentColor = accentColor,
+                        colorIndex = 1,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToRandom
                     )
                 }
 
-                // AI 伙伴
+                // AI 伙伴 — tertiary color
                 ToolSection(
                     title = "AI 伙伴",
+                    colorIndex = 2,
                     textColor = textColor,
-                    textSecondary = textSecondary,
-                    accentColor = accentColor
+                    textSecondary = textSecondary
                 ) {
                     ToolItem(
                         icon = Icons.Default.ChatBubbleOutline,
                         label = "AI 助手",
                         subtitle = "智能写作助手小墨",
-                        accentColor = accentColor,
+                        colorIndex = 2,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToAiAssistant
@@ -189,31 +223,31 @@ fun ToolsScreen(
                         icon = Icons.Default.AutoAwesome,
                         label = "AI 传记",
                         subtitle = "AI 生成个人传记",
-                        accentColor = accentColor,
+                        colorIndex = 2,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToBiography
                     )
                 }
 
-                // 其他
+                // 其他 — muted primary
                 ToolSection(
                     title = "其他",
+                    colorIndex = 3,
                     textColor = textColor,
-                    textSecondary = textSecondary,
-                    accentColor = accentColor
+                    textSecondary = textSecondary
                 ) {
                     ToolItem(
                         icon = Icons.Default.Notifications,
                         label = "消息通知",
                         subtitle = "查看系统通知和提醒",
-                        accentColor = accentColor,
+                        colorIndex = 3,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToNotifications
                     )
                     ExperimentalEntry(
-                        accentColor = accentColor,
+                        colorIndex = 3,
                         textColor = textColor,
                         textSecondary = textSecondary,
                         onClick = onNavigateToExperimental
@@ -229,30 +263,26 @@ fun ToolsScreen(
 @Composable
 private fun ToolSection(
     title: String,
+    colorIndex: Int,
     textColor: Color,
     textSecondary: Color,
-    accentColor: Color,
     content: @Composable () -> Unit
 ) {
-    Column {
-        // Section title - bold, larger
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = textColor,
-            letterSpacing = 0.2.sp,
-            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp)
-        )
-
-        // Card
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 20.dp
-        ) {
-            Column {
-                content()
-            }
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 20.dp
+    ) {
+        Column {
+            // Section title
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor,
+                letterSpacing = 0.2.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            content()
         }
     }
 }
@@ -262,49 +292,47 @@ private fun ToolItem(
     icon: ImageVector,
     label: String,
     subtitle: String,
-    accentColor: Color,
+    colorIndex: Int,
     textColor: Color,
     textSecondary: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
+    val bgColor by animateColorAsState(
+        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
         ),
-        label = "toolItemScale"
+        label = "toolItemBg"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 14.dp, horizontal = 16.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon with solid background
+        // Icon with themed background
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(accentColor.copy(alpha = 0.1f)),
+                .background(sectionIconBg(colorIndex)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = accentColor,
+                tint = sectionIconTint(colorIndex),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -320,10 +348,10 @@ private fun ToolItem(
             )
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Normal,
                 color = textSecondary,
-                modifier = Modifier.padding(top = 2.dp)
+                modifier = Modifier.padding(top = 1.dp)
             )
         }
     }
@@ -331,49 +359,47 @@ private fun ToolItem(
 
 @Composable
 private fun ExperimentalEntry(
-    accentColor: Color,
+    colorIndex: Int,
     textColor: Color,
     textSecondary: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
+    val bgColor by animateColorAsState(
+        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
         ),
-        label = "experimentalScale"
+        label = "experimentalBg"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 14.dp, horizontal = 16.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon with solid background
+        // Icon with themed background
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(accentColor.copy(alpha = 0.1f)),
+                .background(sectionIconBg(colorIndex)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.LocationOn,
                 contentDescription = null,
-                tint = accentColor,
+                tint = sectionIconTint(colorIndex),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -392,10 +418,10 @@ private fun ExperimentalEntry(
             text = "Beta",
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            color = accentColor,
+            color = sectionIconTint(colorIndex),
             modifier = Modifier
                 .background(
-                    accentColor.copy(alpha = 0.1f),
+                    sectionIconBg(colorIndex),
                     RoundedCornerShape(4.dp)
                 )
                 .padding(horizontal = 6.dp, vertical = 2.dp)
