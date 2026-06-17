@@ -1,9 +1,15 @@
 package com.diary.app.ui.tools
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,10 +33,15 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Timer
@@ -39,7 +50,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.IconCircle
+import com.diary.app.ui.components.SettingDivider
 
 // Section icon colors — same approach as ProfileScreen
 @Composable
@@ -103,6 +118,10 @@ fun ToolsScreen(
 ) {
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+
+    // Expanded state for each section
+    var expandedSection by remember { mutableStateOf<String?>(null) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -123,134 +142,179 @@ fun ToolsScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 创作与记录 — primary color
-                ToolSection(
+                // 创作与记录
+                CollapsibleSection(
+                    icon = Icons.Default.Edit,
+                    iconBg = sectionIconBg(0),
+                    iconTint = sectionIconTint(0),
                     title = "创作与记录",
-                    colorIndex = 0,
+                    subtitle = "数据统计、媒体库、标签管理",
+                    isExpanded = expandedSection == "create",
+                    onToggle = { expandedSection = if (expandedSection == "create") null else "create" },
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
                 ) {
-                    ToolItem(
+                    ClickableToolRow(
                         icon = Icons.Default.BarChart,
-                        label = "数据统计",
+                        iconBg = sectionIconBg(0),
+                        iconTint = sectionIconTint(0),
+                        title = "数据统计",
                         subtitle = "查看你的写作轨迹",
-                        colorIndex = 0,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToStats
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.Collections,
-                        label = "媒体库",
+                        iconBg = sectionIconBg(0),
+                        iconTint = sectionIconTint(0),
+                        title = "媒体库",
                         subtitle = "浏览所有图片和视频",
-                        colorIndex = 0,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToMediaLibrary
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.Tag,
-                        label = "标签管理",
+                        iconBg = sectionIconBg(0),
+                        iconTint = sectionIconTint(0),
+                        title = "标签管理",
                         subtitle = "整理你的日记分类",
-                        colorIndex = 0,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToTagManagement
                     )
                 }
 
-                // 回忆与探索 — secondary color
-                ToolSection(
+                // 回忆与探索
+                CollapsibleSection(
+                    icon = Icons.Default.Search,
+                    iconBg = sectionIconBg(1),
+                    iconTint = sectionIconTint(1),
                     title = "回忆与探索",
-                    colorIndex = 1,
+                    subtitle = "倒数日、时间胶囊、日记地图、随机回顾",
+                    isExpanded = expandedSection == "explore",
+                    onToggle = { expandedSection = if (expandedSection == "explore") null else "explore" },
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
                 ) {
-                    ToolItem(
+                    ClickableToolRow(
                         icon = Icons.Default.Timer,
-                        label = "倒数日",
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
+                        title = "倒数日",
                         subtitle = "重要日期倒计时",
-                        colorIndex = 1,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToCountDown
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.MarkEmailUnread,
-                        label = "时间胶囊",
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
+                        title = "时间胶囊",
                         subtitle = "给未来的自己写信",
-                        colorIndex = 1,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToTimeCapsule
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.Map,
-                        label = "日记地图",
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
+                        title = "日记地图",
                         subtitle = "在地图上回顾足迹",
-                        colorIndex = 1,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToDiaryMap
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.Shuffle,
-                        label = "随机回顾",
+                        iconBg = sectionIconBg(1),
+                        iconTint = sectionIconTint(1),
+                        title = "随机回顾",
                         subtitle = "随机打开一篇日记",
-                        colorIndex = 1,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToRandom
                     )
                 }
 
-                // AI 伙伴 — tertiary color
-                ToolSection(
+                // AI 伙伴
+                CollapsibleSection(
+                    icon = Icons.Default.Memory,
+                    iconBg = sectionIconBg(2),
+                    iconTint = sectionIconTint(2),
                     title = "AI 伙伴",
-                    colorIndex = 2,
+                    subtitle = "AI 助手、AI 传记",
+                    isExpanded = expandedSection == "ai",
+                    onToggle = { expandedSection = if (expandedSection == "ai") null else "ai" },
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
                 ) {
-                    ToolItem(
+                    ClickableToolRow(
                         icon = Icons.Default.ChatBubbleOutline,
-                        label = "AI 助手",
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "AI 助手",
                         subtitle = "智能写作助手小墨",
-                        colorIndex = 2,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToAiAssistant
                     )
-                    ToolItem(
+                    SettingDivider()
+                    ClickableToolRow(
                         icon = Icons.Default.AutoAwesome,
-                        label = "AI 传记",
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "AI 传记",
                         subtitle = "AI 生成个人传记",
-                        colorIndex = 2,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToBiography
                     )
                 }
 
-                // 其他 — muted primary
-                ToolSection(
+                // 其他
+                CollapsibleSection(
+                    icon = Icons.Default.Notifications,
+                    iconBg = sectionIconBg(3),
+                    iconTint = sectionIconTint(3),
                     title = "其他",
-                    colorIndex = 3,
+                    subtitle = "消息通知、实验性功能",
+                    isExpanded = expandedSection == "other",
+                    onToggle = { expandedSection = if (expandedSection == "other") null else "other" },
                     textColor = textColor,
-                    textSecondary = textSecondary
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
                 ) {
-                    ToolItem(
+                    ClickableToolRow(
                         icon = Icons.Default.Notifications,
-                        label = "消息通知",
+                        iconBg = sectionIconBg(3),
+                        iconTint = sectionIconTint(3),
+                        title = "消息通知",
                         subtitle = "查看系统通知和提醒",
-                        colorIndex = 3,
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToNotifications
                     )
-                    ExperimentalEntry(
-                        colorIndex = 3,
+                    SettingDivider()
+                    ClickableToolRow(
+                        icon = Icons.Default.LocationOn,
+                        iconBg = sectionIconBg(3),
+                        iconTint = sectionIconTint(3),
+                        title = "实验性功能",
+                        subtitle = "Beta",
                         textColor = textColor,
-                        textSecondary = textSecondary,
+                        textTertiary = textTertiary,
                         onClick = onNavigateToExperimental
                     )
                 }
@@ -261,171 +325,112 @@ fun ToolsScreen(
     }
 }
 
+// --- Collapsible Section ---
+
 @Composable
-private fun ToolSection(
+private fun CollapsibleSection(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
     title: String,
-    colorIndex: Int,
+    subtitle: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
     textColor: Color,
     textSecondary: Color,
+    textTertiary: Color,
     content: @Composable () -> Unit
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 20.dp
+        cornerRadius = 20.dp,
+        innerPadding = 16.dp
     ) {
         Column {
-            // Section title
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-                letterSpacing = 0.2.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
+            // Header row
+            val headerInteraction = remember { MutableInteractionSource() }
+            val headerPressed by headerInteraction.collectIsPressedAsState()
+            val headerBg by animateColorAsState(
+                targetValue = if (headerPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
+                animationSpec = tween(durationMillis = 150),
+                label = "headerBg"
             )
-            content()
-        }
-    }
-}
-
-@Composable
-private fun ToolItem(
-    icon: ImageVector,
-    label: String,
-    subtitle: String,
-    colorIndex: Int,
-    textColor: Color,
-    textSecondary: Color,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val bgColor by animateColorAsState(
-        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "toolItemBg"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(color = bgColor)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icon with themed background
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(color = sectionIconBg(colorIndex)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = sectionIconTint(colorIndex),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = textColor
-            )
-            Text(
-                text = subtitle,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Normal,
-                color = textSecondary,
-                modifier = Modifier.padding(top = 1.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExperimentalEntry(
-    colorIndex: Int,
-    textColor: Color,
-    textSecondary: Color,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val bgColor by animateColorAsState(
-        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "experimentalBg"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(color = bgColor)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icon with themed background
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(color = sectionIconBg(colorIndex)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = null,
-                tint = sectionIconTint(colorIndex),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Text(
-            text = "实验性功能",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            color = textColor,
-            modifier = Modifier.weight(1f)
-        )
-
-        Text(
-            text = "Beta",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = sectionIconTint(colorIndex),
-            modifier = Modifier
-                .background(
-                    sectionIconBg(colorIndex),
-                    RoundedCornerShape(4.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(headerBg)
+                    .clickable(interactionSource = headerInteraction, indication = null) { onToggle() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconCircle(icon = icon, bg = iconBg, tint = iconTint)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
+                    Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    tint = textSecondary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
                 )
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        )
+            }
+
+            // Expandable content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+                ) + fadeIn(animationSpec = tween(250, delayMillis = 50)),
+                exit = shrinkVertically(
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+                ) + fadeOut(animationSpec = tween(200))
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    content()
+                }
+            }
+        }
+    }
+}
+
+// --- Clickable Tool Row ---
+
+@Composable
+private fun ClickableToolRow(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    textColor: Color,
+    textTertiary: Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val bgColor by animateColorAsState(
+        targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 150),
+        label = "rowBg"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(color = bgColor)
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconCircle(icon = icon, bg = iconBg, tint = iconTint)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = textColor)
+            Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
+        }
     }
 }
