@@ -7,11 +7,9 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -65,6 +63,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.MapView
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.MarkerOptions
 import com.diary.app.data.RecentLocation
 import java.util.Locale
 
@@ -311,16 +314,8 @@ fun LocationSelector(
 
         // Map picker dialog
         if (showMapPicker) {
-            val mainHandler = Handler(Looper.getMainLooper())
-            var mapWebView by remember { mutableStateOf<WebView?>(null) }
-            DisposableEffect(Unit) {
-                onDispose {
-                    mapWebView?.apply {
-                        stopLoading()
-                        destroy()
-                    }
-                }
-            }
+            var selectedLatLng by remember { mutableStateOf<LatLng?>(null) }
+            var selectedName by remember { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = { showMapPicker = false },
                 title = { Text("地图选点") },
@@ -332,35 +327,54 @@ fun LocationSelector(
                                 .height(400.dp)
                                 .clip(RoundedCornerShape(12.dp))
                         ) {
+                            val mapView = remember { MapView(context) }
+                            DisposableEffect(Unit) {
+                                mapView.onCreate(Bundle())
+                                mapView.onResume()
+                                onDispose {
+                                    mapView.onPause()
+                                    mapView.onDestroy()
+                                }
+                            }
                             AndroidView(
-                                factory = { ctx ->
-                                    WebView(ctx).apply {
-                                        mapWebView = this
-                                        webViewClient = WebViewClient()
-                                        settings.javaScriptEnabled = true
-                                        settings.domStorageEnabled = true
-                                        settings.allowContentAccess = true
-                                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                                        addJavascriptInterface(object {
-                                            @JavascriptInterface
-                                            fun onLocationPicked(lat: Double, lng: Double, name: String) {
-                                                mainHandler.post {
-                                                    onLocationSelected(name, lat, lng)
-                                                    showMapPicker = false
-                                                }
-                                            }
-                                        }, "MapBridge")
-                                        loadUrl("file:///android_asset/map_picker.html")
-                                        if (latitude != null && longitude != null) {
-                                            postDelayed({
-                                                evaluateJavascript("setInitialLocation($latitude, $longitude)", null)
-                                            }, 1500)
-                                        }
+                                factory = { mapView },
+                                update = { mv ->
+                                    val aMap = mv.map
+                                    val initialLatLng = if (latitude != null && longitude != null) {
+                                        LatLng(latitude, longitude)
+                                    } else {
+                                        LatLng(31.23, 121.47) // Shanghai default
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
+                                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialLatLng, 12f))
+
+                                    // Add initial marker if exists
+                                    if (latitude != null && longitude != null) {
+                                        aMap.addMarker(
+                                            MarkerOptions()
+                                                .position(LatLng(latitude, longitude))
+                                                .title(selectedLocation ?: "已选位置")
+                                        )
+                                    }
+
+                                    aMap.setOnMapClickListener { latLng ->
+                                        selectedLatLng = latLng
+                                        selectedName = "${latLng.latitude.toString().take(7)}, ${latLng.longitude.toString().take(7)}"
+                                        aMap.clear()
+                                        aMap.addMarker(
+                                            MarkerOptions()
+                                                .position(latLng)
+                                                .title("选中位置")
+                                        )
+                                    }
+                                }
                             )
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "点击地图选择位置",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         // System map option
                         TextButton(
@@ -391,7 +405,19 @@ fun LocationSelector(
                         }
                     }
                 },
-                confirmButton = {},
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            selectedLatLng?.let { latLng ->
+                                onLocationSelected(selectedName, latLng.latitude, latLng.longitude)
+                            }
+                            showMapPicker = false
+                        },
+                        enabled = selectedLatLng != null
+                    ) {
+                        Text("确认")
+                    }
+                },
                 dismissButton = {
                     TextButton(onClick = { showMapPicker = false }) {
                         Text("取消")

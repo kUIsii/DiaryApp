@@ -63,8 +63,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 26428
-            versionName = "2.64.28-experimental"
+            versionCode = 26429
+            versionName = "2.64.29-experimental"
         }
     }
 
@@ -126,6 +126,9 @@ dependencies {
 
     // Health Connect API
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
+
+    // Amap (高德地图) SDK
+    implementation("com.amap.api:3dmap:latest.integration")
 
     testImplementation("junit:junit:4.13.2")
 

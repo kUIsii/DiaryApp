@@ -1,9 +1,6 @@
 package com.diary.app.ui.map
 
-import android.annotation.SuppressLint
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.os.Bundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
@@ -29,15 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +38,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.MapView
+import com.amap.api.maps.model.BitmapDescriptorFactory
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.LatLngBounds
+import com.amap.api.maps.model.MarkerOptions
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -60,7 +59,6 @@ fun DiaryMapScreen(
     viewModel: MapViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -117,13 +115,9 @@ fun DiaryMapScreen(
                 }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // WebView map
-                        val markersJson = remember(state.markers) {
-                            buildMarkersJson(state.markers)
-                        }
-
-                        MapWebView(
-                            markersJson = markersJson,
+                        // Amap SDK MapView
+                        AmapView(
+                            markers = state.markers,
                             onMarkerClick = { markerId ->
                                 val marker = state.markers.find { it.id == markerId }
                                 viewModel.selectMarker(marker)
@@ -202,90 +196,67 @@ fun DiaryMapScreen(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun MapWebView(
-    markersJson: String,
+private fun AmapView(
+    markers: List<MapMarker>,
     onMarkerClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var webView by remember { mutableStateOf<WebView?>(null) }
+    val mapView = remember { MapView(context) }
 
     DisposableEffect(Unit) {
+        mapView.onCreate(Bundle())
+        mapView.onResume()
+
         onDispose {
-            webView?.apply {
-                stopLoading()
-                destroy()
-            }
+            mapView.onPause()
+            mapView.onDestroy()
         }
     }
 
     AndroidView(
         modifier = modifier,
-        factory = {
-            WebView(context).apply {
-                webView = this
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.allowFileAccess = true
-                settings.allowContentAccess = true
-                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                settings.useWideViewPort = true
-                settings.loadWithOverviewMode = true
+        factory = { mapView },
+        update = { mapView ->
+            val aMap = mapView.map
 
-                addJavascriptInterface(object {
-                    @JavascriptInterface
-                    fun onMarkerClick(id: Long) {
-                        onMarkerClick(id)
-                    }
-                }, "MapBridge")
+            // Clear existing markers
+            aMap.clear()
 
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        view?.evaluateJavascript(
-                            "window.setMarkers($markersJson)",
-                            null
-                        )
-                    }
-                }
+            // Add markers
+            val boundsBuilder = LatLngBounds.Builder()
+            markers.forEach { marker ->
+                val position = LatLng(marker.latitude, marker.longitude)
+                val markerOptions = MarkerOptions()
+                    .position(position)
+                    .title(marker.title)
+                    .snippet(marker.location.ifBlank { null })
 
-                loadUrl("file:///android_asset/diary_map.html")
+                aMap.addMarker(markerOptions)
+                boundsBuilder.include(position)
             }
-        },
-        update = { webView ->
-            webView.evaluateJavascript(
-                "window.setMarkers($markersJson)",
-                null
-            )
+
+            // Move camera to show all markers
+            if (markers.isNotEmpty()) {
+                val bounds = boundsBuilder.build()
+                val padding = 100 // pixels
+                aMap.animateCamera(
+                    CameraUpdateFactory.newLatLngBounds(bounds, padding)
+                )
+            }
+
+            // Set marker click listener
+            aMap.setOnMarkerClickListener { amapMarker ->
+                val clickedMarker = markers.find {
+                    it.latitude == amapMarker.position.latitude &&
+                    it.longitude == amapMarker.position.longitude
+                }
+                clickedMarker?.let { onMarkerClick(it.id) }
+                true
+            }
         }
     )
-}
-
-private fun buildMarkersJson(markers: List<MapMarker>): String {
-    val sb = StringBuilder("[")
-    markers.forEachIndexed { index, marker ->
-        if (index > 0) sb.append(",")
-        sb.append("{")
-        sb.append("\"id\":${marker.id},")
-        sb.append("\"title\":\"${escapeJson(marker.title)}\",")
-        sb.append("\"lat\":${marker.latitude},")
-        sb.append("\"lng\":${marker.longitude},")
-        sb.append("\"location\":\"${escapeJson(marker.location)}\",")
-        sb.append("\"date\":\"${formatDate(marker.createdAt)}\"")
-        sb.append("}")
-    }
-    sb.append("]")
-    return sb.toString()
-}
-
-private fun escapeJson(s: String): String {
-    return s.replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
 }
 
 private fun formatDate(timestamp: Long): String {
