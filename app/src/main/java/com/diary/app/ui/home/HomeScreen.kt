@@ -63,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -121,6 +122,7 @@ fun HomeScreen(
     val tagsMap by viewModel.tagsMap.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val aiInsight by viewModel.aiInsight.collectAsState()
+    val imageMap by viewModel.imageMap.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadInsight()
@@ -156,14 +158,26 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
+                            val hour = java.time.LocalTime.now().hour
+                            val greeting = when {
+                                hour < 6 -> "夜深了"
+                                hour < 9 -> "早上好"
+                                hour < 12 -> "上午好"
+                                hour < 14 -> "中午好"
+                                hour < 18 -> "下午好"
+                                hour < 22 -> "晚上好"
+                                else -> "夜深了"
+                            }
                             Text(
-                                text = "首页",
+                                text = greeting,
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(4.dp))
+                            val today = LocalDate.now()
+                            val dateStr = today.format(DateTimeFormatter.ofPattern("M月d日 EEEE", java.util.Locale.CHINA))
                             Text(
-                                text = "共 ${entryDates.size} 天有记录",
+                                text = "$dateStr · 共 ${entryDates.size} 天有记录",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -294,6 +308,7 @@ fun HomeScreen(
                         EntryCard(
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
+                            imagePath = imageMap[entry.id],
                             isSelected = entry.id in multiSelectState.selectedIds,
                             onClick = {
                                 haptic.click()
@@ -642,6 +657,7 @@ private fun NoEntriesForDate() {
 private fun EntryCard(
     entry: DiaryPreview,
     tags: List<TagInfo>,
+    imagePath: String?,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}
@@ -711,36 +727,83 @@ private fun EntryCard(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // 标题
-                if (entry.title.isNotBlank()) {
-                    Text(
-                        text = entry.title,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        // 标题
+                        if (entry.title.isNotBlank()) {
+                            Text(
+                                text = entry.title,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // 内容预览
+                        if (entry.plainText.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = cleanPreviewText(entry.plainText),
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    // 图片缩略图
+                    if (!imagePath.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val file = java.io.File(imagePath)
+                            if (file.exists()) {
+                                val bitmap = remember(imagePath) {
+                                    try {
+                                        android.graphics.BitmapFactory.decodeFile(imagePath)?.let { bmp ->
+                                            val targetSize = 112
+                                            val scale = maxOf(targetSize.toFloat() / bmp.width, targetSize.toFloat() / bmp.height)
+                                            val w = (bmp.width * scale).toInt()
+                                            val h = (bmp.height * scale).toInt()
+                                            val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, w, h, true)
+                                            val cropped = android.graphics.Bitmap.createBitmap(
+                                                scaled,
+                                                (scaled.width - targetSize) / 2,
+                                                (scaled.height - targetSize) / 2,
+                                                targetSize,
+                                                targetSize
+                                            )
+                                            if (cropped !== bmp) bmp.recycle()
+                                            if (cropped !== scaled) scaled.recycle()
+                                            cropped
+                                        }
+                                    } catch (_: Exception) { null }
+                                }
+                                if (bitmap != null) {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
-                // 内容预览
-                if (entry.plainText.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = cleanPreviewText(entry.plainText),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                // 地点（单独一行，可能较长）
+                // 地点
                 if (!entry.location.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
@@ -758,7 +821,7 @@ private fun EntryCard(
                     }
                 }
 
-                // 心情/天气/标签/时间
+                // 精简底栏：心情 + 标签 + 时间
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -767,49 +830,27 @@ private fun EntryCard(
                 ) {
                     if (entry.moodLevel != null) {
                         val (moodIcon, moodTint) = moodIconForLevel(entry.moodLevel)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = moodIcon,
-                                contentDescription = "心情",
-                                tint = moodTint,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = moodLabelForLevel(entry.moodLevel),
-                                fontSize = 11.sp,
-                                color = moodTint,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Icon(
+                            imageVector = moodIcon,
+                            contentDescription = "心情",
+                            tint = moodTint,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
                     if (entry.weather != null) {
                         val (weatherIcon, weatherTint) = weatherIconFor(entry.weather)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = weatherIcon,
-                                contentDescription = "天气",
-                                tint = weatherTint,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = weatherLabelFor(entry.weather),
-                                fontSize = 11.sp,
-                                color = weatherTint,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = "天气",
+                            tint = weatherTint,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
 
                     if (tags.isNotEmpty()) {
-                        tags.take(2).forEach { tag ->
+                        tags.take(1).forEach { tag ->
                             Text(
                                 text = tag.name,
                                 fontSize = 10.sp,
@@ -820,13 +861,6 @@ private fun EntryCard(
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(tag.color.copy(alpha = 0.1f))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        if (tags.size > 2) {
-                            Text(
-                                text = "+${tags.size - 2}",
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                         }
                     }

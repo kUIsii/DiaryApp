@@ -862,11 +862,11 @@ private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Un
                     if (day != null) {
                         val bgColor = when {
                             day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
-                            day.count == 1 -> primaryColor.copy(alpha = 0.25f)
-                            day.count == 2 -> primaryColor.copy(alpha = 0.45f)
-                            day.count == 3 -> primaryColor.copy(alpha = 0.65f)
-                            day.count == 4 -> primaryColor.copy(alpha = 0.85f)
-                            else -> primaryColor
+                            day.count == 1 -> Color(0xFFC8E6C9) // light green
+                            day.count == 2 -> Color(0xFF81C784) // medium green
+                            day.count == 3 -> Color(0xFF4CAF50) // green
+                            day.count == 4 -> Color(0xFF2E7D32) // dark green
+                            else -> Color(0xFF1B5E20) // deep green
                         }
                         Box(
                             modifier = Modifier
