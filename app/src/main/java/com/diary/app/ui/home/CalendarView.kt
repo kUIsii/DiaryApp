@@ -29,10 +29,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,9 +46,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -75,56 +75,90 @@ fun CalendarView(
 ) {
     val isDark = themeMode().isDark()
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-    var currentWeekStart by remember { mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))) }
+    var currentWeekStart by remember {
+        mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+    }
     val today = remember { LocalDate.now() }
 
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
 
-    // 浅色模式下添加灰色边框
     val borderModifier = if (!isDark) {
         Modifier.border(
             width = 1.dp,
-            color = Color.Gray.copy(alpha = 0.2f),
+            color = Color.Gray.copy(alpha = 0.18f),
             shape = RoundedCornerShape(16.dp)
         )
     } else {
         Modifier
     }
 
+    val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
+        currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
+    } else {
+        currentWeekStart.plusDays(6) >= today
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.9f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .background(
+                if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                else MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
+            )
             .then(borderModifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Title at top
-            Text(
-                text = if (calendarMode == CalendarMode.MONTH) {
-                    "${currentMonth.year}年${currentMonth.monthValue}月"
-                } else {
-                    "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
-                },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = onBackground,
-                textAlign = TextAlign.Center
-            )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (calendarMode == CalendarMode.MONTH) {
+                        "${currentMonth.year}年${currentMonth.monthValue}月"
+                    } else {
+                        "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
+                    },
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onBackground
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ModeToggleButton(
+                        icon = Icons.Default.ViewWeek,
+                        label = "周",
+                        isSelected = calendarMode == CalendarMode.WEEK,
+                        onClick = { onModeChange(CalendarMode.WEEK) }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    ModeToggleButton(
+                        icon = Icons.Default.CalendarViewMonth,
+                        label = "月",
+                        isSelected = calendarMode == CalendarMode.MONTH,
+                        onClick = { onModeChange(CalendarMode.MONTH) }
+                    )
+                }
+            }
 
-            // Day of week headers
+            Spacer(modifier = Modifier.height(10.dp))
+
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("一", "二", "三", "四", "五", "六", "日").forEachIndexed { _, day ->
+                listOf("一", "二", "三", "四", "五", "六", "日").forEach { day ->
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
-                        color = onSurfaceVariant.copy(alpha = 0.5f),
+                        color = onSurfaceVariant.copy(alpha = 0.62f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -132,7 +166,6 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Date grid with swipe gesture and animation
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,12 +180,6 @@ fun CalendarView(
                             onDragEnd = {
                                 val threshold = 48f
                                 if (totalDrag < -threshold) {
-                                    // Swipe left → next
-                                    val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
-                                    } else {
-                                        currentWeekStart.plusDays(6) >= today
-                                    }
                                     if (!isAtCurrent) {
                                         if (calendarMode == CalendarMode.MONTH) {
                                             currentMonth = currentMonth.plusMonths(1)
@@ -161,7 +188,6 @@ fun CalendarView(
                                         }
                                     }
                                 } else if (totalDrag > threshold) {
-                                    // Swipe right → previous
                                     if (calendarMode == CalendarMode.MONTH) {
                                         currentMonth = currentMonth.minusMonths(1)
                                     } else {
@@ -177,14 +203,14 @@ fun CalendarView(
                     transitionSpec = {
                         if (targetState == CalendarMode.WEEK) {
                             (slideInVertically(animationSpec = tween(300)) { height -> height } +
-                                    fadeIn(animationSpec = tween(300))) togetherWith
-                                    (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
-                                            fadeOut(animationSpec = tween(300)))
+                                fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
+                                    fadeOut(animationSpec = tween(300)))
                         } else {
                             (slideInVertically(animationSpec = tween(300)) { height -> -height } +
-                                    fadeIn(animationSpec = tween(300))) togetherWith
-                                    (slideOutVertically(animationSpec = tween(300)) { height -> height } +
-                                            fadeOut(animationSpec = tween(300)))
+                                fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutVertically(animationSpec = tween(300)) { height -> height } +
+                                    fadeOut(animationSpec = tween(300)))
                         }
                     },
                     label = "calendarMode"
@@ -213,21 +239,13 @@ fun CalendarView(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Bottom: left arrow + mode toggle + right arrow
-            val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
-                currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
-            } else {
-                currentWeekStart.plusDays(6) >= today
-            }
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left arrow
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -245,33 +263,19 @@ fun CalendarView(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.ChevronLeft,
-                        contentDescription = "上一个",
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "上一页",
                         tint = onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Mode toggle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ModeToggleButton(
-                        icon = Icons.Default.ViewWeek,
-                        label = "周",
-                        isSelected = calendarMode == CalendarMode.WEEK,
-                        onClick = { onModeChange(CalendarMode.WEEK) }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    ModeToggleButton(
-                        icon = Icons.Default.CalendarViewMonth,
-                        label = "月",
-                        isSelected = calendarMode == CalendarMode.MONTH,
-                        onClick = { onModeChange(CalendarMode.MONTH) }
-                    )
-                }
+                Text(
+                    text = if (calendarMode == CalendarMode.MONTH) "左右滑动切换月份" else "左右滑动切换周",
+                    fontSize = 11.sp,
+                    color = onSurfaceVariant.copy(alpha = 0.72f)
+                )
 
-                // Right arrow
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -292,8 +296,8 @@ fun CalendarView(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "下一个",
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "下一页",
                         tint = onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -394,14 +398,14 @@ private fun ModeToggleButton(
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(999.dp))
             .background(bgColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -409,7 +413,7 @@ private fun ModeToggleButton(
             imageVector = icon,
             contentDescription = label,
             tint = contentColor,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(15.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(

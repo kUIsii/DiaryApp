@@ -1,4 +1,4 @@
-package com.diary.app.ui.navigation
+﻿package com.diary.app.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -138,7 +138,7 @@ private fun subPagePopExitTransition() = slideOutHorizontally(
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
-    object Timeline : Screen("timeline", "时间线", Icons.Default.CalendarMonth)
+    object Timeline : Screen("timeline", "时间轴", Icons.Default.CalendarMonth)
     object Tools : Screen("tools", "工具", Icons.Default.Widgets)
     object Todo : Screen("todo", "待办", Icons.Default.CheckBox)
     object Stats : Screen("stats", "统计", Icons.Default.BarChart)
@@ -153,25 +153,25 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         }
     }
 
-    object Detail : Screen("detail/{diaryId}", "日记详情", Icons.Default.Article) {
+    object Detail : Screen("detail/{diaryId}", "详情", Icons.Default.Article) {
         fun createRoute(diaryId: Long): String = "detail/$diaryId"
     }
 
     object Changelog : Screen("changelog", "更新日志", Icons.Default.History)
-    object TagManagement : Screen("tag_management", "分类管理", Icons.Default.Label)
+    object TagManagement : Screen("tag_management", "标签管理", Icons.Default.Label)
     object Settings : Screen("settings", "设置", Icons.Default.Settings)
     object Backup : Screen("backup", "备份", Icons.Default.Backup)
-    object Favorites : Screen("favorites", "收藏夹", Icons.Default.Favorite)
+    object Favorites : Screen("favorites", "收藏", Icons.Default.Favorite)
     object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Image)
     object Trash : Screen("trash", "回收站", Icons.Default.Delete)
     object CountDown : Screen("countdown", "倒数日", Icons.Default.Timer)
     object TimeCapsule : Screen("time_capsule", "时间胶囊", Icons.Default.Schedule)
-    object CreateCapsule : Screen("create_capsule", "写胶囊", Icons.Default.Schedule)
-    object ReadCapsule : Screen("read_capsule/{capsuleId}", "读胶囊", Icons.Default.Schedule) {
+    object CreateCapsule : Screen("create_capsule", "创建胶囊", Icons.Default.Schedule)
+    object ReadCapsule : Screen("read_capsule/{capsuleId}", "阅读胶囊", Icons.Default.Schedule) {
         fun createRoute(capsuleId: Long): String = "read_capsule/$capsuleId"
     }
-    object Notifications : Screen("notifications", "消息", Icons.Default.Notifications)
-    object AiAssistant : Screen("ai_assistant", "小墨", Icons.Default.AutoAwesome)
+    object Notifications : Screen("notifications", "通知", Icons.Default.Notifications)
+    object AiAssistant : Screen("ai_assistant", "AI 助手", Icons.Default.AutoAwesome)
     object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.CalendarMonth) {
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
@@ -278,7 +278,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
-                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) }
+                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
+                    onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
                 )
             }
             composable(Screen.Timeline.route) {
@@ -307,7 +309,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onSwipeToTimeline = { navigateToBottomRoute(Screen.Timeline.route) },
+                    onSwipeToTodo = { navigateToBottomRoute(Screen.Todo.route) }
                 )
             }
             composable(Screen.Todo.route) {

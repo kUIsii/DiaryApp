@@ -12,8 +12,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -249,7 +248,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HomeHeroSection(
     selectedDate: LocalDate,
@@ -263,9 +261,9 @@ private fun HomeHeroSection(
     val title = when (selectedDate) {
         today -> "今天"
         today.minusDays(1) -> "昨天"
-        else -> selectedDate.format(DateTimeFormatter.ofPattern("M 月 d 日"))
+        else -> selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))
     }
-    val subtitle = selectedDate.format(DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日 · EEEE"))
+    val subtitle = selectedDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日 · EEEE"))
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -312,21 +310,9 @@ private fun HomeHeroSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OverviewMetricCard(
-                        value = stats.total.toString(),
-                        label = "累计日记",
-                        modifier = Modifier.weight(1f)
-                    )
-                    OverviewMetricCard(
-                        value = "${stats.streak} 天",
-                        label = "连续记录",
-                        modifier = Modifier.weight(1f)
-                    )
-                    OverviewMetricCard(
-                        value = stats.thisMonth.toString(),
-                        label = "本月有内容",
-                        modifier = Modifier.weight(1f)
-                    )
+                    OverviewMetricCard(value = stats.total.toString(), label = "累计日记", modifier = Modifier.weight(1f))
+                    OverviewMetricCard(value = "${stats.streak} 天", label = "连续记录", modifier = Modifier.weight(1f))
+                    OverviewMetricCard(value = stats.thisMonth.toString(), label = "本月内容", modifier = Modifier.weight(1f))
                 }
 
                 if (aiInsight != null) {
@@ -394,10 +380,7 @@ private fun HomeHeaderAction(
 
         if (badgeCount > 0) {
             Badge(modifier = Modifier.align(Alignment.TopEnd)) {
-                Text(
-                    text = badgeCount.coerceAtMost(99).toString(),
-                    fontSize = 10.sp
-                )
+                Text(text = badgeCount.coerceAtMost(99).toString(), fontSize = 10.sp)
             }
         }
     }
@@ -418,42 +401,18 @@ private fun CalendarSection(
         innerPadding = 14.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "日期选择",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "先选日期，再查看当天内容",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-                        .padding(4.dp)
-                ) {
-                    CalendarModeChip(
-                        label = "周",
-                        selected = calendarMode == CalendarMode.WEEK,
-                        onClick = { onModeChange(CalendarMode.WEEK) }
-                    )
-                    CalendarModeChip(
-                        label = "月",
-                        selected = calendarMode == CalendarMode.MONTH,
-                        onClick = { onModeChange(CalendarMode.MONTH) }
-                    )
-                }
+            Column {
+                Text(
+                    text = "日期选择",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "先选日期，再查看当天内容",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             CalendarView(
@@ -465,32 +424,6 @@ private fun CalendarSection(
                 onModeChange = onModeChange
             )
         }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun CalendarModeChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                else Color.Transparent
-            )
-            .combinedClickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -507,7 +440,7 @@ private fun SelectedDateHeader(
     val title = when (date) {
         today -> "今天"
         today.minusDays(1) -> "昨天"
-        else -> date.format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE"))
+        else -> date.format(DateTimeFormatter.ofPattern("M月d日 · EEEE"))
     }
 
     if (multiSelectState.isEnabled) {
@@ -646,11 +579,7 @@ private fun HeaderActionButton(
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = contentColor
-        )
+        Text(text = label, fontSize = 11.sp, color = contentColor)
     }
 }
 
@@ -779,7 +708,7 @@ private fun HomeEntryCard(
                     if (!imagePath.isNullOrBlank()) {
                         Spacer(modifier = Modifier.width(12.dp))
                         AsyncImage(
-                            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                            model = ImageRequest.Builder(LocalContext.current)
                                 .data(File(imagePath))
                                 .crossfade(true)
                                 .size(144)
@@ -823,18 +752,10 @@ private fun HomeEntryCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         moodData?.let { mood ->
-                            MetaChip(
-                                icon = mood.icon,
-                                label = moodLabelForLevel(entry.moodLevel),
-                                tint = mood.tint
-                            )
+                            MetaChip(icon = mood.icon, label = moodLabelForLevel(entry.moodLevel), tint = mood.tint)
                         }
                         weatherData?.let { weather ->
-                            MetaChip(
-                                icon = weather.icon,
-                                label = weatherLabelFor(entry.weather),
-                                tint = weather.tint
-                            )
+                            MetaChip(icon = weather.icon, label = weatherLabelFor(entry.weather), tint = weather.tint)
                         }
                         tags.take(2).forEach { tag ->
                             ColorTagChip(tag = tag)
@@ -862,19 +783,9 @@ private fun MetaChip(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(12.dp)
-        )
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(12.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = label,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = tint
-        )
+        Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = tint)
     }
 }
 
@@ -886,12 +797,7 @@ private fun ColorTagChip(tag: TagInfo) {
             .background(tag.color.copy(alpha = 0.10f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = tag.name,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = tag.color
-        )
+        Text(text = tag.name, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = tag.color)
     }
 }
 
@@ -903,11 +809,7 @@ private fun SubtleTextChip(text: String) {
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(text = text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 首页重做预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .header-note { max-width: 860px; }
+    .preview-home .phone-column { width: min(100%, 392px); }
+
+    .focus-note {
+      padding: 14px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+    }
+
+    .focus-note strong {
+      display: block;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .focus-note span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .week-caption {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .week-caption i {
+      text-align: center;
+      color: var(--faint);
+      font-size: 10px;
+      font-style: normal;
+    }
+
+    .calendar-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .calendar-day {
+      min-height: 60px;
+      padding: 8px 0;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      gap: 5px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-size: 11px;
+      background: transparent;
+    }
+
+    .calendar-day strong {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .calendar-day i {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      font-style: normal;
+    }
+
+    .calendar-day.active {
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+
+    .calendar-day.muted strong,
+    .calendar-day.muted {
+      color: var(--faint);
+    }
+
+    .entry-card {
+      padding: 14px;
+    }
+
+    .entry-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .entry-time {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .entry-card h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+
+    .entry-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .entry-media {
+      margin-top: 10px;
+      height: 76px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+        linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--card) 64%, transparent));
+    }
+
+    .meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      min-height: 26px;
+      padding: 0 10px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+    }
+
+    .segmented span {
+      min-height: 28px;
+      padding: 0 12px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .segmented .active {
+      background: var(--text);
+      color: var(--surface);
+    }
+
+    .selection-bar {
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .selection-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .selection-actions .pill {
+      min-height: 32px;
+    }
+
+    .empty-card {
+      padding: 18px 14px;
+      text-align: center;
+    }
+
+    .empty-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .empty-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .fab {
+      position: absolute;
+      right: 18px;
+      bottom: 82px;
+      z-index: 4;
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div class="header-note">
+        <p class="preview-kicker">Home Preview</p>
+        <h1 class="preview-title">首页 A / B 混合方向</h1>
+        <p class="preview-desc">这次不再并排摆很多发散方案，而是收敛到一条更明确的首页路线：保留 A 方案里“先看今天内容”的安静感，同时吸收 B 方案里“日期切换更靠前”的结构优势。下面展示的是同一方向下的三个真实状态，不是三套不同产品。</p>
+      </div>
+      <div class="preview-controls">
+        <button class="control-btn active" type="button" data-mode="light">浅色</button>
+        <button class="control-btn" type="button" data-mode="dark">深色</button>
+        <button class="control-btn active" type="button" data-theme="fog"><span class="theme-swatch" style="--sw:#6c8fb4"></span>雾蓝</button>
+        <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
+        <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
+        <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>沙金</button>
+        <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
+        <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
+      </div>
+    </header>
+
+    <section class="comparison-rail preview-home">
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>默认状态</strong>
+          <span>日期前置，但重点仍是今天的记录内容</span>
+        </div>
+        <div class="phone">
+          <div class="screen home-screen">
+            <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>今天</h1>
+                  <p>2026 年 6 月 20 日 · 星期六 · 先看日历，再看当天日记</p>
+                </div>
+                <div class="top-actions">
+                  <button class="icon-btn" type="button" aria-label="通知"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+                  <button class="icon-btn" type="button" aria-label="AI 助手"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="M2 12h4"/><path d="M18 12h4"/></svg></button>
+                </div>
+              </div>
+
+              <section class="focus-note">
+                <strong>这是最终收敛方向的默认首页</strong>
+                <span>顶部先给周视图和当天状态，AI 提醒只保留一句轻提示。首页的责任仍然是进入“今天这一页”，而不是承担一整块工具总览。</span>
+              </section>
+
+              <div class="section-title">日期选择 <span>周视图固定在首屏</span></div>
+              <section class="card card-pad">
+                <div class="week-caption"><i>一</i><i>二</i><i>三</i><i>四</i><i>五</i><i>六</i><i>日</i></div>
+                <div class="calendar-strip">
+                  <div class="calendar-day"><strong>16</strong><i></i></div>
+                  <div class="calendar-day"><strong>17</strong><i></i></div>
+                  <div class="calendar-day"><strong>18</strong><i></i></div>
+                  <div class="calendar-day"><strong>19</strong></div>
+                  <div class="calendar-day active"><strong>20</strong><i></i></div>
+                  <div class="calendar-day"><strong>21</strong><i></i></div>
+                  <div class="calendar-day"><strong>22</strong></div>
+                </div>
+              </section>
+
+              <div class="section-title">今天的概览 <span>轻量，不做信息墙</span></div>
+              <section class="summary-strip">
+                <div class="summary-stat"><strong>2 篇</strong><span>今天已写下两段记录</span></div>
+                <div class="summary-stat"><strong>13 天</strong><span>连续写作仍在延续</span></div>
+                <div class="summary-stat"><strong>1 图</strong><span>当天带回一张照片</span></div>
+              </section>
+
+              <div class="section-title">AI 提醒 <span>轻提示，不抢主视线</span></div>
+              <section class="card card-pad">
+                <div class="row" style="padding:0;">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="M2 12h4"/><path d="M18 12h4"/></svg></span>
+                  <div class="row-text">
+                    <div class="row-title">最近三天的记录从“推进”转向“整理”</div>
+                    <div class="row-sub">只保留一句对当天阅读有帮助的归纳，不让首页变成第二个 AI 页。</div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="section-title">6 月 20 日 <span>按时间顺序</span></div>
+              <section class="entry-list">
+                <article class="card entry-card">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">22:16</div>
+                      <h3>把首页重新拉回“按日查看”的主结构</h3>
+                    </div>
+                    <span class="pill">平静</span>
+                  </div>
+                  <p>如果首页承载太多功能入口，日期选择这件事就会失去优先级。现在更适合先看今天，再决定要不要往工具页继续深入。</p>
+                  <div class="meta-line"><span class="chip">首页</span><span class="chip">布局</span><span class="chip">晚间</span></div>
+                </article>
+                <article class="card entry-card">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">18:33</div>
+                      <h3>晚饭后走了一圈，回来只想把界面收干净</h3>
+                    </div>
+                    <span class="pill">放松</span>
+                  </div>
+                  <p>有些功能其实很适合留在工具页，而不是继续堆在首页。首页更像一个当天日记的入口与筛选器。</p>
+                  <div class="entry-media"></div>
+                  <div class="meta-line"><span class="chip">散步</span><span class="chip">图片</span></div>
+                </article>
+              </section>
+            </div>
+            <div class="fab"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+            <nav class="bottom-nav">
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>首页</div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>时间线</div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>工具</div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/></svg>待办</div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c2-4 14-4 16 0"/></svg>我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>切换日期状态</strong>
+          <span>沿用同一骨架，只把日期操作再向前推一步</span>
+        </div>
+        <div class="phone">
+          <div class="screen home-screen">
+            <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>今天</h1>
+                  <p>把日期切换做得更清楚，但不拆成另一套页面</p>
+                </div>
+                <span class="pill">当日 2 篇</span>
+              </div>
+
+              <section class="card card-pad">
+                <div class="top-row" style="margin-bottom:12px;">
+                  <div class="title-block">
+                    <h1 style="font-size:20px;">2026 年 6 月</h1>
+                    <p>先选日，再看今天的内容</p>
+                  </div>
+                  <div class="segmented"><span class="active">周</span><span>月</span></div>
+                </div>
+                <div class="week-caption"><i>一</i><i>二</i><i>三</i><i>四</i><i>五</i><i>六</i><i>日</i></div>
+                <div class="calendar-strip">
+                  <div class="calendar-day"><strong>16</strong><i></i></div>
+                  <div class="calendar-day"><strong>17</strong><i></i></div>
+                  <div class="calendar-day"><strong>18</strong><i></i></div>
+                  <div class="calendar-day"><strong>19</strong></div>
+                  <div class="calendar-day active"><strong>20</strong><i></i></div>
+                  <div class="calendar-day"><strong>21</strong><i></i></div>
+                  <div class="calendar-day"><strong>22</strong></div>
+                </div>
+              </section>
+
+              <div class="section-title">选中日期的轻摘要 <span>帮助快速判断要不要继续下看</span></div>
+              <section class="mini-grid">
+                <div class="mini-card"><strong>2 篇</strong><span>今天已写下两段内容</span></div>
+                <div class="mini-card"><strong>428 字</strong><span>主要集中在首页和工具页梳理</span></div>
+              </section>
+
+              <div class="section-title">当天内容 <span>仍是页面主体</span></div>
+              <section class="entry-list">
+                <article class="card entry-card">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">22:16</div>
+                      <h3>首页如果更像入口，就不需要那么多摘要块</h3>
+                    </div>
+                    <span class="pill">专注</span>
+                  </div>
+                  <p>这一版把首页更明确地做成“日期索引 + 当日内容”，让工具能力回到工具页，不再挤在同一屏。</p>
+                  <div class="meta-line"><span class="chip">结构</span><span class="chip">精简</span></div>
+                </article>
+                <article class="card entry-card">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">18:33</div>
+                      <h3>旧照片重新归档后，工具入口反而更清楚了</h3>
+                    </div>
+                    <span class="pill">回顾</span>
+                  </div>
+                  <p>媒体库、标签、地图这些适合放在工具页；首页只需要轻轻提示今天的内容，不必负责所有事情。</p>
+                  <div class="entry-media"></div>
+                  <div class="meta-line"><span class="chip">媒体库</span><span class="chip">整理</span></div>
+                </article>
+              </section>
+            </div>
+            <div class="fab"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+            <nav class="bottom-nav">
+              <div class="nav-item active">首页</div>
+              <div class="nav-item">时间线</div>
+              <div class="nav-item">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>多选与空状态</strong>
+          <span>同一首页方向下的边界状态，不另起新方案</span>
+        </div>
+        <div class="phone">
+          <div class="screen home-screen">
+            <div class="statusbar"><span>21:14</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>6 月 20 日</h1>
+                  <p>保留同样的首页秩序，只让批量操作进入头部</p>
+                </div>
+                <span class="pill">已选 2 篇</span>
+              </div>
+
+              <section class="card selection-bar">
+                <strong style="color:var(--text);font-size:15px;">批量操作</strong>
+                <div class="selection-actions">
+                  <span class="pill">收藏</span>
+                  <span class="pill">删除</span>
+                  <span class="pill">取消</span>
+                </div>
+              </section>
+
+              <div class="section-title">日期选择 <span>多选时仍保持可见</span></div>
+              <section class="card card-pad">
+                <div class="calendar-strip">
+                  <div class="calendar-day"><strong>16</strong><i></i></div>
+                  <div class="calendar-day"><strong>17</strong><i></i></div>
+                  <div class="calendar-day"><strong>18</strong><i></i></div>
+                  <div class="calendar-day"><strong>19</strong></div>
+                  <div class="calendar-day active"><strong>20</strong><i></i></div>
+                  <div class="calendar-day"><strong>21</strong></div>
+                  <div class="calendar-day"><strong>22</strong></div>
+                </div>
+              </section>
+
+              <div class="section-title">已选日记 <span>操作优先，但不改掉首页骨架</span></div>
+              <section class="entry-list">
+                <article class="card entry-card" style="border-color:color-mix(in srgb,var(--accent) 28%,transparent);background:color-mix(in srgb,var(--accent) 8%,var(--card));">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">22:16</div>
+                      <h3>多选态不必像切换成另一个完全不同的页面</h3>
+                    </div>
+                    <span class="pill">已选</span>
+                  </div>
+                  <p>保留原来的首页骨架，只在头部和卡片状态上加强操作语义，会比“整屏进入编辑模式”更自然。</p>
+                  <div class="meta-line"><span class="chip">多选</span><span class="chip">操作</span></div>
+                </article>
+                <article class="card entry-card" style="border-color:color-mix(in srgb,var(--accent) 28%,transparent);background:color-mix(in srgb,var(--accent) 8%,var(--card));">
+                  <div class="entry-top">
+                    <div>
+                      <div class="entry-time">18:33</div>
+                      <h3>空状态也应该和首页气质连贯</h3>
+                    </div>
+                    <span class="pill">已选</span>
+                  </div>
+                  <p>即使当天没有内容，也不要在首页塞一大堆推荐模块。让“新建”继续是最明确的下一步动作。</p>
+                  <div class="meta-line"><span class="chip">空状态</span><span class="chip">新建</span></div>
+                </article>
+              </section>
+
+              <div class="section-title">当天无记录时 <span>保持安静</span></div>
+              <section class="card empty-card">
+                <strong>这一天还没有新的日记</strong>
+                <span>把注意力留给右下角的新建入口，而不是继续堆功能推荐。</span>
+              </section>
+            </div>
+            <div class="fab"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+            <nav class="bottom-nav">
+              <div class="nav-item active">首页</div>
+              <div class="nav-item">时间线</div>
+              <div class="nav-item">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script src="preview-controls.js"></script>
+</body>
+</html>

@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DiaryApp 我的页主题预览</title>
+  <title>DiaryApp 我的页预览</title>
   <link rel="stylesheet" href="ui-preview-system.css">
   <style>
-    .header-note { max-width: 900px; }
+    .header-note { max-width: 920px; }
 
     .profile-note {
       padding: 14px;
@@ -15,15 +15,13 @@
       background: color-mix(in srgb, var(--surface) 92%, transparent);
     }
 
-    .profile-note strong,
-    .hero-copy strong {
+    .profile-note strong {
       display: block;
       color: var(--text);
       font-size: 14px;
     }
 
-    .profile-note span,
-    .hero-copy span {
+    .profile-note span {
       display: block;
       margin-top: 6px;
       color: var(--muted);
@@ -31,7 +29,7 @@
       line-height: 1.65;
     }
 
-    .hero-card {
+    .overview-card {
       padding: 16px;
       border-radius: 24px;
       border: 1px solid var(--line);
@@ -40,109 +38,107 @@
         color-mix(in srgb, var(--surface) 94%, transparent);
     }
 
-    .avatar-wrap {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .avatar {
-      width: 62px;
-      height: 62px;
-      border-radius: 22px;
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, transparent), transparent 62%),
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, transparent), var(--surface));
-      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-      display: grid;
-      place-items: center;
-      color: var(--accent);
-      flex: none;
-    }
-
-    .avatar .icon {
-      width: 28px;
-      height: 28px;
-    }
-
-    .profile-meta strong {
-      display: block;
+    .overview-card h2 {
+      margin: 0;
       color: var(--text);
-      font-size: 18px;
-      line-height: 1.15;
+      font-size: 16px;
+      line-height: 1.3;
+      font-family: inherit;
     }
 
-    .profile-meta span {
-      display: block;
-      margin-top: 6px;
+    .overview-card p {
+      margin: 6px 0 0;
       color: var(--muted);
       font-size: 11px;
-      line-height: 1.55;
+      line-height: 1.65;
     }
 
-    .token-strip {
+    .signal-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
+      margin-top: 14px;
     }
 
-    .token-card {
-      min-height: 76px;
+    .signal-card {
+      min-height: 84px;
       padding: 12px;
       border-radius: 18px;
       border: 1px solid var(--line);
       background: var(--surface);
     }
 
-    .token-card strong {
+    .signal-card strong {
       display: block;
       color: var(--text);
-      font-size: 16px;
+      font-size: 11px;
     }
 
-    .token-card span {
+    .signal-card span {
       display: block;
-      margin-top: 5px;
-      color: var(--faint);
-      font-size: 10px;
-      line-height: 1.5;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
     }
 
-    .palette-row {
+    .overview-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .overview-tag {
+      min-height: 28px;
+      padding: 0 10px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .settings-list .row,
+    .compact-list .row {
+      padding: 12px 14px;
+    }
+
+    .settings-list .row + .row,
+    .compact-list .row + .row {
+      border-top: 1px solid var(--line);
+    }
+
+    .theme-chip-row {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-top: 10px;
+      margin-top: 12px;
+    }
+
+    .theme-chip {
+      min-height: 30px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
     }
 
     .swatch {
-      width: 28px;
-      height: 28px;
-      border-radius: 11px;
-      border: 1px solid var(--line);
-      background: var(--swatch);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
-    }
-
-    .switch {
-      width: 44px;
-      height: 24px;
-      padding: 3px;
+      width: 12px;
+      height: 12px;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--accent) 48%, transparent);
-      border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
-      flex: none;
-    }
-
-    .switch::after {
-      content: "";
-      display: block;
-      width: 18px;
-      height: 18px;
-      margin-left: 18px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 3px 10px rgba(24, 29, 39, 0.16);
+      background: var(--swatch);
     }
 
     .mini-meter {
@@ -172,7 +168,7 @@
     }
 
     .quick-card {
-      min-height: 84px;
+      min-height: 86px;
       padding: 12px;
       border-radius: 18px;
       border: 1px solid var(--line);
@@ -193,70 +189,15 @@
       font-size: 10px;
       line-height: 1.5;
     }
-
-    .safety-list {
-      display: grid;
-      gap: 8px;
-    }
-
-    .safety-item {
-      min-height: 58px;
-      padding: 10px 12px;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .safety-item strong {
-      display: block;
-      color: var(--text);
-      font-size: 12px;
-    }
-
-    .safety-item span {
-      display: block;
-      margin-top: 4px;
-      color: var(--faint);
-      font-size: 10px;
-      line-height: 1.45;
-    }
-
-    .settings-list .row,
-    .compact-list .row {
-      padding: 12px 14px;
-    }
-
-    .settings-list .row + .row,
-    .compact-list .row + .row {
-      border-top: 1px solid var(--line);
-    }
-
-    .hero-copy {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px dashed color-mix(in srgb, var(--line) 90%, transparent);
-    }
   </style>
 </head>
 <body>
   <main class="preview-shell">
     <header class="preview-head">
       <div class="header-note">
-        <p class="preview-kicker">Profile Theme Preview</p>
-        <h1 class="preview-title">“我的”页主题与设置方向</h1>
-        <p class="preview-desc">这组预览围绕 DiaryApp 的“我的”页真实职责展开：主题切换、设置分组、数据管理、提醒、安全和轻度个性化展示。6 个方向继续共用当前预览系统的浅色 / 深色与 7 组主题色控制，只比较入口组织、信息节奏和手机内容真实度，不把它做成后台控制台。</p>
-        <p class="preview-note">建议优先比较 B、E、F 三种方向：它们更适合承接“主题可调 + 设置真实可用”的双重目标。</p>
-        <div class="direction-row">
-          <span class="direction-pill">A 总览型</span>
-          <span class="direction-pill">B 主题工坊型</span>
-          <span class="direction-pill">C 数据与安全型</span>
-          <span class="direction-pill">D 写作人格型</span>
-          <span class="direction-pill">E 分组清单型</span>
-          <span class="direction-pill">F 今日状态型</span>
-        </div>
+        <p class="preview-kicker">Profile Preview</p>
+        <h1 class="preview-title">“我的”页真实方向</h1>
+        <p class="preview-desc">这组预览不再把“我的”页做成主题展示板，而是更贴近当前 `ProfileScreen` 的职责：先看今日状态，再进入外观、数据管理、提醒与安全、更新等分组。主题色和浅深模式继续可切换，但它们只是辅助阅读，不再盖过信息结构本身。</p>
       </div>
       <div class="preview-controls">
         <button class="control-btn active" type="button" data-mode="light">浅色</button>
@@ -265,7 +206,7 @@
         <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
         <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
         <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
-        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>砂金</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>沙金</button>
         <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
         <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
       </div>
@@ -275,75 +216,79 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 A</strong>
-          <span data-direction>总览型</span>
+          <span>最贴近当前 ProfileScreen：今日状态在前，下面接分组</span>
         </div>
         <div class="phone">
-          <div class="screen">
+          <div class="screen profile-screen">
             <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
             <div class="app-content">
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>先看到个人状态，再进入主题、数据与提醒。</p>
+                  <p>先看今天最关键的主题、提醒和安全状态</p>
                 </div>
-                <button class="icon-btn" type="button" aria-label="编辑资料">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                <button class="icon-btn" type="button" aria-label="检查更新">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
                 </button>
               </div>
 
-              <section class="hero-card">
-                <div class="avatar-wrap">
-                  <div class="avatar">
-                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c2-4 14-4 16 0"/></svg>
-                  </div>
-                  <div class="profile-meta">
-                    <strong>陈仕杰</strong>
-                    <span>连续记录 268 天 · 当前主题为雾蓝浅色 · 最近备份于今天 08:20</span>
-                  </div>
+              <section class="overview-card">
+                <h2>今日状态</h2>
+                <p>把最关键的主题、提醒和安全状态放在这里，不让“我的”页先变成说明页。</p>
+                <div class="signal-grid">
+                  <div class="signal-card"><strong>当前主题</strong><span>雾蓝浅色</span></div>
+                  <div class="signal-card"><strong>提醒</strong><span>21:30</span></div>
+                  <div class="signal-card"><strong>应用锁</strong><span>已保护</span></div>
+                </div>
+                <div class="overview-tags">
+                  <span class="overview-tag">浅色模式</span>
+                  <span class="overview-tag">主题适配已生效</span>
+                  <span class="overview-tag">可继续扩展配色</span>
                 </div>
               </section>
 
-              <div class="section-title">本周概览 <span>轻量总览</span></div>
-              <section class="token-strip">
-                <div class="token-card"><strong>17</strong><span>本月有记录天数</span></div>
-                <div class="token-card"><strong>4</strong><span>提醒项目已开启</span></div>
-                <div class="token-card"><strong>2.8 GB</strong><span>已备份数据</span></div>
-              </section>
-
-              <div class="section-title">常用设置 <span>一眼直达</span></div>
+              <div class="section-title">设置分组 <span>和真实页面一致</span></div>
               <section class="card settings-list">
                 <div class="row">
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">主题与外观</div>
-                    <div class="row-sub">主题色、深色模式、字体大小和阅读强度</div>
+                    <div class="row-title">外观</div>
+                    <div class="row-sub">主题模式和字体大小</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb, var(--accent2) 12%, transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
                   <div class="row-text">
                     <div class="row-title">数据管理</div>
-                    <div class="row-sub">备份、导出、恢复和标签整理放在一组</div>
+                    <div class="row-sub">分类管理、备份和回收站</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb, var(--accent3) 12%, transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">提醒与通知</div>
-                    <div class="row-sub">写作提醒、备份提醒和系统通知入口合并</div>
+                    <div class="row-title">提醒</div>
+                    <div class="row-sub">写作提醒和时间设置</div>
                   </div>
-                  <span class="pill">4 项</span>
+                  <span class="pill">21:30</span>
+                </div>
+                <div class="row">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                  <div class="row-text">
+                    <div class="row-title">隐私与安全</div>
+                    <div class="row-sub">生物识别、PIN 和恢复码</div>
+                  </div>
+                  <span class="chev">›</span>
                 </div>
               </section>
             </div>
             <nav class="bottom-nav">
-              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>首页</div>
-              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>时间轴</div>
-              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>工具</div>
-              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/></svg>待办</div>
-              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c2-4 14-4 16 0"/></svg>我的</div>
+              <div class="nav-item">首页</div>
+              <div class="nav-item">时间线</div>
+              <div class="nav-item">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item active">我的</div>
             </nav>
           </div>
         </div>
@@ -352,74 +297,75 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 B</strong>
-          <span data-direction>主题工坊型</span>
+          <span>状态前置，但把主题相关再压缩成首屏高频操作</span>
         </div>
         <div class="phone">
-          <div class="screen">
+          <div class="screen profile-screen">
             <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
             <div class="app-content">
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>把主题能力前置，让切换成本尽量低。</p>
+                  <p>更强调高频主题切换，但仍以状态卡开场</p>
                 </div>
-                <span class="pill">主题优先</span>
+                <span class="pill">高频调节</span>
               </div>
 
-              <section class="profile-note">
-                <strong>更像“主题工坊入口”</strong>
-                <span>先给主题色、浅深模式和阅读强度，再把数据与提醒放到下面。适合用户会频繁换色、调深浅和调整阅读氛围的场景。</span>
+              <section class="overview-card">
+                <h2>今日状态</h2>
+                <p>先告诉用户现在是什么状态，再给最常改的外观入口，而不是上来就放大一整面主题展示。</p>
+                <div class="signal-grid">
+                  <div class="signal-card"><strong>当前主题</strong><span>海潮深色</span></div>
+                  <div class="signal-card"><strong>提醒</strong><span>未开启</span></div>
+                  <div class="signal-card"><strong>应用锁</strong><span>已开启</span></div>
+                </div>
               </section>
 
-              <div class="section-title">当前主题 <span>立即生效</span></div>
+              <div class="section-title">高频外观调节 <span>只保留最常用项</span></div>
               <section class="card card-pad">
-                <div class="top-row" style="margin-bottom:12px;">
+                <div class="row" style="padding:0;">
                   <div class="row-text">
-                    <div class="row-title">雾蓝浅色</div>
-                    <div class="row-sub">中号字体 · 柔和卡片层级 · 编辑器同步纸感背景</div>
+                    <div class="row-title">当前为海潮深色</div>
+                    <div class="row-sub">编辑器、首页和详情页已同步深色模式与配色族</div>
                   </div>
-                  <div class="switch" aria-hidden="true"></div>
+                  <span class="pill">已生效</span>
                 </div>
-                <div class="palette-row">
-                  <span class="swatch" style="--swatch:#6c8fb4"></span>
-                  <span class="swatch" style="--swatch:#789c6d"></span>
-                  <span class="swatch" style="--swatch:#4f89a7"></span>
-                  <span class="swatch" style="--swatch:#c46f62"></span>
-                  <span class="swatch" style="--swatch:#c58a32"></span>
-                  <span class="swatch" style="--swatch:#c4775f"></span>
-                  <span class="swatch" style="--swatch:#4d6aa8"></span>
+                <div class="theme-chip-row">
+                  <span class="theme-chip"><span class="swatch" style="--swatch:#6c8fb4"></span>雾蓝</span>
+                  <span class="theme-chip"><span class="swatch" style="--swatch:#4f89a7"></span>海潮</span>
+                  <span class="theme-chip"><span class="swatch" style="--swatch:#c58a32"></span>沙金</span>
                 </div>
               </section>
 
-              <div class="section-title">阅读调节 <span>一屏完成</span></div>
+              <div class="section-title">阅读强度 <span>仍回到外观组承接</span></div>
               <section class="grid-1">
                 <article class="mini-meter">
-                  <strong>阅读强度</strong>
-                  <p>降低背景装饰和高光存在感，让日志页与详情页更安静。</p>
-                  <div class="progress" style="margin-top:10px;"><i style="--value:58%;"></i></div>
+                  <strong>正文大小</strong>
+                  <p>中号字体，适合当前的深色阅读密度。</p>
+                  <div class="progress" style="margin-top:10px;"><i style="--value:52%;"></i></div>
                 </article>
                 <article class="mini-meter">
-                  <strong>正文大小</strong>
-                  <p>同步影响编辑器、日记详情和导出预览，避免单点调整。</p>
-                  <div class="progress" style="margin-top:10px;"><i style="--value:46%;"></i></div>
+                  <strong>阅读强度</strong>
+                  <p>背景装饰减弱，让日志页比工具页更安静。</p>
+                  <div class="progress" style="margin-top:10px;"><i style="--value:61%;"></i></div>
                 </article>
               </section>
 
-              <div class="section-title">下层入口 <span>真实设置分组</span></div>
-              <section class="card settings-list">
+              <div class="section-title">继续进入 <span>真实设置分组</span></div>
+              <section class="card compact-list">
                 <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">数据与迁移</div>
-                    <div class="row-sub">备份、导出、恢复单独成组，不和外观设置混在一起</div>
+                    <div class="row-title">外观</div>
+                    <div class="row-sub">完整主题页、字体和深浅模式都在这里</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb, var(--accent3) 14%, transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">提醒与安全</div>
-                    <div class="row-sub">写作提醒、应用锁、恢复码和通知权限放在一组</div>
+                    <div class="row-title">数据管理</div>
+                    <div class="row-sub">备份、导出、恢复和回收站</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
@@ -427,7 +373,7 @@
             </div>
             <nav class="bottom-nav">
               <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
+              <div class="nav-item">时间线</div>
               <div class="nav-item">工具</div>
               <div class="nav-item">待办</div>
               <div class="nav-item active">我的</div>
@@ -439,325 +385,81 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 C</strong>
-          <span data-direction>数据与安全型</span>
+          <span>更像长期可维护的分组总目录，状态卡更克制</span>
         </div>
         <div class="phone">
-          <div class="screen">
+          <div class="screen profile-screen">
             <div class="statusbar"><span>21:12</span><span>DiaryApp</span></div>
             <div class="app-content">
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>更像数据与安全中心，但仍保留个人页气质。</p>
+                  <p>适合后续设置项继续增长的目录型版本</p>
                 </div>
-                <button class="icon-btn" type="button" aria-label="安全概览">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <button class="icon-btn" type="button" aria-label="更多说明">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>
                 </button>
-              </div>
-
-              <section class="hero-card">
-                <div class="avatar-wrap">
-                  <div class="avatar">
-                    <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                  </div>
-                  <div class="profile-meta">
-                    <strong>当前保护等级：高</strong>
-                    <span>生物识别开启 · 恢复码已保存 · 异常登录提醒正常</span>
-                  </div>
-                </div>
-              </section>
-
-              <div class="section-title">安全与提醒 <span>高频检查</span></div>
-              <section class="safety-list">
-                <div class="safety-item">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-                  <div class="row-text"><strong>应用锁</strong><span>PIN + 生物识别双开，30 秒自动锁定</span></div>
-                  <span class="pill">已开</span>
-                </div>
-                <div class="safety-item">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-                  <div class="row-text"><strong>提醒中心</strong><span>写作提醒 2 项，备份提醒 1 项，系统通知状态正常</span></div>
-                  <span class="pill">3 项</span>
-                </div>
-                <div class="safety-item">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
-                  <div class="row-text"><strong>数据恢复码</strong><span>8 组单词已保存，可重新生成新的恢复组</span></div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-
-              <div class="section-title">数据管理 <span>真实工具区</span></div>
-              <section class="card settings-list">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">本地备份与导出</div>
-                    <div class="row-sub">2.8 GB 已备份，支持 PDF / HTML / Markdown 导出</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb, var(--accent2) 12%, transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">标签与分类</div>
-                    <div class="row-sub">合并重复标签、整理颜色和批量维护元数据</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item active">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label">
-          <strong>方案 D</strong>
-          <span data-direction>写作人格型</span>
-        </div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>22:06</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>我的</h1>
-                  <p>更像个人工作台封面，但仍保留真实设置路径。</p>
-                </div>
-                <span class="pill">人格感</span>
-              </div>
-
-              <section class="hero-card">
-                <div class="row" style="padding:0;">
-                  <div class="row-text">
-                    <div class="row-title">今天的个人页更强调“当前状态 + 写作偏好”</div>
-                    <div class="row-sub">主题已切到海潮深色，最近一次备份成功，提醒与安全状态都能在这一屏快速确认。</div>
-                  </div>
-                </div>
-                <div class="hero-copy">
-                  <strong>最近偏好</strong>
-                  <span>夜间写作 · 中号正文字体 · 阅读强度 58% · 卡片层级偏轻</span>
-                </div>
-              </section>
-
-              <div class="section-title">当下状态 <span>仍然对应真实设置</span></div>
-              <section class="quick-grid">
-                <article class="quick-card">
-                  <strong>主题与阅读</strong>
-                  <span>海潮深色，编辑器纸感背景减弱，适合夜间阅读。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>提醒计划</strong>
-                  <span>晚间回顾开启，明早 08:30 会推送写作提醒。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>备份状态</strong>
-                  <span>今天 08:20 成功备份，本周未出现冲突记录。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>应用锁</strong>
-                  <span>离开 30 秒自动上锁，恢复码已确认可用。</span>
-                </article>
-              </section>
-
-              <div class="section-title">继续调整 <span>跳到二级页</span></div>
-              <section class="card compact-list">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">外观与主题</div>
-                    <div class="row-sub">颜色、浅深模式、字体和背景纹理</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">提醒与安全</div>
-                    <div class="row-sub">应用锁、提醒计划、异常提示和权限检查</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item active">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label">
-          <strong>方案 E</strong>
-          <span data-direction>分组清单型</span>
-        </div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>8:58</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>我的</h1>
-                  <p>更像设置分组总目录，适合长期稳定使用。</p>
-                </div>
-                <span class="pill">目录型</span>
               </div>
 
               <section class="profile-note">
-                <strong>把“我的”页做成真正可扫读的目录</strong>
-                <span>首屏不塞太多个性化卡片，而是先明确 5 组真实入口。适合产品成熟期，也最利于后续新增条目时保持秩序。</span>
+                <strong>这版最像长期稳定的真实产品页</strong>
+                <span>顶部仍然先给状态，但首屏不再塞很多个性化块，而是迅速进入可维护的设置分组。适合未来继续增加更新、实验功能和更多数据项。</span>
               </section>
 
-              <div class="section-title">设置分组 <span>真实可维护</span></div>
+              <div class="section-title">状态摘要 <span>保留，但不抢结构</span></div>
+              <section class="summary-strip">
+                <div class="summary-stat"><strong>雾蓝</strong><span>当前主题族</span></div>
+                <div class="summary-stat"><strong>21:30</strong><span>提醒时间</span></div>
+                <div class="summary-stat"><strong>已保护</strong><span>应用锁状态</span></div>
+              </section>
+
+              <div class="section-title">设置分组 <span>和真实代码职责更贴近</span></div>
               <section class="card settings-list">
                 <div class="row">
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">主题与外观</div>
-                    <div class="row-sub">主题色、深色模式、字体、背景、阅读强度</div>
+                    <div class="row-title">外观</div>
+                    <div class="row-sub">主题模式、字体大小、阅读强度</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">数据与导出</div>
-                    <div class="row-sub">本地备份、云端迁移、恢复、导出、存储占用</div>
+                    <div class="row-title">数据管理</div>
+                    <div class="row-sub">分类管理、收藏夹、回收站、备份</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">提醒与安全</div>
-                    <div class="row-sub">应用锁、恢复码、通知权限、提醒计划</div>
+                    <div class="row-title">提醒</div>
+                    <div class="row-sub">时间开关、通知权限和提醒计划</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span>
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">标签与分类</div>
-                    <div class="row-sub">重复标签合并、颜色整理、默认分类管理</div>
+                    <div class="row-title">隐私与安全</div>
+                    <div class="row-sub">应用锁、恢复码、权限与异常提示</div>
                   </div>
                   <span class="chev">›</span>
                 </div>
                 <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span>
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
                   <div class="row-text">
-                    <div class="row-title">关于与实验功能</div>
-                    <div class="row-sub">版本说明、反馈、实验功能开关与风险提示</div>
+                    <div class="row-title">更新与版本</div>
+                    <div class="row-sub">检查更新、版本说明和实验功能入口</div>
                   </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-
-              <div class="section-title">状态摘要 <span>保留一点温度</span></div>
-              <section class="token-strip">
-                <div class="token-card"><strong>08:20</strong><span>最近备份时间</span></div>
-                <div class="token-card"><strong>3 项</strong><span>已开启提醒</span></div>
-                <div class="token-card"><strong>深色</strong><span>当前模式</span></div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item active">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label">
-          <strong>方案 F</strong>
-          <span data-direction>今日状态型</span>
-        </div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>23:08</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>我的</h1>
-                  <p>把当前状态、下一步和真实设置放在同一条阅读线上。</p>
-                </div>
-                <button class="icon-btn" type="button" aria-label="切换主题">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg>
-                </button>
-              </div>
-
-              <section class="hero-card">
-                <div class="row" style="padding:0;">
-                  <div class="row-text">
-                    <div class="row-title">今天的重心放在“夜间回顾 + 主题安静化”</div>
-                    <div class="row-sub">墨蓝深色已开启，编辑器对比度提高，提醒会在 23:30 询问是否补一段日记总结。</div>
-                  </div>
-                </div>
-                <div class="meta-line">
-                  <span class="chip">墨蓝深色</span>
-                  <span class="chip">已备份</span>
-                  <span class="chip">夜间提醒</span>
-                </div>
-              </section>
-
-              <div class="section-title">当前可调 <span>只放高频项</span></div>
-              <section class="quick-grid">
-                <article class="quick-card">
-                  <strong>主题色切换</strong>
-                  <span>保留当前主题、最近使用和进入完整主题页的入口。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>深浅模式</strong>
-                  <span>跟随系统或手动切换，影响首页、编辑器和详情页。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>正文大小</strong>
-                  <span>小 / 中 / 大三级，避免“我的”页也变成复杂调参板。</span>
-                </article>
-                <article class="quick-card">
-                  <strong>提醒计划</strong>
-                  <span>夜间回顾已开，周末晨间提醒保持关闭。</span>
-                </article>
-              </section>
-
-              <div class="section-title">继续进入 <span>真实功能分组</span></div>
-              <section class="card compact-list">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">数据与恢复</div>
-                    <div class="row-sub">备份、恢复、导出与空间占用管理</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">提醒与安全</div>
-                    <div class="row-sub">应用锁、通知权限、恢复码和异常提示</div>
-                  </div>
-                  <span class="chev">›</span>
+                  <span class="pill">v2.64</span>
                 </div>
               </section>
             </div>
             <nav class="bottom-nav">
               <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
+              <div class="nav-item">时间线</div>
               <div class="nav-item">工具</div>
               <div class="nav-item">待办</div>
               <div class="nav-item active">我的</div>
