@@ -196,7 +196,23 @@ fun TimelineScreen(
     }
 
     GradientBackground {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(onMainScreenSwipe) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            totalDrag += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            onMainScreenSwipe?.invoke(totalDrag)
+                        }
+                    )
+                }
+        ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -206,19 +222,6 @@ fun TimelineScreen(
                 item(key = "header") {
                     Column(modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .pointerInput(onMainScreenSwipe) {
-                            var totalDrag = 0f
-                            detectHorizontalDragGestures(
-                                onDragStart = { totalDrag = 0f },
-                                onHorizontalDrag = { change, dragAmount ->
-                                    totalDrag += dragAmount
-                                    change.consume()
-                                },
-                                onDragEnd = {
-                                    onMainScreenSwipe?.invoke(totalDrag)
-                                }
-                            )
-                        }
                     ) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(

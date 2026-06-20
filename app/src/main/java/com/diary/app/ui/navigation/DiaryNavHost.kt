@@ -332,7 +332,17 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
-                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) }
+                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
+                    onMainScreenSwipe = { dragAmount ->
+                        val targetRoute = resolveMainScreenSwipeTarget(
+                            currentRoute = Screen.Profile.route,
+                            totalDrag = dragAmount,
+                            enabled = true
+                        )
+                        if (targetRoute != null) {
+                            navigateToBottomRoute(targetRoute)
+                        }
+                    }
                 )
             }
 

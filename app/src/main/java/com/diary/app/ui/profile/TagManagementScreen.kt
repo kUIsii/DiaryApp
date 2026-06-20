@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +52,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,8 +101,7 @@ fun TagManagementScreen(
                     TagOverviewCard(
                         totalCount = allTags.size,
                         customCount = allTags.count { !it.isPreset },
-                        presetCount = allTags.count { it.isPreset },
-                        onCreate = { showCreateDialog = true }
+                        presetCount = allTags.count { it.isPreset }
                     )
                 }
 
@@ -243,8 +245,7 @@ private fun TagHeader(
 private fun TagOverviewCard(
     totalCount: Int,
     customCount: Int,
-    presetCount: Int,
-    onCreate: () -> Unit
+    presetCount: Int
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -257,7 +258,6 @@ private fun TagOverviewCard(
                 OverviewPill(text = "$customCount 个自定义")
                 OverviewPill(text = "$presetCount 个预设")
             }
-            AddTagRow(onClick = onCreate)
         }
     }
 }
@@ -434,29 +434,104 @@ private fun TagEditDialog(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    presetColors.chunked(6).forEach { chunk ->
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            chunk.forEach { color ->
-                                val isSelected = color == selectedColor
+                // Hue wheel - arranged in a circle
+                val hueStops = listOf(
+                    0f, 30f, 60f, 90f, 120f, 150f,
+                    180f, 210f, 240f, 270f, 300f, 330f
+                )
+                val selectedHsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(selectedColor.toInt(), selectedHsv)
+                val selectedHue = selectedHsv[0]
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val ringSize = 140.dp
+                    val dotSize = 28.dp
+                    Box(modifier = Modifier.size(ringSize)) {
+                        hueStops.forEachIndexed { index, hue ->
+                            val angleRad = Math.toRadians((hue - 90f).toDouble())
+                            val radiusDp = ringSize / 2 - dotSize / 2
+                            val cosVal = kotlin.math.cos(angleRad).toFloat()
+                            val sinVal = kotlin.math.sin(angleRad).toFloat()
+                            val x = radiusDp * cosVal
+                            val y = radiusDp * sinVal
+                            val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.85f, 0.95f)))
+                            val isHueSelected = kotlin.math.abs(hue - selectedHue) < 15f
+                            Box(
+                                modifier = Modifier
+                                    .size(dotSize)
+                                    .offset { IntOffset(x.roundToPx(), y.roundToPx()) }
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isHueSelected) 2.5.dp else 0.dp,
+                                        color = if (isHueSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        selectedColor = android.graphics.Color.HSVToColor(
+                                            floatArrayOf(hue, 0.85f, 0.95f)
+                                        ).toLong() and 0xFFFFFFFFL
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isHueSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.9f))
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Saturation/lightness variants for selected hue
+                Text(
+                    text = "深浅",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                val satVariants = listOf(0.3f, 0.5f, 0.7f, 0.85f, 1.0f)
+                val brightVariants = listOf(0.95f, 0.85f, 0.7f, 0.55f, 0.4f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    satVariants.zip(brightVariants).forEach { (sat, bri) ->
+                        val variantColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(selectedHue, sat, bri)))
+                        val isSelected = variantColor == Color(selectedColor)
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(variantColor)
+                                .border(
+                                    width = if (isSelected) 2.dp else 0.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    selectedColor = android.graphics.Color.HSVToColor(
+                                        floatArrayOf(selectedHue, sat, bri)
+                                    ).toLong() and 0xFFFFFFFFL
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp)
+                                        .size(10.dp)
                                         .clip(CircleShape)
-                                        .background(Color(color))
-                                        .clickable { selectedColor = color }
-                                        .padding(2.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isSelected) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.95f))
-                                        )
-                                    }
-                                }
+                                        .background(Color.White.copy(alpha = 0.9f))
+                                )
                             }
                         }
                     }

@@ -25,6 +25,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -93,6 +94,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -171,7 +173,8 @@ fun ProfileScreen(
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
-    onNavigateToBackup: () -> Unit = {}
+    onNavigateToBackup: () -> Unit = {},
+    onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? DiaryApplication ?: return
@@ -187,9 +190,12 @@ fun ProfileScreen(
     var isForceUpdate by remember { mutableStateOf(false) }
     val fontSizeOptions = listOf(
         FontSizeOption("tiny", "极小", 10),
+        FontSizeOption("smaller", "较小", 12),
         FontSizeOption("small", "小", 14),
+        FontSizeOption("medium_small", "中小", 15),
         FontSizeOption("medium", "中", 16),
         FontSizeOption("large", "大", 18),
+        FontSizeOption("extra_large", "特大", 20),
     )
     var currentFontSizeKey by remember {
         mutableStateOf(
@@ -313,19 +319,25 @@ fun ProfileScreen(
 
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(expandedSection) {
-        if (expandedSection != null) {
-            delay(300)
-            scrollState.animateScrollTo(scrollState.maxValue)
-        }
-    }
-
     GradientBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .pointerInput(onMainScreenSwipe) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            totalDrag += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            onMainScreenSwipe?.invoke(totalDrag)
+                        }
+                    )
+                },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(48.dp))

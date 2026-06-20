@@ -113,14 +113,20 @@ internal fun EditorToolbar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Hide toolbar button
+            // Collapse category or hide toolbar
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "收起工具栏",
+                contentDescription = if (activeCategory >= 0) "收起选项" else "收起工具栏",
                 tint = textColor.copy(alpha = 0.6f),
                 modifier = Modifier
                     .size(22.dp)
-                    .clickable { onHideToolbar() }
+                    .clickable {
+                        if (activeCategory >= 0) {
+                            onCategoryChange(-1)
+                        } else {
+                            onHideToolbar()
+                        }
+                    }
             )
 
             Spacer(modifier = Modifier.weight(1f))

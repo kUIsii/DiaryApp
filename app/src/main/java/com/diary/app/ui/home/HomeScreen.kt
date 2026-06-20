@@ -29,11 +29,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -123,7 +124,23 @@ fun HomeScreen(
     }
 
     GradientBackground {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(onMainScreenSwipe) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            totalDrag += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            onMainScreenSwipe?.invoke(totalDrag)
+                        }
+                    )
+                }
+        ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -144,8 +161,7 @@ fun HomeScreen(
                         onAiClick = {
                             haptic.click()
                             onNavigateToAiAssistant()
-                        },
-                        onSwipe = onMainScreenSwipe
+                        }
                     )
                 }
 
@@ -260,31 +276,22 @@ private fun HomeHeroSection(
     unreadCount: Int,
     aiInsight: AiInsight?,
     onNotificationsClick: () -> Unit,
-    onAiClick: () -> Unit,
-    onSwipe: ((Float) -> Unit)? = null
+    onAiClick: () -> Unit
 ) {
-    val today = LocalDate.now()
-    val title = when (selectedDate) {
-        today -> "今天"
-        today.minusDays(1) -> "昨天"
-        else -> selectedDate.format(DateTimeFormatter.ofPattern("M月d日"))
+    val hour = java.time.LocalTime.now().hour
+    val greeting = when {
+        hour < 6 -> "夜深了"
+        hour < 9 -> "早上好"
+        hour < 12 -> "上午好"
+        hour < 14 -> "中午好"
+        hour < 18 -> "下午好"
+        hour < 22 -> "晚上好"
+        else -> "夜深了"
     }
-    val subtitle = selectedDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日 · EEEE"))
+    val today = LocalDate.now()
+    val dateStr = today.format(DateTimeFormatter.ofPattern("M月d日 EEEE", java.util.Locale.CHINA))
 
     Column(
-        modifier = Modifier.pointerInput(onSwipe) {
-            var totalDrag = 0f
-            detectHorizontalDragGestures(
-                onDragStart = { totalDrag = 0f },
-                onHorizontalDrag = { change, dragAmount ->
-                    totalDrag += dragAmount
-                    change.consume()
-                },
-                onDragEnd = {
-                    onSwipe?.invoke(totalDrag)
-                }
-            )
-        },
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
@@ -293,14 +300,14 @@ private fun HomeHeroSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = greeting,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = subtitle,
+                    text = "$dateStr · 共 ${stats.total} 篇日记",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -321,50 +328,61 @@ private fun HomeHeroSection(
             }
         }
 
-        GlassCard(
+        // Compact stats row
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 22.dp,
-            innerPadding = 12.dp
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OverviewMetricCard(value = stats.total.toString(), label = "累计日记", modifier = Modifier.weight(1f))
-                    OverviewMetricCard(value = "${stats.streak} 天", label = "连续记录", modifier = Modifier.weight(1f))
-                    OverviewMetricCard(value = stats.thisMonth.toString(), label = "本月内容", modifier = Modifier.weight(1f))
-                }
-
-                HomeInsightCard(insight = aiInsight, compact = true)
+            CompactStatChip(
+                icon = Icons.Default.Edit,
+                text = "连续 ${stats.streak} 天",
+                modifier = Modifier.weight(1f)
+            )
+            CompactStatChip(
+                icon = Icons.Default.CalendarMonth,
+                text = "本月 ${stats.thisMonth} 篇",
+                modifier = Modifier.weight(1f)
+            )
+            if (aiInsight != null) {
+                CompactStatChip(
+                    icon = Icons.Default.AutoAwesome,
+                    text = aiInsight.text.take(10),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun OverviewMetricCard(
-    value: String,
-    label: String,
+private fun CompactStatChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f))
-            .padding(horizontal = 10.dp, vertical = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = value,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(14.dp)
             )
             Text(
-                text = label,
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
             )
         }
     }
