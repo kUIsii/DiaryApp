@@ -13,7 +13,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -170,16 +170,16 @@ fun CalendarView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .pointerInput(calendarMode) {
-                        var totalDrag = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { totalDrag = 0f },
-                            onHorizontalDrag = { change, dragAmount ->
-                                totalDrag += dragAmount
+                        var totalDragX = 0f
+                        detectDragGestures(
+                            onDragStart = { totalDragX = 0f },
+                            onDrag = { change, dragAmount ->
+                                totalDragX += dragAmount.x
                                 change.consume()
                             },
                             onDragEnd = {
-                                val threshold = 48f
-                                if (totalDrag < -threshold) {
+                                val threshold = 40f
+                                if (totalDragX < -threshold) {
                                     if (!isAtCurrent) {
                                         if (calendarMode == CalendarMode.MONTH) {
                                             currentMonth = currentMonth.plusMonths(1)
@@ -187,7 +187,7 @@ fun CalendarView(
                                             currentWeekStart = currentWeekStart.plusWeeks(1)
                                         }
                                     }
-                                } else if (totalDrag > threshold) {
+                                } else if (totalDragX > threshold) {
                                     if (calendarMode == CalendarMode.MONTH) {
                                         currentMonth = currentMonth.minusMonths(1)
                                     } else {

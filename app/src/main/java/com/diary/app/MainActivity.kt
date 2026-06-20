@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -35,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,6 +57,7 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.lock.PinEntryScreen
 import com.diary.app.ui.navigation.DiaryNavHost
 import com.diary.app.ui.theme.DiaryAppTheme
+import com.diary.app.ui.theme.getFontScale
 import com.diary.app.ui.theme.isDarkStatic
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
@@ -73,8 +76,19 @@ class MainActivity : FragmentActivity() {
         val app = application as DiaryApplication
         setContent {
             val themeMode by app.themeMode.collectAsState()
+            var fontScale by remember { mutableFloatStateOf(getFontScale(this)) }
+            DisposableEffect(this) {
+                val prefs = getSharedPreferences("diary_prefs", MODE_PRIVATE)
+                val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == "app_font_size" || key == "editor_font_size") {
+                        fontScale = getFontScale(this@MainActivity)
+                    }
+                }
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
 
-            DiaryAppTheme(themeMode = themeMode) {
+            DiaryAppTheme(themeMode = themeMode, fontScaleOverride = fontScale) {
                 val context = LocalContext.current
                 val activity = this@MainActivity
                 val scope = rememberCoroutineScope()

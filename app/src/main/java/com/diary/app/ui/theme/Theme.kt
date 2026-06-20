@@ -498,6 +498,7 @@ private val PureDarkExtendedColors = ExtendedColors(
 @Composable
 fun DiaryAppTheme(
     themeMode: ThemeMode = ThemeMode.PURE_LIGHT,
+    fontScaleOverride: Float? = null,
     content: @Composable () -> Unit
 ) {
     val isDark = themeMode.isDark()
@@ -536,7 +537,7 @@ fun DiaryAppTheme(
     }
 
     val context = LocalContext.current
-    val fontScale = getFontScale(context)
+    val fontScale = fontScaleOverride ?: getFontScale(context)
 
     val view = LocalView.current
     if (!view.isInEditMode) {

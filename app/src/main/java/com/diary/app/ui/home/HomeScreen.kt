@@ -125,7 +125,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -266,7 +266,7 @@ private fun HomeHeroSection(
     }
     val subtitle = selectedDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日 · EEEE"))
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top
@@ -274,7 +274,7 @@ private fun HomeHeroSection(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    fontSize = 30.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -294,7 +294,7 @@ private fun HomeHeroSection(
                     onClick = onNotificationsClick
                 )
                 HomeHeaderAction(
-                    icon = Icons.Default.Psychology,
+                    icon = Icons.Default.ChatBubbleOutline,
                     contentDescription = "AI 助手",
                     onClick = onAiClick
                 )
@@ -303,10 +303,10 @@ private fun HomeHeroSection(
 
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 24.dp,
-            innerPadding = 16.dp
+            cornerRadius = 22.dp,
+            innerPadding = 12.dp
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -330,20 +330,20 @@ private fun OverviewMetricCard(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f))
-            .padding(horizontal = 12.dp, vertical = 14.dp)
+            .padding(horizontal = 10.dp, vertical = 10.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = value,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -365,8 +365,8 @@ private fun HomeHeaderAction(
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                 .border(
-                    width = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
                     shape = CircleShape
                 )
                 .combinedClickable(onClick = onClick),
@@ -400,12 +400,12 @@ private fun CalendarSection(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 22.dp,
-        innerPadding = 14.dp
+        innerPadding = 12.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = "日期选择",
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -442,7 +442,7 @@ private fun SelectedDateHeader(
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 18.dp,
-            innerPadding = 14.dp
+            innerPadding = 12.dp
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -450,7 +450,7 @@ private fun SelectedDateHeader(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(32.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
@@ -468,7 +468,7 @@ private fun SelectedDateHeader(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "已选 ${multiSelectState.selectedCount} 篇",
-                        fontSize = 17.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -640,9 +640,9 @@ private fun HomeEntryCard(
                     onLongClick = onLongClick
                 ),
             cornerRadius = 18.dp,
-            innerPadding = 14.dp
+            innerPadding = 12.dp
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (isSelected) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -676,18 +676,18 @@ private fun HomeEntryCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = entry.title.ifBlank { "未命名日记" },
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         if (entry.plainText.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = cleanPreviewText(entry.plainText),
-                                fontSize = 13.sp,
-                                lineHeight = 20.sp,
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis

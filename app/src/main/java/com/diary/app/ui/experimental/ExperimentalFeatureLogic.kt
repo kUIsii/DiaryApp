@@ -4,7 +4,7 @@ import com.diary.app.data.TodoItem
 
 const val MAIN_SCREEN_SWIPE_THRESHOLD = 48f
 
-val mainScreenRoutes = listOf("home", "timeline", "todo", "profile")
+val mainScreenRoutes = listOf("home", "timeline", "tools", "todo", "profile")
 
 data class ExperimentalFeaturesState(
     val mainScreenSwipeEnabled: Boolean = false,
