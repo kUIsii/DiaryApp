@@ -26,15 +26,15 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tag
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Icon
@@ -59,20 +59,19 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
 
-private data class FocusTool(
+private data class ToolEntry(
     val title: String,
     val subtitle: String,
+    val meta: String,
     val icon: ImageVector,
-    val iconBg: Color,
-    val iconTint: Color,
+    val paletteIndex: Int,
     val onClick: () -> Unit
 )
 
-private data class ToolGroup(
+private data class ToolSection(
     val title: String,
     val subtitle: String,
-    val badge: String,
-    val items: List<FocusTool>
+    val items: List<ToolEntry>
 )
 
 @Composable
@@ -91,75 +90,80 @@ fun ToolsScreen(
     onSwipeToTimeline: (() -> Unit)? = null,
     onSwipeToTodo: (() -> Unit)? = null
 ) {
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
-
-    val toolsToRebuild = listOf(
-        FocusTool(
+    val pinnedTools = listOf(
+        ToolEntry(
             title = "标签管理",
-            subtitle = "整理分类，减少后续检索负担",
+            subtitle = "先处理命名、分类和重复标签",
+            meta = "这轮重做的重点入口",
             icon = Icons.Default.Tag,
-            iconBg = sectionIconBg(0),
-            iconTint = sectionIconTint(0),
+            paletteIndex = 0,
             onClick = onNavigateToTagManagement
         ),
-        FocusTool(
+        ToolEntry(
             title = "倒数日",
-            subtitle = "把纪念日和节点放进真正可执行的列表",
-            icon = Icons.Default.Timer,
-            iconBg = sectionIconBg(1),
-            iconTint = sectionIconTint(1),
+            subtitle = "继续整理纪念日、计划日和提醒",
+            meta = "更适合做成真实列表页",
+            icon = Icons.Default.Event,
+            paletteIndex = 1,
             onClick = onNavigateToCountDown
         ),
-        FocusTool(
+        ToolEntry(
             title = "日记地图",
-            subtitle = "把位置回忆整理成地点目录",
-            icon = Icons.Default.Map,
-            iconBg = sectionIconBg(2),
-            iconTint = sectionIconTint(2),
+            subtitle = "按地点回顾记录，不把地图做成展示页",
+            meta = "地点目录和回顾路线都放这里",
+            icon = Icons.Default.Explore,
+            paletteIndex = 2,
             onClick = onNavigateToDiaryMap
         )
     )
 
-    val primaryTools = listOf(
-        FocusTool("标签管理", "日记分类与标签维护", Icons.Default.Tag, sectionIconBg(0), sectionIconTint(0), onNavigateToTagManagement),
-        FocusTool("倒数日", "重要日期与后续动作", Icons.Default.Timer, sectionIconBg(1), sectionIconTint(1), onNavigateToCountDown),
-        FocusTool("日记地图", "地点目录与位置回顾", Icons.Default.Map, sectionIconBg(2), sectionIconTint(2), onNavigateToDiaryMap),
-        FocusTool("AI 助手", "围绕记录内容做即时协助", Icons.Default.ChatBubbleOutline, sectionIconBg(3), sectionIconTint(3), onNavigateToAiAssistant)
+    val recentTools = listOf(
+        ToolEntry(
+            title = "标签管理",
+            subtitle = "刚整理过 3 个重复标签",
+            meta = "继续把颜色和命名统一掉",
+            icon = Icons.Default.Label,
+            paletteIndex = 0,
+            onClick = onNavigateToTagManagement
+        ),
+        ToolEntry(
+            title = "倒数日",
+            subtitle = "最近节点在 2 天后",
+            meta = "补一个提醒时间会更完整",
+            icon = Icons.Default.Event,
+            paletteIndex = 1,
+            onClick = onNavigateToCountDown
+        )
     )
 
-    val groups = listOf(
-        ToolGroup(
-            title = "整理与检索",
-            subtitle = "围绕内容资产组织日记、图片和标签",
-            badge = "3 项",
+    val sections = listOf(
+        ToolSection(
+            title = "整理内容",
+            subtitle = "把已有记录整理得更好找，而不是把工具页做成展示墙。",
             items = listOf(
-                FocusTool("标签管理", "统一主题、分类和筛选入口", Icons.Default.Tag, sectionIconBg(0), sectionIconTint(0), onNavigateToTagManagement),
-                FocusTool("媒体库", "查看图片、视频和附件", Icons.Default.Collections, sectionIconBg(0), sectionIconTint(0), onNavigateToMediaLibrary),
-                FocusTool("统计", "回看记录量和写作节奏", Icons.Default.BarChart, sectionIconBg(0), sectionIconTint(0), onNavigateToStats)
+                ToolEntry("标签管理", "统一标签、分类和筛选入口", "重点重做页面", Icons.Default.Label, 0, onNavigateToTagManagement),
+                ToolEntry("媒体库", "查看图片、视频和附件", "暂时保留当前布局", Icons.Default.Collections, 0, onNavigateToMediaLibrary),
+                ToolEntry("统计", "回看写作趋势与热力图", "本轮先保留现状", Icons.Default.BarChart, 0, onNavigateToStats)
             )
         ),
-        ToolGroup(
-            title = "回看与安排",
-            subtitle = "把回忆和重要节点整理成能继续行动的入口",
-            badge = "4 项",
+        ToolSection(
+            title = "回顾时间",
+            subtitle = "把节点、地点和未来内容整理成一条可继续行动的线。",
             items = listOf(
-                FocusTool("倒数日", "纪念日、目标日和临近提醒", Icons.Default.Timer, sectionIconBg(1), sectionIconTint(1), onNavigateToCountDown),
-                FocusTool("日记地图", "地点聚合与路线回顾", Icons.Default.Map, sectionIconBg(2), sectionIconTint(2), onNavigateToDiaryMap),
-                FocusTool("时间胶囊", "写给未来的内容与开启节点", Icons.Default.MarkEmailUnread, sectionIconBg(1), sectionIconTint(1), onNavigateToTimeCapsule),
-                FocusTool("随机回顾", "随机翻到一篇旧日记", Icons.Default.Shuffle, sectionIconBg(1), sectionIconTint(1), onNavigateToRandom)
+                ToolEntry("倒数日", "纪念日、计划日和提醒都放这里", "重点重做页面", Icons.Default.Event, 1, onNavigateToCountDown),
+                ToolEntry("日记地图", "地点聚合与路线回顾", "重点重做页面", Icons.Default.Explore, 2, onNavigateToDiaryMap),
+                ToolEntry("时间胶囊", "写给未来的内容与开启节点", "低频能力，适合留在这一组", Icons.Default.MarkEmailUnread, 1, onNavigateToTimeCapsule),
+                ToolEntry("随机回顾", "随机翻到一篇旧日记", "适合轻量回顾", Icons.Default.Shuffle, 1, onNavigateToRandom)
             )
         ),
-        ToolGroup(
-            title = "智能与系统",
-            subtitle = "保留必要入口，低频功能不抢主屏注意力",
-            badge = "4 项",
+        ToolSection(
+            title = "助手与系统",
+            subtitle = "让低频能力自然退后，不再抢主屏注意力。",
             items = listOf(
-                FocusTool("AI 助手", "对话式整理与写作支持", Icons.Default.ChatBubbleOutline, sectionIconBg(3), sectionIconTint(3), onNavigateToAiAssistant),
-                FocusTool("AI 传记", "生成个人传记与阶段总结", Icons.Default.AutoAwesome, sectionIconBg(3), sectionIconTint(3), onNavigateToBiography),
-                FocusTool("消息通知", "系统提醒、回顾与动态", Icons.Default.Notifications, sectionIconBg(3), sectionIconTint(3), onNavigateToNotifications),
-                FocusTool("实验功能", "放置仍在验证的能力", Icons.Default.Tune, sectionIconBg(3), sectionIconTint(3), onNavigateToExperimental)
+                ToolEntry("AI 助手", "围绕当前记录提供对话协助", "保留真实功能入口", Icons.Default.ChatBubbleOutline, 3, onNavigateToAiAssistant),
+                ToolEntry("AI 传记", "生成个人传记与阶段总结", "更适合放在二级层", Icons.Default.AutoAwesome, 3, onNavigateToBiography),
+                ToolEntry("消息通知", "提醒、回顾与系统动态", "系统相关入口", Icons.Default.Notifications, 3, onNavigateToNotifications),
+                ToolEntry("实验功能", "仍在验证中的能力入口", "不要出现在首屏重点区", Icons.Default.Tune, 3, onNavigateToExperimental)
             )
         )
     )
@@ -188,40 +192,26 @@ fun ToolsScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            ToolsHeroCard(textColor = textColor, textSecondary = textSecondary)
-            ToolsPriorityCard(
-                textColor = textColor,
-                textSecondary = textSecondary,
-                toolsToRebuild = toolsToRebuild
-            )
-            ToolsPrimarySection(primaryTools = primaryTools)
-
-            groups.forEach { group ->
-                ToolGroupCard(
-                    group = group,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    textTertiary = textTertiary
-                )
+            ToolsHeaderCard()
+            PinnedToolsCard(tools = pinnedTools)
+            RecentToolsCard(tools = recentTools)
+            sections.forEach { section ->
+                ToolSectionCard(section = section)
             }
-
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(modifier = Modifier.height(36.dp))
         }
     }
 }
 
 @Composable
-private fun ToolsHeroCard(
-    textColor: Color,
-    textSecondary: Color
-) {
+private fun ToolsHeaderCard() {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 24.dp,
         innerPadding = 18.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconCircle(
                     icon = Icons.Default.Widgets,
                     bg = sectionIconBg(0),
@@ -236,65 +226,50 @@ private fun ToolsHeroCard(
                         text = "工具",
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
-                        color = textColor
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "把高频动作和功能目录拆开，先给入口，再给结构。",
+                        text = "把最常继续处理的入口放前面，其余功能按真实使用路径收进目录。",
                         fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                        color = textSecondary,
+                        lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HeroSignal(
-                    label = "右滑可回时间线",
-                    textColor = textColor,
-                    accent = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-                HeroSignal(
-                    label = "左滑可去待办",
-                    textColor = textColor,
-                    accent = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HeaderHint(text = "右滑回时间轴", modifier = Modifier.weight(1f))
+                HeaderHint(text = "左滑去待办", modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun HeroSignal(
-    label: String,
-    textColor: Color,
-    accent: Color,
+private fun HeaderHint(
+    text: String,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(accent.copy(alpha = 0.08f))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(accent)
+                .clip(RoundedCornerShape(999.dp))
+                .background(MaterialTheme.colorScheme.primary)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = label,
+            text = text,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            color = textColor,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -302,11 +277,7 @@ private fun HeroSignal(
 }
 
 @Composable
-private fun ToolsPriorityCard(
-    textColor: Color,
-    textSecondary: Color,
-    toolsToRebuild: List<FocusTool>
-) {
+private fun PinnedToolsCard(tools: List<ToolEntry>) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 22.dp,
@@ -314,41 +285,141 @@ private fun ToolsPriorityCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "当前优先重做",
+                text = "优先处理",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = textColor
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "这次把你最在意的几个工具功能抬到前面，不再让真正需要重做的页面藏在大杂烩入口里。",
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = textSecondary
+                text = "这一屏只放你明确点名要重做的工具，先帮你缩小选择范围。",
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            toolsToRebuild.forEach { tool ->
-                PriorityToolRow(tool = tool)
+
+            tools.forEachIndexed { index, tool ->
+                ToolRow(tool = tool, emphasizeBackground = true, highlightMeta = true)
+                if (index != tools.lastIndex) {
+                    SettingDivider()
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PriorityToolRow(tool: FocusTool) {
+private fun RecentToolsCard(tools: List<ToolEntry>) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "继续刚才的处理",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "给一点点状态感，但不让工具页变成一面信息板。",
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            tools.forEachIndexed { index, tool ->
+                CompactToolRow(tool = tool)
+                if (index != tools.lastIndex) {
+                    SettingDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolSectionCard(section: ToolSection) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconCircle(
+                    icon = when (section.title) {
+                        "整理内容" -> Icons.Default.PushPin
+                        "回顾时间" -> Icons.Default.Event
+                        else -> Icons.Default.AutoAwesome
+                    },
+                    bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    tint = MaterialTheme.colorScheme.primary,
+                    size = 38.dp,
+                    iconSize = 18.dp,
+                    cornerRadius = 12.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = section.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = section.subtitle,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+
+            section.items.forEachIndexed { index, item ->
+                ToolRow(tool = item)
+                if (index != section.items.lastIndex) {
+                    SettingDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactToolRow(tool: ToolEntry) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.99f else 1f,
+        animationSpec = spring(stiffness = 720f),
+        label = "compactToolRowScale"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
-            .clickable(onClick = tool.onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .background(if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) else Color.Transparent)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = tool.onClick
+            )
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconCircle(
             icon = tool.icon,
-            bg = tool.iconBg,
-            tint = tool.iconTint,
-            size = 38.dp,
-            iconSize = 18.dp,
+            bg = sectionIconBg(tool.paletteIndex),
+            tint = sectionIconTint(tool.paletteIndex),
+            size = 36.dp,
+            iconSize = 17.dp,
             cornerRadius = 12.dp
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -367,97 +438,22 @@ private fun PriorityToolRow(tool: FocusTool) {
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Icon(
-            imageVector = Icons.Default.PushPin,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(16.dp)
+        Text(
+            text = tool.meta,
+            fontSize = 10.sp,
+            lineHeight = 14.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
 
 @Composable
-private fun ToolsPrimarySection(primaryTools: List<FocusTool>) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        innerPadding = 16.dp
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "常用入口",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            primaryTools.forEachIndexed { index, tool ->
-                ToolRow(tool = tool)
-                if (index != primaryTools.lastIndex) {
-                    SettingDivider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ToolGroupCard(
-    group: ToolGroup,
-    textColor: Color,
-    textSecondary: Color,
-    textTertiary: Color
+private fun ToolRow(
+    tool: ToolEntry,
+    emphasizeBackground: Boolean = false,
+    highlightMeta: Boolean = false
 ) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        innerPadding = 16.dp
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconCircle(
-                    icon = Icons.Default.FolderOpen,
-                    bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    tint = MaterialTheme.colorScheme.primary,
-                    size = 38.dp,
-                    iconSize = 18.dp,
-                    cornerRadius = 12.dp
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = group.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor
-                    )
-                    Text(
-                        text = group.subtitle,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        color = textTertiary,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                Text(
-                    text = group.badge,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = textSecondary
-                )
-            }
-
-            group.items.forEachIndexed { index, tool ->
-                ToolRow(tool = tool)
-                if (index != group.items.lastIndex) {
-                    SettingDivider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ToolRow(tool: FocusTool) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -473,24 +469,27 @@ private fun ToolRow(tool: FocusTool) {
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(
-                if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                else Color.Transparent
+                when {
+                    isPressed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                    emphasizeBackground -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f)
+                    else -> Color.Transparent
+                }
             )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = tool.onClick
             )
-            .padding(vertical = 12.dp, horizontal = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconCircle(
             icon = tool.icon,
-            bg = tool.iconBg,
-            tint = tool.iconTint,
-            size = 38.dp,
+            bg = sectionIconBg(tool.paletteIndex),
+            tint = sectionIconTint(tool.paletteIndex),
+            size = 40.dp,
             iconSize = 18.dp,
             cornerRadius = 12.dp
         )
@@ -500,59 +499,62 @@ private fun ToolRow(tool: FocusTool) {
                 text = tool.title,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = tool.subtitle,
                 fontSize = 11.sp,
                 lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp, end = 8.dp)
+                modifier = Modifier.padding(top = 3.dp)
+            )
+            Text(
+                text = tool.meta,
+                fontSize = 10.sp,
+                lineHeight = 15.sp,
+                color = if (highlightMeta) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                modifier = Modifier.padding(top = 5.dp)
             )
         }
         Icon(
-            imageVector = Icons.Default.LocationOn,
+            imageVector = Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(16.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }
 
 @Composable
 private fun sectionIconBg(index: Int): Color {
-    val p = MaterialTheme.colorScheme.primary
-    val s = MaterialTheme.colorScheme.secondary
-    val t = MaterialTheme.colorScheme.tertiary
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val tertiary = MaterialTheme.colorScheme.tertiary
     return when (index) {
-        0 -> p.copy(alpha = 0.12f)
-        1 -> s.copy(alpha = 0.13f)
-        2 -> t.copy(alpha = 0.12f)
-        3 -> p.copy(alpha = 0.08f)
-        else -> p.copy(alpha = 0.10f)
+        0 -> primary.copy(alpha = 0.12f)
+        1 -> secondary.copy(alpha = 0.13f)
+        2 -> tertiary.copy(alpha = 0.12f)
+        3 -> primary.copy(alpha = 0.08f)
+        else -> primary.copy(alpha = 0.10f)
     }
 }
 
 @Composable
 private fun sectionIconTint(index: Int): Color {
-    val p = MaterialTheme.colorScheme.primary
-    val s = MaterialTheme.colorScheme.secondary
-    val t = MaterialTheme.colorScheme.tertiary
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val tertiary = MaterialTheme.colorScheme.tertiary
     val gray = MaterialTheme.colorScheme.onSurfaceVariant
     return when (index) {
-        0 -> p
-        1 -> s
-        2 -> t
+        0 -> primary
+        1 -> secondary
+        2 -> tertiary
         3 -> Color(
-            red = p.red * 0.6f + gray.red * 0.4f,
-            green = p.green * 0.6f + gray.green * 0.4f,
-            blue = p.blue * 0.6f + gray.blue * 0.4f,
+            red = primary.red * 0.6f + gray.red * 0.4f,
+            green = primary.green * 0.6f + gray.green * 0.4f,
+            blue = primary.blue * 0.6f + gray.blue * 0.4f,
             alpha = 1f
         )
-        else -> p
+        else -> primary
     }
 }

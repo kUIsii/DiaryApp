@@ -6,113 +6,102 @@
   <title>DiaryApp 工具页目录预览</title>
   <link rel="stylesheet" href="ui-preview-system.css">
   <style>
-    .header-note { max-width: 900px; }
+    .header-note { max-width: 920px; }
 
-    .directory-note {
+    .section-note,
+    .sheet-card,
+    .tool-block,
+    .mini-tile {
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+    }
+
+    .section-note,
+    .sheet-card,
+    .tool-block {
       padding: 14px;
       border-radius: 22px;
-      border: 1px solid var(--line);
-      background: color-mix(in srgb, var(--surface) 92%, transparent);
     }
 
-    .directory-note strong,
-    .hero-line strong,
-    .cluster-card strong,
-    .focus-card strong {
-      display: block;
-      color: var(--text);
-    }
-
-    .directory-note strong,
-    .hero-line strong {
-      font-size: 14px;
-    }
-
-    .directory-note span,
-    .hero-line span,
-    .cluster-card span,
-    .focus-card span {
-      display: block;
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.62;
-    }
-
-    .hero-line {
-      padding: 16px;
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 62%),
-        color-mix(in srgb, var(--surface) 95%, transparent);
-    }
-
-    .shortcut-grid {
+    .mini-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
 
-    .focus-card {
-      min-height: 112px;
-      padding: 14px;
-      border-radius: 20px;
-      border: 1px solid var(--line);
-      background: var(--surface);
+    .mini-tile {
+      min-height: 86px;
+      padding: 12px;
+      border-radius: 18px;
     }
 
-    .focus-card strong {
-      font-size: 14px;
-      line-height: 1.4;
+    .mini-tile strong,
+    .tool-block strong,
+    .section-note strong,
+    .sheet-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
     }
 
-    .focus-card .meta-line {
-      margin-top: 10px;
+    .mini-tile span,
+    .tool-block span,
+    .section-note span,
+    .sheet-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
     }
 
-    .cluster-stack {
+    .tool-stack,
+    .caption-grid {
       display: grid;
       gap: 10px;
     }
 
-    .cluster-card {
-      padding: 14px;
-      border-radius: 20px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-    }
-
-    .cluster-card strong {
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .cluster-list {
+    .tool-row-list,
+    .tight-list {
       display: grid;
-      gap: 8px;
+      gap: 0;
       margin-top: 10px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 86%, transparent);
     }
 
-    .cluster-row {
-      min-height: 48px;
-      padding: 10px 12px;
+    .tool-row {
+      min-height: 58px;
+      padding: 11px 12px;
       display: flex;
       align-items: center;
       gap: 10px;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: color-mix(in srgb, var(--surface) 88%, transparent);
     }
 
-    .cluster-row strong {
-      font-size: 12px;
+    .tool-row + .tool-row {
+      border-top: 1px solid var(--line);
     }
 
-    .cluster-row span {
+    .tool-row .row-text {
+      flex: 1;
+    }
+
+    .tool-row strong {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .tool-row span {
       margin-top: 4px;
       font-size: 10px;
       line-height: 1.45;
+    }
+
+    .tool-row .chev {
+      color: var(--faint);
+      font-size: 16px;
     }
 
     .icon-tile.soft {
@@ -121,41 +110,23 @@
       border-radius: 11px;
     }
 
-    .metric-pair {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+    .status-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
     }
 
-    .metric-box {
-      padding: 12px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-    }
-
-    .metric-box strong {
-      display: block;
-      color: var(--text);
-      font-size: 15px;
-    }
-
-    .metric-box span {
-      display: block;
-      margin-top: 6px;
-      color: var(--faint);
+    .status-chip {
+      min-height: 28px;
+      padding: 0 10px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 11%, transparent);
+      color: var(--accent);
       font-size: 10px;
-      line-height: 1.5;
-    }
-
-    .density-list .row,
-    .compact-tools .row {
-      padding: 12px 14px;
-    }
-
-    .density-list .row + .row,
-    .compact-tools .row + .row {
-      border-top: 1px solid var(--line);
+      font-weight: 700;
     }
   </style>
 </head>
@@ -164,16 +135,16 @@
     <header class="preview-head">
       <div class="header-note">
         <p class="preview-kicker">Tools Directory Preview</p>
-        <h1 class="preview-title">工具页重做为真实移动端目录</h1>
-        <p class="preview-desc">这一轮不再做“工具页方案展示墙”，而是把工具页收敛成更真实的手机端目录页：入口更克制，卡片更小心，主题切换仅作为统一皮肤存在。重点强化标签管理、倒数日、日记地图三个入口的层级和卡片结构，让用户一眼明白“我能做什么”，而不是被一堆平权入口淹没。</p>
-        <p class="preview-note">推荐优先看 A、C、E：它们最接近真实 App 工具目录，也最方便后续扩充功能而不变乱。</p>
+        <h1 class="preview-title">工具页继续收回到真实目录逻辑</h1>
+        <p class="preview-desc">这轮把工具页彻底从“概念展示墙”里拉出来，回到更贴近日常 App 的目录页。重点观察三件事：点名要重做的工具有没有被前置、最近处理和分组秩序是否自然、统计和媒体库是否只是保留入口而不抢首屏。</p>
+        <p class="preview-note">推荐优先看 A、C、E：它们分别代表“固定重点入口”“继续处理优先”“清爽分组目录”三种更容易落地的方向。</p>
         <div class="direction-row">
-          <span class="direction-pill">A 今日常用目录</span>
-          <span class="direction-pill">B 主题轻提示</span>
-          <span class="direction-pill">C 三个重点入口前置</span>
-          <span class="direction-pill">D 分组密度更高</span>
-          <span class="direction-pill">E 任务目录感</span>
-          <span class="direction-pill">F 收纳低频与实验功能</span>
+          <span class="direction-pill">A 固定重点入口</span>
+          <span class="direction-pill">B 最近处理优先</span>
+          <span class="direction-pill">C 清爽分组目录</span>
+          <span class="direction-pill">D 行动导向</span>
+          <span class="direction-pill">E 双层目录</span>
+          <span class="direction-pill">F 极简入口</span>
         </div>
       </div>
       <div class="preview-controls">
@@ -183,7 +154,7 @@
         <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
         <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
         <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
-        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>砂金</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>沙金</button>
         <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
         <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
       </div>
@@ -191,7 +162,7 @@
 
     <section class="comparison-rail">
       <article class="phone-column">
-        <div class="phone-label"><strong>方案 A</strong><span data-direction>今日常用目录</span></div>
+        <div class="phone-label"><strong>方案 A</strong><span data-direction>固定重点入口</span></div>
         <div class="phone">
           <div class="screen">
             <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
@@ -199,57 +170,247 @@
               <div class="top-row">
                 <div class="title-block">
                   <h1>工具</h1>
-                  <p>先给今天最可能会点开的三类入口，再展开完整目录。</p>
+                  <p>先把这轮要重做的入口钉在前面，再往下看完整目录。</p>
                 </div>
                 <button class="icon-btn" type="button" aria-label="搜索工具">
                   <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
                 </button>
               </div>
 
-              <section class="hero-line">
-                <strong>更像真实移动端工具目录</strong>
-                <span>只有高频工具前置，其他功能按语义归类。主题切换仍保留，但不会在工具页首屏喧宾夺主。</span>
+              <section class="sheet-card">
+                <strong>你现在最可能继续处理这里</strong>
+                <span>标签管理、倒数日、日记地图被固定前置。统计和媒体库继续保留入口，但不会抢走主屏选择。</span>
               </section>
 
-              <div class="section-title">今日常用 <span>只保留 3 个重点入口</span></div>
-              <section class="shortcut-grid">
-                <article class="focus-card">
+              <div class="section-title">优先处理 <span>固定 3 项</span></div>
+              <section class="tool-row-list">
+                <div class="tool-row">
+                  <span class="icon-tile soft"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10V6a2 2 0 0 0-2-2h-4L4 14l6 6L20 10Z"/><path d="M14 6h.01"/></svg></span>
+                  <div class="row-text"><strong>标签管理</strong><span>统一标签、分类和筛选入口</span></div>
+                  <span class="pill">重做重点</span>
+                </div>
+                <div class="tool-row">
+                  <span class="icon-tile soft" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                  <div class="row-text"><strong>倒数日</strong><span>纪念日、计划日和提醒都放这里</span></div>
+                  <span class="pill">最近节点</span>
+                </div>
+                <div class="tool-row">
+                  <span class="icon-tile soft" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span>
+                  <div class="row-text"><strong>日记地图</strong><span>地点回顾和路线整理都从这里进</span></div>
+                  <span class="pill">地点目录</span>
+                </div>
+              </section>
+
+              <div class="section-title">完整目录 <span>继续浏览</span></div>
+              <section class="tool-row-list">
+                <div class="tool-row"><div class="row-text"><strong>媒体库</strong><span>查看图片、视频和附件</span></div><span class="chev">›</span></div>
+                <div class="tool-row"><div class="row-text"><strong>统计</strong><span>回看写作趋势与热力图</span></div><span class="chev">›</span></div>
+                <div class="tool-row"><div class="row-text"><strong>AI 助手</strong><span>围绕当前记录提供协助</span></div><span class="chev">›</span></div>
+              </section>
+            </div>
+            <nav class="bottom-nav">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">时间轴</div>
+              <div class="nav-item active">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>方案 B</strong><span data-direction>最近处理优先</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>10:08</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>工具</h1>
+                  <p>先续上你刚处理过的事，再下滑看更完整的工具目录。</p>
+                </div>
+                <span class="pill">延续操作</span>
+              </div>
+
+              <section class="section-note">
+                <strong>最近处理更重要</strong>
+                <span>适合经常反复进入同一两个工具的节奏，首屏优先服务“继续做”，而不是“重新找”。</span>
+              </section>
+
+              <div class="section-title">继续刚才的处理 <span>两条线</span></div>
+              <section class="tool-row-list">
+                <div class="tool-row">
+                  <span class="icon-tile soft"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10V6a2 2 0 0 0-2-2h-4L4 14l6 6L20 10Z"/><path d="M14 6h.01"/></svg></span>
+                  <div class="row-text"><strong>标签管理</strong><span>刚整理了 3 个重复标签，还差颜色统一</span></div>
+                  <span class="pill">继续</span>
+                </div>
+                <div class="tool-row">
+                  <span class="icon-tile soft" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                  <div class="row-text"><strong>倒数日</strong><span>最近节点 2 天后，建议补一个提醒时间</span></div>
+                  <span class="pill">2 天后</span>
+                </div>
+              </section>
+
+              <div class="section-title">其他工具 <span>按分类看</span></div>
+              <section class="tool-stack">
+                <article class="tool-block">
+                  <strong>整理内容</strong>
+                  <span>标签管理、媒体库、统计</span>
+                </article>
+                <article class="tool-block">
+                  <strong>回顾时间</strong>
+                  <span>倒数日、日记地图、时间胶囊、随机回顾</span>
+                </article>
+              </section>
+            </div>
+            <nav class="bottom-nav">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">时间轴</div>
+              <div class="nav-item active">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>方案 C</strong><span data-direction>清爽分组目录</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>20:36</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>工具</h1>
+                  <p>弱化首屏装饰，直接靠目录秩序来带路。</p>
+                </div>
+                <span class="pill">清爽目录</span>
+              </div>
+
+              <section class="tool-stack">
+                <article class="tool-block">
+                  <strong>整理内容</strong>
+                  <span>把已有记录整理得更好找。</span>
+                  <div class="tool-row-list">
+                    <div class="tool-row"><div class="row-text"><strong>标签管理</strong><span>统一标签、分类和筛选入口</span></div><span class="chev">›</span></div>
+                    <div class="tool-row"><div class="row-text"><strong>媒体库</strong><span>查看图片、视频和附件</span></div><span class="chev">›</span></div>
+                    <div class="tool-row"><div class="row-text"><strong>统计</strong><span>回看写作趋势与热力图</span></div><span class="chev">›</span></div>
+                  </div>
+                </article>
+                <article class="tool-block">
+                  <strong>回顾时间</strong>
+                  <span>把节点、地点和未来内容整理成一条线。</span>
+                  <div class="tool-row-list">
+                    <div class="tool-row"><div class="row-text"><strong>倒数日</strong><span>纪念日、计划日和提醒</span></div><span class="chev">›</span></div>
+                    <div class="tool-row"><div class="row-text"><strong>日记地图</strong><span>地点聚合与路线回顾</span></div><span class="chev">›</span></div>
+                    <div class="tool-row"><div class="row-text"><strong>时间胶囊</strong><span>写给未来的内容与开启节点</span></div><span class="chev">›</span></div>
+                  </div>
+                </article>
+              </section>
+            </div>
+            <nav class="bottom-nav">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">时间轴</div>
+              <div class="nav-item active">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>方案 D</strong><span data-direction>行动导向</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>11:20</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>工具</h1>
+                  <p>不按功能名铺开，而按“我现在要做什么”组织。</p>
+                </div>
+                <span class="pill">动作优先</span>
+              </div>
+
+              <section class="caption-grid">
+                <article class="tool-block">
+                  <strong>我想整理内容</strong>
+                  <span>从标签管理开始，必要时延伸到媒体库和统计。</span>
+                  <div class="status-strip">
+                    <span class="status-chip">标签管理</span>
+                    <span class="status-chip">媒体库</span>
+                    <span class="status-chip">统计</span>
+                  </div>
+                </article>
+                <article class="tool-block">
+                  <strong>我想回顾一段时间</strong>
+                  <span>从倒数日和日记地图进入，更符合真实使用心流。</span>
+                  <div class="status-strip">
+                    <span class="status-chip">倒数日</span>
+                    <span class="status-chip">日记地图</span>
+                    <span class="status-chip">随机回顾</span>
+                  </div>
+                </article>
+                <article class="tool-block">
+                  <strong>我想要辅助与提醒</strong>
+                  <span>AI 助手、消息通知和实验入口都退到最后一层。</span>
+                </article>
+              </section>
+            </div>
+            <nav class="bottom-nav">
+              <div class="nav-item">首页</div>
+              <div class="nav-item">时间轴</div>
+              <div class="nav-item active">工具</div>
+              <div class="nav-item">待办</div>
+              <div class="nav-item">我的</div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>方案 E</strong><span data-direction>双层目录</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>9:18</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>工具</h1>
+                  <p>首层只给少量入口，第二层再放完整分组。</p>
+                </div>
+                <button class="icon-btn" type="button" aria-label="刷新">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+
+              <section class="mini-grid">
+                <article class="mini-tile">
                   <strong>标签管理</strong>
-                  <span>合并重复标签、整理颜色、快速修正分类命名。</span>
-                  <div class="meta-line"><span class="chip">38 个标签</span><span class="chip">3 个待整理</span></div>
+                  <span>内容整理中枢</span>
                 </article>
-                <article class="focus-card">
+                <article class="mini-tile">
                   <strong>倒数日</strong>
-                  <span>把重要纪念日、发布日和行程节点收进同一张时间卡。</span>
-                  <div class="meta-line"><span class="chip">2 天后</span><span class="chip">本周 4 项</span></div>
+                  <span>时间节点入口</span>
                 </article>
-                <article class="focus-card" style="grid-column:1 / -1;">
+                <article class="mini-tile">
                   <strong>日记地图</strong>
-                  <span>从城市、地点和足迹回看日志，适合在回顾场景下快速进入。</span>
-                  <div class="meta-line"><span class="chip">12 个地点</span><span class="chip">最近更新昨天</span></div>
+                  <span>地点回顾入口</span>
+                </article>
+                <article class="mini-tile">
+                  <strong>AI 助手</strong>
+                  <span>写作与整理协助</span>
                 </article>
               </section>
 
-              <div class="section-title">完整目录 <span>再进入分组</span></div>
-              <section class="cluster-stack">
-                <article class="cluster-card">
-                  <strong>创作与整理</strong>
-                  <span>统计、媒体库、标签管理，围绕“整理已有内容”。</span>
-                  <div class="cluster-list">
-                    <div class="cluster-row">
-                      <span class="icon-tile soft"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M9 19v-8"/><path d="M14 19V7"/><path d="M19 19v-4"/></svg></span>
-                      <div class="row-text"><strong>统计</strong><span>热力图、月报与写作趋势</span></div>
-                    </div>
-                    <div class="cluster-row">
-                      <span class="icon-tile soft" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3-3 3 3 2-2 3 3"/></svg></span>
-                      <div class="row-text"><strong>媒体库</strong><span>图片、视频与附件管理</span></div>
-                    </div>
-                  </div>
-                </article>
-                <article class="cluster-card">
-                  <strong>回忆与探索</strong>
-                  <span>倒数日、日记地图、时间胶囊和随机回顾。</span>
-                </article>
+              <div class="section-title">按分组继续看 <span>第二层</span></div>
+              <section class="tight-list">
+                <div class="tool-row"><div class="row-text"><strong>整理内容</strong><span>标签管理、媒体库、统计</span></div><span class="chev">›</span></div>
+                <div class="tool-row"><div class="row-text"><strong>回顾时间</strong><span>倒数日、日记地图、时间胶囊、随机回顾</span></div><span class="chev">›</span></div>
+                <div class="tool-row"><div class="row-text"><strong>助手与系统</strong><span>AI 助手、通知、实验功能</span></div><span class="chev">›</span></div>
               </section>
             </div>
             <nav class="bottom-nav">
@@ -264,321 +425,48 @@
       </article>
 
       <article class="phone-column">
-        <div class="phone-label"><strong>方案 B</strong><span data-direction>主题轻提示</span></div>
+        <div class="phone-label"><strong>方案 F</strong><span data-direction>极简入口</span></div>
         <div class="phone">
           <div class="screen">
-            <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
+            <div class="statusbar"><span>22:02</span><span>DiaryApp</span></div>
             <div class="app-content">
               <div class="top-row">
                 <div class="title-block">
                   <h1>工具</h1>
-                  <p>主题只作为轻提示存在，不抢工具目录本身。</p>
+                  <p>主入口尽量短小，其他能力全部往后退。</p>
                 </div>
-                <span class="pill">雾蓝浅色</span>
+                <span class="pill">极简</span>
               </div>
 
-              <section class="directory-note">
-                <strong>适合现有 App 平滑替换</strong>
-                <span>顶部只保留当前主题和搜索，不额外展示色板。首屏仍以真实工具入口为主，视觉上更收敛。</span>
+              <section class="sheet-card">
+                <strong>先让工具页轻一点</strong>
+                <span>如果你更希望工具页只是一个小目录，而不是承载状态信息，这个方向会最干净。</span>
               </section>
 
-              <div class="section-title">重点入口 <span>三个入口平铺</span></div>
-              <section class="shortcut-grid">
-                <article class="focus-card">
+              <section class="mini-grid">
+                <article class="mini-tile">
                   <strong>标签管理</strong>
-                  <span>批量整理标签与分类。</span>
+                  <span>整理入口</span>
                 </article>
-                <article class="focus-card">
+                <article class="mini-tile">
                   <strong>倒数日</strong>
-                  <span>时间节点与纪念日追踪。</span>
+                  <span>节点入口</span>
                 </article>
-                <article class="focus-card" style="grid-column:1 / -1;">
+                <article class="mini-tile" style="grid-column:1 / -1;">
                   <strong>日记地图</strong>
-                  <span>地点回顾、城市线索和旅行日志。</span>
+                  <span>地点回顾入口</span>
                 </article>
               </section>
 
-              <div class="section-title">其余功能 <span>卡片简化</span></div>
-              <section class="card compact-tools">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M9 19v-8"/><path d="M14 19V7"/><path d="M19 19v-4"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">统计</div>
-                    <div class="row-sub">月报、趋势、热力图</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3-3 3 3 2-2 3 3"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">媒体库</div>
-                    <div class="row-sub">图片、视频与附件</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">AI 助手</div>
-                    <div class="row-sub">仅在需要时进入</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item active">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label"><strong>方案 C</strong><span data-direction>重点入口前置</span></div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>21:18</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>工具</h1>
-                  <p>把最能代表 DiaryApp 的三个工具抬到首屏。</p>
-                </div>
-                <span class="pill">重点 3 项</span>
-              </div>
-
-              <div class="section-title">重点工具 <span>层级最强</span></div>
-              <section class="cluster-stack">
-                <article class="cluster-card">
-                  <strong>标签管理</strong>
-                  <span>它不是边缘工具，而是帮助用户持续整理内容结构的核心入口。</span>
-                  <div class="cluster-list">
-                    <div class="cluster-row">
-                      <span class="icon-tile soft"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10V6a2 2 0 0 0-2-2h-4L4 14l6 6L20 10Z"/><path d="M14 6h.01"/></svg></span>
-                      <div class="row-text"><strong>待合并标签</strong><span>3 组命名重复，建议今天整理</span></div>
-                    </div>
-                  </div>
-                </article>
-                <article class="cluster-card">
-                  <strong>倒数日</strong>
-                  <span>适合和写作、回顾联动，保留更显眼的时间卡结构。</span>
-                  <div class="metric-pair">
-                    <div class="metric-box"><strong>2 天后</strong><span>项目发布日</span></div>
-                    <div class="metric-box"><strong>14 天后</strong><span>旅行出发</span></div>
-                  </div>
-                </article>
-                <article class="cluster-card">
-                  <strong>日记地图</strong>
-                  <span>用地点组织回忆，比普通列表更有探索感，但入口仍克制。</span>
-                  <div class="meta-line"><span class="chip">上海 26 条</span><span class="chip">杭州 8 条</span></div>
-                </article>
-              </section>
-
-              <div class="section-title">其他目录 <span>退后一级</span></div>
-              <section class="card density-list">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M9 19v-8"/><path d="M14 19V7"/><path d="M19 19v-4"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">统计</div>
-                    <div class="row-sub">趋势与热力图</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3-3 3 3 2-2 3 3"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">媒体库</div>
-                    <div class="row-sub">图片、视频与附件</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item active">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label"><strong>方案 D</strong><span data-direction>分组密度更高</span></div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>10:26</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>工具</h1>
-                  <p>适合工具数量继续增长时的压缩型目录。</p>
-                </div>
-                <span class="pill">高密度</span>
-              </div>
-
-              <section class="directory-note">
-                <strong>更像“设置列表里的工具区”</strong>
-                <span>信息更密，但比拼贴感安全。适合需要在一屏展示更多入口时使用。</span>
-              </section>
-
-              <div class="section-title">重点入口 <span>仍在上方</span></div>
-              <section class="card density-list">
-                <div class="row">
-                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10V6a2 2 0 0 0-2-2h-4L4 14l6 6L20 10Z"/><path d="M14 6h.01"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">标签管理</div>
-                    <div class="row-sub">3 个标签待合并</div>
-                  </div>
-                  <span class="pill">待整理</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">倒数日</div>
-                    <div class="row-sub">最近节点 2 天后</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="row">
-                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span>
-                  <div class="row-text">
-                    <div class="row-title">日记地图</div>
-                    <div class="row-sub">12 个地点可回顾</div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-
-              <div class="section-title">更多工具 <span>统一列表</span></div>
-              <section class="card density-list">
-                <div class="row"><div class="row-text"><div class="row-title">统计</div><div class="row-sub">月报、热力图、习惯趋势</div></div><span class="chev">›</span></div>
-                <div class="row"><div class="row-text"><div class="row-title">媒体库</div><div class="row-sub">图片、视频、附件整理</div></div><span class="chev">›</span></div>
-                <div class="row"><div class="row-text"><div class="row-title">时间胶囊</div><div class="row-sub">未来提醒与延迟回顾</div></div><span class="chev">›</span></div>
-                <div class="row"><div class="row-text"><div class="row-title">AI 助手</div><div class="row-sub">按需生成摘要和续写建议</div></div><span class="chev">›</span></div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item active">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label"><strong>方案 E</strong><span data-direction>任务目录感</span></div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>11:12</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>工具</h1>
-                  <p>按“我现在想做什么”来组织，而不是按功能名平铺。</p>
-                </div>
-                <span class="pill">任务型</span>
-              </div>
-
-              <section class="hero-line">
-                <strong>更像行动目录</strong>
-                <span>先给“整理标签”“查看纪念日”“回看地点”这些可执行动作，再把其他功能藏到对应分组里。</span>
-              </section>
-
-              <div class="section-title">我现在想做什么 <span>直接开始</span></div>
-              <section class="cluster-stack">
-                <article class="cluster-card">
-                  <strong>整理内容结构</strong>
-                  <span>从标签管理、分类修正和媒体整理开始。</span>
-                  <div class="cluster-list">
-                    <div class="cluster-row">
-                      <span class="icon-tile soft"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10V6a2 2 0 0 0-2-2h-4L4 14l6 6L20 10Z"/><path d="M14 6h.01"/></svg></span>
-                      <div class="row-text"><strong>标签管理</strong><span>重复命名、颜色整理、批量合并</span></div>
-                    </div>
-                  </div>
-                </article>
-                <article class="cluster-card">
-                  <strong>回看某段时间</strong>
-                  <span>倒数日和日记地图更适合被理解成“回顾入口”。</span>
-                  <div class="cluster-list">
-                    <div class="cluster-row">
-                      <span class="icon-tile soft" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 12%,transparent)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-                      <div class="row-text"><strong>倒数日</strong><span>看接下来要记住什么</span></div>
-                    </div>
-                    <div class="cluster-row">
-                      <span class="icon-tile soft" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span>
-                      <div class="row-text"><strong>日记地图</strong><span>看某个地方留下了什么</span></div>
-                    </div>
-                  </div>
-                </article>
-              </section>
-
-              <div class="section-title">其他工具 <span>继续向下找</span></div>
-              <section class="metric-pair">
-                <div class="metric-box"><strong>统计</strong><span>看趋势与热力图</span></div>
-                <div class="metric-box"><strong>媒体库</strong><span>整理图片和附件</span></div>
-              </section>
-            </div>
-            <nav class="bottom-nav">
-              <div class="nav-item">首页</div>
-              <div class="nav-item">时间轴</div>
-              <div class="nav-item active">工具</div>
-              <div class="nav-item">待办</div>
-              <div class="nav-item">我的</div>
-            </nav>
-          </div>
-        </div>
-      </article>
-
-      <article class="phone-column">
-        <div class="phone-label"><strong>方案 F</strong><span data-direction>低频收纳</span></div>
-        <div class="phone">
-          <div class="screen">
-            <div class="statusbar"><span>20:44</span><span>DiaryApp</span></div>
-            <div class="app-content">
-              <div class="top-row">
-                <div class="title-block">
-                  <h1>工具</h1>
-                  <p>高频工具清楚，低频与实验功能自然退后。</p>
-                </div>
-                <span class="pill">低频收纳</span>
-              </div>
-
-              <div class="section-title">主工具区 <span>不要超过首屏</span></div>
-              <section class="shortcut-grid">
-                <article class="focus-card">
-                  <strong>标签管理</strong>
-                  <span>内容整理中枢。</span>
-                </article>
-                <article class="focus-card">
-                  <strong>倒数日</strong>
-                  <span>时间节点入口。</span>
-                </article>
-                <article class="focus-card" style="grid-column:1 / -1;">
-                  <strong>日记地图</strong>
-                  <span>地点回顾入口。</span>
-                </article>
-              </section>
-
-              <div class="section-title">扩展工具 <span>收在二级块里</span></div>
-              <section class="cluster-stack">
-                <article class="cluster-card">
+              <div class="section-title">更多功能 <span>二级分组</span></div>
+              <section class="tool-stack">
+                <article class="tool-block">
                   <strong>内容工具</strong>
-                  <span>统计、媒体库、时间胶囊。</span>
+                  <span>统计、媒体库和标签管理的延伸操作都往这里收。</span>
                 </article>
-                <article class="cluster-card">
-                  <strong>AI 与实验功能</strong>
-                  <span>仅保留一个总入口，避免在工具页内形成抢眼装饰模块。</span>
-                  <div class="meta-line"><span class="chip">AI 助手</span><span class="chip">实验功能</span></div>
+                <article class="tool-block">
+                  <strong>辅助与系统</strong>
+                  <span>AI、通知和实验能力只保留统一总入口，避免再次挤占主屏。</span>
                 </article>
               </section>
             </div>

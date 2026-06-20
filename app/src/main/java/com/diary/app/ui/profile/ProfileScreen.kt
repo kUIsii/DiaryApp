@@ -785,43 +785,71 @@ private fun SwitchSettingRow(
 
 @Composable
 private fun HeaderSection(textColor: Color, textTertiary: Color) {
-    val infiniteTransition = rememberInfiniteTransition(label = "avatarRing")
-    val ringRotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(animation = tween(8000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
-        label = "ringRotation"
-    )
-    val ringPulse by infiniteTransition.animateFloat(
-        initialValue = 0.85f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(2000, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
-        label = "ringPulse"
+    val infiniteTransition = rememberInfiniteTransition(label = "profileHeaderGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.22f,
+        targetValue = 0.42f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
     )
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        val ringColor1 = MaterialTheme.colorScheme.primary
-        val ringColor2 = MaterialTheme.colorScheme.secondary
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(108.dp)
-                    .graphicsLayer { rotationZ = ringRotation; scaleX = ringPulse; scaleY = ringPulse }
-                    .clip(CircleShape)
-                    .background(Brush.sweepGradient(colors = listOf(ringColor1, ringColor2, ringColor1.copy(alpha = 0.3f), ringColor1)))
-            )
-            Box(
-                modifier = Modifier
-                    .size(98.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(colors = listOf(ringColor1, ringColor2))),
-                contentAlignment = Alignment.Center
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 26.dp,
+        innerPadding = 18.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "我的",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = textColor
+                    )
+                    Text(
+                        text = "先看主题、提醒和数据状态，再进入具体设置。",
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        color = textTertiary,
+                        modifier = Modifier.padding(top = 3.dp)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Palette, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
+                OverviewTag(text = "主题已同步")
+                OverviewTag(text = "支持浅色 / 深色")
+                OverviewTag(text = "设置分组更清楚")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, color = textColor, letterSpacing = 1.sp)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("主题、提醒与数据管理", fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
     }
 }
 
@@ -839,6 +867,27 @@ private fun ProfileOverviewCard(
         innerPadding = 16.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "今日状态",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "把最关键的主题、提醒和安全状态放在这里，不让“我的”页先变成说明页。",
+                        fontSize = 11.sp,
+                        lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 3.dp)
+                    )
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -861,7 +910,7 @@ private fun ProfileOverviewCard(
             }
 
             Text(
-                text = "这里先看整体状态，再进入主题、备份、安全和更新等具体设置。",
+                text = "下面的分组会继续承接主题、备份、提醒、隐私和更新，不再让页面像一块展示海报。",
                 fontSize = 12.sp,
                 lineHeight = 18.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
