@@ -192,19 +192,23 @@ fun ToolsScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            ToolsHeaderCard()
-            PinnedToolsCard(tools = pinnedTools)
+            ToolsHeaderCard(
+                focusCount = pinnedTools.size,
+                recentCount = recentTools.size
+            )
+            FocusToolsCard(tools = pinnedTools)
             RecentToolsCard(tools = recentTools)
-            sections.forEach { section ->
-                ToolSectionCard(section = section)
-            }
+            ToolsDirectoryCard(sections = sections)
             Spacer(modifier = Modifier.height(36.dp))
         }
     }
 }
 
 @Composable
-private fun ToolsHeaderCard() {
+private fun ToolsHeaderCard(
+    focusCount: Int,
+    recentCount: Int
+) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 24.dp,
@@ -239,9 +243,16 @@ private fun ToolsHeaderCard() {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeaderHint(text = "右滑回时间轴", modifier = Modifier.weight(1f))
-                HeaderHint(text = "左滑去待办", modifier = Modifier.weight(1f))
+                HeaderHint(text = "${focusCount} 个重点页面", modifier = Modifier.weight(1f))
+                HeaderHint(text = "${recentCount} 个继续入口", modifier = Modifier.weight(1f))
             }
+
+            Text(
+                text = "右滑回时间轴，左滑去待办。统计和媒体库先留在目录里，不抢首屏。",
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -277,7 +288,7 @@ private fun HeaderHint(
 }
 
 @Composable
-private fun PinnedToolsCard(tools: List<ToolEntry>) {
+private fun FocusToolsCard(tools: List<ToolEntry>) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 22.dp,
@@ -285,20 +296,20 @@ private fun PinnedToolsCard(tools: List<ToolEntry>) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "优先处理",
+                text = "本轮重点",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "这一屏只放你明确点名要重做的工具，先帮你缩小选择范围。",
+                text = "先把你明确要重做的 3 个页面放在最前面，点进去就是这一轮真正要处理的部分。",
                 fontSize = 11.sp,
                 lineHeight = 17.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             tools.forEachIndexed { index, tool ->
-                ToolRow(tool = tool, emphasizeBackground = true, highlightMeta = true)
+                FocusToolRow(tool = tool)
                 if (index != tools.lastIndex) {
                     SettingDivider()
                 }
@@ -339,49 +350,74 @@ private fun RecentToolsCard(tools: List<ToolEntry>) {
 }
 
 @Composable
-private fun ToolSectionCard(section: ToolSection) {
+private fun ToolsDirectoryCard(sections: List<ToolSection>) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 22.dp,
         innerPadding = 16.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconCircle(
-                    icon = when (section.title) {
-                        "整理内容" -> Icons.Default.PushPin
-                        "回顾时间" -> Icons.Default.Event
-                        else -> Icons.Default.AutoAwesome
-                    },
-                    bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    tint = MaterialTheme.colorScheme.primary,
-                    size = 38.dp,
-                    iconSize = 18.dp,
-                    cornerRadius = 12.dp
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = section.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = section.subtitle,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
+            Text(
+                text = "完整目录",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "剩下的功能继续按真实使用路径收好。统计和媒体库保留入口，AI 与系统能力自然退后。",
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-            section.items.forEachIndexed { index, item ->
-                ToolRow(tool = item)
-                if (index != section.items.lastIndex) {
+            sections.forEachIndexed { sectionIndex, section ->
+                DirectorySection(section = section)
+                if (sectionIndex != sections.lastIndex) {
                     SettingDivider()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectorySection(section: ToolSection) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconCircle(
+                icon = when (section.title) {
+                    "整理内容" -> Icons.Default.PushPin
+                    "回顾时间" -> Icons.Default.Event
+                    else -> Icons.Default.AutoAwesome
+                },
+                bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                tint = MaterialTheme.colorScheme.primary,
+                size = 36.dp,
+                iconSize = 17.dp,
+                cornerRadius = 12.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = section.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = section.subtitle,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+
+        section.items.forEachIndexed { index, item ->
+            ToolRow(tool = item)
+            if (index != section.items.lastIndex) {
+                SettingDivider()
             }
         }
     }
@@ -444,6 +480,73 @@ private fun CompactToolRow(tool: ToolEntry) {
             lineHeight = 14.sp,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun FocusToolRow(tool: ToolEntry) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.99f else 1f,
+        animationSpec = spring(stiffness = 680f),
+        label = "focusToolRowScale"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (isPressed) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f)
+                }
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = tool.onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconCircle(
+            icon = tool.icon,
+            bg = sectionIconBg(tool.paletteIndex),
+            tint = sectionIconTint(tool.paletteIndex),
+            size = 42.dp,
+            iconSize = 18.dp,
+            cornerRadius = 13.dp
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = tool.title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = tool.subtitle,
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+        }
+        Text(
+            text = tool.meta,
+            fontSize = 10.sp,
+            lineHeight = 14.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 10.dp)
         )
     }
 }

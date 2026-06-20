@@ -8,20 +8,36 @@
   <style>
     .header-note { max-width: 920px; }
 
-    .profile-note {
-      padding: 14px;
-      border-radius: 22px;
+    .profile-note,
+    .overview-card,
+    .quick-card,
+    .mini-meter {
       border: 1px solid var(--line);
-      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      border-radius: 22px;
     }
 
-    .profile-note strong {
+    .profile-note,
+    .overview-card,
+    .mini-meter {
+      padding: 14px;
+    }
+
+    .profile-note strong,
+    .overview-card h2,
+    .quick-card strong,
+    .mini-meter strong {
       display: block;
+      margin: 0;
       color: var(--text);
       font-size: 14px;
+      line-height: 1.35;
     }
 
-    .profile-note span {
+    .profile-note span,
+    .overview-card p,
+    .quick-card span,
+    .mini-meter p {
       display: block;
       margin-top: 6px;
       color: var(--muted);
@@ -30,27 +46,9 @@
     }
 
     .overview-card {
-      padding: 16px;
-      border-radius: 24px;
-      border: 1px solid var(--line);
       background:
         linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 58%),
         color-mix(in srgb, var(--surface) 94%, transparent);
-    }
-
-    .overview-card h2 {
-      margin: 0;
-      color: var(--text);
-      font-size: 16px;
-      line-height: 1.3;
-      font-family: inherit;
-    }
-
-    .overview-card p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.65;
     }
 
     .signal-grid {
@@ -83,24 +81,41 @@
       line-height: 1.35;
     }
 
-    .overview-tags {
+    .overview-tags,
+    .theme-chip-row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 12px;
     }
 
-    .overview-tag {
+    .overview-tag,
+    .theme-chip {
       min-height: 28px;
       padding: 0 10px;
       display: inline-grid;
       place-items: center;
       border-radius: 999px;
+      border: 1px solid var(--line);
       background: color-mix(in srgb, var(--accent) 10%, var(--surface));
-      border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
       color: var(--accent);
       font-size: 11px;
       font-weight: 700;
+    }
+
+    .theme-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--swatch);
     }
 
     .settings-list .row,
@@ -113,54 +128,6 @@
       border-top: 1px solid var(--line);
     }
 
-    .theme-chip-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    .theme-chip {
-      min-height: 30px;
-      padding: 0 10px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: color-mix(in srgb, var(--surface) 90%, transparent);
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      background: var(--swatch);
-    }
-
-    .mini-meter {
-      padding: 12px 14px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-    }
-
-    .mini-meter strong {
-      display: block;
-      color: var(--text);
-      font-size: 14px;
-    }
-
-    .mini-meter p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.6;
-    }
-
     .quick-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -168,26 +135,8 @@
     }
 
     .quick-card {
-      min-height: 86px;
+      min-height: 88px;
       padding: 12px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-    }
-
-    .quick-card strong {
-      display: block;
-      color: var(--text);
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    .quick-card span {
-      display: block;
-      margin-top: 6px;
-      color: var(--faint);
-      font-size: 10px;
-      line-height: 1.5;
     }
   </style>
 </head>
@@ -216,7 +165,7 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 A</strong>
-          <span>最贴近当前 ProfileScreen：今日状态在前，下面接分组</span>
+          <span>最贴近当前真实页面：状态在前，下面接分组设置</span>
         </div>
         <div class="phone">
           <div class="screen profile-screen">
@@ -225,7 +174,7 @@
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>先看今天最关键的主题、提醒和安全状态</p>
+                  <p>先看主题、提醒和安全状态，再进入具体设置。</p>
                 </div>
                 <button class="icon-btn" type="button" aria-label="检查更新">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -255,7 +204,7 @@
                     <div class="row-title">外观</div>
                     <div class="row-sub">主题模式和字体大小</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
@@ -263,13 +212,13 @@
                     <div class="row-title">数据管理</div>
                     <div class="row-sub">分类管理、备份和回收站</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
                   <div class="row-text">
                     <div class="row-title">提醒</div>
-                    <div class="row-sub">写作提醒和时间设置</div>
+                    <div class="row-sub">每日写作提醒和时间设置</div>
                   </div>
                   <span class="pill">21:30</span>
                 </div>
@@ -277,15 +226,15 @@
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
                   <div class="row-text">
                     <div class="row-title">隐私与安全</div>
-                    <div class="row-sub">生物识别、PIN 和恢复码</div>
+                    <div class="row-sub">应用锁和隐私保护</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
               </section>
             </div>
             <nav class="bottom-nav">
               <div class="nav-item">首页</div>
-              <div class="nav-item">时间线</div>
+              <div class="nav-item">时间轴</div>
               <div class="nav-item">工具</div>
               <div class="nav-item">待办</div>
               <div class="nav-item active">我的</div>
@@ -297,7 +246,7 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 B</strong>
-          <span>状态前置，但把主题相关再压缩成首屏高频操作</span>
+          <span>把主题切换压缩成首屏高频操作，但结构仍然克制</span>
         </div>
         <div class="phone">
           <div class="screen profile-screen">
@@ -306,14 +255,14 @@
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>更强调高频主题切换，但仍以状态卡开场</p>
+                  <p>更强调高频主题调节，但仍然先看状态。</p>
                 </div>
                 <span class="pill">高频调节</span>
               </div>
 
               <section class="overview-card">
                 <h2>今日状态</h2>
-                <p>先告诉用户现在是什么状态，再给最常改的外观入口，而不是上来就放大一整面主题展示。</p>
+                <p>先告诉用户现在是什么状态，再给最常改的外观入口，而不是上来就铺满一整屏主题板。</p>
                 <div class="signal-grid">
                   <div class="signal-card"><strong>当前主题</strong><span>海潮深色</span></div>
                   <div class="signal-card"><strong>提醒</strong><span>未开启</span></div>
@@ -326,7 +275,7 @@
                 <div class="row" style="padding:0;">
                   <div class="row-text">
                     <div class="row-title">当前为海潮深色</div>
-                    <div class="row-sub">编辑器、首页和详情页已同步深色模式与配色族</div>
+                    <div class="row-sub">首页、编辑器和详情页已经同步深色模式与配色族。</div>
                   </div>
                   <span class="pill">已生效</span>
                 </div>
@@ -340,7 +289,7 @@
               <div class="section-title">阅读强度 <span>仍回到外观组承接</span></div>
               <section class="grid-1">
                 <article class="mini-meter">
-                  <strong>正文大小</strong>
+                  <strong>正文字号</strong>
                   <p>中号字体，适合当前的深色阅读密度。</p>
                   <div class="progress" style="margin-top:10px;"><i style="--value:52%;"></i></div>
                 </article>
@@ -357,9 +306,9 @@
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/></svg></span>
                   <div class="row-text">
                     <div class="row-title">外观</div>
-                    <div class="row-sub">完整主题页、字体和深浅模式都在这里</div>
+                    <div class="row-sub">完整主题、字体和深浅模式都在这里</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
@@ -367,13 +316,13 @@
                     <div class="row-title">数据管理</div>
                     <div class="row-sub">备份、导出、恢复和回收站</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
               </section>
             </div>
             <nav class="bottom-nav">
               <div class="nav-item">首页</div>
-              <div class="nav-item">时间线</div>
+              <div class="nav-item">时间轴</div>
               <div class="nav-item">工具</div>
               <div class="nav-item">待办</div>
               <div class="nav-item active">我的</div>
@@ -385,7 +334,7 @@
       <article class="phone-column">
         <div class="phone-label">
           <strong>方案 C</strong>
-          <span>更像长期可维护的分组总目录，状态卡更克制</span>
+          <span>更像长期可维护的总目录，适合后续继续扩展</span>
         </div>
         <div class="phone">
           <div class="screen profile-screen">
@@ -394,7 +343,7 @@
               <div class="top-row">
                 <div class="title-block">
                   <h1>我的</h1>
-                  <p>适合后续设置项继续增长的目录型版本</p>
+                  <p>适合后续设置项继续增长的目录型版本。</p>
                 </div>
                 <button class="icon-btn" type="button" aria-label="更多说明">
                   <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>
@@ -403,12 +352,12 @@
 
               <section class="profile-note">
                 <strong>这版最像长期稳定的真实产品页</strong>
-                <span>顶部仍然先给状态，但首屏不再塞很多个性化块，而是迅速进入可维护的设置分组。适合未来继续增加更新、实验功能和更多数据项。</span>
+                <span>顶部仍然先给状态，但首屏不再堆很多个性化块，而是迅速进入可维护的设置分组。适合未来继续增加更新、实验功能和更多数据页。</span>
               </section>
 
               <div class="section-title">状态摘要 <span>保留，但不抢结构</span></div>
               <section class="summary-strip">
-                <div class="summary-stat"><strong>雾蓝</strong><span>当前主题族</span></div>
+                <div class="summary-stat"><strong>雾蓝</strong><span>当前主题</span></div>
                 <div class="summary-stat"><strong>21:30</strong><span>提醒时间</span></div>
                 <div class="summary-stat"><strong>已保护</strong><span>应用锁状态</span></div>
               </section>
@@ -421,7 +370,7 @@
                     <div class="row-title">外观</div>
                     <div class="row-sub">主题模式、字体大小、阅读强度</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span>
@@ -429,7 +378,7 @@
                     <div class="row-title">数据管理</div>
                     <div class="row-sub">分类管理、收藏夹、回收站、备份</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
@@ -437,7 +386,7 @@
                     <div class="row-title">提醒</div>
                     <div class="row-sub">时间开关、通知权限和提醒计划</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
@@ -445,7 +394,7 @@
                     <div class="row-title">隐私与安全</div>
                     <div class="row-sub">应用锁、恢复码、权限与异常提示</div>
                   </div>
-                  <span class="chev">›</span>
+                  <span class="chev">></span>
                 </div>
                 <div class="row">
                   <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
@@ -459,7 +408,7 @@
             </div>
             <nav class="bottom-nav">
               <div class="nav-item">首页</div>
-              <div class="nav-item">时间线</div>
+              <div class="nav-item">时间轴</div>
               <div class="nav-item">工具</div>
               <div class="nav-item">待办</div>
               <div class="nav-item active">我的</div>
