@@ -1156,7 +1156,7 @@ private fun PinSetupDialog(onDismiss: () -> Unit, onPinSet: (String, String) -> 
                         label = { Text(stringResource(R.string.pin_hint_label)) }, placeholder = { Text(stringResource(R.string.pin_hint_placeholder)) },
                         singleLine = true, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(stringResource(R.string.pin_hint_desc), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text(stringResource(R.string.pin_hint_desc), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 }
             }
         },

@@ -10,7 +10,9 @@ import com.diary.app.di.AppContainer
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
+import com.diary.app.data.AchievementManager
 import com.diary.app.data.BackupManager
+import com.diary.app.data.TrashCleanupWorker
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 import com.diary.app.ui.theme.ThemeMode
@@ -44,6 +46,19 @@ class DiaryApplication : Application() {
         // Schedule periodic auto-backup via WorkManager
         if (BackupManager.isAutoBackupEnabled(this)) {
             BackupManager.scheduleAutoBackup(this)
+        }
+        // Schedule daily trash cleanup (delete entries older than 30 days)
+        TrashCleanupWorker.schedule(this)
+
+        // Initialize achievements and check for unlocks
+        val achievementDao = database.achievementDao()
+        AchievementManager.initializeAchievements(appScope, achievementDao)
+        appScope.launch {
+            runCatching {
+                AchievementManager.checkAndUnlock(achievementDao, database.diaryDao(), this@DiaryApplication)
+            }.onFailure {
+                android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
+            }
         }
         // Still run a one-shot check at cold start for immediate needs
         appScope.launch {

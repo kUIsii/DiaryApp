@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
@@ -113,6 +114,7 @@ fun ToolsScreen(
     onNavigateToRandom: () -> Unit = {},
     onNavigateToDiaryMap: () -> Unit = {},
     onNavigateToBiography: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
@@ -206,6 +208,17 @@ fun ToolsScreen(
                         textColor = textColor,
                         textTertiary = textTertiary,
                         onClick = onNavigateToTagManagement
+                    )
+                    SettingDivider()
+                    ClickableToolRow(
+                        icon = Icons.Default.EmojiEvents,
+                        iconBg = sectionIconBg(0),
+                        iconTint = sectionIconTint(0),
+                        title = "成就",
+                        subtitle = "查看你的里程碑勋章",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = onNavigateToAchievements
                     )
                 }
 

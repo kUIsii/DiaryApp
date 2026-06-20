@@ -939,14 +939,14 @@ fun EditorScreen(
                                         Text(
                                             text = previewText,
                                             fontSize = 12.sp,
-                                            color = textSecondary.copy(alpha = 0.7f),
+                                            color = textSecondary.copy(alpha = 0.8f),
                                             maxLines = 1
                                         )
                                     }
                                     Text(
                                         text = timeAgo,
                                         fontSize = 11.sp,
-                                        color = textSecondary.copy(alpha = 0.6f)
+                                        color = textSecondary.copy(alpha = 0.7f)
                                     )
                                 }
                                 IconButton(
@@ -1024,21 +1024,28 @@ fun EditorScreen(
                         modifier = Modifier.size(21.dp)
                     )
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                // Auto-save indicator dot
+                // Save indicator + word count
                 AnimatedVisibility(
                     visible = autoSaveVisible,
                     enter = fadeIn(tween(200)),
                     exit = fadeOut(tween(300))
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(SuccessColor)
+                    Text(
+                        text = "已保存",
+                        fontSize = 11.sp,
+                        color = SuccessColor.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(end = 4.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
+                if (charCount > 0) {
+                    Text(
+                        text = "${charCount}字",
+                        fontSize = 11.sp,
+                        color = textSecondary.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
                 EditorTopIconButton(
                     icon = Icons.Default.Undo,
                     contentDescription = stringResource(R.string.undo),
@@ -1289,7 +1296,7 @@ fun EditorScreen(
                 )
             }
 
-            // Word count and writing duration - integrated into space above toolbar
+            // Writing milestone and duration - word count now in top bar
             if (isWritingStatsVisible) {
                 Row(
                     modifier = Modifier
@@ -1298,37 +1305,25 @@ fun EditorScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (charCount > 0) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${charCount}字",
-                                fontSize = 11.sp,
-                                color = textSecondary.copy(alpha = 0.4f)
-                            )
-                            val milestone = when {
-                                charCount >= 1000 -> "长篇大论"
-                                charCount >= 500 -> "文思泉涌"
-                                charCount >= 200 -> "洋洋洒洒"
-                                charCount >= 100 -> "渐入佳境"
-                                else -> null
-                            }
-                            if (milestone != null) {
-                                Text(
-                                    text = milestone,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
+                    val milestone = when {
+                        charCount >= 1000 -> "长篇大论"
+                        charCount >= 500 -> "文思泉涌"
+                        charCount >= 200 -> "洋洋洒洒"
+                        charCount >= 100 -> "渐入佳境"
+                        else -> null
+                    }
+                    if (milestone != null) {
+                        Text(
+                            text = milestone,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
                     }
                     if (writingDuration > 30) {
                         Text(
                             text = "已写${viewModel.getFormattedDuration()}",
                             fontSize = 11.sp,
-                            color = textSecondary.copy(alpha = 0.3f)
+                            color = textSecondary.copy(alpha = 0.6f)
                         )
                     }
                 }

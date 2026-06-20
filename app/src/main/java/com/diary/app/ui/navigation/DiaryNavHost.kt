@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -106,6 +107,8 @@ import com.diary.app.ui.trash.TrashScreen
 import com.diary.app.ui.monthlyreport.MonthlyReportScreen
 import com.diary.app.ui.annualreport.AnnualReportScreen
 import com.diary.app.ui.map.DiaryMapScreen
+import com.diary.app.ui.achievement.AchievementScreen
+import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
@@ -175,6 +178,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object AnnualReport : Screen("annual_report", "年度报告", Icons.Default.BarChart)
     object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.LocationOn)
     object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
+    object Achievements : Screen("achievements", "成就", Icons.Default.EmojiEvents)
 }
 
 data class BottomNavItem(
@@ -301,6 +305,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     },
                     onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
                     onNavigateToBiography = { navController.navigate(Screen.Biography.route) },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
@@ -567,6 +572,20 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 BiographyScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                Screen.Achievements.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                val achievementViewModel: AchievementViewModel = viewModel()
+                AchievementScreen(
+                    viewModel = achievementViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

@@ -893,7 +893,7 @@ private fun GridItem(
             Text(
                 text = description,
                 fontSize = 11.sp,
-                color = textColor.copy(alpha = 0.5f)
+                color = textColor.copy(alpha = 0.7f)
             )
         }
     }

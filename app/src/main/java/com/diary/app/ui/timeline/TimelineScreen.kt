@@ -10,8 +10,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -41,6 +43,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
@@ -126,6 +131,10 @@ fun TimelineScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var isFilterExpanded by remember { mutableStateOf(false) }
+
+    // Multi-select state
+    var multiSelectState by remember { mutableStateOf(TimelineMultiSelectState()) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     // Show scroll-to-top button when scrolled down
     val showScrollToTop by remember {
@@ -379,9 +388,23 @@ fun TimelineScreen(
                                     tags = tags,
                                     imagePath = imagePath,
                                     isLastInDay = isLastOfDay,
+                                    isSelected = entry.id in multiSelectState.selectedIds,
+                                    isMultiSelectMode = multiSelectState.isEnabled,
                                     onEntryClick = {
                                         haptic.click()
-                                        onNavigateToDetail(entry.id)
+                                        if (multiSelectState.isEnabled) {
+                                            multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                        } else {
+                                            onNavigateToDetail(entry.id)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.click()
+                                        multiSelectState = if (multiSelectState.isEnabled) {
+                                            multiSelectState.toggleSelection(entry.id)
+                                        } else {
+                                            TimelineMultiSelectState.startSelection(entry.id)
+                                        }
                                     }
                                 )
                             }
@@ -414,6 +437,106 @@ fun TimelineScreen(
                         contentDescription = "回到顶部",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            // Multi-select action bar
+            if (multiSelectState.isEnabled) {
+                TimelineMultiSelectBar(
+                    selectedCount = multiSelectState.selectedCount,
+                    onFavorite = {
+                        haptic.click()
+                        viewModel.favoriteEntries(multiSelectState.selectedIds)
+                        multiSelectState = multiSelectState.clearSelection()
+                    },
+                    onDelete = {
+                        haptic.click()
+                        showDeleteConfirm = true
+                    },
+                    onCancel = {
+                        multiSelectState = multiSelectState.clearSelection()
+                    }
+                )
+            }
+
+            // Delete confirmation dialog
+            if (showDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirm = false },
+                    title = { Text("确认删除") },
+                    text = { Text("确定要删除选中的 ${multiSelectState.selectedCount} 篇日记吗？删除后将移入回收站。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            haptic.click()
+                            viewModel.deleteEntries(multiSelectState.selectedIds)
+                            multiSelectState = multiSelectState.clearSelection()
+                            showDeleteConfirm = false
+                        }) {
+                            Text("删除", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirm = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// ========== Multi-select action bar ==========
+
+@Composable
+private fun TimelineMultiSelectBar(
+    selectedCount: Int,
+    onFavorite: () -> Unit,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onCancel, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "取消选择",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "已选 $selectedCount 篇",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = onFavorite, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = "收藏",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -1005,7 +1128,7 @@ private fun DayHeaderWithAxis(date: LocalDate) {
                         color = if (isToday) {
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         }
                     )
                 }
@@ -1026,14 +1149,17 @@ private fun DayHeaderWithAxis(date: LocalDate) {
 
 // ========== Timeline Entry with Axis ==========
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun TimelineEntryWithAxis(
     entry: DiaryPreview,
     tags: List<TagInfo>,
     imagePath: String?,
     isLastInDay: Boolean,
-    onEntryClick: () -> Unit
+    isSelected: Boolean = false,
+    isMultiSelectMode: Boolean = false,
+    onEntryClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -1087,16 +1213,30 @@ private fun TimelineEntryWithAxis(
                     scaleX = scale
                     scaleY = scale
                 }
-                .clickable(
+                .combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onEntryClick
+                    onClick = onEntryClick,
+                    onLongClick = onLongClick
                 )
         ) {
             GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
+                    .height(IntrinsicSize.Min)
+                    .then(
+                        if (isSelected) Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
+                        ) else if (imagePath.isNullOrBlank() && moodColor != MaterialTheme.colorScheme.primary) {
+                            Modifier.border(
+                                width = 3.dp,
+                                color = moodColor.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        } else Modifier
+                    ),
                 cornerRadius = 12.dp,
                 innerPadding = 12.dp
             ) {
@@ -1147,14 +1287,14 @@ private fun TimelineEntryWithAxis(
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = entry.location,
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

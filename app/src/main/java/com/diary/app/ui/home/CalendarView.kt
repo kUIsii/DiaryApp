@@ -343,7 +343,7 @@ private fun MonthView(
                             modifier = Modifier.weight(1f)
                         )
                     } else {
-                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
+                        Box(modifier = Modifier.weight(1f).height(36.dp))
                     }
                 }
             }
@@ -486,10 +486,10 @@ private fun CalendarDay(
 
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            .height(36.dp)
             .padding(2.dp)
             .scale(animatedScale)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(8.dp))
             .background(backgroundBrush)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

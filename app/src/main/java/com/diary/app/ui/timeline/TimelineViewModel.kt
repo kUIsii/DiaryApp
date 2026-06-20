@@ -6,7 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryPreview
+import com.diary.app.data.TrashEntry
 import com.diary.app.ui.home.TagInfo
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -148,5 +150,40 @@ class TimelineViewModel(application: Application) : AndroidViewModel(application
         return filter.selectedMoods.isNotEmpty() ||
             filter.selectedWeathers.isNotEmpty() ||
             filter.selectedTagIds.isNotEmpty()
+    }
+
+    fun favoriteEntries(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            dao.batchSetFavorite(ids.toList(), true)
+        }
+    }
+
+    fun deleteEntries(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val entries = dao.getEntriesByIdsSafe(ids.toList())
+            if (entries.isNotEmpty()) {
+                val trashEntries = entries.map { entry ->
+                    TrashEntry(
+                        originalId = entry.id,
+                        title = entry.title,
+                        content = entry.content,
+                        plainText = entry.plainText,
+                        moodLevel = entry.moodLevel,
+                        weather = entry.weather,
+                        location = entry.location,
+                        latitude = entry.latitude,
+                        longitude = entry.longitude,
+                        isFavorite = entry.isFavorite,
+                        createdAt = entry.createdAt,
+                        updatedAt = entry.updatedAt,
+                        deletedAt = System.currentTimeMillis()
+                    )
+                }
+                dao.insertTrashEntries(trashEntries)
+                dao.deleteEntriesWithTags(entries)
+            }
+        }
     }
 }

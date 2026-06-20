@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +39,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,16 +53,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
+import com.diary.app.ui.memory.TicketStubCard
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaLibraryScreen(
     onNavigateBack: () -> Unit,
@@ -67,6 +75,7 @@ fun MediaLibraryScreen(
 ) {
     val haptic = rememberHapticFeedback()
     val state by viewModel.state.collectAsState()
+    var ticketItem by remember { mutableStateOf<MediaLibraryItem?>(null) }
 
     GradientBackground {
         LazyVerticalGrid(
@@ -106,10 +115,31 @@ fun MediaLibraryScreen(
                             onClick = {
                                 haptic.click()
                                 onNavigateToDetail(item.entryId)
+                            },
+                            onLongClick = {
+                                haptic.click()
+                                ticketItem = item
                             }
                         )
                     }
                 }
+            }
+        }
+    }
+
+    // Ticket stub dialog
+    ticketItem?.let { item ->
+        Dialog(onDismissRequest = { ticketItem = null }) {
+            GlassCard(
+                cornerRadius = 20.dp,
+                innerPadding = 12.dp
+            ) {
+                TicketStubCard(
+                    imageUri = item.displayPath,
+                    date = item.entryCreatedAt,
+                    location = item.location,
+                    moodColor = moodColorForLevel(item.moodLevel ?: 3)
+                )
             }
         }
     }
@@ -165,10 +195,12 @@ private fun MediaLibraryHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MediaGridItem(
     item: MediaLibraryItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -186,10 +218,11 @@ private fun MediaGridItem(
                 scaleX = scale
                 scaleY = scale
             }
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = onClick,
+                onLongClick = onLongClick
             ),
         cornerRadius = 12.dp
     ) {

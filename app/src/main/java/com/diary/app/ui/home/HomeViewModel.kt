@@ -253,6 +253,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _searchQuery.value = query
     }
 
+    // Search results across all dates (for homepage search bar)
+    val searchResults: StateFlow<List<DiaryPreview>> = debouncedSearchQuery
+        .flatMapLatest { query ->
+            if (query.isBlank()) flowOf(emptyList())
+            else dao.searchPreviews(query)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun commitSearch(query: String) {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return
@@ -329,6 +337,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun getRandomEntryId(): Long? = dao.getRandomEntryId()
+
+    suspend fun getEntryPreview(id: Long): DiaryPreview? = dao.getPreviewById(id)
+
+    suspend fun getOnThisDayPreviews(): List<DiaryPreview> {
+        val today = LocalDate.now()
+        return dao.getPreviewsByMonthDay(today.monthValue, today.dayOfMonth)
+            .filter { entry ->
+                val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                entryDate.year < today.year
+            }
+    }
 
     fun loadInsight() {
         val app = getApplication<DiaryApplication>()

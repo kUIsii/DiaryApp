@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -33,11 +34,18 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,12 +58,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -106,6 +116,23 @@ fun HomeScreen(
     val aiInsight by viewModel.aiInsight.collectAsState()
     val imageMap by viewModel.imageMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+
+    // Random review state
+    var randomEntry by remember { mutableStateOf<DiaryPreview?>(null) }
+    var randomRefreshTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(randomRefreshTrigger) {
+        val id = viewModel.getRandomEntryId()
+        randomEntry = if (id != null) viewModel.getEntryPreview(id) else null
+    }
+
+    // On this day state
+    var onThisDayEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        onThisDayEntries = viewModel.getOnThisDayPreviews()
+    }
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -163,6 +190,56 @@ fun HomeScreen(
                             onNavigateToAiAssistant()
                         }
                     )
+                }
+
+                // Search bar
+                item {
+                    HomeSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.setSearchQuery(it) }
+                    )
+                }
+
+                // Search results (when query is active)
+                if (searchQuery.isNotBlank() && searchResults.isNotEmpty()) {
+                    items(searchResults.take(5), key = { it.id }) { entry ->
+                        SearchResultCard(
+                            entry = entry,
+                            imageMap = imageMap,
+                            onClick = { onNavigateToDetail(entry.id) }
+                        )
+                    }
+                    if (searchResults.size > 5) {
+                        item {
+                            Text(
+                                text = "还有 ${searchResults.size - 5} 条结果...",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Random review card (hidden when searching)
+                if (searchQuery.isBlank() && randomEntry != null) {
+                    item {
+                        RandomReviewCard(
+                            entry = randomEntry!!,
+                            onRefresh = { randomRefreshTrigger++ },
+                            onClick = { onNavigateToDetail(randomEntry!!.id) }
+                        )
+                    }
+                }
+
+                // On this day card (hidden when searching)
+                if (searchQuery.isBlank() && onThisDayEntries.isNotEmpty()) {
+                    item {
+                        OnThisDayCard(
+                            entries = onThisDayEntries,
+                            onClick = { entry -> onNavigateToDetail(entry.id) }
+                        )
+                    }
                 }
 
                 item {
@@ -584,7 +661,7 @@ private fun HeaderActionButton(
     val contentColor = if (enabled) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
     }
 
     Column(
@@ -678,9 +755,41 @@ private fun HomeEntryCard(
                     onLongClick = onLongClick
                 ),
             cornerRadius = 18.dp,
-            innerPadding = 12.dp
+            innerPadding = 0.dp
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Background image overlay for entries with images
+                if (!imagePath.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(File(imagePath))
+                            .crossfade(true)
+                            .size(200)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .alpha(0.12f)
+                    )
+                }
+
+                // Mood color bar for entries without images
+                if (imagePath.isNullOrBlank() && moodData != null) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .width(4.dp)
+                            .background(moodData.tint)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                 if (isSelected) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -794,6 +903,7 @@ private fun HomeEntryCard(
                     }
                 }
             }
+            } // close inner Box
         }
     }
 }
@@ -910,6 +1020,244 @@ private fun HomeFab(onClick: () -> Unit) {
                 contentDescription = "新建日记",
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        innerPadding = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(start = 10.dp, end = 6.dp).size(18.dp)
+            )
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "搜索日记...",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+            )
+            if (query.isNotBlank()) {
+                androidx.compose.material3.IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "清除",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultCard(
+    entry: DiaryPreview,
+    imageMap: Map<Long, String>,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        cornerRadius = 12.dp,
+        innerPadding = 12.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title.ifBlank { "无标题" },
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (entry.plainText.isNotBlank()) {
+                    Text(
+                        text = cleanPreviewText(entry.plainText),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+            entry.moodLevel?.let { level ->
+                Icon(
+                    imageVector = moodIconForLevel(level).icon,
+                    contentDescription = moodLabelForLevel(level),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp).padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RandomReviewCard(
+    entry: DiaryPreview,
+    onRefresh: () -> Unit,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        innerPadding = 14.dp
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "随机回顾",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                )
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "换一篇",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { onRefresh() }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.title.ifBlank { "无标题" },
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (entry.plainText.isNotBlank()) {
+                        Text(
+                            text = cleanPreviewText(entry.plainText),
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+                entry.moodLevel?.let { level ->
+                    Icon(
+                        imageVector = moodIconForLevel(level).icon,
+                        contentDescription = moodLabelForLevel(level),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(22.dp).padding(start = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnThisDayCard(
+    entries: List<DiaryPreview>,
+    onClick: (DiaryPreview) -> Unit
+) {
+    val today = java.time.LocalDate.now()
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        innerPadding = 14.dp
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "那年今日",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            entries.take(3).forEach { entry ->
+                val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                val yearsAgo = today.year - entryDate.year
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onClick(entry) }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${yearsAgo}年前",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.width(40.dp)
+                    )
+                    Text(
+                        text = entry.title.ifBlank { "无标题" },
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    entry.moodLevel?.let { level ->
+                        Icon(
+                            imageVector = moodIconForLevel(level).icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

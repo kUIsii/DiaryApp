@@ -75,6 +75,7 @@ import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.formatWordCount
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
+import com.diary.app.ui.stats.WordCloud
 import com.diary.app.ui.theme.HeatmapDarkLevel1
 import com.diary.app.ui.theme.HeatmapDarkLevel2
 import com.diary.app.ui.theme.HeatmapDarkLevel3
@@ -220,6 +221,21 @@ fun StatsScreen(
                                 }
                             } else {
                                 InlineEmptyHint("还没有足够的心情数据")
+                            }
+                        }
+                    }
+
+                    if (state.topWords.isNotEmpty()) {
+                        item {
+                            StatsSectionCard(
+                                title = "关键词云",
+                                subtitle = "你最常使用的词汇，反映近期关注点"
+                            ) {
+                                WordCloud(
+                                    words = state.topWords,
+                                    primaryColor = MaterialTheme.colorScheme.primary,
+                                    secondaryColor = MaterialTheme.colorScheme.tertiary
+                                )
                             }
                         }
                     }
@@ -418,67 +434,72 @@ private fun StatsHeroSection(
         cornerRadius = 24.dp,
         innerPadding = 18.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Hero number - total entries
+            Column {
+                Text(
+                    text = "统计",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "统计",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = "${state.totalEntries}",
+                        fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        lineHeight = 40.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "用更接近日常使用的方式看记录量、写作状态和情绪变化",
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "篇日记",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
-                MiniSignal(
-                    text = "${state.totalEntries} 篇记录",
-                    accent = MaterialTheme.colorScheme.primary
-                )
             }
 
+            // Compact stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                HeroSummaryChip(
+                CompactStatItem(
                     label = "平均字数",
                     value = formatWordCount(avgWords),
                     modifier = Modifier.weight(1f)
                 )
-                HeroSummaryChip(
-                    label = "本月记录",
+                CompactStatItem(
+                    label = "本月",
                     value = "${state.thisMonthEntries} 篇",
+                    modifier = Modifier.weight(1f)
+                )
+                CompactStatItem(
+                    label = "连续",
+                    value = "${state.currentStreak} 天",
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "时间范围",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HeatmapRange.entries.forEach { range ->
-                        RangeChip(
-                            label = when (range) {
-                                HeatmapRange.ONE_MONTH -> "最近 30 天"
-                            },
-                            selected = state.heatmapRange == range,
-                            onClick = { onRangeSelected(range) }
-                        )
+            // Range selector
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HeatmapRange.entries.forEach { range ->
+                    val rangeLabel = when (range) {
+                        HeatmapRange.ONE_MONTH -> "最近 30 天"
                     }
+                    RangeChip(
+                        label = rangeLabel,
+                        selected = state.heatmapRange == range,
+                        onClick = { onRangeSelected(range) }
+                    )
                 }
             }
         }
@@ -486,51 +507,26 @@ private fun StatsHeroSection(
 }
 
 @Composable
-private fun MiniSignal(text: String, accent: Color) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(accent.copy(alpha = 0.10f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(accent)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-    }
-}
-
-@Composable
-private fun HeroSummaryChip(
+private fun CompactStatItem(
     label: String,
     value: String,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = value,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -625,14 +621,17 @@ private fun SummaryCard(
 ) {
     GlassCard(
         modifier = modifier,
-        cornerRadius = 22.dp,
-        innerPadding = 16.dp
+        cornerRadius = 18.dp,
+        innerPadding = 14.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(accent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -640,20 +639,21 @@ private fun SummaryCard(
                     imageVector = icon,
                     contentDescription = label,
                     tint = accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = label,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
                 Text(
                     text = value,
-                    fontSize = 21.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = label,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

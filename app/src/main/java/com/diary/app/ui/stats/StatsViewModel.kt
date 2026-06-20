@@ -77,6 +77,7 @@ data class StatsState(
     val writingHabit: WritingHabit? = null,
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
+    val topWords: List<WordFrequency> = emptyList(),
     val heatmapData: List<HeatmapDay> = emptyList(),
     val heatmapRange: HeatmapRange = HeatmapRange.ONE_MONTH,
 )
@@ -138,6 +139,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
+            topWords = computeTopWords(entries),
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
         )
@@ -271,6 +273,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
+    }
+
+    private fun computeTopWords(entries: List<DiaryPreview>): List<WordFrequency> {
+        if (entries.isEmpty()) return emptyList()
+        val texts = entries.map { it.plainText }.filter { it.isNotBlank() }
+        return extractTopWords(texts, limit = 40)
     }
 
 }
