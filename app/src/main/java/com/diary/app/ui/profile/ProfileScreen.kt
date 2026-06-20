@@ -311,11 +311,20 @@ fun ProfileScreen(
         )
     }
 
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(expandedSection) {
+        if (expandedSection != null) {
+            delay(300)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
     GradientBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

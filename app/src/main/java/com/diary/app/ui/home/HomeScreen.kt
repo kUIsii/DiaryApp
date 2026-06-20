@@ -6,6 +6,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -90,6 +92,7 @@ fun HomeScreen(
     onNavigateToTimeline: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
+    onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -141,7 +144,8 @@ fun HomeScreen(
                         onAiClick = {
                             haptic.click()
                             onNavigateToAiAssistant()
-                        }
+                        },
+                        onSwipe = onMainScreenSwipe
                     )
                 }
 
@@ -256,7 +260,8 @@ private fun HomeHeroSection(
     unreadCount: Int,
     aiInsight: AiInsight?,
     onNotificationsClick: () -> Unit,
-    onAiClick: () -> Unit
+    onAiClick: () -> Unit,
+    onSwipe: ((Float) -> Unit)? = null
 ) {
     val today = LocalDate.now()
     val title = when (selectedDate) {
@@ -266,7 +271,22 @@ private fun HomeHeroSection(
     }
     val subtitle = selectedDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日 · EEEE"))
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.pointerInput(onSwipe) {
+            var totalDrag = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { totalDrag = 0f },
+                onHorizontalDrag = { change, dragAmount ->
+                    totalDrag += dragAmount
+                    change.consume()
+                },
+                onDragEnd = {
+                    onSwipe?.invoke(totalDrag)
+                }
+            )
+        },
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top

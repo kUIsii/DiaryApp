@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Widgets
@@ -60,7 +59,7 @@ private data class ToolEntry(
     val title: String,
     val subtitle: String,
     val icon: ImageVector,
-    val paletteIndex: Int,
+    val sectionIndex: Int,
     val onClick: () -> Unit
 )
 
@@ -98,7 +97,7 @@ fun ToolsScreen(
             title = "回顾",
             items = listOf(
                 ToolEntry("倒数日", "倒数日提醒", Icons.Default.Event, 1, onNavigateToCountDown),
-                ToolEntry("日记地图", "地点回顾", Icons.Default.Explore, 2, onNavigateToDiaryMap),
+                ToolEntry("日记地图", "地点回顾", Icons.Default.Explore, 1, onNavigateToDiaryMap),
                 ToolEntry("时间胶囊", "未来信件", Icons.Default.MarkEmailUnread, 1, onNavigateToTimeCapsule),
                 ToolEntry("随机回顾", "随机回看", Icons.Default.Shuffle, 1, onNavigateToRandom)
             )
@@ -106,10 +105,10 @@ fun ToolsScreen(
         ToolSection(
             title = "其他",
             items = listOf(
-                ToolEntry("AI 助手", "对话协助", Icons.Default.ChatBubbleOutline, 3, onNavigateToAiAssistant),
-                ToolEntry("AI 传记", "阶段总结", Icons.Default.AutoAwesome, 3, onNavigateToBiography),
-                ToolEntry("消息通知", "通知中心", Icons.Default.Notifications, 3, onNavigateToNotifications),
-                ToolEntry("实验功能", "测试功能", Icons.Default.Tune, 3, onNavigateToExperimental)
+                ToolEntry("AI 助手", "对话协助", Icons.Default.ChatBubbleOutline, 2, onNavigateToAiAssistant),
+                ToolEntry("AI 传记", "阶段总结", Icons.Default.AutoAwesome, 2, onNavigateToBiography),
+                ToolEntry("消息通知", "通知中心", Icons.Default.Notifications, 2, onNavigateToNotifications),
+                ToolEntry("实验功能", "测试功能", Icons.Default.Tune, 2, onNavigateToExperimental)
             )
         )
     )
@@ -155,21 +154,19 @@ private fun ToolsHeaderCard() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconCircle(
                 icon = Icons.Default.Widgets,
-                bg = sectionIconBg(0),
-                tint = sectionIconTint(0),
-                size = 44.dp,
+                bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                tint = MaterialTheme.colorScheme.primary,
+                size = 40.dp,
                 iconSize = 20.dp,
-                cornerRadius = 14.dp
+                cornerRadius = 12.dp
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "工具",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            Text(
+                text = "工具",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
     }
 }
@@ -181,16 +178,9 @@ private fun ToolsDirectoryCard(sections: List<ToolSection>) {
         cornerRadius = 22.dp,
         innerPadding = 16.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "全部工具",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             sections.forEachIndexed { sectionIndex, section ->
-                DirectorySection(section = section)
+                DirectorySection(section = section, sectionIndex = sectionIndex)
                 if (sectionIndex != sections.lastIndex) {
                     SettingDivider()
                 }
@@ -200,32 +190,19 @@ private fun ToolsDirectoryCard(sections: List<ToolSection>) {
 }
 
 @Composable
-private fun DirectorySection(section: ToolSection) {
+private fun DirectorySection(section: ToolSection, sectionIndex: Int) {
+    val sectionColor = sectionColorFor(sectionIndex)
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconCircle(
-                icon = when (section.title) {
-                    "整理" -> Icons.Default.PushPin
-                    "回顾" -> Icons.Default.Event
-                    else -> Icons.Default.AutoAwesome
-                },
-                bg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                tint = MaterialTheme.colorScheme.primary,
-                size = 36.dp,
-                iconSize = 17.dp,
-                cornerRadius = 12.dp
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = section.title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Text(
+            text = section.title,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
         section.items.forEachIndexed { index, item ->
-            ToolRow(tool = item)
+            ToolRow(tool = item, sectionColor = sectionColor)
             if (index != section.items.lastIndex) {
                 SettingDivider()
             }
@@ -235,7 +212,8 @@ private fun DirectorySection(section: ToolSection) {
 
 @Composable
 private fun ToolRow(
-    tool: ToolEntry
+    tool: ToolEntry,
+    sectionColor: Color
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -264,8 +242,8 @@ private fun ToolRow(
     ) {
         IconCircle(
             icon = tool.icon,
-            bg = sectionIconBg(tool.paletteIndex),
-            tint = sectionIconTint(tool.paletteIndex),
+            bg = sectionColor.copy(alpha = 0.10f),
+            tint = sectionColor,
             size = 40.dp,
             iconSize = 18.dp,
             cornerRadius = 12.dp
@@ -275,12 +253,13 @@ private fun ToolRow(
             Text(
                 text = tool.title,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = tool.subtitle,
                 fontSize = 11.sp,
+                fontWeight = FontWeight.Normal,
                 lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 3.dp)
@@ -296,35 +275,10 @@ private fun ToolRow(
 }
 
 @Composable
-private fun sectionIconBg(index: Int): Color {
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    return when (index) {
-        0 -> primary.copy(alpha = 0.12f)
-        1 -> secondary.copy(alpha = 0.13f)
-        2 -> tertiary.copy(alpha = 0.12f)
-        3 -> primary.copy(alpha = 0.08f)
-        else -> primary.copy(alpha = 0.10f)
-    }
-}
-
-@Composable
-private fun sectionIconTint(index: Int): Color {
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val gray = MaterialTheme.colorScheme.onSurfaceVariant
-    return when (index) {
-        0 -> primary
-        1 -> secondary
-        2 -> tertiary
-        3 -> Color(
-            red = primary.red * 0.6f + gray.red * 0.4f,
-            green = primary.green * 0.6f + gray.green * 0.4f,
-            blue = primary.blue * 0.6f + gray.blue * 0.4f,
-            alpha = 1f
-        )
-        else -> primary
+private fun sectionColorFor(sectionIndex: Int): Color {
+    return when (sectionIndex) {
+        0 -> MaterialTheme.colorScheme.primary
+        1 -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.tertiary
     }
 }

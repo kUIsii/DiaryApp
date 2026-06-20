@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -110,6 +112,7 @@ private val DATE_TITLE_REGEX = Regex("\\d{4}年\\d{1,2}月\\d{1,2}日")
 @Composable
 fun TimelineScreen(
     onNavigateToDetail: (Long) -> Unit,
+    onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: TimelineViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -201,7 +204,22 @@ fun TimelineScreen(
             ) {
                 // Page header
                 item(key = "header") {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Column(modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .pointerInput(onMainScreenSwipe) {
+                            var totalDrag = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDrag = 0f },
+                                onHorizontalDrag = { change, dragAmount ->
+                                    totalDrag += dragAmount
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    onMainScreenSwipe?.invoke(totalDrag)
+                                }
+                            )
+                        }
+                    ) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),

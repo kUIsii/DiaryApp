@@ -10,7 +10,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,7 +70,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -115,26 +113,26 @@ import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
-// Sub-page transition specs: slide from right + fade
+// Sub-page transition specs: smooth slide without bounce
 private fun subPageEnterTransition() = slideInHorizontally(
-    initialOffsetX = { it },
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+    initialOffsetX = { it / 3 },
+    animationSpec = tween(250)
 ) + fadeIn(animationSpec = tween(200))
 
 private fun subPageExitTransition() = slideOutHorizontally(
-    targetOffsetX = { -it / 3 },
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-) + fadeOut(animationSpec = tween(200))
+    targetOffsetX = { -it / 4 },
+    animationSpec = tween(250)
+)
 
 private fun subPagePopEnterTransition() = slideInHorizontally(
-    initialOffsetX = { -it / 3 },
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+    initialOffsetX = { -it / 4 },
+    animationSpec = tween(250)
 ) + fadeIn(animationSpec = tween(200))
 
 private fun subPagePopExitTransition() = slideOutHorizontally(
-    targetOffsetX = { it },
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-) + fadeOut(animationSpec = tween(200))
+    targetOffsetX = { it / 3 },
+    animationSpec = tween(250)
+)
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -214,31 +212,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         }
     }
 
-    val rootSwipeModifier = if (showBottomBar && currentRoute != Screen.Todo.route) {
-        Modifier.pointerInput(currentRoute, experimentalFeatures.mainScreenSwipeEnabled) {
-            var totalDrag = 0f
-            detectHorizontalDragGestures(
-                onDragStart = { totalDrag = 0f },
-                onHorizontalDrag = { change, dragAmount ->
-                    totalDrag += dragAmount
-                    change.consume()
-                },
-                onDragEnd = {
-                    val targetRoute = resolveMainScreenSwipeTarget(
-                        currentRoute = currentRoute,
-                        totalDrag = totalDrag,
-                        enabled = experimentalFeatures.mainScreenSwipeEnabled
-                    )
-                    if (targetRoute != null) {
-                        navigateToBottomRoute(targetRoute)
-                    }
-                }
-            )
-        }
-    } else {
-        Modifier
-    }
-
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
@@ -270,7 +243,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = navHostModifier.then(rootSwipeModifier)
+            modifier = navHostModifier,
+            enterTransition = { fadeIn(animationSpec = tween(200)) },
+            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200)) }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
@@ -280,12 +257,32 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
-                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) }
+                    onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onMainScreenSwipe = { dragAmount ->
+                        val targetRoute = resolveMainScreenSwipeTarget(
+                            currentRoute = Screen.Home.route,
+                            totalDrag = dragAmount,
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                        )
+                        if (targetRoute != null) {
+                            navigateToBottomRoute(targetRoute)
+                        }
+                    }
                 )
             }
             composable(Screen.Timeline.route) {
                 TimelineScreen(
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onMainScreenSwipe = { dragAmount ->
+                        val targetRoute = resolveMainScreenSwipeTarget(
+                            currentRoute = Screen.Timeline.route,
+                            totalDrag = dragAmount,
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                        )
+                        if (targetRoute != null) {
+                            navigateToBottomRoute(targetRoute)
+                        }
+                    }
                 )
             }
             composable(Screen.Tools.route) {
