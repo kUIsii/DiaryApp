@@ -47,7 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -121,7 +120,7 @@ fun CountDownScreen(
                 EmptyState(
                     icon = Icons.Default.Add,
                     title = "还没有倒数日",
-                    subtitle = "点击右上角创建一个重要日期，把它从纪念变成可执行的计划。",
+                    subtitle = "先创建一个重要日期，把纪念和计划整理成清晰的时间节点。",
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
@@ -204,7 +203,7 @@ private fun CountDownHeader(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = if (itemCount > 0) "共 $itemCount 个计划与纪念" else "把重要日期整理成真正可执行的列表",
+                text = if (itemCount > 0) "共 $itemCount 个计划与纪念节点" else "把重要日期整理成真正可继续处理的列表",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -242,7 +241,7 @@ private fun CountDownOverviewCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "把重要日期和后续动作放在同一个节奏里。",
+                text = "把重要日期和后续动作放进同一条节奏里，方便继续补充提醒和说明。",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -287,7 +286,7 @@ private fun CountDownItemCard(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = tween(durationMillis = 100),
-        label = "cardScale"
+        label = "countDownCardScale"
     )
 
     val targetDate = Instant.ofEpochMilli(item.targetDate)

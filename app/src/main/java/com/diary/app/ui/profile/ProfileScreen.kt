@@ -107,6 +107,8 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
+import com.diary.app.ui.editor.APP_FONT_SIZE_PREF_KEY
+import com.diary.app.ui.editor.EDITOR_FONT_SIZE_PREF_KEY
 import com.diary.app.ui.theme.DarkAccentEnd
 import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ThemeMode
@@ -121,7 +123,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 
-// Section icon colors ??5 distinct colors per theme
+// Section icon colors with a slightly different tint balance per group
 @Composable
 private fun sectionIconBg(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
@@ -192,7 +194,10 @@ fun ProfileScreen(
     var currentFontSizeKey by remember {
         mutableStateOf(
             context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
-                .getString("editor_font_size", "small") ?: "small"
+                .getString(APP_FONT_SIZE_PREF_KEY, null)
+                ?: context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
+                    .getString(EDITOR_FONT_SIZE_PREF_KEY, "small")
+                ?: "small"
         )
     }
     var reminderEnabled by remember { mutableStateOf(ReminderManager.isReminderEnabled(context)) }
@@ -316,7 +321,7 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            HeaderSection(textColor = textColor, textTertiary = textTertiary)
+            HeaderSection(textColor = textColor)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -349,7 +354,6 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(0),
                     iconTint = sectionIconTint(0),
                     title = stringResource(R.string.profile_appearance),
-                    subtitle = "主题模式和字体大小",
                     isExpanded = expandedSection == "appearance",
                     onToggle = { expandedSection = if (expandedSection == "appearance") null else "appearance" },
                     textColor = textColor,
@@ -374,7 +378,7 @@ fun ProfileScreen(
                         onValueChange = { key ->
                             currentFontSizeKey = key
                             context.getSharedPreferences("diary_prefs", android.content.Context.MODE_PRIVATE)
-                                .edit().putString("editor_font_size", key).apply()
+                                .edit().putString(APP_FONT_SIZE_PREF_KEY, key).apply()
                         }
                     )
                 }
@@ -385,7 +389,6 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(1),
                     iconTint = sectionIconTint(1),
                     title = stringResource(R.string.profile_data_management),
-                    subtitle = "分类管理、备份和回收站",
                     isExpanded = expandedSection == "data",
                     onToggle = { expandedSection = if (expandedSection == "data") null else "data" },
                     textColor = textColor,
@@ -443,7 +446,6 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(2),
                     iconTint = sectionIconTint(2),
                     title = stringResource(R.string.profile_reminder_settings),
-                    subtitle = "每日写作提醒",
                     isExpanded = expandedSection == "reminder",
                     onToggle = { expandedSection = if (expandedSection == "reminder") null else "reminder" },
                     textColor = textColor,
@@ -479,7 +481,6 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(3),
                     iconTint = sectionIconTint(3),
                     title = stringResource(R.string.profile_privacy_security),
-                    subtitle = "应用锁和隐私保护",
                     isExpanded = expandedSection == "privacy",
                     onToggle = { expandedSection = if (expandedSection == "privacy") null else "privacy" },
                     textColor = textColor,
@@ -534,7 +535,6 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(4),
                     iconTint = sectionIconTint(4),
                     title = stringResource(R.string.profile_about),
-                    subtitle = "版本信息和更新",
                     isExpanded = expandedSection == "about",
                     onToggle = { expandedSection = if (expandedSection == "about") null else "about" },
                     textColor = textColor,
@@ -620,7 +620,6 @@ private fun CollapsibleSection(
     iconBg: Color,
     iconTint: Color,
     title: String,
-    subtitle: String,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     textColor: Color,
@@ -652,10 +651,7 @@ private fun CollapsibleSection(
             ) {
                 IconCircle(icon = icon, bg = iconBg, tint = iconTint)
                 Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
-                    Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
-                }
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "收起" else "展开",
@@ -784,7 +780,7 @@ private fun SwitchSettingRow(
 // --- Header ---
 
 @Composable
-private fun HeaderSection(textColor: Color, textTertiary: Color) {
+private fun HeaderSection(textColor: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "profileHeaderGlow")
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.22f,
@@ -801,54 +797,34 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
         cornerRadius = 26.dp,
         innerPadding = 18.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f)
-                                )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f)
                             )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Palette,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "我的",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = textColor
-                    )
-                    Text(
-                        text = "先看主题、提醒和数据状态，再进入具体设置。",
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        color = textTertiary,
-                        modifier = Modifier.padding(top = 3.dp)
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                OverviewTag(text = "主题已同步")
-                OverviewTag(text = "支持浅色 / 深色")
-                OverviewTag(text = "设置分组更清楚")
+                Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
             }
+            Spacer(modifier = Modifier.width(14.dp))
+            Text(
+                text = "我的",
+                style = MaterialTheme.typography.headlineMedium,
+                color = textColor
+            )
         }
     }
 }
@@ -867,26 +843,12 @@ private fun ProfileOverviewCard(
         innerPadding = 16.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "今日状态",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "把最关键的主题、提醒和安全状态放在这里，不让“我的”页先变成说明页。",
-                        fontSize = 11.sp,
-                        lineHeight = 17.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 3.dp)
-                    )
-                }
-            }
+            Text(
+                text = "今日状态",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -907,22 +869,6 @@ private fun ProfileOverviewCard(
                     value = if (appLockEnabled) "已保护" else "未开启",
                     modifier = Modifier.weight(1f)
                 )
-            }
-
-            Text(
-                text = "下面的分组会继续承接主题、备份、提醒、隐私和更新，不再让页面像一块展示海报。",
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OverviewTag(text = if (currentThemeMode.isDarkStatic()) "深色模式" else "浅色模式")
-                OverviewTag(text = "主题适配已生效")
-                OverviewTag(text = "可继续扩展更多配色")
             }
         }
     }
@@ -953,23 +899,6 @@ private fun ProfileSignalCard(
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
-    }
-}
-
-@Composable
-private fun OverviewTag(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
@@ -1037,6 +966,26 @@ private fun ThemeCardSelector(
             lightEnd = com.diary.app.ui.theme.SandLightAccent,
             darkStart = com.diary.app.ui.theme.SandDarkBg1,
             darkEnd = com.diary.app.ui.theme.SandDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "clay",
+            label = "陶土",
+            lightMode = ThemeMode.CLAY_LIGHT,
+            darkMode = ThemeMode.CLAY_DARK,
+            lightStart = com.diary.app.ui.theme.ClayLightBg1,
+            lightEnd = com.diary.app.ui.theme.ClayLightAccent,
+            darkStart = com.diary.app.ui.theme.ClayDarkBg1,
+            darkEnd = com.diary.app.ui.theme.ClayDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "ink",
+            label = "墨蓝",
+            lightMode = ThemeMode.INK_LIGHT,
+            darkMode = ThemeMode.INK_DARK,
+            lightStart = com.diary.app.ui.theme.InkLightBg1,
+            lightEnd = com.diary.app.ui.theme.InkLightAccent,
+            darkStart = com.diary.app.ui.theme.InkDarkBg1,
+            darkEnd = com.diary.app.ui.theme.InkDarkAccent
         )
     )
 
@@ -1197,9 +1146,6 @@ private fun FontSizeSliderItem(
             Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                 Text("${previewSize.label} ${previewSize.sizePx}sp", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textSecondary)
             }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            options.forEach { option -> Text(option.label, fontSize = 9.sp, color = textTertiary) }
         }
     }
 }

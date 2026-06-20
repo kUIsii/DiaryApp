@@ -92,7 +92,6 @@ fun NotificationScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 标题栏
             NotificationTopBar(
                 showTrash = uiState.showTrash,
                 onNavigateBack = onNavigateBack,
@@ -100,7 +99,6 @@ fun NotificationScreen(
             )
 
             if (uiState.showTrash) {
-                // 回收站视图
                 TrashView(
                     trashedItems = uiState.trashedNotifications,
                     onRestore = { viewModel.restoreNotification(it) },
@@ -171,7 +169,6 @@ fun NotificationScreen(
 }
 
 // region 标题栏
-
 @Composable
 private fun NotificationTopBar(
     showTrash: Boolean,
@@ -200,7 +197,7 @@ private fun NotificationTopBar(
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = if (showTrash) "回收站" else "消息",
+            text = if (showTrash) "回收站" else "通知",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -218,7 +215,7 @@ private fun NotificationTopBar(
         ) {
             Icon(
                 imageVector = if (showTrash) Icons.Default.Notifications else Icons.Default.RestoreFromTrash,
-                contentDescription = if (showTrash) "返回消息" else "回收站",
+                contentDescription = if (showTrash) "返回通知" else "打开回收站",
                 tint = if (showTrash) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
@@ -521,7 +518,6 @@ private fun NotificationCard(
 // endregion
 
 // region 回收站
-
 @Composable
 private fun TrashView(
     trashedItems: List<NotificationItem>,
@@ -698,7 +694,6 @@ private fun TrashedNotificationCard(
 // endregion
 
 // region 空状态
-
 @Composable
 private fun EmptyNotificationsView(category: NotificationCategory) {
     val (title, subtitle) = when (category) {

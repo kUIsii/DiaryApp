@@ -96,9 +96,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
 // Timeline axis dimensions
-private val AXIS_WIDTH = 50.dp
-private val DOT_SIZE = 8.dp
-private val LINE_WIDTH = 1.5.dp
+private val AXIS_WIDTH = 58.dp
+private val DOT_SIZE = 10.dp
+private val LINE_WIDTH = 2.5.dp
 // Image thumbnail size
 private val IMAGE_SIZE = 90.dp
 // Minimum card height for uniform sizing
@@ -1234,4 +1234,3 @@ private fun TimelineEntryWithAxis(
         }
     }
 }
-

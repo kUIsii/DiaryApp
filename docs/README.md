@@ -4,78 +4,64 @@
 
 ```
 docs/
-├── analysis/          # 深度分析文档 (HTML)
-│   ├── app-architecture-deep-dive.html    # 架构全景剖析
-│   ├── cross-module-dependency-analysis.html # 跨模块依赖分析
-│   ├── home-current-state-analysis.html   # 首页代码分析
-│   ├── editor-current-state-analysis.html # 编辑器代码分析
-│   ├── stats-experimental-analysis.html   # 统计页分析
-│   ├── design-system-analysis.html        # 主题/组件系统分析
-│   ├── data-navigation-architecture-analysis.html # 数据层+导航分析
-│   ├── performance-optimization-guide.html # 性能优化指南
-│   ├── competitive-analysis-github-reference.html # 竞品分析
-│   ├── content-rendering-implementation-guide.html # 渲染方案对比
-│   └── comprehensive-implementation-roadmap.html   # 总规划路线图
-│
-├── guides/            # 实施指南 (HTML)
-│   ├── home-screen-implementation-guide.html       # 首页改造
-│   ├── detail-page-implementation-guide.html       # 详情页改造
-│   ├── editor-migration-implementation-guide.html  # 编辑器迁移
-│   ├── timeline-review-implementation-guide.html   # 时间线改造
-│   ├── todo-habit-implementation-guide.html        # 待办习惯系统
-│   └── backup-security-stats-implementation-guide.html # 备份安全统计
-│
-├── research/          # 研究文档 (Markdown)
-│   ├── content-rendering-research.md      # 渲染引擎研究
-│   ├── home-screen-redesign-proposal.md   # 首页重设计方案
-│   ├── competitive-analysis-diary-apps.md # 竞品分析报告
-│   ├── research-rich-text-editor-alternatives.md # 编辑器方案调研
-│   ├── backup-security-stats-redesign-proposal.md # 备份安全方案
-│   ├── detail-page-redesign.md            # 详情页重设计方案
-│   ├── timeline-review-redesign.md        # 时间线重设计方案
-│   ├── todo-habit-redesign-proposal.md    # 待办习惯重设计方案
-│   └── build-notes.md                     # 构建笔记
-│
-├── previews/          # 预览效果展示 (HTML)
-│   ├── app-feature-demo-showcase.html     # 综合功能示范
-│   ├── home-screen-redesign-preview.html  # 首页重设计预览
-│   ├── detail-page-redesign-preview.html  # 详情页重设计预览
-│   ├── timeline-redesign-preview.html     # 时间线重设计预览
-│   ├── editor-migration-preview.html      # 编辑器迁移预览
-│   ├── todo-habit-preview.html            # 待办与习惯预览
-│   ├── stats-enhancement-preview.html     # 统计增强预览
-│   ├── backup-security-preview.html       # 备份与安全预览
-│   ├── content-rendering-preview.html     # 内容渲染方案预览
-│   ├── design-system-preview.html         # 设计系统预览
-│   ├── home-current-state-preview.html    # 首页当前状态分析预览
-│   ├── editor-current-state-preview.html  # 编辑器当前状态预览
-│   ├── performance-optimization-preview.html # 性能优化预览
-│   ├── cross-module-dependency-preview.html  # 跨模块依赖预览
-│   ├── data-navigation-preview.html       # 数据层架构预览
-│   ├── stats-experimental-preview.html    # 实验性统计预览
-│   ├── app-architecture-preview.html      # 应用架构总览预览
-│   ├── competitive-analysis-preview.html  # 竞品分析预览
-│   └── comprehensive-roadmap-preview.html # 实施路线图预览
-│
-└── superpowers/       # AI 辅助开发记录
-    ├── plans/         # 实施计划
-    └── specs/         # 设计规格
-```
+├── AI-Integration-Plan.md              # AI 功能接入方案
+├── build-notes.md                      # 构建环境说明
+├── Design-Tools-Research.md            # UI 设计工具调研
+├── Free-AI-API-Research.md             # 免费 AI API 调研
+├── pencil-compose-integration-guide.md # Pencil 集成方案
+├── Pencil-Deep-Research.md             # Pencil 深度调研
+�?└── research/                           # 研究文档
+    ├── backup-security-stats-redesign-proposal.md # 备份/安全/统计重设�?    ├── build-notes.md                             # 构建注意事项
+    ├── competitive-analysis-diary-apps.md         # 竞品分析报告
+    ├── content-rendering-research.md              # 内容渲染方案调研
+    ├── detail-page-redesign.md                    # 详情页重设计（阅读模式未实现�?    ├── research-rich-text-editor-alternatives.md  # 富文本编辑器方案调研
+    └── timeline-review-redesign.md                # 时间线重设计（分�?月摘要未实现�?```
 
-## 文件说明
+## 文档说明
 
-### analysis/ - 深度分析文档
-对现有代码的深度分析，包括架构、性能、依赖关系等。每个文件都是独立的 HTML 页面，可直接在浏览器中打开。
+### 根目录文�?
+| 文档 | 说明 |
+|------|------|
+| AI-Integration-Plan.md | AI 功能接入方案，涵盖写作辅助、情感分析、内容理解等六大类功�?|
+| build-notes.md | 项目构建环境说明，JDK 17 推荐，版本号规则 |
+| Design-Tools-Research.md | AI 辅助 UI 设计工具调研，评�?Pencil、v0.dev、Figma �?|
+| Free-AI-API-Research.md | 免费与低成本 AI API 服务调研，推荐硅基流�?|
+| pencil-compose-integration-guide.md | Pencil �?Jetpack Compose 集成方案分析 |
+| Pencil-Deep-Research.md | pencil.dev 工具深度调研 |
 
-### guides/ - 实施指南
-针对各个功能模块的详细实施步骤，包含代码示例和修改点说明。
+### research/ 目录文档
 
-### research/ - 研究文档
-原始研究文档和设计方案，以 Markdown 格式存储。
+| 文档 | 说明 | 未实现内�?|
+|------|------|-----------|
+| backup-security-stats-redesign-proposal.md | 备份/安全/统计重设�?| 云备份（Google Drive）、AES 加密、PDF 导出 |
+| build-notes.md | 构建注意事项 | - |
+| competitive-analysis-diary-apps.md | 27 款日记应用竞品分�?| - |
+| content-rendering-research.md | Quill Delta 渲染方案替代调研 | - |
+| detail-page-redesign.md | 详情页重设计 | 阅读模式、PDF 导出 |
+| research-rich-text-editor-alternatives.md | 富文本编辑器方案调研 | - |
+| timeline-review-redesign.md | 时间线重设计 | 分页加载、月摘要卡片 |
 
-### previews/ - 预览效果展示
-功能预览的 HTML 原型，展示改造后的 UI 效果。
+## 功能实现状�?
+| 功能 | 状�?| 说明 |
+|------|------|------|
+| AI 功能 | 已实�?| AI 助手、传记、洞察、编辑器�?AI 面板 |
+| 备份功能 | 部分实现 | 本地备份完整，云备份未实�?|
+| 安全功能 | 已实�?| 生物识别 + PIN �?|
+| 统计功能 | 已实�?| 热力图、数据统计、月�?年度报告 |
+| 详情�?| 部分实现 | 图片查看器和分享已实现，阅读模式未实�?|
+| 首页 | 已实�?| 日历、搜索、多�?|
+| 时间�?| 部分实现 | 搜索筛选已实现，分页加载和月摘要未实现 |
+| Todo/习惯 | 已实�?| 循环任务、热力图、小组件 |
+| 编辑�?| 部分实现 | 富文本已实现，专注模式部分实�?|
 
 ## 访问方式
 
-所有 HTML 文件可以直接在浏览器中打开查看。建议使用现代浏览器（Chrome/Edge/Firefox）获得最佳体验。
+所�?Markdown 文件可以直接在编辑器�?GitHub 中查看�?## 鏈€鏂扮増鏈?
+
+- `release-notes-v2.64.51-experimental.md`
+- 棰勮宸插悓姝ユ洿鏂帮細首页 / 工具 / 主题 / 预览
+
+## 最新版�?
+
+- `release-notes-v2.64.51-experimental.md`
+- 预览已同步更新：��ҳ / ���� / ���� / Ԥ��

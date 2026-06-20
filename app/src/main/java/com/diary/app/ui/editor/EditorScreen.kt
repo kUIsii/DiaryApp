@@ -147,7 +147,6 @@ fun EditorScreen(
     val selectedTagIds by viewModel.selectedTagIds.collectAsState()
     val currentEntry by viewModel.currentEntry.collectAsState()
     val recentLocations by viewModel.recentLocations.collectAsState()
-    val writingPrompt by viewModel.writingPrompt.collectAsState()
     val titleSuggestion by viewModel.titleSuggestion.collectAsState()
     val isGeneratingTitle by viewModel.isGeneratingTitle.collectAsState()
 
@@ -195,7 +194,7 @@ fun EditorScreen(
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
     var isToolbarManuallyHidden by remember { mutableStateOf(false) }
     var keepToolbarOpen by remember { mutableStateOf(false) }
-    // Once user clicks the toggle button, lock the state — no auto-show/hide
+    // Once user clicks the toggle button, lock the state �?no auto-show/hide
     var isToolbarLocked by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
@@ -203,7 +202,7 @@ fun EditorScreen(
     LaunchedEffect(isKeyboardVisible) {
         if (isToolbarLocked) return@LaunchedEffect
         if (isKeyboardVisible) {
-            // Keyboard appeared — only show toolbar if user hasn't manually hidden it
+            // Keyboard appeared �?only show toolbar if user hasn't manually hidden it
             if (!isToolbarManuallyHidden) {
                 showToolbar = true
                 if (activeCategory >= 0) {
@@ -211,7 +210,7 @@ fun EditorScreen(
                 }
             }
         } else if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
-            // Keyboard disappeared — hide toolbar after short delay
+            // Keyboard disappeared �?hide toolbar after short delay
             kotlinx.coroutines.delay(200)
             if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
                 showToolbar = false
@@ -285,7 +284,6 @@ fun EditorScreen(
     LaunchedEffect(diaryId) {
         if (diaryId != null) viewModel.loadEntry(diaryId)
         viewModel.startWritingTimer()
-        if (diaryId == null) viewModel.loadWritingPrompt()
     }
 
     // Load draft when opened with draftId
@@ -389,37 +387,24 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(
-        showToolbar,
-        activeCategory,
-        isKeyboardVisible,
-        isWebViewReady,
-        isWritingStatsVisible,
-        webViewViewportHeightPx,
-        density
-    ) {
+    LaunchedEffect(showToolbar, activeCategory, isWebViewReady, webViewViewportHeightPx, density) {
         if (isWebViewReady) {
-            val bottomGap = resolveEditorBottomGap(
-                showToolbar = showToolbar,
-                activeCategory = activeCategory
-            )
-            val viewportHeightCssPx = with(density) {
-                webViewViewportHeightPx.toDp().value.toInt()
-            }
+            val bottomGap = resolveEditorBottomGap(showToolbar = showToolbar, activeCategory = activeCategory)
+            val viewportHeightCssPx = with(density) { webViewViewportHeightPx.toDp().value.toInt() }
             webView?.evaluateJavascript("setViewportMetrics($viewportHeightCssPx)", null)
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
-            if (isKeyboardVisible) {
-                kotlinx.coroutines.delay(90)
-                webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
-            }
-            // Explicitly reset keyboard height when keyboard is dismissed
-            // (VisualViewport API may not fire reliably on all devices)
-            if (!isKeyboardVisible) {
-                webView?.evaluateJavascript("setKeyboardHeight(0)", null)
-                // Re-evaluate scroll position now that keyboard is gone
-                kotlinx.coroutines.delay(300)
-                webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
-            }
+        }
+    }
+
+    LaunchedEffect(isKeyboardVisible, isWebViewReady) {
+        if (!isWebViewReady) return@LaunchedEffect
+        if (isKeyboardVisible) {
+            kotlinx.coroutines.delay(90)
+            webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
+        } else {
+            webView?.evaluateJavascript("setKeyboardHeight(0)", null)
+            kotlinx.coroutines.delay(300)
+            webView?.evaluateJavascript("scrollToCurrentCursor(true)", null)
         }
     }
 
@@ -433,7 +418,7 @@ fun EditorScreen(
                 } else {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = "无法读取这张图片，请换一张试试",
+                            message = "无法获取该图片，请换一张试试",
                             duration = SnackbarDuration.Short
                         )
                     }
@@ -442,7 +427,7 @@ fun EditorScreen(
                 Log.e("EditorScreen", "Failed to import image", e)
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message = "图片插入失败，请重试",
+                        message = "图片导入失败，请重试",
                         duration = SnackbarDuration.Short
                     )
                 }
@@ -1249,63 +1234,6 @@ fun EditorScreen(
                     .border(0.5.dp, editorBorderColor, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
             ) {
                 val assetLoader = remember { WebViewAssetHelper.createAssetLoader(context) }
-
-                // Writing prompt overlay (shown when editor is empty)
-                val currentPrompt = writingPrompt
-                if (charCount == 0 && currentPrompt.isNotBlank() && diaryId == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 24.dp, vertical = 40.dp)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
-                                // Click to use the prompt
-                                webView?.evaluateJavascript(
-                                    "setContent(${org.json.JSONObject.quote(currentPrompt)})",
-                                    null
-                                )
-                                viewModel.markContentChanged()
-                            },
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                        Column {
-                            Text(
-                                text = "写作提示",
-                                fontSize = 12.sp,
-                                color = textSecondary.copy(alpha = 0.4f),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = currentPrompt,
-                                fontSize = 16.sp,
-                                color = textColor.copy(alpha = 0.35f),
-                                lineHeight = 24.sp
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable { viewModel.refreshPrompt() }
-                            ) {
-                                Icon(
-                                    Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "换一个",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                )
-                            }
-                        }
-                    }
-                }
-
                 AndroidView(
                     factory = { ctx ->
                         WebView(ctx).apply {
@@ -1321,7 +1249,7 @@ fun EditorScreen(
                                     // 先用 WebViewAssetLoader 处理 https://appassets/ 资源
                                     val assetResponse = WebViewAssetHelper.interceptRequest(assetLoader, request)
                                     if (assetResponse != null) return assetResponse
-                                    // 兜底：处理旧的 file:// URL
+                                    // 兜底：处理旧�?file:// URL
                                     val reqUrl = request?.url?.toString() ?: return null
                                     if (reqUrl.startsWith("file://") && reqUrl.contains("diary_media")) {
                                         try {
@@ -1381,10 +1309,10 @@ fun EditorScreen(
                                 color = textSecondary.copy(alpha = 0.4f)
                             )
                             val milestone = when {
-                                charCount >= 1000 -> "长篇佳作"
+                                charCount >= 1000 -> "长篇大论"
                                 charCount >= 500 -> "文思泉涌"
-                                charCount >= 200 -> "渐入佳境"
-                                charCount >= 100 -> "继续加油"
+                                charCount >= 200 -> "洋洋洒洒"
+                                charCount >= 100 -> "渐入佳境"
                                 else -> null
                             }
                             if (milestone != null) {
@@ -1490,7 +1418,7 @@ fun EditorScreen(
                         // Send polish request with selected text
                         val textToPolish = selectedEditorText ?: ""
                         if (textToPolish.isNotBlank()) {
-                            aiViewModel.sendMessage("帮我润色修改这段文字，保持原意但让表达更流畅：\n\n$textToPolish")
+                            aiViewModel.sendMessage("请用深色修改以下文字，保持原意但让表达更优雅：\n\n$textToPolish")
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -1567,7 +1495,7 @@ fun EditorScreen(
                     webView?.evaluateJavascript("getPlainText()") { text ->
                         val clean = text?.removeSurrounding("\"")?.replace("\\n", "\n")?.replace("\\t", "\t") ?: ""
                         if (clean.isNotBlank()) {
-                            aiViewModel.sendMessage("请帮我续写这段日记，保持风格一致，自然地接着写下去：\n\n$clean")
+                            aiViewModel.sendMessage("请帮我续写这篇日记，分析一下风格，然后继续写下去。\n\n$clean")
                             showAiPanel = true
                         }
                     }
@@ -1743,7 +1671,7 @@ private fun MetadataOverlayPanel(
                                     onClick = { onMoodSelected(null) },
                                     modifier = Modifier.align(Alignment.CenterHorizontally)
                                 ) {
-                                    Text("清除心情", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("清除选择", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -1757,7 +1685,7 @@ private fun MetadataOverlayPanel(
                                     onClick = { onWeatherSelected(null) },
                                     modifier = Modifier.align(Alignment.CenterHorizontally)
                                 ) {
-                                    Text("清除天气", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("清除选择", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -1887,4 +1815,6 @@ private fun EditorSaveButton(
         )
     }
 }
+
+
 

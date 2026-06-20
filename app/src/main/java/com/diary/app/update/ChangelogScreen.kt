@@ -1,4 +1,4 @@
-package com.diary.app.update
+﻿package com.diary.app.update
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -66,7 +66,7 @@ import java.net.URL
 private fun stripMarkdown(text: String): String {
     return text
         .replace(Regex("^#{1,6}\\s+", RegexOption.MULTILINE), "")
-        .replace(Regex("^[-*+]\\s+", RegexOption.MULTILINE), "· ")
+        .replace(Regex("^[-*+]\\s+", RegexOption.MULTILINE), "- ")
         .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
         .replace(Regex("\\*(.+?)\\*"), "$1")
         .replace(Regex("~~(.+?)~~"), "$1")
@@ -79,16 +79,16 @@ private fun stripMarkdown(text: String): String {
 private data class ParsedLine(val text: String, val isHeader: Boolean)
 
 private fun parseBodyLines(body: String): List<ParsedLine> {
-    return body.lines().map { line ->
+    return body.lines().mapNotNull { line ->
         val trimmed = line.trim()
         when {
+            trimmed.isBlank() -> null
             trimmed.matches(Regex("^#{1,6}\\s+.*")) -> {
-                val headerText = trimmed.replace(Regex("^#{1,6}\\s+"), "")
-                ParsedLine(headerText, true)
+                ParsedLine(trimmed.replace(Regex("^#{1,6}\\s+"), ""), true)
             }
             else -> ParsedLine(stripMarkdown(trimmed), false)
         }
-    }.filter { it.text.isNotBlank() }
+    }
 }
 
 private fun categoryIconForHeader(header: String): Pair<ImageVector, Color> {
@@ -116,10 +116,26 @@ data class ChangelogRelease(
 private object ChangelogCache {
     var releases: List<ChangelogRelease>? = null
     var cachedAt: Long = 0L
-    private const val TTL_MS = 30 * 60 * 1000L // 30 minutes
+    private const val TTL_MS = 30 * 60 * 1000L
 
     fun isValid(): Boolean = releases != null && System.currentTimeMillis() - cachedAt < TTL_MS
-    fun set(data: List<ChangelogRelease>) { releases = data; cachedAt = System.currentTimeMillis() }
+    fun set(data: List<ChangelogRelease>) {
+        releases = data
+        cachedAt = System.currentTimeMillis()
+    }
+}
+
+internal fun sortReleasesForDisplay(releases: List<ChangelogRelease>): List<ChangelogRelease> {
+    val currentVersion = BuildConfig.VERSION_NAME
+    return releases.sortedWith { left, right ->
+        val leftVersion = left.tagName.removePrefix("v")
+        val rightVersion = right.tagName.removePrefix("v")
+        when {
+            leftVersion == currentVersion && rightVersion != currentVersion -> -1
+            rightVersion == currentVersion && leftVersion != currentVersion -> 1
+            else -> compareVersionNames(rightVersion, leftVersion)
+        }
+    }
 }
 
 @Composable
@@ -131,39 +147,36 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
     LaunchedEffect(Unit) {
         val cached = ChangelogCache.releases
         if (ChangelogCache.isValid() && cached != null) {
-            releases = cached
+            releases = sortReleasesForDisplay(cached)
             isLoading = false
             return@LaunchedEffect
         }
+
         withContext(Dispatchers.IO) {
-            var conn: HttpURLConnection? = null
+            var connection: HttpURLConnection? = null
             try {
                 val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases?per_page=30")
-                conn = url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")
-                conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                connection = url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")
+                connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
-                    conn.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
+                    connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
                 }
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
-                if (conn.responseCode == 200) {
-                    val json = conn.inputStream.bufferedReader().use { it.readText() }
-                    try {
-                        val data = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
-                        ChangelogCache.set(data)
-                        releases = data
-                    } catch (parseEx: Exception) {
-                        error = "数据解析失败"
-                    }
-                } else if (conn.responseCode == 403) {
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                if (connection.responseCode == 200) {
+                    val json = connection.inputStream.bufferedReader().use { it.readText() }
+                    val data = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
+                    ChangelogCache.set(data)
+                    releases = sortReleasesForDisplay(data)
+                } else if (connection.responseCode == 403) {
                     error = "请求过于频繁，请稍后再试"
                 } else {
-                    error = "加载失败 (${conn.responseCode})"
+                    error = "加载失败 (${connection.responseCode})"
                 }
             } catch (e: Exception) {
                 error = e.message ?: "网络连接失败"
             } finally {
-                conn?.disconnect()
+                connection?.disconnect()
                 isLoading = false
             }
         }
@@ -174,14 +187,13 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
+                    IconButton(
                     onClick = onNavigateBack,
                     modifier = Modifier
                         .size(40.dp)
@@ -196,20 +208,19 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "更新日志",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
+                    Text(
+                        text = "更新日志",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val currentError = error
             when {
                 isLoading -> ChangelogLoadingState(textSecondary)
-                currentError != null -> ChangelogErrorState(currentError, textSecondary)
+                error != null -> ChangelogErrorState(error.orEmpty(), textSecondary)
                 releases.isEmpty() -> ChangelogEmptyState(textColor, textSecondary)
                 else -> {
                     LazyColumn(
@@ -253,10 +264,10 @@ private fun AnimatedReleaseItem(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(animationSpec = tween(400)) +
-                slideInVertically(
-                    animationSpec = tween(400),
-                    initialOffsetY = { it / 5 }
-                )
+            slideInVertically(
+                animationSpec = tween(400),
+                initialOffsetY = { it / 5 }
+            )
     ) {
         ReleaseItem(release, textColor, textSecondary)
     }
@@ -270,7 +281,7 @@ private fun ReleaseItem(
 ) {
     val version = release.tagName.removePrefix("v")
     val isCurrent = version == BuildConfig.VERSION_NAME
-    val dateStr = release.publishedAt?.take(10) ?: ""
+    val dateStr = release.publishedAt?.take(10).orEmpty()
 
     GlassCard(
         cornerRadius = 18.dp,
@@ -278,65 +289,59 @@ private fun ReleaseItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
-            // Top accent strip
             if (isCurrent) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(DarkAccentStart, DarkAccentEnd)
-                            )
-                        )
+                        .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
                 )
             }
 
             Column(modifier = Modifier.padding(18.dp)) {
-                // Version badge + date row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    // Version badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(DarkAccentStart, DarkAccentEnd)
-                                )
-                            )
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "v$version",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    if (isCurrent) {
-                        Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SuccessColor.copy(alpha = 0.15f))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "当前版本",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = SuccessColor
+                                text = "v$version",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
+                        }
+
+                        if (isCurrent) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SuccessColor.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "当前版本",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = SuccessColor
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
-
                     if (dateStr.isNotBlank()) {
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = dateStr,
                             fontSize = 12.sp,
@@ -345,7 +350,6 @@ private fun ReleaseItem(
                     }
                 }
 
-                // Release title
                 val releaseTitle = release.name?.takeIf { it.isNotBlank() && it != "v$version" }
                 if (releaseTitle != null) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -357,16 +361,14 @@ private fun ReleaseItem(
                     )
                 }
 
-                // Parsed body lines
                 if (!release.body.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    val parsedLines = parseBodyLines(release.body)
-                    parsedLines.forEach { parsedLine ->
-                        if (parsedLine.isHeader) {
+                    parseBodyLines(release.body).forEach { line ->
+                        if (line.isHeader) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            CategoryHeaderRow(parsedLine.text)
+                            CategoryHeaderRow(line.text)
                         } else {
-                            BulletRow(parsedLine.text, textSecondary)
+                            BulletRow(line.text, textSecondary)
                         }
                     }
                 }
@@ -400,11 +402,9 @@ private fun CategoryHeaderRow(text: String) {
 
 @Composable
 private fun BulletRow(text: String, textSecondary: Color) {
-    Row(
-        modifier = Modifier.padding(start = 4.dp, top = 3.dp, bottom = 3.dp)
-    ) {
+    Row(modifier = Modifier.padding(start = 4.dp, top = 3.dp, bottom = 3.dp)) {
         Text(
-            text = "\u00B7",
+            text = "•",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
             fontWeight = FontWeight.Bold,
@@ -502,3 +502,6 @@ private fun ChangelogErrorState(error: String, textSecondary: Color) {
         }
     }
 }
+
+
+

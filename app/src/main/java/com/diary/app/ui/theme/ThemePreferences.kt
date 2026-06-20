@@ -7,15 +7,12 @@ object ThemePreferences {
 
     fun getThemeMode(context: Context): ThemeMode {
         val prefs = context.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
-        val name = prefs.getString(KEY_THEME_MODE, ThemeMode.PURE_LIGHT.name)
-        return try {
-            val mode = ThemeMode.valueOf(name ?: ThemeMode.PURE_LIGHT.name)
-            mode
-        } catch (_: Exception) {
-            // Migration: old theme values map to PURE_LIGHT
-            migrateOldTheme(context)
-            ThemeMode.PURE_LIGHT
+        val rawName = prefs.getString(KEY_THEME_MODE, null)
+        val resolved = resolveThemeModeName(rawName)
+        if (rawName != resolved.name) {
+            setThemeMode(context, resolved)
         }
+        return resolved
     }
 
     fun setThemeMode(context: Context, mode: ThemeMode) {
@@ -25,21 +22,4 @@ object ThemePreferences {
             .apply()
     }
 
-    private fun migrateOldTheme(context: Context): ThemeMode {
-        val prefs = context.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
-        val oldName = prefs.getString(KEY_THEME_MODE, null)
-
-        val newMode = when {
-            oldName == null -> ThemeMode.PURE_LIGHT
-            oldName == "PURE_LIGHT" -> ThemeMode.PURE_LIGHT
-            oldName == "PURE_DARK" -> ThemeMode.PURE_DARK
-            oldName == "MOSS_GREEN_LIGHT" -> ThemeMode.MOSS_GREEN_LIGHT
-            oldName == "MOSS_GREEN_DARK" -> ThemeMode.MOSS_GREEN_DARK
-            // SYSTEM/GRADIENT/WARM_ROSE/OCEAN_BLUE -> default to PURE_LIGHT
-            else -> ThemeMode.PURE_LIGHT
-        }
-
-        setThemeMode(context, newMode)
-        return newMode
-    }
 }

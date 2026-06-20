@@ -10,10 +10,14 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.content.ContentValues
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import android.util.Log
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -384,6 +388,29 @@ object BackupManager {
 
     suspend fun performAutoBackup(context: Context, dao: DiaryDao): BackupRecord? {
         return runCatching { createBackup(context, dao) }.getOrNull()
+    }
+
+    private const val WORK_NAME = "auto_backup_periodic"
+
+    fun scheduleAutoBackup(context: Context, replace: Boolean = false) {
+        val frequency = getFrequency(context)
+        if (!isAutoBackupEnabled(context) || frequency == BackupFrequency.DISABLED) {
+            cancelAutoBackup(context)
+            return
+        }
+        val intervalMinutes = frequency.days * 24L * 60L
+        val request = PeriodicWorkRequestBuilder<BackupWorker>(intervalMinutes, TimeUnit.MINUTES)
+            .build()
+        val policy = if (replace) {
+            ExistingPeriodicWorkPolicy.REPLACE
+        } else {
+            ExistingPeriodicWorkPolicy.KEEP
+        }
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_NAME, policy, request)
+    }
+
+    fun cancelAutoBackup(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
     }
 
     fun getBackupDir(context: Context): File {

@@ -10,18 +10,24 @@ import com.diary.app.di.AppContainer
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
+import com.diary.app.data.BackupManager
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.ThemePreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class DiaryApplication : Application() {
     val database by lazy { DiaryDatabase.getDatabase(this) }
     val container by lazy { AppContainer(this) }
     val aiService by lazy { AiServiceManager(this) }
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _themeMode = MutableStateFlow(ThemeMode.PURE_LIGHT)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -35,6 +41,20 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
         TodoReminderManager.createNotificationChannel(this)
+        // Schedule periodic auto-backup via WorkManager
+        if (BackupManager.isAutoBackupEnabled(this)) {
+            BackupManager.scheduleAutoBackup(this)
+        }
+        // Still run a one-shot check at cold start for immediate needs
+        appScope.launch {
+            runCatching {
+                if (BackupManager.shouldAutoBackup(this@DiaryApplication)) {
+                    BackupManager.performAutoBackup(this@DiaryApplication, database.diaryDao())
+                }
+            }.onFailure {
+                android.util.Log.w("DiaryApplication", "Auto backup skipped", it)
+            }
+        }
 
         // Initialize Amap SDK
         try {

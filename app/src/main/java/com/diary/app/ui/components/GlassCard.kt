@@ -25,10 +25,30 @@ import com.diary.app.ui.theme.MossGreenDarkCardBackground
 import com.diary.app.ui.theme.MossGreenDarkCardBorder
 import com.diary.app.ui.theme.MossGreenLightCardBackground
 import com.diary.app.ui.theme.MossGreenLightCardBorder
+import com.diary.app.ui.theme.ClayDarkCardBackground
+import com.diary.app.ui.theme.ClayDarkCardBorder
+import com.diary.app.ui.theme.ClayLightCardBackground
+import com.diary.app.ui.theme.ClayLightCardBorder
+import com.diary.app.ui.theme.InkDarkCardBackground
+import com.diary.app.ui.theme.InkDarkCardBorder
+import com.diary.app.ui.theme.InkLightCardBackground
+import com.diary.app.ui.theme.InkLightCardBorder
+import com.diary.app.ui.theme.OceanDarkCardBackground
+import com.diary.app.ui.theme.OceanDarkCardBorder
+import com.diary.app.ui.theme.OceanLightCardBackground
+import com.diary.app.ui.theme.OceanLightCardBorder
+import com.diary.app.ui.theme.PetalDarkCardBackground
+import com.diary.app.ui.theme.PetalDarkCardBorder
+import com.diary.app.ui.theme.PetalLightCardBackground
+import com.diary.app.ui.theme.PetalLightCardBorder
 import com.diary.app.ui.theme.PureDarkCardBackground
 import com.diary.app.ui.theme.PureDarkCardBorder
 import com.diary.app.ui.theme.PureLightCardBackground
 import com.diary.app.ui.theme.PureLightCardBorder
+import com.diary.app.ui.theme.SandDarkCardBackground
+import com.diary.app.ui.theme.SandDarkCardBorder
+import com.diary.app.ui.theme.SandLightCardBackground
+import com.diary.app.ui.theme.SandLightCardBorder
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
@@ -51,6 +71,16 @@ fun GlassCard(
         ThemeMode.PURE_DARK -> PureDarkCardBackground to PureDarkCardBorder
         ThemeMode.MOSS_GREEN_LIGHT -> MossGreenLightCardBackground to MossGreenLightCardBorder
         ThemeMode.MOSS_GREEN_DARK -> MossGreenDarkCardBackground to MossGreenDarkCardBorder
+        ThemeMode.OCEAN_LIGHT -> OceanLightCardBackground to OceanLightCardBorder
+        ThemeMode.OCEAN_DARK -> OceanDarkCardBackground to OceanDarkCardBorder
+        ThemeMode.PETAL_LIGHT -> PetalLightCardBackground to PetalLightCardBorder
+        ThemeMode.PETAL_DARK -> PetalDarkCardBackground to PetalDarkCardBorder
+        ThemeMode.SAND_LIGHT -> SandLightCardBackground to SandLightCardBorder
+        ThemeMode.SAND_DARK -> SandDarkCardBackground to SandDarkCardBorder
+        ThemeMode.CLAY_LIGHT -> ClayLightCardBackground to ClayLightCardBorder
+        ThemeMode.CLAY_DARK -> ClayDarkCardBackground to ClayDarkCardBorder
+        ThemeMode.INK_LIGHT -> InkLightCardBackground to InkLightCardBorder
+        ThemeMode.INK_DARK -> InkDarkCardBackground to InkDarkCardBorder
     }
 
     val borderWidth = if (dark) 1.5.dp else 1.2.dp

@@ -112,7 +112,7 @@ fun DiaryMapScreen(
                     EmptyState(
                         icon = Icons.Default.LocationOn,
                         title = "还没有带位置的日记",
-                        subtitle = "写日记时加入位置信息，地图页就会把这些回忆整理成地点入口。",
+                        subtitle = "写日记时补充位置，这里就能按地点把回忆整理成入口。",
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -266,7 +266,7 @@ private fun LocationOverviewCard(locations: List<LocationGroup>) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MapPill(text = "地点 ${locations.size}")
                 MapPill(text = "最多 ${topLocation?.count ?: 0} 篇")
-                topLocation?.let { MapPill(text = "最近常看 ${it.name.take(6)}") }
+                topLocation?.let { MapPill(text = "常看 ${it.name.take(6)}") }
             }
         }
     }
@@ -331,7 +331,7 @@ private fun LocationItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${location.count} 篇日记 · 最近一篇 ${formatDate(location.markers.maxOfOrNull { it.createdAt } ?: 0L)}",
+                    text = "${location.count} 篇日记，最近一篇 ${formatDate(location.markers.maxOfOrNull { it.createdAt } ?: 0L)}",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

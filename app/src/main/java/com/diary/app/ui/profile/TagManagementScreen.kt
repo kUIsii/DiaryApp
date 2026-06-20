@@ -83,7 +83,6 @@ fun TagManagementScreen(
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
             TagHeader(
-                totalCount = allTags.size,
                 onNavigateBack = onNavigateBack,
                 onCreate = { showCreateDialog = true }
             )
@@ -188,7 +187,6 @@ fun TagManagementScreen(
 
 @Composable
 private fun TagHeader(
-    totalCount: Int,
     onNavigateBack: () -> Unit,
     onCreate: () -> Unit
 ) {
@@ -222,11 +220,6 @@ private fun TagHeader(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Text(
-                text = "共 $totalCount 个标签，保持分类清晰会更方便筛选与回看",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
 
         IconButton(
@@ -259,12 +252,6 @@ private fun TagOverviewCard(
         innerPadding = 16.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "让标签更像清晰目录，而不是一串零散颜色点。",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OverviewPill(text = "共 $totalCount 个")
                 OverviewPill(text = "$customCount 个自定义")

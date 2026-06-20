@@ -74,6 +74,12 @@ interface DiaryDao {
     @Query("DELETE FROM notifications")
     suspend fun deleteAllNotifications()
 
+    @Query("DELETE FROM chat_messages")
+    suspend fun deleteAllChatMessages()
+
+    @Query("DELETE FROM chat_conversations")
+    suspend fun deleteAllConversations()
+
     @Transaction
     suspend fun deleteEntryWithTags(entry: DiaryEntry) {
         deleteTagsForDiary(entry.id)
@@ -552,6 +558,9 @@ interface DiaryDao {
 
     @Query("SELECT * FROM chat_messages WHERE conversationId = :conversationId ORDER BY createdAt DESC LIMIT :limit")
     suspend fun getRecentChatMessages(conversationId: Long, limit: Int): List<ChatMessageEntity>
+
+    @Query("SELECT * FROM chat_messages ORDER BY createdAt ASC")
+    suspend fun getAllChatMessagesOnce(): List<ChatMessageEntity>
 
     @Insert
     suspend fun insertChatMessage(message: ChatMessageEntity): Long

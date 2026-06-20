@@ -34,9 +34,7 @@ object UpdateChecker {
             var connection: HttpURLConnection? = null
             try {
                 val isExperimental = BuildConfig.FLAVOR == "experimental"
-                val url = URL(
-                    "https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases"
-                )
+                val url = URL("https://api.github.com/repos/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/releases")
                 connection = url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 if (BuildConfig.GITHUB_TOKEN.isNotBlank()) {
@@ -50,34 +48,34 @@ object UpdateChecker {
                 }
 
                 val json = connection.inputStream.bufferedReader().use { it.readText() }
-                val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java)
+                val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java).toList()
 
-                val matchingRelease = releases.filter { release ->
-                    val tag = release.tagName.lowercase()
-                    val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
-                    hasApk && if (isExperimental) {
-                        tag.contains("experimental")
-                    } else {
-                        !tag.contains("experimental")
+                val matchingRelease = releases
+                    .filter { release ->
+                        val tag = release.tagName.lowercase()
+                        val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
+                        hasApk && if (isExperimental) {
+                            tag.contains("experimental")
+                        } else {
+                            !tag.contains("experimental")
+                        }
                     }
-                }.maxByOrNull { release ->
-                    val version = release.tagName.removePrefix("v").substringBefore("-")
-                    val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
-                    parts.getOrElse(0) { 0 } * 1000000 + parts.getOrElse(1) { 0 } * 1000 + parts.getOrElse(2) { 0 }
-                } ?: return@withContext null
+                    .maxWithOrNull { left, right ->
+                        compareVersionNames(
+                            left.tagName.removePrefix("v"),
+                            right.tagName.removePrefix("v")
+                        )
+                    } ?: return@withContext null
 
                 val latestVersion = matchingRelease.tagName.removePrefix("v")
-                if (!isNewerVersion(currentVersionName, latestVersion)) {
+                if (compareVersionNames(latestVersion, currentVersionName) <= 0) {
                     return@withContext null
                 }
 
-                val apkAsset = matchingRelease.assets?.firstOrNull {
-                    it.name.endsWith(".apk")
-                } ?: return@withContext null
-
+                val apkAsset = matchingRelease.assets?.firstOrNull { it.name.endsWith(".apk") } ?: return@withContext null
                 val releaseBody = matchingRelease.body ?: ""
                 val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
-                        releaseBody.contains("[强制更新]")
+                    releaseBody.contains("[强制更新]")
 
                 UpdateInfo(
                     versionName = latestVersion,
@@ -88,35 +86,33 @@ object UpdateChecker {
                     downloadUrl = apkAsset.downloadUrl,
                     isForceUpdate = isForce
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             } finally {
                 connection?.disconnect()
             }
         }
     }
+}
 
-    private fun isNewerVersion(current: String, latest: String): Boolean {
-        val currentBase = current.substringBefore("-")
-        val latestBase = latest.substringBefore("-")
-        val currentSuffix = current.substringAfter("-", "")
-        val latestSuffix = latest.substringAfter("-", "")
+internal fun compareVersionNames(left: String, right: String): Int {
+    val leftBase = left.substringBefore("-")
+    val rightBase = right.substringBefore("-")
+    val leftSuffix = left.substringAfter("-", "")
+    val rightSuffix = right.substringAfter("-", "")
 
-        val currentParts = currentBase.split(".").map { it.toIntOrNull() ?: 0 }
-        val latestParts = latestBase.split(".").map { it.toIntOrNull() ?: 0 }
+    val leftParts = leftBase.split(".").map { it.toIntOrNull() ?: 0 }
+    val rightParts = rightBase.split(".").map { it.toIntOrNull() ?: 0 }
 
-        val maxSize = maxOf(currentParts.size, latestParts.size)
-        for (i in 0 until maxSize) {
-            val currentPart = currentParts.getOrElse(i) { 0 }
-            val latestPart = latestParts.getOrElse(i) { 0 }
-            if (latestPart > currentPart) return true
-            if (latestPart < currentPart) return false
-        }
-
-        if (currentSuffix == latestSuffix) return false
-        if (latestSuffix.isEmpty()) return true
-        if (currentSuffix.isEmpty()) return false
-
-        return latestSuffix > currentSuffix
+    val maxSize = maxOf(leftParts.size, rightParts.size)
+    for (i in 0 until maxSize) {
+        val leftPart = leftParts.getOrElse(i) { 0 }
+        val rightPart = rightParts.getOrElse(i) { 0 }
+        if (leftPart != rightPart) return leftPart.compareTo(rightPart)
     }
+
+    if (leftSuffix == rightSuffix) return 0
+    if (leftSuffix.isEmpty()) return 1
+    if (rightSuffix.isEmpty()) return -1
+    return leftSuffix.compareTo(rightSuffix)
 }

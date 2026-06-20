@@ -27,8 +27,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
@@ -293,7 +294,7 @@ private fun HomeHeroSection(
                     onClick = onNotificationsClick
                 )
                 HomeHeaderAction(
-                    icon = Icons.Default.AutoAwesome,
+                    icon = Icons.Default.Psychology,
                     contentDescription = "AI 助手",
                     onClick = onAiClick
                 )
@@ -315,11 +316,7 @@ private fun HomeHeroSection(
                     OverviewMetricCard(value = stats.thisMonth.toString(), label = "本月内容", modifier = Modifier.weight(1f))
                 }
 
-                if (aiInsight != null) {
-                    HomeInsightCard(insight = aiInsight, compact = true)
-                } else {
-                    HomeQuietPrompt()
-                }
+                HomeInsightCard(insight = aiInsight, compact = true)
             }
         }
     }
@@ -367,6 +364,11 @@ private fun HomeHeaderAction(
                 .size(42.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                .border(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+                    shape = CircleShape
+                )
                 .combinedClickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
@@ -401,19 +403,12 @@ private fun CalendarSection(
         innerPadding = 14.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column {
-                Text(
-                    text = "日期选择",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "先选日期，再查看当天内容",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "日期选择",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
             CalendarView(
                 entryDates = entryDates,
@@ -476,11 +471,6 @@ private fun SelectedDateHeader(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "可以继续收藏或移入回收站",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -814,11 +804,13 @@ private fun SubtleTextChip(text: String) {
 }
 
 @Composable
-private fun HomeInsightCard(insight: AiInsight, compact: Boolean = false) {
+private fun HomeInsightCard(insight: AiInsight?, compact: Boolean = false) {
+    if (insight == null) return
+
     val icon = when (insight.type) {
         "mood" -> Icons.Default.Favorite
         "pattern" -> Icons.Default.CalendarMonth
-        else -> Icons.Default.AutoAwesome
+        else -> Icons.Default.ChatBubbleOutline
     }
 
     GlassCard(
@@ -857,41 +849,6 @@ private fun HomeInsightCard(insight: AiInsight, compact: Boolean = false) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun HomeQuietPrompt() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = "AI 提醒会出现在这里",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "今天先从日期和记录开始，等有新内容后再生成轻量提示。",
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

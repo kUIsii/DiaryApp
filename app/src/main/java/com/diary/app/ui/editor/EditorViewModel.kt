@@ -1,4 +1,4 @@
-package com.diary.app.ui.editor
+﻿package com.diary.app.ui.editor
 
 import android.app.Application
 import android.content.Context
@@ -16,6 +16,8 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.data.DiaryTag
 import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
+import com.diary.app.data.defaultPresetTags
+import com.diary.app.data.normalizeTagNameForMatching
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -117,7 +119,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val app = getApplication<DiaryApplication>()
                 val aiService = app.aiService
-                val prompt = "请根据以下日记内容生成一个简短的标题（10字以内，不要引号和标点）：\n\n${content.take(500)}"
+                val prompt = "请根据以下日记内容生成一个简短的标题（20字以内，不要引号和标点）：\n\n${content.take(500)}"
                 val result = aiService.chat(aiRequest(prompt, maxTokens = 30))
                 result.fold(
                     onSuccess = { response ->
@@ -255,20 +257,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _recentLocations.value = dao.getRecentLocations()
 
             val appPrefs = application.getSharedPreferences("diary_prefs", Context.MODE_PRIVATE)
-            if (!appPrefs.getBoolean("has_seeded_presets", false)) {
-                val presets = listOf(
-                    Tag(name = "生活", color = 0xFF667EEA, isPreset = true),
-                    Tag(name = "工作", color = 0xFFE74C3C, isPreset = true),
-                    Tag(name = "学习", color = 0xFF2ECC71, isPreset = true),
-                    Tag(name = "旅行", color = 0xFFE67E22, isPreset = true),
-                    Tag(name = "感悟", color = 0xFF9B59B6, isPreset = true),
-                    Tag(name = "健康", color = 0xFF1ABC9C, isPreset = true),
-                    Tag(name = "财务", color = 0xFFF1C40F, isPreset = true),
-                    Tag(name = "社交", color = 0xFFE91E63, isPreset = true)
-                )
-                presets.forEach { dao.insertTag(it) }
+            val existingTags = dao.getAllTagsOnce()
+            val existingNames = existingTags.map { normalizeTagNameForMatching(it.name) }.toSet()
+            if (!appPrefs.getBoolean("has_seeded_presets", false) || defaultPresetTags.any { preset ->
+                    normalizeTagNameForMatching(preset.name) !in existingNames
+                }
+            ) {
+                defaultPresetTags
+                    .filter { normalizeTagNameForMatching(it.name) !in existingNames }
+                    .forEach { dao.insertTag(it) }
                 appPrefs.edit().putBoolean("has_seeded_presets", true).apply()
             }
+            val refreshedTags = dao.getAllTagsOnce()
+            val duplicatePresetTags = refreshedTags
+                .filter { it.isPreset }
+                .groupBy { normalizeTagNameForMatching(it.name) }
+                .values
+                .flatMap { tags -> tags.drop(1) }
+            duplicatePresetTags.forEach { dao.deleteTag(it) }
             dao.getAllTags().collect { _allTags.value = it }
         }
     }
@@ -420,3 +426,5 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 }
+
+

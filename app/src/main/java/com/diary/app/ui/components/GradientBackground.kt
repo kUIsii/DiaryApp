@@ -26,6 +26,36 @@ import com.diary.app.ui.theme.MossGreenDarkBackgroundStart
 import com.diary.app.ui.theme.MossGreenLightBackgroundEnd
 import com.diary.app.ui.theme.MossGreenLightBackgroundMid
 import com.diary.app.ui.theme.MossGreenLightBackgroundStart
+import com.diary.app.ui.theme.ClayDarkBackgroundEnd
+import com.diary.app.ui.theme.ClayDarkBackgroundMid
+import com.diary.app.ui.theme.ClayDarkBackgroundStart
+import com.diary.app.ui.theme.ClayLightBackgroundEnd
+import com.diary.app.ui.theme.ClayLightBackgroundMid
+import com.diary.app.ui.theme.ClayLightBackgroundStart
+import com.diary.app.ui.theme.OceanDarkBackgroundEnd
+import com.diary.app.ui.theme.OceanDarkBackgroundMid
+import com.diary.app.ui.theme.OceanDarkBackgroundStart
+import com.diary.app.ui.theme.OceanLightBackgroundEnd
+import com.diary.app.ui.theme.OceanLightBackgroundMid
+import com.diary.app.ui.theme.OceanLightBackgroundStart
+import com.diary.app.ui.theme.InkDarkBackgroundEnd
+import com.diary.app.ui.theme.InkDarkBackgroundMid
+import com.diary.app.ui.theme.InkDarkBackgroundStart
+import com.diary.app.ui.theme.InkLightBackgroundEnd
+import com.diary.app.ui.theme.InkLightBackgroundMid
+import com.diary.app.ui.theme.InkLightBackgroundStart
+import com.diary.app.ui.theme.PetalDarkBackgroundEnd
+import com.diary.app.ui.theme.PetalDarkBackgroundMid
+import com.diary.app.ui.theme.PetalDarkBackgroundStart
+import com.diary.app.ui.theme.PetalLightBackgroundEnd
+import com.diary.app.ui.theme.PetalLightBackgroundMid
+import com.diary.app.ui.theme.PetalLightBackgroundStart
+import com.diary.app.ui.theme.SandDarkBackgroundEnd
+import com.diary.app.ui.theme.SandDarkBackgroundMid
+import com.diary.app.ui.theme.SandDarkBackgroundStart
+import com.diary.app.ui.theme.SandLightBackgroundEnd
+import com.diary.app.ui.theme.SandLightBackgroundMid
+import com.diary.app.ui.theme.SandLightBackgroundStart
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
@@ -85,6 +115,16 @@ fun GradientBackground(
         ThemeMode.PURE_DARK -> Triple(DarkBackgroundStart, DarkBackgroundMid, DarkBackgroundEnd)
         ThemeMode.MOSS_GREEN_LIGHT -> Triple(MossGreenLightBackgroundStart, MossGreenLightBackgroundMid, MossGreenLightBackgroundEnd)
         ThemeMode.MOSS_GREEN_DARK -> Triple(MossGreenDarkBackgroundStart, MossGreenDarkBackgroundMid, MossGreenDarkBackgroundEnd)
+        ThemeMode.OCEAN_LIGHT -> Triple(OceanLightBackgroundStart, OceanLightBackgroundMid, OceanLightBackgroundEnd)
+        ThemeMode.OCEAN_DARK -> Triple(OceanDarkBackgroundStart, OceanDarkBackgroundMid, OceanDarkBackgroundEnd)
+        ThemeMode.PETAL_LIGHT -> Triple(PetalLightBackgroundStart, PetalLightBackgroundMid, PetalLightBackgroundEnd)
+        ThemeMode.PETAL_DARK -> Triple(PetalDarkBackgroundStart, PetalDarkBackgroundMid, PetalDarkBackgroundEnd)
+        ThemeMode.SAND_LIGHT -> Triple(SandLightBackgroundStart, SandLightBackgroundMid, SandLightBackgroundEnd)
+        ThemeMode.SAND_DARK -> Triple(SandDarkBackgroundStart, SandDarkBackgroundMid, SandDarkBackgroundEnd)
+        ThemeMode.CLAY_LIGHT -> Triple(ClayLightBackgroundStart, ClayLightBackgroundMid, ClayLightBackgroundEnd)
+        ThemeMode.CLAY_DARK -> Triple(ClayDarkBackgroundStart, ClayDarkBackgroundMid, ClayDarkBackgroundEnd)
+        ThemeMode.INK_LIGHT -> Triple(InkLightBackgroundStart, InkLightBackgroundMid, InkLightBackgroundEnd)
+        ThemeMode.INK_DARK -> Triple(InkDarkBackgroundStart, InkDarkBackgroundMid, InkDarkBackgroundEnd)
     }
 
     Box(

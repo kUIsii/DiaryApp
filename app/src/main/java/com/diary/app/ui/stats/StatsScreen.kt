@@ -4,11 +4,13 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +35,7 @@ import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,40 +52,45 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.R
 import com.diary.app.data.DiaryPreview
+import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.theme.isDark
-import com.diary.app.ui.theme.themeMode
-import com.diary.app.ui.components.EmptyState
-import com.diary.app.ui.components.SectionTitle
 import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.formatWordCount
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
-import androidx.compose.ui.res.stringResource
-import com.diary.app.R
-import kotlinx.coroutines.launch
+import com.diary.app.ui.theme.HeatmapDarkLevel1
+import com.diary.app.ui.theme.HeatmapDarkLevel2
+import com.diary.app.ui.theme.HeatmapDarkLevel3
+import com.diary.app.ui.theme.HeatmapDarkLevel4
+import com.diary.app.ui.theme.HeatmapDarkLevel5
+import com.diary.app.ui.theme.HeatmapLevel1
+import com.diary.app.ui.theme.HeatmapLevel2
+import com.diary.app.ui.theme.HeatmapLevel3
+import com.diary.app.ui.theme.HeatmapLevel4
+import com.diary.app.ui.theme.HeatmapLevel5
+import com.diary.app.ui.theme.isDark
+import com.diary.app.ui.theme.themeMode
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Composable
 fun StatsScreen(
@@ -91,442 +99,693 @@ fun StatsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    // State for day click dialog
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
     var isLoadingEntries by remember { mutableStateOf(false) }
 
-    // Dialog for showing entries on a specific day
     selectedDate?.let { date ->
-        AlertDialog(
-            onDismissRequest = { selectedDate = null; selectedEntries = emptyList() },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Column {
-                    Text(
-                        text = "${date.monthValue}月${date.dayOfMonth}日",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    if (!isLoadingEntries && selectedEntries.isNotEmpty()) {
-                        Text(
-                            text = "共 ${selectedEntries.size} 篇日记",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                }
-            },
-            text = {
-                if (isLoadingEntries) {
-                    Text("加载中...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else if (selectedEntries.isEmpty()) {
-                    Text("当天没有日记", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        selectedEntries.forEachIndexed { index, entry ->
-                            if (index > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp)
-                                        .height(0.5.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
-                                        )
-                                )
-                            }
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = formatEntryTime(entry.createdAt),
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                    entry.moodLevel?.let { level ->
-                                        val iconData = moodIconForLevel(level)
-                                        Icon(
-                                            imageVector = iconData.icon,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = iconData.tint.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = entry.title.ifBlank { "无标题" },
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                if (entry.plainText.isNotBlank()) {
-                                    Text(
-                                        text = entry.plainText.take(80) + if (entry.plainText.length > 80) "..." else "",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
-                                        lineHeight = 16.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { selectedDate = null; selectedEntries = emptyList() }) {
-                    Text("关闭")
-                }
+        DayEntriesDialog(
+            date = date,
+            entries = selectedEntries,
+            isLoading = isLoadingEntries,
+            onDismiss = {
+                selectedDate = null
+                selectedEntries = emptyList()
             }
         )
     }
 
     GradientBackground {
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    strokeWidth = 3.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        when {
+            state.isLoading -> LoadingState()
+            state.totalEntries == 0 -> {
+                EmptyState(
+                    icon = Icons.Default.SelfImprovement,
+                    title = "还没有统计内容",
+                    subtitle = "开始记录几篇日记后，这里会出现写作趋势、心情和习惯摘要",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
                 )
             }
-        } else if (state.totalEntries == 0) {
-            EmptyState(
-                icon = Icons.Default.SelfImprovement,
-                title = stringResource(R.string.stats_no_entries),
-                subtitle = stringResource(R.string.stats_start_recording),
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp)
-            ) {
-                // Header
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.stats_title),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    item {
+                        StatsHeroSection(
+                            state = state,
+                            onRangeSelected = viewModel::setHeatmapRange
                         )
                     }
-                }
 
-                // Overview cards - 2x2 grid
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OverviewCard(
-                                label = stringResource(R.string.stat_total_diaries),
-                                value = state.totalEntries,
-                                icon = Icons.Default.Edit,
-                                gradientColors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OverviewCard(
-                                label = stringResource(R.string.stat_streak),
-                                value = state.currentStreak,
-                                icon = Icons.Default.LocalFireDepartment,
-                                gradientColors = listOf(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), MaterialTheme.colorScheme.secondary.copy(alpha = 0.30f)),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OverviewCard(
-                                label = stringResource(R.string.stat_this_month),
-                                value = state.thisMonthEntries,
-                                icon = Icons.Default.CalendarMonth,
-                                gradientColors = listOf(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OverviewCard(
-                                label = "总字数",
-                                value = state.wordStats?.totalWords ?: 0,
-                                icon = Icons.Default.TextSnippet,
-                                gradientColors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-
-                // Heatmap
-                if (state.heatmapData.isNotEmpty()) {
                     item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(16.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                            )
-                                        )
-                                    )
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "记录热力图",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            DiaryHeatmap(
-                                data = state.heatmapData,
-                                range = state.heatmapRange,
-                                onDayClick = { date ->
-                                    selectedDate = date
-                                    isLoadingEntries = true
-                                    scope.launch {
-                                        selectedEntries = viewModel.getEntriesForDate(date)
-                                        isLoadingEntries = false
+                        SummaryGrid(state = state)
+                    }
+
+                    if (state.heatmapData.isNotEmpty()) {
+                        item {
+                            StatsSectionCard(
+                                title = "记录热力图",
+                                subtitle = "查看最近 ${state.heatmapRange.days} 天的记录密度，点按某一天可查看当天日记"
+                            ) {
+                                DiaryHeatmap(
+                                    data = state.heatmapData,
+                                    range = state.heatmapRange,
+                                    onDayClick = { date ->
+                                        selectedDate = date
+                                        isLoadingEntries = true
+                                        scope.launch {
+                                            selectedEntries = viewModel.getEntriesForDate(date)
+                                            isLoadingEntries = false
+                                        }
                                     }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Mood trend
-                state.moodTrend?.let { moodTrend ->
-                    item {
-                        SectionTitle(text = stringResource(R.string.stats_mood_trend))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            MoodTrendRow(moodTrend)
-                        }
-                    }
-                }
-
-                // Monthly trend
-                item {
-                    SectionTitle(text = stringResource(R.string.stats_6month_trend))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GlassCard {
-                        MonthlyTrendChart(state.monthlyTrend)
-                    }
-                }
-
-                // Writing habit
-                state.writingHabit?.let { habit ->
-                    item {
-                        SectionTitle(text = stringResource(R.string.stats_writing_habit))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        WritingHabitSection(habit)
-                    }
-                }
-
-                // Mood distribution
-                item {
-                    SectionTitle(text = stringResource(R.string.stats_mood_distribution))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    GlassCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            state.moodDistribution.forEach { mood ->
-                                MoodBar(
-                                    label = mood.label,
-                                    count = mood.count,
-                                    color = mood.color,
-                                    maxCount = state.moodDistribution.maxOfOrNull { it.count } ?: 1,
-                                    level = mood.level
                                 )
                             }
                         }
                     }
-                }
 
-                // Weather statistics
-                if (state.weatherDistribution.isNotEmpty()) {
                     item {
-                        SectionTitle(text = stringResource(R.string.stats_weather))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                state.weatherDistribution.forEach { weather ->
-                                    val (wIcon, wTint) = weatherIconFor(weather.type)
-                                    WeatherRow(
-                                        type = weather.type,
-                                        count = weather.count,
-                                        icon = wIcon,
-                                        tint = wTint
-                                    )
+                        StatsSectionCard(
+                            title = "月度趋势",
+                            subtitle = "聚焦最近 6 个月，快速判断你的记录节奏是否稳定"
+                        ) {
+                            MonthlyTrendChart(state.monthlyTrend)
+                        }
+                    }
+
+                    state.moodTrend?.let { moodTrend ->
+                        item {
+                            StatsSectionCard(
+                                title = "心情变化",
+                                subtitle = "对比最近 30 天与前 30 天的平均心情变化"
+                            ) {
+                                MoodTrendRow(moodTrend)
+                            }
+                        }
+                    }
+
+                    state.writingHabit?.let { habit ->
+                        item {
+                            StatsSectionCard(
+                                title = "写作习惯",
+                                subtitle = "从频率、活跃日期和常用时间段看你的记录方式"
+                            ) {
+                                WritingHabitSection(habit)
+                            }
+                        }
+                    }
+
+                    item {
+                        StatsSectionCard(
+                            title = "心情分布",
+                            subtitle = "心情记录越完整，后续趋势分析越有参考价值"
+                        ) {
+                            if (state.moodDistribution.any { it.count > 0 }) {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    state.moodDistribution.forEach { mood ->
+                                        MoodBar(
+                                            label = mood.label,
+                                            count = mood.count,
+                                            color = mood.color,
+                                            maxCount = state.moodDistribution.maxOfOrNull { it.count } ?: 1,
+                                            level = mood.level
+                                        )
+                                    }
+                                }
+                            } else {
+                                InlineEmptyHint("还没有足够的心情数据")
+                            }
+                        }
+                    }
+
+                    if (state.weatherDistribution.isNotEmpty() || state.tagUsage.isNotEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                if (state.weatherDistribution.isNotEmpty()) {
+                                    GlassCard(
+                                        modifier = Modifier.weight(1f),
+                                        cornerRadius = 22.dp,
+                                        innerPadding = 16.dp
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            SectionHeader(
+                                                title = "天气统计",
+                                                subtitle = "哪些天气最常出现在你的记录里"
+                                            )
+                                            state.weatherDistribution.take(5).forEach { weather ->
+                                                val (icon, tint) = weatherIconFor(weather.type)
+                                                WeatherRow(
+                                                    type = weather.type,
+                                                    count = weather.count,
+                                                    icon = icon,
+                                                    tint = tint
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (state.tagUsage.isNotEmpty()) {
+                                    GlassCard(
+                                        modifier = Modifier.weight(1f),
+                                        cornerRadius = 22.dp,
+                                        innerPadding = 16.dp
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            SectionHeader(
+                                                title = "标签使用",
+                                                subtitle = "高频主题能帮助你识别最近关注点"
+                                            )
+                                            val maxTagCount = state.tagUsage.maxOfOrNull { it.count } ?: 1
+                                            state.tagUsage
+                                                .sortedByDescending { it.count }
+                                                .take(6)
+                                                .forEach { tag ->
+                                                    TagRow(
+                                                        name = tag.name,
+                                                        color = Color(tag.color),
+                                                        count = tag.count,
+                                                        maxCount = maxTagCount
+                                                    )
+                                                }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Tag statistics
-                if (state.tagUsage.isNotEmpty()) {
                     item {
-                        SectionTitle(text = stringResource(R.string.stats_tags))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        GlassCard {
-                            val maxTagCount = state.tagUsage.maxOfOrNull { it.count } ?: 1
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                state.tagUsage.take(12).sortedByDescending { it.count }.forEach { tag ->
-                                    TagRow(
-                                        name = tag.name,
-                                        color = Color(tag.color),
-                                        count = tag.count,
-                                        maxCount = maxTagCount
-                                    )
-                                }
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(40.dp))
                     }
                 }
-
-                // Bottom spacer
-                item { Spacer(modifier = Modifier.height(8.dp)) }
             }
         }
     }
 }
 
-// ── Overview card with gradient ──
+@Composable
+private fun LoadingState() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(34.dp),
+            strokeWidth = 3.dp,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
 
 @Composable
-private fun OverviewCard(
+private fun DayEntriesDialog(
+    date: LocalDate,
+    entries: List<DiaryPreview>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern("M月d日") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = date.format(formatter),
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (isLoading) "正在加载当天记录" else "共 ${entries.size} 篇日记",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            when {
+                isLoading -> {
+                    Text(
+                        text = "正在整理当天内容…",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                entries.isEmpty() -> {
+                    Text(
+                        text = "这一天还没有日记",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        entries.forEach { entry ->
+                            GlassCard(
+                                cornerRadius = 16.dp,
+                                innerPadding = 12.dp
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = formatEntryTime(entry.createdAt),
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        entry.moodLevel?.let { level ->
+                                            val iconData = moodIconForLevel(level)
+                                            Icon(
+                                                imageVector = iconData.icon,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp),
+                                                tint = iconData.tint
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = entry.title.ifBlank { "未命名日记" },
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (entry.plainText.isNotBlank()) {
+                                        Text(
+                                            text = entry.plainText.take(90) + if (entry.plainText.length > 90) "..." else "",
+                                            fontSize = 12.sp,
+                                            lineHeight = 17.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 3,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        }
+    )
+}
+
+@Composable
+private fun StatsHeroSection(
+    state: StatsState,
+    onRangeSelected: (HeatmapRange) -> Unit
+) {
+    val avgWords = state.wordStats?.avgWordsPerEntry ?: 0
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp,
+        innerPadding = 18.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "统计",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "用更接近日常使用的方式看记录量、写作状态和情绪变化",
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                MiniSignal(
+                    text = "${state.totalEntries} 篇记录",
+                    accent = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeroSummaryChip(
+                    label = "平均字数",
+                    value = formatWordCount(avgWords),
+                    modifier = Modifier.weight(1f)
+                )
+                HeroSummaryChip(
+                    label = "本月记录",
+                    value = "${state.thisMonthEntries} 篇",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "时间范围",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HeatmapRange.entries.forEach { range ->
+                        RangeChip(
+                            label = when (range) {
+                                HeatmapRange.ONE_MONTH -> "最近 30 天"
+                            },
+                            selected = state.heatmapRange == range,
+                            onClick = { onRangeSelected(range) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniSignal(text: String, accent: Color) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(accent.copy(alpha = 0.10f))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(accent)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun HeroSummaryChip(
     label: String,
-    value: Int,
-    icon: ImageVector,
-    gradientColors: List<Color>,
+    value: String,
     modifier: Modifier = Modifier
 ) {
-    val contentColor = MaterialTheme.colorScheme.onSurface
-
-    GlassCard(
-        cornerRadius = 12.dp,
-        innerPadding = 12.dp,
-        gradientColors = gradientColors,
+    Box(
         modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun RangeChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val container = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
+    }
+    val content = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(container)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = content
+        )
+    }
+}
+
+@Composable
+private fun SummaryGrid(state: StatsState) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            SummaryCard(
+                label = "累计日记",
+                value = state.totalEntries.toString(),
+                icon = Icons.Default.Edit,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            SummaryCard(
+                label = "连续记录",
+                value = "${state.currentStreak} 天",
+                icon = Icons.Default.LocalFireDepartment,
+                accent = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SummaryCard(
+                label = "本月记录",
+                value = "${state.thisMonthEntries} 篇",
+                icon = Icons.Default.CalendarMonth,
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f)
+            )
+            SummaryCard(
+                label = "累计字数",
+                value = formatWordCount(state.wordStats?.totalWords ?: 0),
+                icon = Icons.Default.TextSnippet,
+                accent = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier,
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    modifier = Modifier.size(18.dp),
-                    tint = contentColor.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = "$value",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 22.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
+                    tint = accent,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor.copy(alpha = 0.7f)
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
 
-// ── Mood trend ──
+@Composable
+private fun StatsSectionCard(
+    title: String,
+    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            SectionHeader(title = title, subtitle = subtitle)
+            content()
+        }
+    }
+}
 
 @Composable
-private fun MoodTrendRow(trend: MoodTrend) {
-    val (icon, description) = when (trend.direction) {
-        TrendDirection.UP -> Icons.Default.TrendingUp to stringResource(R.string.stats_mood_up)
-        TrendDirection.DOWN -> Icons.Default.TrendingDown to stringResource(R.string.stats_mood_down)
-        TrendDirection.FLAT -> Icons.Default.TrendingFlat to stringResource(R.string.stats_mood_flat)
+private fun SectionHeader(
+    title: String,
+    subtitle: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = subtitle,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
-    val iconTint = when (trend.direction) {
-        TrendDirection.UP -> com.diary.app.ui.theme.SuccessColor
-        TrendDirection.DOWN -> com.diary.app.ui.theme.ErrorColor
-        TrendDirection.FLAT -> MaterialTheme.colorScheme.primary
+}
+
+@Composable
+private fun InlineEmptyHint(text: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun MoodTrendRow(moodTrend: MoodTrend) {
+    val recent = moodTrend.recent30Avg
+    val previous = moodTrend.previous30Avg
+    val (icon, accent, title) = when (moodTrend.direction) {
+        TrendDirection.UP -> Triple(Icons.Default.TrendingUp, MaterialTheme.colorScheme.primary, "整体更积极")
+        TrendDirection.DOWN -> Triple(Icons.Default.TrendingDown, MaterialTheme.colorScheme.error, "波动偏低")
+        TrendDirection.FLAT -> Triple(Icons.Default.TrendingFlat, MaterialTheme.colorScheme.tertiary, "基本稳定")
     }
 
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = description,
-            modifier = Modifier.size(28.dp),
-            tint = iconTint
-        )
-        Spacer(modifier = Modifier.width(12.dp))
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = accent,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            trend.recent30Avg?.let { avg ->
-                Text(
-                    text = stringResource(R.string.stats_mood_avg, String.format("%.1f", avg)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = buildString {
+                    append("最近 30 天平均心情 ")
+                    append(recent?.let { String.format("%.1f", it) } ?: "--")
+                    append("，前 30 天 ")
+                    append(previous?.let { String.format("%.1f", it) } ?: "--")
+                },
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
-// ── Monthly trend chart with rounded bars ──
-
 @Composable
 private fun MonthlyTrendChart(data: List<MonthTrend>) {
-    if (data.isEmpty()) return
+    if (data.isEmpty()) {
+        InlineEmptyHint("还没有足够的月度数据")
+        return
+    }
+
     val maxCount = data.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
     val primaryColor = MaterialTheme.colorScheme.primary
-    val gridLineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
+    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(146.dp)
         ) {
-            // Background grid lines
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val gridColor = gridLineColor
                 for (i in 0..3) {
                     val y = size.height * i / 3f
                     drawLine(
@@ -537,6 +796,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                     )
                 }
             }
+
             Row(
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -548,7 +808,7 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                         targetValue = fraction,
                         animationSpec = tween(
                             durationMillis = 700,
-                            delayMillis = index * 100,
+                            delayMillis = index * 80,
                             easing = FastOutSlowInEasing
                         ),
                         label = "monthBar"
@@ -559,33 +819,30 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.weight(1f)
                     ) {
-                        if (month.count > 0) {
-                            Text(
-                                text = "${month.count}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                        }
+                        Text(
+                            text = "${month.count}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
                         Box(
                             modifier = Modifier
-                                .width(24.dp)
-                                .fillMaxHeight(animatedFraction.coerceAtLeast(0.02f))
-                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .width(28.dp)
+                                .fillMaxHeight(animatedFraction.coerceAtLeast(0.04f))
+                                .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                 .background(
                                     if (isCurrentMonth) {
                                         Brush.verticalGradient(
                                             colors = listOf(
-                                                primaryColor.copy(alpha = 0.6f),
+                                                primaryColor.copy(alpha = 0.55f),
                                                 primaryColor
                                             )
                                         )
                                     } else {
                                         Brush.verticalGradient(
                                             colors = listOf(
-                                                primaryColor.copy(alpha = 0.12f),
-                                                primaryColor.copy(alpha = 0.28f)
+                                                primaryColor.copy(alpha = 0.14f),
+                                                primaryColor.copy(alpha = 0.34f)
                                             )
                                         )
                                     }
@@ -595,27 +852,24 @@ private fun MonthlyTrendChart(data: List<MonthTrend>) {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             data.forEachIndexed { index, month ->
-                val isCurrentMonth = index == data.lastIndex
                 Text(
                     text = month.month,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isCurrentMonth) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isCurrentMonth) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontSize = 11.sp,
+                    fontWeight = if (index == data.lastIndex) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (index == data.lastIndex) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
-
-// ── Writing habit with individual cards ──
 
 @Composable
 private fun WritingHabitSection(habit: WritingHabit) {
@@ -625,19 +879,19 @@ private fun WritingHabitSection(habit: WritingHabit) {
     ) {
         HabitCard(
             icon = Icons.Default.Edit,
-            label = stringResource(R.string.stats_weekly_writing),
+            label = "周均频率",
             value = "${String.format("%.1f", habit.avgPerWeek)} 篇",
             modifier = Modifier.weight(1f)
         )
         HabitCard(
             icon = Icons.Default.Weekend,
-            label = stringResource(R.string.stats_most_active_day),
+            label = "最活跃日期",
             value = habit.mostActiveDay,
             modifier = Modifier.weight(1f)
         )
         HabitCard(
             icon = Icons.Default.Schedule,
-            label = stringResource(R.string.stats_active_time),
+            label = "常写时段",
             value = habit.mostActiveTime,
             modifier = Modifier.weight(1f)
         )
@@ -651,52 +905,46 @@ private fun HabitCard(
     value: String,
     modifier: Modifier = Modifier
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    GlassCard(modifier = modifier) {
+    GlassCard(
+        modifier = modifier,
+        cornerRadius = 18.dp,
+        innerPadding = 14.dp
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.15f),
-                                primaryColor.copy(alpha = 0.06f)
-                            )
-                        )
-                    ),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    modifier = Modifier.size(18.dp),
-                    tint = primaryColor
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
+                fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
-
-// ── Mood bar with icon and gradient ──
 
 @Composable
 private fun MoodBar(
@@ -706,14 +954,12 @@ private fun MoodBar(
     maxCount: Int,
     level: Int
 ) {
-    val totalCount = remember(maxCount) { maxCount }
-    val fraction = if (totalCount > 0) count.toFloat() / totalCount else 0f
+    val fraction = if (maxCount > 0) count.toFloat() / maxCount else 0f
     val animatedFraction by animateFloatAsState(
         targetValue = fraction,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "moodBar"
     )
-
     val iconData = moodIconForLevel(level)
 
     Row(
@@ -723,23 +969,23 @@ private fun MoodBar(
         Icon(
             imageVector = iconData.icon,
             contentDescription = label,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(18.dp),
             tint = iconData.tint
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(32.dp)
+            modifier = Modifier.width(38.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(20.dp)
+                .height(18.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(color.copy(alpha = 0.08f))
+                .background(color.copy(alpha = 0.10f))
         ) {
             Box(
                 modifier = Modifier
@@ -748,29 +994,18 @@ private fun MoodBar(
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(color.copy(alpha = 0.5f), color)
+                            colors = listOf(color.copy(alpha = 0.45f), color)
                         )
                     )
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.width(40.dp)
-        ) {
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "${(animatedFraction * 100).toInt()}%",
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 9.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = "$count",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -779,196 +1014,40 @@ private fun WeatherRow(
     type: String,
     count: Int,
     icon: ImageVector,
-    tint: Color = MaterialTheme.colorScheme.primary
+    tint: Color
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = type,
-            modifier = Modifier.size(20.dp),
-            tint = tint
-        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(tint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = type,
+                tint = tint,
+                modifier = Modifier.size(16.dp)
+            )
+        }
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = type,
-            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = stringResource(R.string.stats_entries_count, count),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// ── Diary heatmap ──
-
-@Composable
-private fun DiaryHeatmap(
-    data: List<HeatmapDay>,
-    range: HeatmapRange,
-    onDayClick: (LocalDate) -> Unit = {}
-) {
-    MonthlyHeatmap(data = data, onDayClick = onDayClick)
-}
-
-@Composable
-private fun MonthlyHeatmap(data: List<HeatmapDay>, onDayClick: (LocalDate) -> Unit = {}) {
-    if (data.isEmpty()) return
-    val dark = themeMode().isDark()
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val today = LocalDate.now()
-
-    // Group by weeks (Mon-Sun), pad start to align with Monday
-    val weeks = remember(data) {
-        val firstDate = data.first().date
-        val daysToPad = (firstDate.dayOfWeek.value - 1 + 7) % 7
-        val padded: List<HeatmapDay?> = List(daysToPad) { null } + data
-        padded.chunked(7)
-    }
-
-    Column {
-        // Day of week headers
-        Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("一", "二", "三", "四", "五", "六", "日").forEach { day ->
-                Text(
-                    text = day,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Calendar grid
-        weeks.forEach { week ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                for (i in 0 until 7) {
-                    val day = week.getOrNull(i)
-                    if (day != null) {
-                        val bgColor = if (dark) {
-                            when {
-                                day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
-                                day.count == 1 -> com.diary.app.ui.theme.HeatmapDarkLevel1
-                                day.count == 2 -> com.diary.app.ui.theme.HeatmapDarkLevel2
-                                day.count == 3 -> com.diary.app.ui.theme.HeatmapDarkLevel3
-                                day.count == 4 -> com.diary.app.ui.theme.HeatmapDarkLevel4
-                                else -> com.diary.app.ui.theme.HeatmapDarkLevel5
-                            }
-                        } else {
-                            when {
-                                day.count == 0 -> surfaceVariant.copy(alpha = 0.4f)
-                                day.count == 1 -> com.diary.app.ui.theme.HeatmapLevel1
-                                day.count == 2 -> com.diary.app.ui.theme.HeatmapLevel2
-                                day.count == 3 -> com.diary.app.ui.theme.HeatmapLevel3
-                                day.count == 4 -> com.diary.app.ui.theme.HeatmapLevel4
-                                else -> com.diary.app.ui.theme.HeatmapLevel5
-                            }
-                        }
-                        val dayDescription = androidx.compose.ui.res.stringResource(
-                            R.string.stats_heatmap_day_description,
-                            day.date.monthValue,
-                            day.date.dayOfMonth,
-                            day.count
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .padding(2.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(bgColor)
-                                .clickable { onDayClick(day.date) }
-                                .semantics {
-                                    contentDescription = dayDescription
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${day.date.dayOfMonth}",
-                                fontSize = 11.sp,
-                                fontWeight = if (day.date == today) FontWeight.Bold else FontWeight.Normal,
-                                color = if (day.count > 0) Color.White
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (day.count > 1) {
-                                Text(
-                                    text = "${day.count}",
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 1.dp)
-                                )
-                            }
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp)
-                                .padding(2.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Legend
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val legendItems = listOf(
-                "0" to surfaceVariant.copy(alpha = 0.4f),
-                "1" to primaryColor.copy(alpha = 0.25f),
-                "2" to primaryColor.copy(alpha = 0.45f),
-                "3" to primaryColor.copy(alpha = 0.65f),
-                "4" to primaryColor.copy(alpha = 0.85f),
-                "5+" to primaryColor
-            )
-            legendItems.forEachIndexed { index, (label, color) ->
-                if (index > 0) Spacer(modifier = Modifier.width(2.dp))
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(color)
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    text = label,
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Stats summary
-        val activeDays = data.count { it.count > 0 }
-        val totalDays = data.size
-        val percentage = if (totalDays > 0) (activeDays * 100 / totalDays) else 0
-        Text(
-            text = "最近30天有 $activeDays 天写了日记，记录率 $percentage%",
+            text = "$count 篇",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
-
 
 @Composable
 private fun TagRow(
@@ -992,23 +1071,24 @@ private fun TagRow(
             modifier = Modifier
                 .size(10.dp)
                 .clip(RoundedCornerShape(3.dp))
-                .background(
-                    Brush.linearGradient(listOf(color, color.copy(alpha = 0.7f)))
-                )
+                .background(color)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = name,
-            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.width(60.dp)
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(56.dp)
         )
+        Spacer(modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(10.dp)
                 .clip(RoundedCornerShape(5.dp))
-                .background(color.copy(alpha = 0.08f))
+                .background(color.copy(alpha = 0.10f))
         ) {
             Box(
                 modifier = Modifier
@@ -1017,19 +1097,163 @@ private fun TagRow(
                     .clip(RoundedCornerShape(5.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(color.copy(alpha = 0.4f), color)
+                            colors = listOf(color.copy(alpha = 0.35f), color)
                         )
                     )
             )
         }
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "$count",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(24.dp),
-            textAlign = TextAlign.End
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DiaryHeatmap(
+    data: List<HeatmapDay>,
+    range: HeatmapRange,
+    onDayClick: (LocalDate) -> Unit
+) {
+    if (data.isEmpty()) {
+        InlineEmptyHint("当前范围内还没有统计数据")
+        return
+    }
+
+    MonthlyHeatmap(
+        data = data,
+        onDayClick = onDayClick
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
+
+    val activeDays = data.count { it.count > 0 }
+    val totalDays = data.size.coerceAtLeast(1)
+    val coverage = (activeDays * 100f / totalDays).roundToInt()
+    Text(
+        text = "最近 ${range.days} 天里，有 $activeDays 天写了日记，记录覆盖率 $coverage%",
+        fontSize = 12.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
+private fun MonthlyHeatmap(
+    data: List<HeatmapDay>,
+    onDayClick: (LocalDate) -> Unit
+) {
+    val dark = themeMode().isDark()
+    val today = LocalDate.now()
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    val weeks = remember(data) {
+        val firstDate = data.first().date
+        val daysToPad = (firstDate.dayOfWeek.value - 1 + 7) % 7
+        (List(daysToPad) { null } + data).chunked(7)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            listOf("一", "二", "三", "四", "五", "六", "日").forEach { day ->
+                Text(
+                    text = day,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        weeks.forEach { week ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (index in 0 until 7) {
+                    val day = week.getOrNull(index)
+                    if (day == null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .padding(2.dp)
+                        )
+                    } else {
+                        val background = when {
+                            day.count == 0 -> surfaceVariant.copy(alpha = 0.40f)
+                            dark && day.count == 1 -> HeatmapDarkLevel1
+                            dark && day.count == 2 -> HeatmapDarkLevel2
+                            dark && day.count == 3 -> HeatmapDarkLevel3
+                            dark && day.count == 4 -> HeatmapDarkLevel4
+                            dark -> HeatmapDarkLevel5
+                            day.count == 1 -> HeatmapLevel1
+                            day.count == 2 -> HeatmapLevel2
+                            day.count == 3 -> HeatmapLevel3
+                            day.count == 4 -> HeatmapLevel4
+                            else -> HeatmapLevel5
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .padding(2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(background)
+                                .clickable { onDayClick(day.date) }
+                                .semantics {
+                                    contentDescription = "${day.date.monthValue}月${day.date.dayOfMonth}日，${day.count} 篇日记"
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${day.date.dayOfMonth}",
+                                fontSize = 11.sp,
+                                fontWeight = if (day.date == today) FontWeight.Bold else FontWeight.Normal,
+                                color = if (day.count > 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        HeatmapLegend()
+    }
+}
+
+@Composable
+private fun HeatmapLegend() {
+    val primary = MaterialTheme.colorScheme.primary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        listOf(
+            surfaceVariant.copy(alpha = 0.40f),
+            primary.copy(alpha = 0.20f),
+            primary.copy(alpha = 0.38f),
+            primary.copy(alpha = 0.58f),
+            primary.copy(alpha = 0.78f),
+            primary
+        ).forEachIndexed { index, color ->
+            if (index > 0) {
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Box(
+                modifier = Modifier
+                    .size(width = 12.dp, height = 10.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(color)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "少  →  多",
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

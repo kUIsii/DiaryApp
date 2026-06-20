@@ -21,7 +21,6 @@ internal fun unescapeEvaluateJsResult(raw: String?): String {
         val value = org.json.JSONTokener(raw).nextValue()
         if (value is String) value else raw
     } catch (_: Exception) {
-        // Fallback: manual unescape with correct order (\\\\ must come before \\n etc.)
         val s = if (raw.startsWith("\"") && raw.endsWith("\"")) raw.substring(1, raw.length - 1) else raw
         s.replace("\\\\", "\u0000")
             .replace("\\\"", "\"")
@@ -40,6 +39,28 @@ internal fun getEditorFontSize(prefs: SharedPreferences): Int {
         "extra_large" -> 20
         else -> 16
     }
+}
+
+internal fun sanitizeBrokenText(raw: String): String {
+    return buildString(raw.length) {
+        raw.forEach { ch ->
+            append(
+                when (ch) {
+                    '\uFFFD' -> ""
+                    else -> ch.toString()
+                }
+            )
+        }
+    }
+}
+
+internal const val APP_FONT_SIZE_PREF_KEY = "app_font_size"
+internal const val EDITOR_FONT_SIZE_PREF_KEY = "editor_font_size"
+
+internal fun appFontSizeKey(prefs: SharedPreferences): String {
+    return prefs.getString(APP_FONT_SIZE_PREF_KEY, null)
+        ?: prefs.getString(EDITOR_FONT_SIZE_PREF_KEY, "small")
+        ?: "small"
 }
 
 internal fun escapeForJs(input: String): String {
@@ -63,11 +84,9 @@ internal fun countWords(text: String): Int {
         } else if (ch.code in 0x4E00..0x9FFF || ch.code in 0x3400..0x4DBF) {
             count++
             inWord = false
-        } else {
-            if (!inWord) {
-                count++
-                inWord = true
-            }
+        } else if (!inWord) {
+            count++
+            inWord = true
         }
     }
     return count
@@ -85,11 +104,7 @@ internal fun summarizeSelectedNames(
     val hiddenCount = cleaned.size - visibleNames.size
     val summary = visibleNames.joinToString(" · ")
 
-    return if (hiddenCount > 0) {
-        "$summary +$hiddenCount"
-    } else {
-        summary
-    }
+    return if (hiddenCount > 0) "$summary +$hiddenCount" else summary
 }
 
 internal fun metadataTagSummary(names: List<String>): String {
@@ -119,14 +134,14 @@ internal fun resolveEditorBottomGap(
 }
 
 internal fun shouldApplyImePaddingToEditorLayout(isKeyboardVisible: Boolean): Boolean {
-    return isKeyboardVisible
+    return false
 }
 
 internal fun shouldAutoHideToolbarOnKeyboardHidden(
     activeCategory: Int,
     keepToolbarOpen: Boolean
 ): Boolean {
-    return activeCategory < 0 && !keepToolbarOpen
+    return false
 }
 
 internal fun resolveCenteredLocationLabel(selectedLocation: String?): String {
@@ -170,6 +185,18 @@ internal fun shouldPersistDraftOnPause(
 
 internal fun shouldRestoreDraft(snapshot: EditorSnapshot): Boolean {
     return isMeaningfulDraft(snapshot)
+}
+
+internal fun isEditorDirty(
+    initial: EditorSnapshot,
+    current: EditorSnapshot
+): Boolean {
+    return normalizedTitle(initial.title, initial.defaultTitle) != normalizedTitle(current.title, current.defaultTitle) ||
+        normalizedPlainText(initial.plainText) != normalizedPlainText(current.plainText) ||
+        initial.moodLevel != current.moodLevel ||
+        initial.weather?.trim().orEmpty() != current.weather?.trim().orEmpty() ||
+        initial.tagIds != current.tagIds ||
+        initial.location?.trim().orEmpty() != current.location?.trim().orEmpty()
 }
 
 internal fun iconForTemplate(iconName: String): ImageVector {

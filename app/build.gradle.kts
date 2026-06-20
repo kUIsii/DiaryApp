@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 26453
-        versionName = "2.64.53-experimental"
+        versionCode = 26455
+        versionName = "2.64.55-experimental"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -66,8 +66,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 26453
-            versionName = "2.64.53-experimental"
+            versionCode = 26454
+            versionName = "2.64.54-experimental"
         }
     }
 
@@ -114,6 +114,9 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // WorkManager for periodic auto-backup
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")

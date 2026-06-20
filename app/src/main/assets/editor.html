@@ -692,17 +692,19 @@
         }
 
         // Content change callback for word count and auto-save
+        var scrollAfterChangeTimer = null;
         quill.on('text-change', function(delta, oldDelta, source) {
             if (!isProgrammaticChange && window.DiaryBridge) {
                 DiaryBridge.onContentChange(quill.getText());
             }
-            setTimeout(function() {
+            clearTimeout(scrollAfterChangeTimer);
+            scrollAfterChangeTimer = setTimeout(function() {
                 var sel = quill.getSelection();
                 if (sel) {
                     saveEditorContext(sel);
                     scrollSelectionIntoView(false);
                 }
-            }, 16);
+            }, 50);
         });
 
         // Selection change: report format state

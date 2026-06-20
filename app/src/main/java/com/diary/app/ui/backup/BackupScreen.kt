@@ -84,6 +84,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
+import com.diary.app.ui.editor.APP_FONT_SIZE_PREF_KEY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -300,6 +301,9 @@ fun BackupScreen(
                                 .clickable {
                                     frequency = option
                                     BackupManager.setFrequency(context, option)
+                                    if (autoBackupEnabled) {
+                                        BackupManager.scheduleAutoBackup(context, replace = true)
+                                    }
                                     showFrequencyDialog = false
                                 }
                                 .padding(vertical = 12.dp, horizontal = 4.dp),
@@ -508,6 +512,30 @@ fun BackupScreen(
                                     onToggle = { enabled ->
                                         autoBackupEnabled = enabled
                                         BackupManager.setAutoBackupEnabled(context, enabled)
+                                        if (enabled) {
+                                            BackupManager.scheduleAutoBackup(context, replace = true)
+                                        } else {
+                                            BackupManager.cancelAutoBackup(context)
+                                        }
+                                        if (enabled) {
+                                            scope.launch {
+                                                val record = withContext(Dispatchers.IO) {
+                                                    if (BackupManager.shouldAutoBackup(context)) {
+                                                        BackupManager.performAutoBackup(context, dao)
+                                                    } else {
+                                                        null
+                                                    }
+                                                }
+                                                backupHistory = BackupManager.getBackupHistory(context)
+                                                if (record != null) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "已创建自动备份：${record.fileName}",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        }
                                     }
                                 )
 
