@@ -61,7 +61,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -116,23 +115,23 @@ import kotlinx.coroutines.launch
 // Sub-page transition specs: smooth slide without bounce
 private fun subPageEnterTransition() = slideInHorizontally(
     initialOffsetX = { it / 3 },
-    animationSpec = tween(250)
-) + fadeIn(animationSpec = tween(200))
+    animationSpec = tween(280)
+) + fadeIn(animationSpec = tween(240))
 
 private fun subPageExitTransition() = slideOutHorizontally(
     targetOffsetX = { -it / 4 },
-    animationSpec = tween(250)
-)
+    animationSpec = tween(280)
+) + fadeOut(animationSpec = tween(200))
 
 private fun subPagePopEnterTransition() = slideInHorizontally(
     initialOffsetX = { -it / 4 },
-    animationSpec = tween(250)
-) + fadeIn(animationSpec = tween(200))
+    animationSpec = tween(280)
+) + fadeIn(animationSpec = tween(240))
 
 private fun subPagePopExitTransition() = slideOutHorizontally(
     targetOffsetX = { it / 3 },
-    animationSpec = tween(250)
-)
+    animationSpec = tween(280)
+) + fadeOut(animationSpec = tween(200))
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -197,7 +196,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
-    val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -213,7 +211,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
@@ -244,9 +242,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = navHostModifier,
-            enterTransition = { fadeIn(animationSpec = tween(200)) },
+            enterTransition = { fadeIn(animationSpec = tween(250)) },
             exitTransition = { fadeOut(animationSpec = tween(200)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(250)) },
             popExitTransition = { fadeOut(animationSpec = tween(200)) }
         ) {
             composable(Screen.Home.route) {
@@ -262,7 +260,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,
                             totalDrag = dragAmount,
-                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                            enabled = true
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -277,7 +275,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Timeline.route,
                             totalDrag = dragAmount,
-                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                            enabled = true
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -317,7 +315,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Todo.route,
                             totalDrag = dragAmount,
-                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                            enabled = true
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -572,25 +570,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-                    ) + fadeIn(animationSpec = tween(200))
+                        animationSpec = tween(280)
+                    ) + fadeIn(animationSpec = tween(240))
                 },
                 exitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+                        animationSpec = tween(280)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-                    ) + fadeIn(animationSpec = tween(200))
+                        animationSpec = tween(280)
+                    ) + fadeIn(animationSpec = tween(240))
                 },
                 popExitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+                        animationSpec = tween(280)
                     ) + fadeOut(animationSpec = tween(200))
                 }
             ) { backStackEntry ->
@@ -609,25 +607,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-                    ) + fadeIn(animationSpec = tween(200))
+                        animationSpec = tween(280)
+                    ) + fadeIn(animationSpec = tween(240))
                 },
                 exitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+                        animationSpec = tween(280)
                     ) + fadeOut(animationSpec = tween(200))
                 },
                 popEnterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { -it / 3 },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
-                    ) + fadeIn(animationSpec = tween(200))
+                        animationSpec = tween(280)
+                    ) + fadeIn(animationSpec = tween(240))
                 },
                 popExitTransition = {
                     slideOutHorizontally(
                         targetOffsetX = { it },
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 800f)
+                        animationSpec = tween(280)
                     ) + fadeOut(animationSpec = tween(200))
                 }
             ) { backStackEntry ->

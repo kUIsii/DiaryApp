@@ -330,19 +330,9 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            HeaderSection(textColor = textColor)
+            HeaderSection(textColor = textColor, textTertiary = textTertiary)
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ProfileOverviewCard(
-                currentThemeMode = currentThemeMode,
-                reminderEnabled = reminderEnabled,
-                reminderHour = reminderHour,
-                reminderMinute = reminderMinute,
-                appLockEnabled = biometricLockEnabled || pinLockEnabled
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Collapsible sections
             var alpha by remember { mutableFloatStateOf(0f) }
@@ -363,6 +353,7 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(0),
                     iconTint = sectionIconTint(0),
                     title = stringResource(R.string.profile_appearance),
+                    subtitle = "主题模式和字体大小",
                     isExpanded = expandedSection == "appearance",
                     onToggle = { expandedSection = if (expandedSection == "appearance") null else "appearance" },
                     textColor = textColor,
@@ -398,6 +389,7 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(1),
                     iconTint = sectionIconTint(1),
                     title = stringResource(R.string.profile_data_management),
+                    subtitle = "分类管理、备份和回收站",
                     isExpanded = expandedSection == "data",
                     onToggle = { expandedSection = if (expandedSection == "data") null else "data" },
                     textColor = textColor,
@@ -455,6 +447,7 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(2),
                     iconTint = sectionIconTint(2),
                     title = stringResource(R.string.profile_reminder_settings),
+                    subtitle = "每日提醒时间设置",
                     isExpanded = expandedSection == "reminder",
                     onToggle = { expandedSection = if (expandedSection == "reminder") null else "reminder" },
                     textColor = textColor,
@@ -490,6 +483,7 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(3),
                     iconTint = sectionIconTint(3),
                     title = stringResource(R.string.profile_privacy_security),
+                    subtitle = "指纹、密码和应用锁",
                     isExpanded = expandedSection == "privacy",
                     onToggle = { expandedSection = if (expandedSection == "privacy") null else "privacy" },
                     textColor = textColor,
@@ -544,6 +538,7 @@ fun ProfileScreen(
                     iconBg = sectionIconBg(4),
                     iconTint = sectionIconTint(4),
                     title = stringResource(R.string.profile_about),
+                    subtitle = "版本和更新信息",
                     isExpanded = expandedSection == "about",
                     onToggle = { expandedSection = if (expandedSection == "about") null else "about" },
                     textColor = textColor,
@@ -629,6 +624,7 @@ private fun CollapsibleSection(
     iconBg: Color,
     iconTint: Color,
     title: String,
+    subtitle: String,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     textColor: Color,
@@ -660,7 +656,10 @@ private fun CollapsibleSection(
             ) {
                 IconCircle(icon = icon, bg = iconBg, tint = iconTint)
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
+                    Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
+                }
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "收起" else "展开",
@@ -789,125 +788,44 @@ private fun SwitchSettingRow(
 // --- Header ---
 
 @Composable
-private fun HeaderSection(textColor: Color) {
-    val infiniteTransition = rememberInfiniteTransition(label = "profileHeaderGlow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.22f,
-        targetValue = 0.42f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
+private fun HeaderSection(textColor: Color, textTertiary: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "avatarRing")
+    val ringRotation by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(animation = tween(8000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+        label = "ringRotation"
+    )
+    val ringPulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(2000, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        label = "ringPulse"
     )
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 26.dp,
-        innerPadding = 18.dp
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val ringColor1 = MaterialTheme.colorScheme.primary
+        val ringColor2 = MaterialTheme.colorScheme.secondary
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(108.dp)) {
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f)
-                            )
-                        )
-                    ),
+                    .size(108.dp)
+                    .graphicsLayer { rotationZ = ringRotation; scaleX = ringPulse; scaleY = ringPulse }
+                    .clip(CircleShape)
+                    .background(Brush.sweepGradient(colors = listOf(ringColor1, ringColor2, ringColor1.copy(alpha = 0.3f), ringColor1)))
+            )
+            Box(
+                modifier = Modifier
+                    .size(98.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(colors = listOf(ringColor1, ringColor2))),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Palette,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = "我的",
-                style = MaterialTheme.typography.headlineMedium,
-                color = textColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProfileOverviewCard(
-    currentThemeMode: ThemeMode,
-    reminderEnabled: Boolean,
-    reminderHour: Int,
-    reminderMinute: Int,
-    appLockEnabled: Boolean
-) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 24.dp,
-        innerPadding = 16.dp
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(
-                text = "今日状态",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                ProfileSignalCard(
-                    title = "当前主题",
-                    value = themeLabelForMode(currentThemeMode),
-                    modifier = Modifier.weight(1f)
-                )
-                ProfileSignalCard(
-                    title = "提醒",
-                    value = if (reminderEnabled) String.format("%02d:%02d", reminderHour, reminderMinute) else "未开启",
-                    modifier = Modifier.weight(1f)
-                )
-                ProfileSignalCard(
-                    title = "应用锁",
-                    value = if (appLockEnabled) "已保护" else "未开启",
-                    modifier = Modifier.weight(1f)
-                )
+                Icon(Icons.Default.Palette, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
             }
         }
-    }
-}
-
-@Composable
-private fun ProfileSignalCard(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f))
-            .padding(horizontal = 12.dp, vertical = 14.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, color = textColor, letterSpacing = 1.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(stringResource(R.string.app_subtitle), fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
     }
 }
 
@@ -1113,16 +1031,6 @@ private data class ThemeFamilyUi(
     val darkStart: Color,
     val darkEnd: Color
 )
-
-private fun themeLabelForMode(mode: ThemeMode): String = when (mode) {
-    ThemeMode.PURE_LIGHT, ThemeMode.PURE_DARK -> "雾蓝"
-    ThemeMode.MOSS_GREEN_LIGHT, ThemeMode.MOSS_GREEN_DARK -> "苔绿"
-    ThemeMode.OCEAN_LIGHT, ThemeMode.OCEAN_DARK -> "海潮"
-    ThemeMode.PETAL_LIGHT, ThemeMode.PETAL_DARK -> "陶粉"
-    ThemeMode.SAND_LIGHT, ThemeMode.SAND_DARK -> "沙金"
-    ThemeMode.CLAY_LIGHT, ThemeMode.CLAY_DARK -> "陶土"
-    ThemeMode.INK_LIGHT, ThemeMode.INK_DARK -> "墨蓝"
-}
 
 // --- Font Size Slider ---
 
