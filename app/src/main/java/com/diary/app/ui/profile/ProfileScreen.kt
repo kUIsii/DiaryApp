@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -120,7 +121,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 
-// Section icon colors — 5 distinct colors per theme
+// Section icon colors ??5 distinct colors per theme
 @Composable
 private fun sectionIconBg(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
@@ -187,7 +188,6 @@ fun ProfileScreen(
         FontSizeOption("small", "小", 14),
         FontSizeOption("medium", "中", 16),
         FontSizeOption("large", "大", 18),
-        FontSizeOption("extra_large", "特大", 20)
     )
     var currentFontSizeKey by remember {
         mutableStateOf(
@@ -318,7 +318,17 @@ fun ProfileScreen(
 
             HeaderSection(textColor = textColor, textTertiary = textTertiary)
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ProfileOverviewCard(
+                currentThemeMode = currentThemeMode,
+                reminderEnabled = reminderEnabled,
+                reminderHour = reminderHour,
+                reminderMinute = reminderMinute,
+                appLockEnabled = biometricLockEnabled || pinLockEnabled
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Collapsible sections
             var alpha by remember { mutableFloatStateOf(0f) }
@@ -811,13 +821,113 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, color = textColor, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(stringResource(R.string.app_subtitle), fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
+        Text("主题、提醒与数据管理", fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
+    }
+}
+
+@Composable
+private fun ProfileOverviewCard(
+    currentThemeMode: ThemeMode,
+    reminderEnabled: Boolean,
+    reminderHour: Int,
+    reminderMinute: Int,
+    appLockEnabled: Boolean
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ProfileSignalCard(
+                    title = "当前主题",
+                    value = themeLabelForMode(currentThemeMode),
+                    modifier = Modifier.weight(1f)
+                )
+                ProfileSignalCard(
+                    title = "提醒",
+                    value = if (reminderEnabled) String.format("%02d:%02d", reminderHour, reminderMinute) else "未开启",
+                    modifier = Modifier.weight(1f)
+                )
+                ProfileSignalCard(
+                    title = "应用锁",
+                    value = if (appLockEnabled) "已保护" else "未开启",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Text(
+                text = "这里先看整体状态，再进入主题、备份、安全和更新等具体设置。",
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OverviewTag(text = if (currentThemeMode.isDarkStatic()) "深色模式" else "浅色模式")
+                OverviewTag(text = "主题适配已生效")
+                OverviewTag(text = "可继续扩展更多配色")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileSignalCard(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f))
+            .padding(horizontal = 12.dp, vertical = 14.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+}
+
+@Composable
+private fun OverviewTag(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
 // --- Theme Card Selector ---
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ThemeCardSelector(
     currentMode: ThemeMode,
     textColor: Color,
@@ -825,60 +935,96 @@ private fun ThemeCardSelector(
     textTertiary: Color,
     onSelectMode: (ThemeMode) -> Unit
 ) {
-    val isCurrentGreen = currentMode.category == "green"
     val isDark = currentMode.isDarkStatic()
+    val currentFamily = currentMode.category.key
+
+    val families = listOf(
+        ThemeFamilyUi(
+            key = "blue",
+            label = "雾蓝",
+            lightMode = ThemeMode.PURE_LIGHT,
+            darkMode = ThemeMode.PURE_DARK,
+            lightStart = com.diary.app.ui.theme.FogBlueLightBg1,
+            lightEnd = com.diary.app.ui.theme.FogBlueLightAccent,
+            darkStart = com.diary.app.ui.theme.FogBlueDarkBg1,
+            darkEnd = com.diary.app.ui.theme.FogBlueDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "green",
+            label = "苔绿",
+            lightMode = ThemeMode.MOSS_GREEN_LIGHT,
+            darkMode = ThemeMode.MOSS_GREEN_DARK,
+            lightStart = com.diary.app.ui.theme.MossGreenLightBg1,
+            lightEnd = com.diary.app.ui.theme.MossGreenLightAccent,
+            darkStart = com.diary.app.ui.theme.MossGreenDarkBg1,
+            darkEnd = com.diary.app.ui.theme.MossGreenDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "cyan",
+            label = "海潮",
+            lightMode = ThemeMode.OCEAN_LIGHT,
+            darkMode = ThemeMode.OCEAN_DARK,
+            lightStart = com.diary.app.ui.theme.OceanLightBg1,
+            lightEnd = com.diary.app.ui.theme.OceanLightAccent,
+            darkStart = com.diary.app.ui.theme.OceanDarkBg1,
+            darkEnd = com.diary.app.ui.theme.OceanDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "rose",
+            label = "陶粉",
+            lightMode = ThemeMode.PETAL_LIGHT,
+            darkMode = ThemeMode.PETAL_DARK,
+            lightStart = com.diary.app.ui.theme.PetalLightBg1,
+            lightEnd = com.diary.app.ui.theme.PetalLightAccent,
+            darkStart = com.diary.app.ui.theme.PetalDarkBg1,
+            darkEnd = com.diary.app.ui.theme.PetalDarkAccent
+        ),
+        ThemeFamilyUi(
+            key = "amber",
+            label = "沙金",
+            lightMode = ThemeMode.SAND_LIGHT,
+            darkMode = ThemeMode.SAND_DARK,
+            lightStart = com.diary.app.ui.theme.SandLightBg1,
+            lightEnd = com.diary.app.ui.theme.SandLightAccent,
+            darkStart = com.diary.app.ui.theme.SandDarkBg1,
+            darkEnd = com.diary.app.ui.theme.SandDarkAccent
+        )
+    )
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("配色方案", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor)
-        // Two scheme cards: fog blue-gray + moss green
-        Row(
+
+        androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SchemeCard(
-                label = "雾蓝灰",
-                previewStart = if (isDark) com.diary.app.ui.theme.FogBlueDarkBg1 else com.diary.app.ui.theme.FogBlueLightBg1,
-                previewEnd = if (isDark) com.diary.app.ui.theme.FogBlueDarkAccent else com.diary.app.ui.theme.FogBlueLightAccent,
-                isSelected = !isCurrentGreen,
-                onClick = {
-                    val newMode = if (isDark) ThemeMode.PURE_DARK else ThemeMode.PURE_LIGHT
-                    onSelectMode(newMode)
-                },
-                modifier = Modifier.weight(1f)
-            )
-            SchemeCard(
-                label = "苔藓绿",
-                previewStart = if (isDark) com.diary.app.ui.theme.MossGreenDarkBg1 else com.diary.app.ui.theme.MossGreenLightBg1,
-                previewEnd = if (isDark) com.diary.app.ui.theme.MossGreenDarkAccent else com.diary.app.ui.theme.MossGreenLightAccent,
-                isSelected = isCurrentGreen,
-                onClick = {
-                    val newMode = if (isDark) ThemeMode.MOSS_GREEN_DARK else ThemeMode.MOSS_GREEN_LIGHT
-                    onSelectMode(newMode)
-                },
-                modifier = Modifier.weight(1f)
-            )
+            families.forEach { family ->
+                SchemeCard(
+                    label = family.label,
+                    previewStart = if (isDark) family.darkStart else family.lightStart,
+                    previewEnd = if (isDark) family.darkEnd else family.lightEnd,
+                    isSelected = currentFamily == family.key,
+                    onClick = { onSelectMode(if (isDark) family.darkMode else family.lightMode) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
-        // Light/Dark toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text("深色模式", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
                 Text(if (isDark) "已开启" else "已关闭", fontSize = 12.sp, color = textTertiary)
             }
             Switch(
                 checked = isDark,
                 onCheckedChange = { dark ->
-                    val newMode = when {
-                        dark && !isCurrentGreen -> ThemeMode.PURE_DARK
-                        dark && isCurrentGreen -> ThemeMode.MOSS_GREEN_DARK
-                        !dark && !isCurrentGreen -> ThemeMode.PURE_LIGHT
-                        else -> ThemeMode.MOSS_GREEN_LIGHT
-                    }
-                    onSelectMode(newMode)
+                    val family = families.firstOrNull { it.key == currentFamily } ?: families.first()
+                    onSelectMode(if (dark) family.darkMode else family.lightMode)
                 },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.primary,
@@ -922,7 +1068,6 @@ private fun SchemeCard(
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
             .padding(vertical = 14.dp, horizontal = 8.dp)
     ) {
-        // Color preview balls
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -949,6 +1094,27 @@ private fun SchemeCard(
             color = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private data class ThemeFamilyUi(
+    val key: String,
+    val label: String,
+    val lightMode: ThemeMode,
+    val darkMode: ThemeMode,
+    val lightStart: Color,
+    val lightEnd: Color,
+    val darkStart: Color,
+    val darkEnd: Color
+)
+
+private fun themeLabelForMode(mode: ThemeMode): String = when (mode) {
+    ThemeMode.PURE_LIGHT, ThemeMode.PURE_DARK -> "雾蓝"
+    ThemeMode.MOSS_GREEN_LIGHT, ThemeMode.MOSS_GREEN_DARK -> "苔绿"
+    ThemeMode.OCEAN_LIGHT, ThemeMode.OCEAN_DARK -> "海潮"
+    ThemeMode.PETAL_LIGHT, ThemeMode.PETAL_DARK -> "陶粉"
+    ThemeMode.SAND_LIGHT, ThemeMode.SAND_DARK -> "沙金"
+    ThemeMode.CLAY_LIGHT, ThemeMode.CLAY_DARK -> "陶土"
+    ThemeMode.INK_LIGHT, ThemeMode.INK_DARK -> "墨蓝"
 }
 
 // --- Font Size Slider ---

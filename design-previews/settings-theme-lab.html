@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 设置与主题扩展预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .theme-card {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .theme-card.active {
+      outline: 2px solid color-mix(in srgb, var(--accent) 54%, transparent);
+    }
+
+    .palette-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--c);
+    }
+
+    .switch {
+      width: 48px;
+      height: 28px;
+      border-radius: 999px;
+      padding: 3px;
+      background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+      border: 1px solid var(--line);
+      flex: none;
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 20px;
+      margin-left: var(--pos, 0);
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    }
+
+    .slider {
+      height: 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--muted) 16%, transparent);
+      overflow: hidden;
+    }
+
+    .slider i {
+      display: block;
+      width: var(--value);
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: inherit;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .mode-tabs button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      color: var(--muted);
+      font: 700 12px var(--font-sans);
+    }
+
+    .mode-tabs button.active {
+      color: #fff;
+      background: var(--accent);
+      border-color: transparent;
+    }
+
+    .theme-preview-paper {
+      padding: 16px;
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+      border: 1px solid var(--line);
+    }
+
+    .theme-preview-paper h2 {
+      margin: 0 0 8px;
+      font-family: var(--font-serif);
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+
+    .theme-preview-paper p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">Theme Expansion Lab</p>
+        <h1 class="preview-title">设置与主题细化实验室</h1>
+        <p class="preview-desc">这一页作为“我的”页的配套实验室，专门比较设置首页、主题中心、阅读强度、暗色预览和新增候选主题。重点不是展示更多装饰，而是确认主题系统如何真正落到设置路径、编辑器阅读体验和安全提醒的联动上。</p>
+        <div class="direction-row">
+          <span class="direction-pill">设置首页更清晰</span>
+          <span class="direction-pill">主题中心真实可选</span>
+          <span class="direction-pill">阅读体验联动预览</span>
+          <span class="direction-pill">新增候选色板</span>
+        </div>
+      </div>
+      <div class="preview-controls">
+        <button class="control-btn active" type="button" data-mode="light">浅色</button>
+        <button class="control-btn" type="button" data-mode="dark">深色</button>
+        <button class="control-btn active" type="button" data-theme="fog"><span class="theme-swatch" style="--sw:#6c8fb4"></span>雾蓝</button>
+        <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
+        <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
+        <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>砂金</button>
+        <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
+        <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
+      </div>
+    </header>
+
+    <section class="phone-grid">
+      <div class="phone-column">
+        <div class="phone-label"><strong>设置首页</strong><span>外观入口更明确</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>9:41</span><span>设置</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <span class="back-btn"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span>
+                <div class="title-block" style="flex:1">
+                  <h1>设置</h1>
+                  <p>把主题、数据管理和隐私安全放在同一条清晰路径上。</p>
+                </div>
+              </div>
+
+              <div class="section-title">外观 <span>当前：雾蓝浅色</span></div>
+              <div class="card">
+                <div class="row">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 0 0 10-10c0-4-3-8-9-8a7 7 0 0 0-7 7c0 2 1 3 3 3h1a2 2 0 0 1 2 2c0 2-2 2-2 4 0 1 1 2 2 2Z"/><circle cx="7.5" cy="10.5" r=".5"/><circle cx="12" cy="7.5" r=".5"/><circle cx="16.5" cy="10.5" r=".5"/></svg></span>
+                  <div class="row-text"><div class="row-title">主题设置</div><div class="row-sub">颜色方案、深色模式、背景纹理</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
+                  <div class="row-text"><div class="row-title">字体大小</div><div class="row-sub">同时影响阅读页、编辑器和详情页正文</div></div>
+                  <span class="pill">中号</span>
+                </div>
+              </div>
+
+              <div class="section-title">数据管理 <span>可恢复</span></div>
+              <div class="card">
+                <div class="row">
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
+                  <div class="row-text"><div class="row-title">备份管理</div><div class="row-sub">本地备份、加密、导入恢复</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row">
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10v8a2 2 0 0 1-2 2H8l-4-4V6a2 2 0 0 1 2-2h8"/><path d="M14 4h6v6"/></svg></span>
+                  <div class="row-text"><div class="row-title">分类管理</div><div class="row-sub">标签合并、颜色整理、批量校正</div></div>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+
+              <div class="section-title">隐私与安全 <span>默认保护</span></div>
+              <div class="card">
+                <div class="row">
+                  <span class="icon-tile" style="--tile-text:#e07070;--tile-bg:rgba(224,112,112,.12)"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                  <div class="row-text"><div class="row-title">应用锁</div><div class="row-sub">PIN、生物识别与自动锁定时长</div></div>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>主题中心</strong><span>7 组主题完整对齐</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>9:42</span><span>主题</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <span class="back-btn"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span>
+                <div class="title-block" style="flex:1"><h1>主题设置</h1><p>先选颜色系统，再决定浅色或深色。</p></div>
+              </div>
+
+              <div class="mode-tabs"><button class="active">浅色</button><button>深色</button></div>
+
+              <div class="card theme-card active">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M12 4v16"/></svg></span>
+                  <div class="row-text"><div class="row-title">雾蓝灰</div><div class="row-sub">安静、低饱和，适合作为默认主题</div></div>
+                  <span class="pill">已选择</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#f5f7fa"></span><span class="swatch" style="--c:#6b8db5"></span><span class="swatch" style="--c:#b5926b"></span><span class="swatch" style="--c:#9b8eba"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#7ba06e;--tile-bg:rgba(123,160,110,.15)"><svg class="icon" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-5 8-11 8-11s8 6 8 11a7 7 0 0 1-7 7Z"/><path d="M12 20V9"/></svg></span>
+                  <div class="row-text"><div class="row-title">苔藓绿</div><div class="row-sub">纸感、自然，适合长时间记录</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#f6f7f4"></span><span class="swatch" style="--c:#7ba06e"></span><span class="swatch" style="--c:#c4a06b"></span><span class="swatch" style="--c:#a088b0"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#c4775f;--tile-bg:rgba(196,119,95,.15)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+                  <div class="row-text"><div class="row-title">暖陶土</div><div class="row-sub">温暖纸页感，适合写作与回顾</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#fbf5f0"></span><span class="swatch" style="--c:#c4775f"></span><span class="swatch" style="--c:#779b87"></span><span class="swatch" style="--c:#9b84ad"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#4d6aa8;--tile-bg:rgba(77,106,168,.15)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 16V8l4 5 4-5v8"/></svg></span>
+                  <div class="row-text"><div class="row-title">墨蓝纸张</div><div class="row-sub">夜间阅读更稳定，强化文字对比</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#f3f5fa"></span><span class="swatch" style="--c:#4d6aa8"></span><span class="swatch" style="--c:#6e83c4"></span><span class="swatch" style="--c:#9a7faf"></span></div>
+              </div>
+
+              <div class="section-title">深色模式 <span>跟随系统或手动</span></div>
+              <div class="card card-pad">
+                <div class="row" style="padding:0"><div class="row-text"><div class="row-title">使用深色外观</div><div class="row-sub">当前组合切换后同步影响首页、编辑器与详情页</div></div><div class="switch" style="--pos:18px"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>阅读预览</strong><span>正文与层级联动</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>22:40</span><span>阅读预览</span></div>
+            <div class="app-content">
+              <div class="top-row"><div class="title-block"><h1>深色主题</h1><p>低亮度背景下保留清晰正文和柔和卡片边界。</p></div><span class="pill">雾蓝深色</span></div>
+
+              <div class="theme-preview-paper">
+                <h2>夜晚写作预览</h2>
+                <p>真正需要确认的是长时间阅读与编辑时会不会刺眼。正文保持清晰，工具栏和标签降低存在感，只在需要时出现。</p>
+              </div>
+
+              <div class="section-title">文字大小 <span>编辑器同步</span></div>
+              <div class="card card-pad">
+                <div class="row" style="padding:0 0 12px"><div class="row-text"><div class="row-title">正文大小</div><div class="row-sub">小 / 中 / 大 / 特大</div></div><span class="pill">中号</span></div>
+                <div class="slider"><i style="--value:54%"></i></div>
+              </div>
+
+              <div class="section-title">界面强度 <span>减少装饰</span></div>
+              <div class="card">
+                <div class="row"><span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span><div class="row-text"><div class="row-title">低光卡片</div><div class="row-sub">深色卡片边框略明，避免卡片完全融进背景</div></div></div>
+                <div class="row"><span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h16"/></svg></span><div class="row-text"><div class="row-title">减少大面积渐变</div><div class="row-sub">背景保留细纹理，不使用强烈发光斑块</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>候选主题</strong><span>新增色板也要完整落地</span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="statusbar"><span>15:08</span><span>候选主题</span></div>
+            <div class="app-content">
+              <div class="top-row"><div class="title-block"><h1>更多主题</h1><p>新增主题也要同时提供浅色、深色、语义色和正文预览。</p></div><span class="pill">实验</span></div>
+
+              <div class="card theme-card active">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#d0a05f;--tile-bg:rgba(208,160,95,.14)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+                  <div class="row-text"><div class="row-title">暖陶纸页</div><div class="row-sub">温暖但不过奶油化，适合回忆类页面</div></div>
+                  <span class="pill">候选</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#fbf5f0"></span><span class="swatch" style="--c:#c4775f"></span><span class="swatch" style="--c:#779b87"></span><span class="swatch" style="--c:#9b84ad"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#d0a05f;--tile-bg:rgba(208,160,95,.14)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/></svg></span>
+                  <div class="row-text"><div class="row-title">墨色纸张</div><div class="row-sub">更偏阅读，不适合默认但适合夜间书写</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#11100f"></span><span class="swatch" style="--c:#d0a05f"></span><span class="swatch" style="--c:#81a996"></span><span class="swatch" style="--c:#a98bc4"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#d08b73;--tile-bg:rgba(208,139,115,.15)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+                  <div class="row-text"><div class="row-title">陶土深色</div><div class="row-sub">在深色区域保留暖感，但控制饱和度</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#17120f"></span><span class="swatch" style="--c:#d08b73"></span><span class="swatch" style="--c:#87a992"></span><span class="swatch" style="--c:#ab94c0"></span></div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="card theme-card">
+                <div class="row" style="padding:0">
+                  <span class="icon-tile" style="--tile-text:#8aa8e0;--tile-bg:rgba(138,168,224,.15)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 16V8l4 5 4-5v8"/></svg></span>
+                  <div class="row-text"><div class="row-title">墨蓝深色</div><div class="row-sub">夜间阅读和高对比写作辅助</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="palette-row"><span class="swatch" style="--c:#0a0d14"></span><span class="swatch" style="--c:#8aa8e0"></span><span class="swatch" style="--c:#a48bd4"></span><span class="swatch" style="--c:#6fb0c2"></span></div>
+              </div>
+
+              <div class="section-title">落地规则 <span>不能只换主色</span></div>
+              <div class="card">
+                <div class="row"><span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><div class="row-text"><div class="row-title">提供完整 token</div><div class="row-sub">背景、卡片、边框、正文、辅助文字都要同步定义</div></div></div>
+                <div class="row"><span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span><div class="row-text"><div class="row-title">同步编辑器</div><div class="row-sub">编辑纸张、工具栏和元信息 chip 一起适配</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="preview-controls.js"></script>
+</body>
+</html>

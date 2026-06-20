@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 核心预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 18px;
+    }
+
+    .preview-link {
+      display: block;
+      min-height: 214px;
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--page-line);
+      background: rgba(255, 255, 255, 0.74);
+      color: inherit;
+      text-decoration: none;
+      box-shadow: 0 14px 38px rgba(40, 50, 64, 0.08);
+      transition: transform 180ms ease, border-color 180ms ease;
+    }
+
+    .preview-link:hover {
+      transform: translateY(-2px);
+      border-color: rgba(108, 143, 180, 0.34);
+    }
+
+    .preview-link h2 {
+      margin: 14px 0 8px;
+      font-family: var(--font-serif);
+      font-size: 28px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .preview-link p {
+      margin: 0;
+      color: var(--page-muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      min-height: 28px;
+      padding: 0 10px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(108, 143, 180, 0.1);
+      color: #53677f;
+      font-size: 11px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">DiaryApp Core Preview</p>
+        <h1 class="preview-title">核心 UI 预览</h1>
+        <p class="preview-desc">这一轮预览聚焦 DiaryApp 最值得对比的几条主线：首页、工具页、工具功能页，以及重新扩展后的“我的”页面。所有页面继续共用现有的浅色 / 深色与 7 组主题色控制，方便直接比较布局、信息层级和主题适配质量。</p>
+        <div class="direction-row">
+          <span class="direction-pill">统一浅色 / 深色切换</span>
+          <span class="direction-pill">统一 7 组主题色</span>
+          <span class="direction-pill">重点比较真实手机内容组织</span>
+          <span class="direction-pill">新增“我的”页多方向预览</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="index-grid">
+      <a class="preview-link" href="home-refresh-preview.html">
+        <span class="pill">6 个首页方向</span>
+        <h2>首页重做</h2>
+        <p>围绕真实首页骨架重排日期选择、AI 提示、当日条目、多选态和空状态，方便直接比较“贴近现有产品”与“质感加强版”两种路线。</p>
+        <div class="tag-row">
+          <span class="tag">日期驱动</span>
+          <span class="tag">日志列表</span>
+          <span class="tag">多选状态</span>
+        </div>
+      </a>
+
+      <a class="preview-link" href="tools-focused-preview.html">
+        <span class="pill">6 个工具目录方向</span>
+        <h2>工具页重做</h2>
+        <p>彻底放弃拼贴式工具页，改做更克制的移动端工具目录，重点抬高标签管理、倒数日、日记地图三个核心入口的层级。</p>
+        <div class="tag-row">
+          <span class="tag">真实目录</span>
+          <span class="tag">重点入口</span>
+          <span class="tag">低干扰</span>
+        </div>
+      </a>
+
+      <a class="preview-link" href="tools-function-suite.html">
+        <span class="pill">6 个功能页</span>
+        <h2>工具功能页</h2>
+        <p>集中看统计、媒体库、标签管理、倒数日、地图回顾、AI 助手六类功能页的真实布局，便于筛查结构问题而不是只看主题包装。</p>
+        <div class="tag-row">
+          <span class="tag">功能布局</span>
+          <span class="tag">真实页面</span>
+          <span class="tag">同主题对比</span>
+        </div>
+      </a>
+
+      <a class="preview-link" href="profile-theme-preview.html">
+        <span class="pill">6 个“我的”页方向</span>
+        <h2>我的页主题与设置</h2>
+        <p>重点重做“我的”页面：围绕主题切换、设置分组、数据管理、提醒、安全和个性化展示，扩成 6 种真实手机端布局方向。</p>
+        <div class="tag-row">
+          <span class="tag">主题切换</span>
+          <span class="tag">设置分组</span>
+          <span class="tag">数据与安全</span>
+        </div>
+      </a>
+
+      <a class="preview-link" href="settings-theme-lab.html">
+        <span class="pill">主题实验室</span>
+        <h2>设置与主题细化</h2>
+        <p>补充展示设置首页、主题中心、阅读强度、暗色预览和新增主题候选，作为“我的”页细化方案的配套实验室。</p>
+        <div class="tag-row">
+          <span class="tag">主题中心</span>
+          <span class="tag">阅读体验</span>
+          <span class="tag">候选色板</span>
+        </div>
+      </a>
+    </section>
+  </main>
+</body>
+</html>

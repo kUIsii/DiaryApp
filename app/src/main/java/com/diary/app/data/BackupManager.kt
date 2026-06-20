@@ -425,6 +425,8 @@ object BackupManager {
         val trash = dao.getAllTrashEntriesOnce()
         val habitRecords = dao.getAllHabitRecordsOnce()
         val notifications = dao.getAllNotificationsOnce()
+        val conversations = dao.getAllConversationsOnce()
+        val chatMessages = dao.getAllChatMessagesOnce()
 
         val payload = DiaryBackup(
             app = "DiaryApp",
@@ -454,6 +456,7 @@ object BackupManager {
             },
             todos = todos.map { todo ->
                 BackupTodo(
+                    id = todo.id,
                     title = todo.title,
                     description = todo.description,
                     isCompleted = todo.isCompleted,
@@ -485,11 +488,17 @@ object BackupManager {
             },
             capsules = capsules.map { capsule ->
                 BackupCapsule(
+                    id = capsule.id,
                     title = capsule.title,
                     content = capsule.content,
                     createdAt = capsule.createdAt,
                     unlockDate = capsule.unlockDate,
-                    isRead = capsule.isRead
+                    isRead = capsule.isRead,
+                    isOpened = capsule.isOpened,
+                    theme = capsule.theme.name,
+                    imageUri = capsule.imageUri,
+                    unlockHour = capsule.unlockHour,
+                    unlockMinute = capsule.unlockMinute
                 )
             },
             trash = trash.map { entry ->
@@ -533,6 +542,23 @@ object BackupManager {
                     isTrashed = notification.isTrashed,
                     createdAt = notification.createdAt,
                     trashedAt = notification.trashedAt
+                )
+            },
+            chatConversations = conversations.map { conversation ->
+                BackupChatConversation(
+                    id = conversation.id,
+                    title = conversation.title,
+                    createdAt = conversation.createdAt,
+                    updatedAt = conversation.updatedAt
+                )
+            },
+            chatMessages = chatMessages.map { message ->
+                BackupChatMessage(
+                    id = message.id,
+                    conversationId = message.conversationId,
+                    role = message.role,
+                    content = message.content,
+                    createdAt = message.createdAt
                 )
             }
         )

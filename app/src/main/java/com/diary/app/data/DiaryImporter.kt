@@ -6,6 +6,11 @@ import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 
+internal const val READ_BACKUP_ERROR_MESSAGE = "无法读取备份文件"
+internal const val INVALID_BACKUP_FORMAT_MESSAGE = "备份文件格式无效"
+internal const val EMPTY_BACKUP_MESSAGE = "备份文件中没有可导入的数据"
+internal const val DEFAULT_IMPORTED_CONVERSATION_TITLE = "新对话"
+
 data class DiaryBackup(
     val app: String?,
     val version: String?,
@@ -17,7 +22,9 @@ data class DiaryBackup(
     val capsules: List<BackupCapsule>? = null,
     val trash: List<BackupTrashEntry>? = null,
     val habitRecords: List<BackupHabitRecord>? = null,
-    val notifications: List<BackupNotification>? = null
+    val notifications: List<BackupNotification>? = null,
+    val chatConversations: List<BackupChatConversation>? = null,
+    val chatMessages: List<BackupChatMessage>? = null
 )
 
 data class BackupEntry(
@@ -41,6 +48,7 @@ data class BackupTag(
 )
 
 data class BackupTodo(
+    val id: Long? = null,
     val title: String?,
     val description: String?,
     val isCompleted: Boolean?,
@@ -70,11 +78,17 @@ data class BackupCountDown(
 )
 
 data class BackupCapsule(
+    val id: Long? = null,
     val title: String?,
     val content: String?,
     val createdAt: Long?,
     val unlockDate: Long?,
-    val isRead: Boolean?
+    val isRead: Boolean?,
+    val isOpened: Boolean? = null,
+    val theme: String? = null,
+    val imageUri: String? = null,
+    val unlockHour: Int? = null,
+    val unlockMinute: Int? = null
 )
 
 data class BackupTrashEntry(
@@ -117,6 +131,21 @@ data class BackupNotification(
     val trashedAt: Long?
 )
 
+data class BackupChatConversation(
+    val id: Long?,
+    val title: String?,
+    val createdAt: Long?,
+    val updatedAt: Long?
+)
+
+data class BackupChatMessage(
+    val id: Long?,
+    val conversationId: Long?,
+    val role: String?,
+    val content: String?,
+    val createdAt: Long?
+)
+
 data class ImportResult(
     val entryCount: Int,
     val tagCount: Int
@@ -132,30 +161,24 @@ object DiaryImporter {
     fun readAndValidate(context: Context, uri: Uri): DiaryBackup {
         val json = context.contentResolver.openInputStream(uri)?.use { stream ->
             stream.bufferedReader().readText()
-        } ?: throw Exception("无法读取文件")
+        } ?: throw Exception(READ_BACKUP_ERROR_MESSAGE)
 
-        val backup = try {
-            Gson().fromJson(json, DiaryBackup::class.java)
-        } catch (e: JsonSyntaxException) {
-            throw Exception("JSON 格式不正确")
-        }
-
-        if (backup.entries.isNullOrEmpty() && backup.tags.isNullOrEmpty()) {
-            throw Exception("备份文件中没有数据")
-        }
-
-        return backup
+        return parseBackupJson(json)
     }
 
     suspend fun importOverwrite(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
         val dao = database.diaryDao()
         val now = System.currentTimeMillis()
-        val tagEntries = backup.tags.orEmpty()
-        val diaryEntries = backup.entries.orEmpty()
+        val tagEntries = buildTagsForRestore(backup.tags.orEmpty())
+        val diaryEntries = filterBackupEntriesForImport(
+            existingEntries = emptyList(),
+            backupEntries = backup.entries.orEmpty()
+        )
 
         return database.withTransaction {
-            // 清空所有现有数据
             dao.deleteAllNotifications()
+            dao.deleteAllChatMessages()
+            dao.deleteAllConversations()
             dao.deleteAllHabitRecords()
             dao.deleteAllCapsules()
             dao.deleteAllCountDownItems()
@@ -166,152 +189,17 @@ object DiaryImporter {
             dao.deleteAllEntries()
             dao.deleteAllTags()
 
-            // 重新插入所有数据
-            var importedTagCount = 0
-            for (tagEntry in tagEntries) {
-                val name = tagEntry.name ?: continue
-                dao.insertTag(
-                    Tag(
-                        name = name,
-                        color = tagEntry.color ?: 4278210282L,
-                        isPreset = tagEntry.isPreset ?: false
-                    )
-                )
-                importedTagCount++
-            }
+            val importedTagCount = insertBackupTags(dao, tagEntries)
+            val importedTags = dao.getAllTagsOnce()
+            val importedEntryCount = insertEntries(dao, importedTags, diaryEntries, now)
 
-            var importedEntryCount = 0
-            for (entry in diaryEntries) {
-                val newId = dao.insertEntry(
-                    DiaryEntry(
-                        title = entry.title ?: "",
-                        content = entry.content ?: "",
-                        plainText = entry.plainText ?: "",
-                        moodLevel = entry.moodLevel,
-                        weather = entry.weather,
-                        location = entry.location,
-                        latitude = entry.latitude,
-                        longitude = entry.longitude,
-                        createdAt = entry.createdAt ?: now,
-                        updatedAt = entry.updatedAt ?: now
-                    )
-                )
-                val tagNames = entry.tags.orEmpty()
-                for (tagName in tagNames) {
-                    val tag = dao.getTagByName(tagName)
-                    if (tag != null) {
-                        dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
-                    }
-                }
-                importedEntryCount++
-            }
-
-            // 恢复待办事项
-            for (todo in backup.todos.orEmpty()) {
-                dao.insertTodo(
-                    TodoItem(
-                        title = todo.title ?: "",
-                        description = todo.description ?: "",
-                        isCompleted = todo.isCompleted ?: false,
-                        priority = todo.priority ?: 0,
-                        dueDate = todo.dueDate,
-                        createdAt = todo.createdAt ?: now,
-                        completedAt = todo.completedAt,
-                        sortOrder = todo.sortOrder ?: 0,
-                        category = todo.category ?: "task",
-                        reminderTime = todo.reminderTime,
-                        tags = todo.tags ?: "",
-                        parentId = todo.parentId,
-                        recurringType = todo.recurringType ?: "none",
-                        progress = todo.progress ?: 0,
-                        isPinned = todo.isPinned ?: false,
-                        linkedTagIds = todo.linkedTagIds ?: ""
-                    )
-                )
-            }
-
-            // 恢复倒数日
-            for (item in backup.countdowns.orEmpty()) {
-                dao.insertCountDownItem(
-                    CountDownItem(
-                        title = item.title ?: "",
-                        targetDate = item.targetDate ?: now,
-                        isCountUp = item.isCountUp ?: false,
-                        color = item.color ?: 0xFF4A90D9,
-                        isRepeatYearly = item.isRepeatYearly ?: false,
-                        isPinned = item.isPinned ?: false,
-                        createdAt = item.createdAt ?: now
-                    )
-                )
-            }
-
-            // 恢复时间胶囊
-            for (capsule in backup.capsules.orEmpty()) {
-                dao.insertCapsule(
-                    TimeCapsule(
-                        title = capsule.title ?: "",
-                        content = capsule.content ?: "",
-                        createdAt = capsule.createdAt ?: now,
-                        unlockDate = capsule.unlockDate ?: now,
-                        isRead = capsule.isRead ?: false
-                    )
-                )
-            }
-
-            // 恢复回收站
-            for (entry in backup.trash.orEmpty()) {
-                dao.insertTrashEntry(
-                    TrashEntry(
-                        originalId = entry.originalId ?: 0,
-                        title = entry.title ?: "",
-                        content = entry.content ?: "",
-                        plainText = entry.plainText ?: "",
-                        moodLevel = entry.moodLevel,
-                        weather = entry.weather,
-                        location = entry.location,
-                        latitude = entry.latitude,
-                        longitude = entry.longitude,
-                        isFavorite = entry.isFavorite ?: false,
-                        createdAt = entry.createdAt ?: now,
-                        updatedAt = entry.updatedAt ?: now,
-                        deletedAt = entry.deletedAt ?: now
-                    )
-                )
-            }
-
-            // 恢复习惯记录
-            for (record in backup.habitRecords.orEmpty()) {
-                dao.insertHabitRecord(
-                    HabitRecord(
-                        todoId = record.todoId ?: 0,
-                        recordDate = record.recordDate ?: 0,
-                        source = record.source ?: "manual",
-                        summary = record.summary ?: "",
-                        diaryEntryId = record.diaryEntryId,
-                        createdAt = record.createdAt ?: now,
-                        updatedAt = record.updatedAt ?: now
-                    )
-                )
-            }
-
-            // 恢复通知
-            for (notification in backup.notifications.orEmpty()) {
-                dao.insertNotification(
-                    NotificationEntity(
-                        id = notification.id ?: continue,
-                        type = notification.type ?: "",
-                        title = notification.title ?: "",
-                        subtitle = notification.subtitle ?: "",
-                        iconType = notification.iconType ?: "",
-                        colorHex = notification.colorHex ?: 0,
-                        relatedId = notification.relatedId,
-                        isRead = notification.isRead ?: false,
-                        isTrashed = notification.isTrashed ?: false,
-                        createdAt = notification.createdAt ?: now,
-                        trashedAt = notification.trashedAt
-                    )
-                )
-            }
+            val todoIdMap = insertTodos(dao, backup.todos.orEmpty(), now)
+            insertCountdowns(dao, backup.countdowns.orEmpty(), now)
+            val capsuleIdMap = insertCapsules(dao, backup.capsules.orEmpty(), now)
+            insertTrash(dao, backup.trash.orEmpty(), now)
+            insertHabitRecords(dao, backup.habitRecords.orEmpty(), todoIdMap, now)
+            insertNotifications(dao, backup.notifications.orEmpty(), capsuleIdMap, now)
+            restoreChatData(dao, backup, now)
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
@@ -320,172 +208,471 @@ object DiaryImporter {
     suspend fun import(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
         val dao = database.diaryDao()
         val now = System.currentTimeMillis()
-        val tagEntries = backup.tags.orEmpty()
-        val diaryEntries = backup.entries.orEmpty()
 
         return database.withTransaction {
-            // Import tags: skip if name already exists, use existing tag ID
-            var importedTagCount = 0
-            for (tagEntry in tagEntries) {
-                val name = tagEntry.name ?: continue
-                val existing = dao.getTagByName(name)
-                if (existing == null) {
-                    dao.insertTag(
-                        Tag(
-                            name = name,
-                            color = tagEntry.color ?: 4278210282L,
-                            isPreset = tagEntry.isPreset ?: false
-                        )
-                    )
-                    importedTagCount++
-                }
-            }
+            val existingTags = dao.getAllTagsOnce()
+            val existingEntries = dao.getAllEntriesOnce()
+            val tagEntries = buildTagsForImport(existingTags, backup.tags.orEmpty())
+            val diaryEntries = filterBackupEntriesForImport(existingEntries, backup.entries.orEmpty())
+            val importedTagCount = insertTags(dao, tagEntries)
+            val importedTags = dao.getAllTagsOnce()
+            val importedEntryCount = insertEntries(dao, importedTags, diaryEntries, now)
 
-            // Import entries preserving original timestamps
-            var importedEntryCount = 0
-            for (entry in diaryEntries) {
-                val title = entry.title ?: ""
-                val content = entry.content ?: ""
-                val plainText = entry.plainText ?: ""
+            val todoIdMap = insertTodos(dao, backup.todos.orEmpty(), now)
+            insertCountdowns(dao, backup.countdowns.orEmpty(), now)
+            val capsuleIdMap = insertCapsules(dao, backup.capsules.orEmpty(), now)
+            insertTrash(dao, backup.trash.orEmpty(), now)
+            insertHabitRecords(dao, backup.habitRecords.orEmpty(), todoIdMap, now)
+            insertNotifications(dao, backup.notifications.orEmpty(), capsuleIdMap, now)
+            restoreChatData(dao, backup, now)
 
-                val newId = dao.insertEntry(
-                    DiaryEntry(
-                        title = title,
-                        content = content,
-                        plainText = plainText,
-                        moodLevel = entry.moodLevel,
-                        weather = entry.weather,
-                        location = entry.location,
-                        latitude = entry.latitude,
-                        longitude = entry.longitude,
-                        createdAt = entry.createdAt ?: now,
-                        updatedAt = entry.updatedAt ?: now
-                    )
-                )
-
-                // Link tags by name, reusing existing tags
-                val tagNames = entry.tags.orEmpty()
-                for (tagName in tagNames) {
-                    val tag = dao.getTagByName(tagName)
-                    if (tag != null) {
-                        dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
-                    }
-                }
-
-                importedEntryCount++
-            }
-
-            // 恢复待办事项
-            for (todo in backup.todos.orEmpty()) {
-                dao.insertTodo(
-                    TodoItem(
-                        title = todo.title ?: "",
-                        description = todo.description ?: "",
-                        isCompleted = todo.isCompleted ?: false,
-                        priority = todo.priority ?: 0,
-                        dueDate = todo.dueDate,
-                        createdAt = todo.createdAt ?: now,
-                        completedAt = todo.completedAt,
-                        sortOrder = todo.sortOrder ?: 0,
-                        category = todo.category ?: "task",
-                        reminderTime = todo.reminderTime,
-                        tags = todo.tags ?: "",
-                        parentId = todo.parentId,
-                        recurringType = todo.recurringType ?: "none",
-                        progress = todo.progress ?: 0,
-                        isPinned = todo.isPinned ?: false,
-                        linkedTagIds = todo.linkedTagIds ?: ""
-                    )
-                )
-            }
-
-            // 恢复倒数日
-            for (item in backup.countdowns.orEmpty()) {
-                dao.insertCountDownItem(
-                    CountDownItem(
-                        title = item.title ?: "",
-                        targetDate = item.targetDate ?: now,
-                        isCountUp = item.isCountUp ?: false,
-                        color = item.color ?: 0xFF4A90D9,
-                        isRepeatYearly = item.isRepeatYearly ?: false,
-                        isPinned = item.isPinned ?: false,
-                        createdAt = item.createdAt ?: now
-                    )
-                )
-            }
-
-            // 恢复时间胶囊
-            for (capsule in backup.capsules.orEmpty()) {
-                dao.insertCapsule(
-                    TimeCapsule(
-                        title = capsule.title ?: "",
-                        content = capsule.content ?: "",
-                        createdAt = capsule.createdAt ?: now,
-                        unlockDate = capsule.unlockDate ?: now,
-                        isRead = capsule.isRead ?: false
-                    )
-                )
-            }
-
-            // 恢复回收站
-            for (entry in backup.trash.orEmpty()) {
-                dao.insertTrashEntry(
-                    TrashEntry(
-                        originalId = entry.originalId ?: 0,
-                        title = entry.title ?: "",
-                        content = entry.content ?: "",
-                        plainText = entry.plainText ?: "",
-                        moodLevel = entry.moodLevel,
-                        weather = entry.weather,
-                        location = entry.location,
-                        latitude = entry.latitude,
-                        longitude = entry.longitude,
-                        isFavorite = entry.isFavorite ?: false,
-                        createdAt = entry.createdAt ?: now,
-                        updatedAt = entry.updatedAt ?: now,
-                        deletedAt = entry.deletedAt ?: now
-                    )
-                )
-            }
-
-            // 恢复习惯记录
-            for (record in backup.habitRecords.orEmpty()) {
-                dao.insertHabitRecord(
-                    HabitRecord(
-                        todoId = record.todoId ?: 0,
-                        recordDate = record.recordDate ?: 0,
-                        source = record.source ?: "manual",
-                        summary = record.summary ?: "",
-                        diaryEntryId = record.diaryEntryId,
-                        createdAt = record.createdAt ?: now,
-                        updatedAt = record.updatedAt ?: now
-                    )
-                )
-            }
-
-            // 恢复通知
-            for (notification in backup.notifications.orEmpty()) {
-                dao.insertNotification(
-                    NotificationEntity(
-                        id = notification.id ?: continue,
-                        type = notification.type ?: "",
-                        title = notification.title ?: "",
-                        subtitle = notification.subtitle ?: "",
-                        iconType = notification.iconType ?: "",
-                        colorHex = notification.colorHex ?: 0,
-                        relatedId = notification.relatedId,
-                        isRead = notification.isRead ?: false,
-                        isTrashed = notification.isTrashed ?: false,
-                        createdAt = notification.createdAt ?: now,
-                        trashedAt = notification.trashedAt
-                    )
-                )
-            }
-
-            ImportResult(
-                entryCount = importedEntryCount,
-                tagCount = importedTagCount
-            )
+            ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
     }
+}
+
+internal fun parseBackupJson(json: String): DiaryBackup {
+    val backup = try {
+        Gson().fromJson(json, DiaryBackup::class.java)
+    } catch (_: JsonSyntaxException) {
+        throw Exception(INVALID_BACKUP_FORMAT_MESSAGE)
+    }
+    return validateBackupHasImportableData(backup)
+}
+
+internal fun validateBackupHasImportableData(backup: DiaryBackup): DiaryBackup {
+    if (!hasImportableData(backup)) {
+        throw Exception(EMPTY_BACKUP_MESSAGE)
+    }
+    return backup
+}
+
+internal fun hasImportableData(backup: DiaryBackup): Boolean {
+    return !backup.entries.isNullOrEmpty() ||
+        !backup.tags.isNullOrEmpty() ||
+        !backup.todos.isNullOrEmpty() ||
+        !backup.countdowns.isNullOrEmpty() ||
+        !backup.capsules.isNullOrEmpty() ||
+        !backup.trash.isNullOrEmpty() ||
+        !backup.habitRecords.isNullOrEmpty() ||
+        !backup.notifications.isNullOrEmpty() ||
+        !backup.chatConversations.isNullOrEmpty() ||
+        !backup.chatMessages.isNullOrEmpty()
+}
+
+internal fun normalizeTagNameForMatching(name: String?): String {
+    return name.orEmpty().trim().replace(Regex("\\s+"), " ").lowercase()
+}
+
+internal data class EntryImportDedupKey(
+    val createdAt: Long,
+    val updatedAt: Long,
+    val title: String,
+    val content: String,
+    val plainText: String,
+    val moodLevel: Int?,
+    val weather: String,
+    val location: String,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
+internal fun filterBackupEntriesForImport(
+    existingEntries: List<DiaryEntry>,
+    backupEntries: List<BackupEntry>
+): List<BackupEntry> {
+    val seenKeys = existingEntries.mapTo(linkedSetOf()) { buildEntryImportDedupKey(it) }
+    val filteredEntries = mutableListOf<BackupEntry>()
+
+    for (entry in backupEntries) {
+        val dedupKey = buildEntryImportDedupKey(entry)
+        if (dedupKey != null && !seenKeys.add(dedupKey)) continue
+        filteredEntries += entry
+    }
+
+    return filteredEntries
+}
+
+internal fun buildEntryImportDedupKey(entry: DiaryEntry): EntryImportDedupKey {
+    return EntryImportDedupKey(
+        createdAt = entry.createdAt,
+        updatedAt = entry.updatedAt,
+        title = normalizeEntryText(entry.title),
+        content = normalizeStructuredEntryContent(entry.content),
+        plainText = normalizeEntryText(entry.plainText),
+        moodLevel = entry.moodLevel,
+        weather = normalizeEntryText(entry.weather),
+        location = normalizeEntryText(entry.location),
+        latitude = entry.latitude,
+        longitude = entry.longitude
+    )
+}
+
+internal fun buildEntryImportDedupKey(entry: BackupEntry): EntryImportDedupKey? {
+    val createdAt = entry.createdAt ?: return null
+    val updatedAt = entry.updatedAt ?: return null
+    return EntryImportDedupKey(
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        title = normalizeEntryText(entry.title),
+        content = normalizeStructuredEntryContent(entry.content),
+        plainText = normalizeEntryText(entry.plainText),
+        moodLevel = entry.moodLevel,
+        weather = normalizeEntryText(entry.weather),
+        location = normalizeEntryText(entry.location),
+        latitude = entry.latitude,
+        longitude = entry.longitude
+    )
+}
+
+internal fun normalizeEntryText(value: String?): String {
+    return value.orEmpty().trim().replace(Regex("\\s+"), " ")
+}
+
+internal fun normalizeStructuredEntryContent(value: String?): String {
+    return value.orEmpty().trim()
+}
+
+internal fun buildTagsForImport(existingTags: List<Tag>, backupTags: List<BackupTag>): List<Tag> {
+    val existingNames = existingTags.map { normalizeTagNameForMatching(it.name) }.toMutableSet()
+    val tags = mutableListOf<Tag>()
+    for (backupTag in backupTags) {
+        val rawName = backupTag.name?.trim().orEmpty()
+        val normalizedName = normalizeTagNameForMatching(rawName)
+        if (rawName.isBlank() || normalizedName.isBlank() || normalizedName in existingNames) continue
+        tags += Tag(
+            name = rawName,
+            color = backupTag.color ?: 4278210282L,
+            isPreset = backupTag.isPreset ?: false
+        )
+        existingNames += normalizedName
+    }
+    return tags
+}
+
+internal fun buildTagsForRestore(backupTags: List<BackupTag>): List<BackupTag> {
+    val uniqueTags = LinkedHashMap<String, BackupTag>()
+    for (backupTag in backupTags) {
+        val rawName = backupTag.name?.trim().orEmpty()
+        val normalizedName = normalizeTagNameForMatching(rawName)
+        if (rawName.isBlank() || normalizedName.isBlank()) continue
+        val existing = uniqueTags[normalizedName]
+        uniqueTags[normalizedName] = when {
+            existing == null -> backupTag.copy(name = rawName)
+            backupTag.isPreset == true && existing.isPreset != true -> backupTag.copy(name = existing.name ?: rawName)
+            else -> existing
+        }
+    }
+    return uniqueTags.values.toList()
+}
+
+internal fun findImportedTag(tags: List<Tag>, backupName: String?): Tag? {
+    val normalizedName = normalizeTagNameForMatching(backupName)
+    return tags.firstOrNull { normalizeTagNameForMatching(it.name) == normalizedName }
+}
+
+internal fun remapBackupChatMessages(
+    messages: List<BackupChatMessage>,
+    conversationIdMap: Map<Long, Long>,
+    now: Long
+): List<ChatMessageEntity> {
+    return messages.mapNotNull { message ->
+        val originalConversationId = message.conversationId ?: return@mapNotNull null
+        val mappedConversationId = conversationIdMap[originalConversationId] ?: return@mapNotNull null
+        val role = message.role?.trim().orEmpty()
+        val content = message.content?.trim().orEmpty()
+        if (role.isBlank() || content.isBlank()) return@mapNotNull null
+        ChatMessageEntity(
+            conversationId = mappedConversationId,
+            role = role,
+            content = content,
+            createdAt = message.createdAt ?: now
+        )
+    }
+}
+
+private suspend fun insertBackupTags(dao: DiaryDao, tags: List<BackupTag>): Int {
+    var count = 0
+    for (backupTag in tags) {
+        val name = backupTag.name?.trim().orEmpty()
+        if (name.isBlank()) continue
+        dao.insertTag(
+            Tag(
+                name = name,
+                color = backupTag.color ?: 4278210282L,
+                isPreset = backupTag.isPreset ?: false
+            )
+        )
+        count++
+    }
+    return count
+}
+
+private suspend fun insertTags(dao: DiaryDao, tags: List<Tag>): Int {
+    var count = 0
+    for (tag in tags) {
+        if (tag.name.isBlank()) continue
+        dao.insertTag(tag)
+        count++
+    }
+    return count
+}
+
+private suspend fun insertEntries(
+    dao: DiaryDao,
+    importedTags: List<Tag>,
+    entries: List<BackupEntry>,
+    now: Long
+): Int {
+    var count = 0
+    for (entry in entries) {
+        val newId = dao.insertEntry(
+            DiaryEntry(
+                title = entry.title ?: "",
+                content = entry.content ?: "",
+                plainText = entry.plainText ?: "",
+                moodLevel = entry.moodLevel,
+                weather = entry.weather,
+                location = entry.location,
+                latitude = entry.latitude,
+                longitude = entry.longitude,
+                createdAt = entry.createdAt ?: now,
+                updatedAt = entry.updatedAt ?: now
+            )
+        )
+        entry.tags.orEmpty().forEach { tagName ->
+            findImportedTag(importedTags, tagName)?.let { tag ->
+                dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
+            }
+        }
+        count++
+    }
+    return count
+}
+
+private data class ImportedTodo(
+    val backup: BackupTodo,
+    val newId: Long
+)
+
+private suspend fun insertTodos(
+    dao: DiaryDao,
+    todos: List<BackupTodo>,
+    now: Long
+): Map<Long, Long> {
+    val todoIdMap = linkedMapOf<Long, Long>()
+    val importedTodos = mutableListOf<ImportedTodo>()
+
+    todos.forEach { todo ->
+        val newId = dao.insertTodo(todo.toTodoItem(now = now, parentId = null))
+        importedTodos += ImportedTodo(backup = todo, newId = newId)
+        todo.id?.let { originalId ->
+            todoIdMap[originalId] = newId
+        }
+    }
+
+    importedTodos.forEach { imported ->
+        val remappedParentId = remapImportedTodoParentId(imported.backup.parentId, todoIdMap) ?: return@forEach
+        dao.updateTodo(
+            imported.backup.toTodoItem(now = now, parentId = remappedParentId).copy(id = imported.newId)
+        )
+    }
+
+    return todoIdMap
+}
+
+private suspend fun insertCountdowns(dao: DiaryDao, countdowns: List<BackupCountDown>, now: Long) {
+    countdowns.forEach { item ->
+        dao.insertCountDownItem(
+            CountDownItem(
+                title = item.title ?: "",
+                targetDate = item.targetDate ?: now,
+                isCountUp = item.isCountUp ?: false,
+                color = item.color ?: 0xFF4A90D9,
+                isRepeatYearly = item.isRepeatYearly ?: false,
+                isPinned = item.isPinned ?: false,
+                createdAt = item.createdAt ?: now
+            )
+        )
+    }
+}
+
+private suspend fun insertCapsules(
+    dao: DiaryDao,
+    capsules: List<BackupCapsule>,
+    now: Long
+): Map<Long, Long> {
+    val capsuleIdMap = linkedMapOf<Long, Long>()
+    capsules.forEach { capsule ->
+        val newId = dao.insertCapsule(
+            TimeCapsule(
+                title = capsule.title ?: "",
+                content = capsule.content ?: "",
+                createdAt = capsule.createdAt ?: now,
+                unlockDate = capsule.unlockDate ?: now,
+                isRead = capsule.isRead ?: false,
+                isOpened = capsule.isOpened ?: false,
+                theme = parseBackupCapsuleTheme(capsule.theme),
+                imageUri = capsule.imageUri,
+                unlockHour = capsule.unlockHour ?: 0,
+                unlockMinute = capsule.unlockMinute ?: 0
+            )
+        )
+        capsule.id?.let { originalId ->
+            capsuleIdMap[originalId] = newId
+        }
+    }
+    return capsuleIdMap
+}
+
+private suspend fun insertTrash(dao: DiaryDao, trashEntries: List<BackupTrashEntry>, now: Long) {
+    trashEntries.forEach { entry ->
+        dao.insertTrashEntry(
+            TrashEntry(
+                originalId = entry.originalId ?: 0,
+                title = entry.title ?: "",
+                content = entry.content ?: "",
+                plainText = entry.plainText ?: "",
+                moodLevel = entry.moodLevel,
+                weather = entry.weather,
+                location = entry.location,
+                latitude = entry.latitude,
+                longitude = entry.longitude,
+                isFavorite = entry.isFavorite ?: false,
+                createdAt = entry.createdAt ?: now,
+                updatedAt = entry.updatedAt ?: now,
+                deletedAt = entry.deletedAt ?: now
+            )
+        )
+    }
+}
+
+private suspend fun insertHabitRecords(
+    dao: DiaryDao,
+    records: List<BackupHabitRecord>,
+    todoIdMap: Map<Long, Long>,
+    now: Long
+) {
+    records.forEach { record ->
+        val mappedTodoId = remapImportedTodoId(record.todoId, todoIdMap) ?: return@forEach
+        dao.insertHabitRecord(
+            HabitRecord(
+                todoId = mappedTodoId,
+                recordDate = record.recordDate ?: 0,
+                source = record.source ?: HabitRecord.SOURCE_MANUAL,
+                summary = record.summary ?: "",
+                diaryEntryId = null,
+                createdAt = record.createdAt ?: now,
+                updatedAt = record.updatedAt ?: now
+            )
+        )
+    }
+}
+
+private suspend fun insertNotifications(
+    dao: DiaryDao,
+    notifications: List<BackupNotification>,
+    capsuleIdMap: Map<Long, Long>,
+    now: Long
+) {
+    notifications.forEach { notification ->
+        val id = notification.id ?: return@forEach
+        dao.insertNotification(
+            NotificationEntity(
+                id = id,
+                type = notification.type ?: "",
+                title = notification.title ?: "",
+                subtitle = notification.subtitle ?: "",
+                iconType = notification.iconType ?: "",
+                colorHex = notification.colorHex ?: 0,
+                relatedId = remapImportedNotificationRelatedId(
+                    notificationType = notification.type,
+                    originalRelatedId = notification.relatedId,
+                    capsuleIdMap = capsuleIdMap
+                ),
+                isRead = notification.isRead ?: false,
+                isTrashed = notification.isTrashed ?: false,
+                createdAt = notification.createdAt ?: now,
+                trashedAt = notification.trashedAt
+            )
+        )
+    }
+}
+
+private suspend fun restoreChatData(dao: DiaryDao, backup: DiaryBackup, now: Long) {
+    val conversationIdMap = linkedMapOf<Long, Long>()
+    backup.chatConversations.orEmpty().forEach { conversation ->
+        val originalId = conversation.id ?: return@forEach
+        val newId = dao.insertConversation(
+            ChatConversationEntity(
+                title = conversation.title?.trim().takeUnless { it.isNullOrEmpty() } ?: DEFAULT_IMPORTED_CONVERSATION_TITLE,
+                createdAt = conversation.createdAt ?: now,
+                updatedAt = conversation.updatedAt ?: (conversation.createdAt ?: now)
+            )
+        )
+        conversationIdMap[originalId] = newId
+    }
+
+    remapBackupChatMessages(
+        messages = backup.chatMessages.orEmpty(),
+        conversationIdMap = conversationIdMap,
+        now = now
+    ).forEach { dao.insertChatMessage(it) }
+}
+
+private fun BackupTodo.toTodoItem(now: Long, parentId: Long?): TodoItem {
+    return TodoItem(
+        title = title ?: "",
+        description = description ?: "",
+        isCompleted = isCompleted ?: false,
+        priority = priority ?: 0,
+        dueDate = dueDate,
+        createdAt = createdAt ?: now,
+        completedAt = completedAt,
+        sortOrder = sortOrder ?: 0,
+        category = category ?: "task",
+        reminderTime = reminderTime,
+        tags = tags ?: "",
+        parentId = parentId,
+        recurringType = recurringType ?: "none",
+        progress = progress ?: 0,
+        isPinned = isPinned ?: false,
+        // Old backups only contain serialized tag ids, which are not stable across restores.
+        linkedTagIds = ""
+    )
+}
+
+internal fun remapImportedTodoId(
+    originalTodoId: Long?,
+    todoIdMap: Map<Long, Long>
+): Long? {
+    val id = originalTodoId ?: return null
+    return todoIdMap[id]
+}
+
+internal fun remapImportedTodoParentId(
+    originalParentId: Long?,
+    todoIdMap: Map<Long, Long>
+): Long? {
+    val id = originalParentId ?: return null
+    return todoIdMap[id]
+}
+
+internal fun remapImportedNotificationRelatedId(
+    notificationType: String?,
+    originalRelatedId: Long?,
+    capsuleIdMap: Map<Long, Long>
+): Long? {
+    val relatedId = originalRelatedId ?: return null
+    return when (notificationType?.trim().orEmpty()) {
+        "capsule" -> capsuleIdMap[relatedId]
+        else -> null
+    }
+}
+
+internal fun parseBackupCapsuleTheme(theme: String?): CapsuleTheme {
+    val normalizedTheme = theme?.trim().orEmpty()
+    if (normalizedTheme.isEmpty()) return CapsuleTheme.NORMAL
+    return runCatching { CapsuleTheme.valueOf(normalizedTheme) }
+        .getOrDefault(CapsuleTheme.NORMAL)
 }

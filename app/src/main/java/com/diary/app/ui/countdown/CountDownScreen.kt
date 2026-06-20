@@ -90,7 +90,7 @@ fun CountDownScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${currentItemToDelete.title}」吗？") },
+            text = { Text("确定删除“${currentItemToDelete.title}”吗？") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -111,56 +111,18 @@ fun CountDownScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 自定义标题栏
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "倒数日",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = { viewModel.showAddDialog() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "添加",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            CountDownHeader(
+                itemCount = items.size,
+                onNavigateBack = onNavigateBack,
+                onCreate = { viewModel.showAddDialog() }
+            )
 
             if (items.isEmpty()) {
                 EmptyState(
                     icon = Icons.Default.Add,
-                    title = "暂无倒数日",
-                    subtitle = "点击右上角按钮添加你的第一个倒数日"
+                    title = "还没有倒数日",
+                    subtitle = "点击右上角创建一个重要日期，把它从纪念变成可执行的计划。",
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
                 LazyColumn(
@@ -169,7 +131,10 @@ fun CountDownScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(4.dp)) }
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        CountDownOverviewCard(items = items, viewModel = viewModel)
+                    }
 
                     itemsIndexed(
                         items = items,
@@ -179,10 +144,10 @@ fun CountDownScreen(
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn(animationSpec = tween(300, delayMillis = enterDelay)) +
-                                    slideInVertically(
-                                        animationSpec = tween(300, delayMillis = enterDelay),
-                                        initialOffsetY = { it / 5 }
-                                    )
+                                slideInVertically(
+                                    animationSpec = tween(300, delayMillis = enterDelay),
+                                    initialOffsetY = { it / 5 }
+                                )
                         ) {
                             CountDownItemCard(
                                 item = item,
@@ -201,6 +166,111 @@ fun CountDownScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CountDownHeader(
+    itemCount: Int,
+    onNavigateBack: () -> Unit,
+    onCreate: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Icon(
+                Icons.Default.ArrowBack,
+                contentDescription = "返回",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "倒数日",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = if (itemCount > 0) "共 $itemCount 个计划与纪念" else "把重要日期整理成真正可执行的列表",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(
+            onClick = onCreate,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "添加",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CountDownOverviewCard(
+    items: List<CountDownItem>,
+    viewModel: CountDownViewModel
+) {
+    val pinnedCount = items.count { it.isPinned }
+    val upcomingCount = items.count { viewModel.getDaysRemaining(it) >= 0 }
+    val nearest = items.minByOrNull { kotlin.math.abs(viewModel.getDaysRemaining(it)) }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "把重要日期和后续动作放在同一个节奏里。",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CountDownPill(text = "进行中 $upcomingCount")
+                CountDownPill(text = "已置顶 $pinnedCount")
+                nearest?.let {
+                    CountDownPill(text = "最近 ${it.title.take(6)}")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CountDownPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -238,24 +308,27 @@ private fun CountDownItemCard(
                 indication = null,
                 onClick = onClick
             ),
-        cornerRadius = 16.dp,
+        cornerRadius = 18.dp,
         innerPadding = 16.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Color indicator
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(item.color.toColor().copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (daysRemaining == 0L) "!" else if (isPast) "-" else "+",
-                    fontSize = 24.sp,
+                    text = when {
+                        daysRemaining == 0L -> "今"
+                        isPast -> "过"
+                        else -> "计"
+                    },
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = item.color.toColor()
                 )
@@ -264,57 +337,57 @@ private fun CountDownItemCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = item.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (item.isPinned) {
+                        CountDownPill(text = "置顶")
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = targetDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日")),
+                    text = targetDate.format(DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日")),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = when {
-                        daysRemaining == 0L -> "今天"
-                        isPast -> "已过 ${-daysRemaining} 天"
+                        daysRemaining == 0L -> "今天就是这一天"
+                        isPast -> "已经过去 ${-daysRemaining} 天"
                         else -> "还有 $daysRemaining 天"
                     },
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = item.color.toColor()
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row {
-                    if (item.isPinned) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = "已置顶",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    IconButton(
-                        onClick = { onDelete() },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "删除",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                IconButton(onClick = onPin, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.PushPin,
+                        contentDescription = if (item.isPinned) "取消置顶" else "置顶",
+                        tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }

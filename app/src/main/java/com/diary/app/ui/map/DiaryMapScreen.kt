@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
@@ -51,10 +50,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.MapView
-import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
@@ -75,7 +72,6 @@ fun DiaryMapScreen(
     var showMap by remember { mutableStateOf(false) }
     var selectedLocation by remember { mutableStateOf<String?>(null) }
 
-    // Get unique locations with counts
     val locations = remember(state.markers) {
         state.markers
             .filter { it.location.isNotBlank() }
@@ -85,7 +81,6 @@ fun DiaryMapScreen(
                     name = location,
                     count = markers.size,
                     markers = markers,
-                    // Use the first marker's coordinates for the location
                     latitude = markers.first().latitude,
                     longitude = markers.first().longitude
                 )
@@ -95,63 +90,16 @@ fun DiaryMapScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+            DiaryMapHeader(
+                locationCount = locations.size,
+                entryCount = state.markers.size,
+                showMap = showMap,
+                onNavigateBack = onNavigateBack,
+                onSwitchToList = {
+                    showMap = false
+                    selectedLocation = null
                 }
-                Spacer(modifier = Modifier.size(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "足迹",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "${locations.size} 个地点，${state.markers.size} 篇日记",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Toggle map/list view
-                if (showMap) {
-                    IconButton(
-                        onClick = {
-                            showMap = false
-                            selectedLocation = null
-                        },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Icon(
-                            Icons.Default.ViewList,
-                            contentDescription = "列表",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
+            )
 
             when {
                 state.isLoading -> {
@@ -159,16 +107,17 @@ fun DiaryMapScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 state.markers.isEmpty() -> {
                     EmptyState(
                         icon = Icons.Default.LocationOn,
                         title = "还没有带位置的日记",
-                        subtitle = "写日记时添加位置信息，就能在这里看到",
+                        subtitle = "写日记时加入位置信息，地图页就会把这些回忆整理成地点入口。",
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+
                 showMap -> {
-                    // Map view showing selected location
                     MapViewWithLocation(
                         location = selectedLocation,
                         markers = if (selectedLocation != null) {
@@ -186,8 +135,8 @@ fun DiaryMapScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
                 else -> {
-                    // Location list
                     LocationList(
                         locations = locations,
                         onLocationClick = { location ->
@@ -210,6 +159,70 @@ data class LocationGroup(
 )
 
 @Composable
+private fun DiaryMapHeader(
+    locationCount: Int,
+    entryCount: Int,
+    showMap: Boolean,
+    onNavigateBack: () -> Unit,
+    onSwitchToList: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Icon(
+                Icons.Default.ArrowBack,
+                contentDescription = "返回",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "日记地图",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "$locationCount 个地点，$entryCount 篇位置日记",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (showMap) {
+            IconButton(
+                onClick = onSwitchToList,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Icon(
+                    Icons.Default.ViewList,
+                    contentDescription = "列表",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LocationList(
     locations: List<LocationGroup>,
     onLocationClick: (LocationGroup) -> Unit
@@ -217,15 +230,61 @@ private fun LocationList(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item {
+            LocationOverviewCard(locations = locations)
+        }
+
         items(locations) { location ->
             LocationItem(
                 location = location,
                 onClick = { onLocationClick(location) }
             )
         }
+
         item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+private fun LocationOverviewCard(locations: List<LocationGroup>) {
+    val topLocation = locations.maxByOrNull { it.count }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 22.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "地图页更适合做地点目录，而不是单纯摆一张地图。",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MapPill(text = "地点 ${locations.size}")
+                MapPill(text = "最多 ${topLocation?.count ?: 0} 篇")
+                topLocation?.let { MapPill(text = "最近常看 ${it.name.take(6)}") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -235,7 +294,7 @@ private fun LocationItem(
     onClick: () -> Unit
 ) {
     GlassCard(
-        cornerRadius = 16.dp,
+        cornerRadius = 18.dp,
         innerPadding = 16.dp,
         modifier = Modifier
             .fillMaxWidth()
@@ -270,9 +329,10 @@ private fun LocationItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${location.count} 篇日记",
-                    fontSize = 13.sp,
+                    text = "${location.count} 篇日记 · 最近一篇 ${formatDate(location.markers.maxOfOrNull { it.createdAt } ?: 0L)}",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -328,7 +388,6 @@ private fun MapViewWithLocation(
             update = { mv ->
                 try {
                     val aMap = mv.map ?: return@AndroidView
-
                     aMap.clear()
 
                     if (markers.isNotEmpty()) {
@@ -345,14 +404,12 @@ private fun MapViewWithLocation(
                             boundsBuilder.include(position)
                         }
 
-                        // Zoom to show all markers
                         try {
                             val bounds = boundsBuilder.build()
                             aMap.animateCamera(
                                 CameraUpdateFactory.newLatLngBounds(bounds, 100)
                             )
-                        } catch (e: Exception) {
-                            // Fallback to first marker
+                        } catch (_: Exception) {
                             val first = markers.first()
                             aMap.moveCamera(
                                 CameraUpdateFactory.newLatLngZoom(
@@ -362,11 +419,10 @@ private fun MapViewWithLocation(
                             )
                         }
 
-                        // Marker click
                         aMap.setOnMarkerClickListener { amapMarker ->
                             val clickedMarker = markers.find {
                                 it.latitude == amapMarker.position.latitude &&
-                                it.longitude == amapMarker.position.longitude
+                                    it.longitude == amapMarker.position.longitude
                             }
                             clickedMarker?.let { onMarkerClick(it.id) }
                             true
@@ -378,7 +434,6 @@ private fun MapViewWithLocation(
             }
         )
 
-        // Location name overlay
         if (location != null) {
             Box(
                 modifier = Modifier
@@ -433,5 +488,6 @@ private fun MapViewWithLocation(
 }
 
 private fun formatDate(timestamp: Long): String {
-    return SimpleDateFormat("yyyy年M月d日", Locale.CHINA).format(Date(timestamp))
+    if (timestamp <= 0L) return "暂无"
+    return SimpleDateFormat("MM-dd", Locale.CHINA).format(Date(timestamp))
 }
