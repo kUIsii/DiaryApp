@@ -37,21 +37,25 @@ object AchievementManager {
 
     fun initializeAchievements(scope: CoroutineScope, dao: AchievementDao) {
         scope.launch(Dispatchers.IO) {
-            val existing = dao.getAllAchievements().first()
-            val existingKeys = existing.map { it.key }.toSet()
-            val newAchievements = ACHIEVEMENTS
-                .filter { it.key !in existingKeys }
-                .map { def ->
-                    Achievement(
-                        key = def.key,
-                        name = def.name,
-                        description = def.description,
-                        iconEmoji = def.iconEmoji,
-                        target = def.target
-                    )
+            try {
+                val existing = dao.getAllAchievements().first()
+                val existingKeys = existing.map { it.key }.toSet()
+                val newAchievements = ACHIEVEMENTS
+                    .filter { it.key !in existingKeys }
+                    .map { def ->
+                        Achievement(
+                            key = def.key,
+                            name = def.name,
+                            description = def.description,
+                            iconEmoji = def.iconEmoji,
+                            target = def.target
+                        )
+                    }
+                if (newAchievements.isNotEmpty()) {
+                    dao.insertAll(newAchievements)
                 }
-            if (newAchievements.isNotEmpty()) {
-                dao.insertAll(newAchievements)
+            } catch (e: Exception) {
+                android.util.Log.w("AchievementManager", "Failed to initialize achievements", e)
             }
         }
     }
