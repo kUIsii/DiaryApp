@@ -51,14 +51,18 @@ class DiaryApplication : Application() {
         TrashCleanupWorker.schedule(this)
 
         // Initialize achievements and check for unlocks
-        val achievementDao = database.achievementDao()
-        AchievementManager.initializeAchievements(appScope, achievementDao)
-        appScope.launch {
-            runCatching {
-                AchievementManager.checkAndUnlock(achievementDao, database.diaryDao(), this@DiaryApplication)
-            }.onFailure {
-                android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
+        try {
+            val achievementDao = database.achievementDao()
+            AchievementManager.initializeAchievements(appScope, achievementDao)
+            appScope.launch {
+                runCatching {
+                    AchievementManager.checkAndUnlock(achievementDao, database.diaryDao(), this@DiaryApplication)
+                }.onFailure {
+                    android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("DiaryApplication", "Achievement init skipped", e)
         }
         // Still run a one-shot check at cold start for immediate needs
         appScope.launch {

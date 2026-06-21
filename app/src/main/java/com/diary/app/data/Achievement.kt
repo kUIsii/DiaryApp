@@ -1,9 +1,13 @@
 package com.diary.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "achievements")
+@Entity(
+    tableName = "achievements",
+    indices = [Index(value = ["key"], unique = true)]
+)
 data class Achievement(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val key: String,

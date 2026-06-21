@@ -287,12 +287,14 @@ abstract class DiaryDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    DiaryDatabase::class.java,
-                    "diary_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
-                .addCallback(object : RoomDatabase.Callback() {
+                val allMigrations = arrayOf(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+                    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
+                )
+                val callback = object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {
                         super.onOpen(db)
                         try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) {
@@ -303,10 +305,30 @@ abstract class DiaryDatabase : RoomDatabase() {
                             android.util.Log.w("DiaryDatabase", "Failed to backfill diary images", e)
                         }
                     }
-                })
-                .build()
-                // Force migration execution now so we can catch failures early
-                instance.openHelper.writableDatabase
+                }
+
+                val instance = try {
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        DiaryDatabase::class.java,
+                        "diary_database"
+                    ).addMigrations(*allMigrations)
+                    .addCallback(callback)
+                    .build()
+                    .also { it.openHelper.writableDatabase } // Force migration
+                } catch (e: Exception) {
+                    android.util.Log.e("DiaryDatabase", "Migration failed, recreating database", e)
+                    // Schema validation or migration failed — recreate from scratch
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        DiaryDatabase::class.java,
+                        "diary_database"
+                    ).addMigrations(*allMigrations)
+                    .fallbackToDestructiveMigration()
+                    .addCallback(callback)
+                    .build()
+                    .also { it.openHelper.writableDatabase }
+                }
                 INSTANCE = instance
                 instance
             }
