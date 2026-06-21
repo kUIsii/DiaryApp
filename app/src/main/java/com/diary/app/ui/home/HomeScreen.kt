@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -31,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
@@ -38,6 +41,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
@@ -116,6 +120,7 @@ fun HomeScreen(
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val aiInsight by viewModel.aiInsight.collectAsState()
     val imageMap by viewModel.imageMap.collectAsState()
+    val allImagesMap by viewModel.allImagesMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
@@ -284,7 +289,7 @@ fun HomeScreen(
                         HomeEntryCard(
                             entry = entry,
                             tags = tagsMap[entry.id] ?: emptyList(),
-                            imagePath = imageMap[entry.id],
+                            imagePaths = allImagesMap[entry.id] ?: emptyList(),
                             isSelected = entry.id in multiSelectState.selectedIds,
                             onClick = {
                                 haptic.click()
@@ -389,7 +394,7 @@ private fun HomeHeroSection(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (randomEntry != null) {
                     HomeHeaderAction(
-                        icon = Icons.Default.AutoAwesome,
+                        icon = Icons.Default.Shuffle,
                         contentDescription = "随机回顾",
                         onClick = onRandomClick
                     )
@@ -712,7 +717,7 @@ private fun NoEntriesForDate() {
 private fun HomeEntryCard(
     entry: DiaryPreview,
     tags: List<TagInfo>,
-    imagePath: String?,
+    imagePaths: List<String>,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -727,7 +732,7 @@ private fun HomeEntryCard(
 
     val moodData = entry.moodLevel?.let { moodIconForLevel(it) }
     val weatherData = entry.weather?.let { weatherIconFor(it) }
-    val hasImage = !imagePath.isNullOrBlank()
+    val hasImage = imagePaths.isNotEmpty()
 
     Box(
         modifier = Modifier
@@ -764,33 +769,90 @@ private fun HomeEntryCard(
             Box(modifier = Modifier.fillMaxWidth()) {
                 // Background: image full coverage or light mood color
                 if (hasImage) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(File(imagePath!!))
-                            .crossfade(true)
-                            .size(400)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                    )
-                    // Dark overlay for text readability
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black.copy(alpha = 0.35f),
-                                        Color.Black.copy(alpha = 0.55f)
+                    if (imagePaths.size > 1) {
+                        val pagerState = rememberPagerState { imagePaths.size }
+                        Box {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                            ) { page ->
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(File(imagePaths[page]))
+                                        .crossfade(true)
+                                        .size(400)
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            // Dark overlay
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Black.copy(alpha = 0.35f),
+                                                Color.Black.copy(alpha = 0.55f)
+                                            )
+                                        )
+                                    )
+                            )
+                            // Dot indicators
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                repeat(imagePaths.size) { index ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (pagerState.currentPage == index) 6.dp else 5.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (pagerState.currentPage == index) Color.White
+                                                else Color.White.copy(alpha = 0.45f)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(File(imagePaths[0]))
+                                .crossfade(true)
+                                .size(400)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                        )
+                        // Dark overlay for text readability
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.35f),
+                                            Color.Black.copy(alpha = 0.55f)
+                                        )
                                     )
                                 )
-                            )
-                    )
+                        )
+                    }
                 } else if (moodData != null) {
                     Box(
                         modifier = Modifier
@@ -884,6 +946,13 @@ private fun HomeEntryCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (imagePaths.size > 1) {
+                            MetaChip(
+                                icon = Icons.Default.Image,
+                                label = "${imagePaths.size} 张图片",
+                                tint = if (hasImage) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         moodData?.let { mood ->
                             MetaChip(icon = mood.icon, label = moodLabelForLevel(entry.moodLevel), tint = if (hasImage) Color.White.copy(alpha = 0.8f) else mood.tint)
                         }

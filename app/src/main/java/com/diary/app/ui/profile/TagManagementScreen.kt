@@ -552,22 +552,11 @@ private fun HsvColorWheel(
                             val dist = kotlin.math.sqrt(dx * dx + dy * dy)
                             val outerR = size.width / 2f
                             val ringWidth = outerR * 0.18f
-                            if (dist in (outerR - ringWidth)..outerR || dist in (outerR - ringWidth * 2)..outerR) {
+                            if (dist in (outerR - ringWidth * 2)..outerR) {
                                 val angle = Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()
                                 val newHue = (angle + 360f) % 360f
                                 onHueChange(newHue)
                             }
-                        }
-                    }
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, _ ->
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            val dx = change.position.x - center.x
-                            val dy = change.position.y - center.y
-                            val angle = Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()
-                            val newHue = (angle + 360f) % 360f
-                            onHueChange(newHue)
-                            change.consume()
                         }
                     }
             ) {

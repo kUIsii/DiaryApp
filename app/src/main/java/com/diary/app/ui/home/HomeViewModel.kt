@@ -105,16 +105,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val allTags: StateFlow<List<com.diary.app.data.Tag>> = dao.getAllTags()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Image map: entryId -> first image path (thumb or original)
+    // Image map: entryId -> first image localPath (original quality)
     val imageMap: StateFlow<Map<Long, String>> = dao.getAllImagesFlow()
         .map { images ->
             images.groupBy { it.entryId }
                 .mapValues { (_, entryImages) ->
-                    entryImages.minByOrNull { it.sortOrder }?.thumbPath
-                        ?: entryImages.minByOrNull { it.sortOrder }?.localPath
-                        ?: ""
+                    entryImages.minByOrNull { it.sortOrder }?.localPath ?: ""
                 }
                 .filter { it.value.isNotBlank() }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    // All images map: entryId -> list of localPaths (for image selection)
+    val allImagesMap: StateFlow<Map<Long, List<String>>> = dao.getAllImagesFlow()
+        .map { images ->
+            images.groupBy { it.entryId }
+                .mapValues { (_, entryImages) ->
+                    entryImages.sortedBy { it.sortOrder }.map { it.localPath }
+                }
+                .filter { it.value.isNotEmpty() }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 

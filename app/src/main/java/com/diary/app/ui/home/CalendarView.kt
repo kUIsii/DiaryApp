@@ -7,8 +7,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -84,16 +84,6 @@ fun CalendarView(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
 
-    val borderModifier = if (!isDark) {
-        Modifier.border(
-            width = 1.dp,
-            color = Color.Gray.copy(alpha = 0.18f),
-            shape = RoundedCornerShape(16.dp)
-        )
-    } else {
-        Modifier
-    }
-
     val isAtCurrent = if (calendarMode == CalendarMode.MONTH) {
         currentMonth.year == today.year && currentMonth.monthValue == today.monthValue
     } else {
@@ -101,14 +91,7 @@ fun CalendarView(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                else MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
-            )
-            .then(borderModifier)
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -201,16 +184,16 @@ fun CalendarView(
                 AnimatedContent(
                     targetState = calendarMode,
                     transitionSpec = {
-                        if (targetState == CalendarMode.WEEK) {
-                            (slideInVertically(animationSpec = tween(300)) { height -> height } +
-                                fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutVertically(animationSpec = tween(300)) { height -> -height } +
-                                    fadeOut(animationSpec = tween(300)))
+                        if (targetState == CalendarMode.MONTH) {
+                            (slideInHorizontally(animationSpec = tween(280)) { width -> width } +
+                                fadeIn(animationSpec = tween(200))) togetherWith
+                                (slideOutHorizontally(animationSpec = tween(280)) { width -> -width } +
+                                    fadeOut(animationSpec = tween(200)))
                         } else {
-                            (slideInVertically(animationSpec = tween(300)) { height -> -height } +
-                                fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutVertically(animationSpec = tween(300)) { height -> height } +
-                                    fadeOut(animationSpec = tween(300)))
+                            (slideInHorizontally(animationSpec = tween(280)) { width -> -width } +
+                                fadeIn(animationSpec = tween(200))) togetherWith
+                                (slideOutHorizontally(animationSpec = tween(280)) { width -> width } +
+                                    fadeOut(animationSpec = tween(200)))
                         }
                     },
                     label = "calendarMode"
