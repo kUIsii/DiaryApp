@@ -1,5 +1,7 @@
 package com.diary.app.ui.home
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -157,12 +159,31 @@ fun HomeScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
+    // Location permission for weather
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.values.any { it }
+        if (granted) {
+            viewModel.loadWeather()
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
             viewModel.selectDate(LocalDate.now())
         }
         viewModel.loadInsight()
-        viewModel.loadWeather()
+        viewModel.loadWeatherWithPermissionCheck(
+            onRequestPermission = {
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        )
     }
 
     LaunchedEffect(selectedDate) {
@@ -425,11 +446,34 @@ private fun HomeHeroSection(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$dateStr · 共 ${stats.total} 篇日记",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$dateStr · 共 ${stats.total} 篇日记",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (currentWeather != null && currentWeather.weather.isNotBlank()) {
+                        Text(
+                            text = "  ·  ",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Icon(
+                            imageVector = com.diary.app.ui.components.weatherIconForType(
+                                com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
+                            ),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${currentWeather.weather} ${currentWeather.temperature}°C",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -454,20 +498,11 @@ private fun HomeHeroSection(
             }
         }
 
-        // Compact stats row
+        // Compact stats row (without weather, moved to header)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (currentWeather != null && currentWeather.weather.isNotBlank()) {
-                CompactStatChip(
-                    icon = com.diary.app.ui.components.weatherIconForType(
-                        com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
-                    ),
-                    text = "${currentWeather.weather} ${currentWeather.temperature}°C",
-                    modifier = Modifier.weight(1f)
-                )
-            }
             CompactStatChip(
                 icon = Icons.Default.Edit,
                 text = "连续 ${stats.streak} 天",

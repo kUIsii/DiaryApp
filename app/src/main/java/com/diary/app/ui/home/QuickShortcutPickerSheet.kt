@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +53,29 @@ fun QuickShortcutPickerSheet(
 ) {
     var selectedRoutes by remember { mutableStateOf(currentRoutes.toMutableList()) }
     var replacingIndex by remember { mutableStateOf<Int?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    var deleteIndex by remember { mutableStateOf<Int?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    // Delete confirmation dialog
+    if (deleteIndex != null) {
+        val idx = deleteIndex!!
+        val option = selectedRoutes.getOrNull(idx)?.let { QuickShortcutStore.getOption(it) }
+        AlertDialog(
+            onDismissRequest = { deleteIndex = null },
+            title = { Text("移除快捷入口") },
+            text = { Text("确定要移除「${option?.label ?: ""}」吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedRoutes = selectedRoutes.toMutableList().apply { removeAt(idx) }
+                    if (replacingIndex == idx) replacingIndex = null
+                    deleteIndex = null
+                }) { Text("移除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteIndex = null }) { Text("取消") }
+            }
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -74,127 +100,133 @@ fun QuickShortcutPickerSheet(
                 modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Selected shortcuts
-            if (selectedRoutes.isNotEmpty()) {
-                Text(
-                    text = "当前快捷入口",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            // Current shortcuts
+            Text(
+                text = "当前快捷入口",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-                selectedRoutes.forEachIndexed { index, route ->
-                    val option = QuickShortcutStore.getOption(route) ?: return@forEachIndexed
-                    val isReplacing = replacingIndex == index
+            selectedRoutes.forEachIndexed { index, route ->
+                val option = QuickShortcutStore.getOption(route) ?: return@forEachIndexed
+                val isReplacing = replacingIndex == index
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isReplacing) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            )
-                            .clickable {
-                                replacingIndex = if (isReplacing) null else index
-                            }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = option.icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = option.label,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isReplacing) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                         )
-                        // Replace indicator
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = option.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = option.label,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Replace button
+                    IconButton(
+                        onClick = {
+                            replacingIndex = if (isReplacing) null else index
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.SwapHoriz,
                             contentDescription = "替换",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            tint = if (isReplacing) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        // Remove button
-                        IconButton(
-                            onClick = {
-                                selectedRoutes = selectedRoutes.toMutableList().apply { removeAt(index) }
-                                if (replacingIndex == index) replacingIndex = null
-                            },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "移除",
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
                     }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    // Delete button
+                    IconButton(
+                        onClick = { deleteIndex = index },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "移除",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
-                    // Show replacement options when tapped
-                    if (isReplacing) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        val replacements = allShortcutOptions.filter { it.route !in selectedRoutes }
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 42.dp)
-                        ) {
-                            replacements.forEach { option ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        .clickable {
-                                            val list = selectedRoutes.toMutableList()
-                                            list[index] = option.route
-                                            selectedRoutes = list
-                                            replacingIndex = null
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = option.icon,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = option.label,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                if (index < selectedRoutes.size - 1) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+            }
+
+            // Replacement options (shown when an item is selected for replacement)
+            if (replacingIndex != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                val replacements = allShortcutOptions.filter { it.route !in selectedRoutes }
+                if (replacements.isNotEmpty()) {
+                    Text(
+                        text = "选择替换功能",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        replacements.forEach { option ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable {
+                                        val list = selectedRoutes.toMutableList()
+                                        list[replacingIndex!!] = option.route
+                                        selectedRoutes = list
+                                        replacingIndex = null
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = option.icon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = option.label,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
-                    }
-
-                    if (index < selectedRoutes.size - 1) {
-                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }
@@ -244,7 +276,7 @@ fun QuickShortcutPickerSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Save button
             Button(

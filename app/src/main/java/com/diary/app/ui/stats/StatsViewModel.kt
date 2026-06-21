@@ -118,8 +118,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     val state: StateFlow<StatsState> = combine(
         dao.getAllPreviews(),
         dao.getTagUsage(),
-        _heatmapRange
-    ) { entries, tagUsage, heatmapRange ->
+        _heatmapRange,
+        _wordCloudPeriod,
+        _aiWords
+    ) { entries, tagUsage, heatmapRange, wordCloudPeriod, aiWords ->
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now()
 
@@ -164,8 +166,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            topWords = _aiWords.value,
-            wordCloudPeriod = _wordCloudPeriod.value,
+            topWords = aiWords,
+            wordCloudPeriod = wordCloudPeriod,
             isWordCloudLoading = _isWordCloudLoading.value,
             isAiConfigured = aiService.getActiveProvider() != null,
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
@@ -261,8 +263,15 @@ ${combinedText.take(3000)}"""
             List::class.java, Map::class.java, String::class.java, Any::class.java
         ).type
         val list: List<Map<String, Any>> = gson.fromJson(json, type) ?: return emptyList()
+        val stopWords = setOf(
+            "了", "吗", "的", "是", "在", "我", "有", "和", "就", "不", "都", "一",
+            "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "看", "好",
+            "这", "他", "她", "它", "们", "那", "里", "为", "什么", "怎么", "吧",
+            "啊", "呢", "嗯", "哦", "哈", "呀", "啦", "了吗", "的了", "是的"
+        )
         return list.mapNotNull { map ->
             val word = map["word"] as? String ?: return@mapNotNull null
+            if (word.length < 2 || word in stopWords) return@mapNotNull null
             val weight = (map["weight"] as? Number)?.toInt() ?: 5
             WordFrequency(word, weight)
         }.sortedByDescending { it.count }

@@ -76,16 +76,6 @@ import com.diary.app.ui.components.formatWordCount
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.stats.WordCloud
-import com.diary.app.ui.theme.HeatmapDarkLevel1
-import com.diary.app.ui.theme.HeatmapDarkLevel2
-import com.diary.app.ui.theme.HeatmapDarkLevel3
-import com.diary.app.ui.theme.HeatmapDarkLevel4
-import com.diary.app.ui.theme.HeatmapDarkLevel5
-import com.diary.app.ui.theme.HeatmapLevel1
-import com.diary.app.ui.theme.HeatmapLevel2
-import com.diary.app.ui.theme.HeatmapLevel3
-import com.diary.app.ui.theme.HeatmapLevel4
-import com.diary.app.ui.theme.HeatmapLevel5
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
 import java.time.LocalDate
@@ -1236,18 +1226,14 @@ private fun MonthlyHeatmap(
                                 .padding(2.dp)
                         )
                     } else {
+                        val primary = MaterialTheme.colorScheme.primary
                         val background = when {
                             day.count == 0 -> surfaceVariant.copy(alpha = 0.40f)
-                            dark && day.count == 1 -> HeatmapDarkLevel1
-                            dark && day.count == 2 -> HeatmapDarkLevel2
-                            dark && day.count == 3 -> HeatmapDarkLevel3
-                            dark && day.count == 4 -> HeatmapDarkLevel4
-                            dark -> HeatmapDarkLevel5
-                            day.count == 1 -> HeatmapLevel1
-                            day.count == 2 -> HeatmapLevel2
-                            day.count == 3 -> HeatmapLevel3
-                            day.count == 4 -> HeatmapLevel4
-                            else -> HeatmapLevel5
+                            day.count == 1 -> primary.copy(alpha = 0.20f)
+                            day.count == 2 -> primary.copy(alpha = 0.40f)
+                            day.count == 3 -> primary.copy(alpha = 0.60f)
+                            day.count == 4 -> primary.copy(alpha = 0.80f)
+                            else -> primary
                         }
                         Box(
                             modifier = Modifier

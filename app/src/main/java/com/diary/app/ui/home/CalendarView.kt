@@ -100,61 +100,149 @@ fun CalendarView(
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+            // Header: date row with arrows + today + mode toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (calendarMode == CalendarMode.MONTH) {
-                        "${currentMonth.year}年${currentMonth.monthValue}月"
-                    } else {
-                        "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
-                    },
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = onBackground
-                )
+                // Left: arrow + date + arrow
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                if (calendarMode == CalendarMode.MONTH) {
+                                    currentMonth = currentMonth.minusMonths(1)
+                                } else {
+                                    currentWeekStart = currentWeekStart.minusWeeks(1)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "上一页",
+                            tint = onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
 
+                    Text(
+                        text = if (calendarMode == CalendarMode.MONTH) {
+                            "${currentMonth.year}年${currentMonth.monthValue}月"
+                        } else {
+                            "${currentWeekStart.monthValue}月${currentWeekStart.dayOfMonth}日 - ${currentWeekStart.plusDays(6).monthValue}月${currentWeekStart.plusDays(6).dayOfMonth}日"
+                        },
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onBackground,
+                        modifier = Modifier.padding(horizontal = 2.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                enabled = !isAtCurrent
+                            ) {
+                                if (!isAtCurrent) {
+                                    if (calendarMode == CalendarMode.MONTH) {
+                                        currentMonth = currentMonth.plusMonths(1)
+                                    } else {
+                                        currentWeekStart = currentWeekStart.plusWeeks(1)
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "下一页",
+                            tint = if (isAtCurrent) onSurfaceVariant.copy(alpha = 0.3f) else onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // Right: today button + mode toggle
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-                        .padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    ModeToggleButton(
-                        icon = Icons.Default.ViewWeek,
-                        label = "周",
-                        isSelected = calendarMode == CalendarMode.WEEK,
-                        onClick = { onModeChange(CalendarMode.WEEK) }
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    ModeToggleButton(
-                        icon = Icons.Default.CalendarViewMonth,
-                        label = "月",
-                        isSelected = calendarMode == CalendarMode.MONTH,
-                        onClick = { onModeChange(CalendarMode.MONTH) }
-                    )
+                    if (canGoToToday) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(primary.copy(alpha = 0.1f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    if (calendarMode == CalendarMode.MONTH) {
+                                        currentMonth = YearMonth.now()
+                                    } else {
+                                        currentWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                    }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "今天",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = primary
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+                            .padding(3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ModeToggleButton(
+                            icon = Icons.Default.ViewWeek,
+                            label = "周",
+                            isSelected = calendarMode == CalendarMode.WEEK,
+                            onClick = { onModeChange(CalendarMode.WEEK) }
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        ModeToggleButton(
+                            icon = Icons.Default.CalendarViewMonth,
+                            label = "月",
+                            isSelected = calendarMode == CalendarMode.MONTH,
+                            onClick = { onModeChange(CalendarMode.MONTH) }
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf("一", "二", "三", "四", "五", "六", "日").forEach { day ->
                     Text(
                         text = day,
                         modifier = Modifier.weight(1f),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = onSurfaceVariant.copy(alpha = 0.62f),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Box(
                 modifier = Modifier
@@ -236,93 +324,6 @@ fun CalendarView(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Bottom row: arrows + back to today
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            if (calendarMode == CalendarMode.MONTH) {
-                                currentMonth = currentMonth.minusMonths(1)
-                            } else {
-                                currentWeekStart = currentWeekStart.minusWeeks(1)
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = "上一页",
-                        tint = onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                if (canGoToToday) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(primary.copy(alpha = 0.1f))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                if (calendarMode == CalendarMode.MONTH) {
-                                    currentMonth = YearMonth.now()
-                                } else {
-                                    currentWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                                }
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "回到今天",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = primary
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            enabled = !isAtCurrent
-                        ) {
-                            if (!isAtCurrent) {
-                                if (calendarMode == CalendarMode.MONTH) {
-                                    currentMonth = currentMonth.plusMonths(1)
-                                } else {
-                                    currentWeekStart = currentWeekStart.plusWeeks(1)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "下一页",
-                        tint = if (isAtCurrent) onSurfaceVariant.copy(alpha = 0.3f) else onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
         }
     }
 }

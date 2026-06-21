@@ -394,6 +394,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadWeatherWithPermissionCheck(onRequestPermission: () -> Unit) {
+        val context = getApplication<Application>()
+        // First try cache
+        viewModelScope.launch {
+            val cached = WeatherManager.getCachedWeather(context)
+            if (cached != null) {
+                _currentWeather.value = cached
+            }
+        }
+        // Check permission and fetch if granted
+        if (WeatherManager.hasLocationPermission(context)) {
+            loadWeather()
+        } else {
+            onRequestPermission()
+        }
+    }
+
     private fun computeStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0
         var streak = 0

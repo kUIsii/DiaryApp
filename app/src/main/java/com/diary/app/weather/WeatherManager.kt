@@ -82,6 +82,13 @@ object WeatherManager {
         return System.currentTimeMillis() - fetchedAt > CACHE_DURATION_MS
     }
 
+    fun hasLocationPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+    }
+
     fun mapAmapWeatherToType(description: String): String {
         return when {
             description.contains("晴") -> "晴天"

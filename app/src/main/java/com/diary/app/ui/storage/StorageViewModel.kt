@@ -25,7 +25,7 @@ enum class StorageIcon { DATABASE, IMAGE, THUMBNAIL, BACKUP, CACHE }
 data class StorageState(
     val isLoading: Boolean = true,
     val databaseSize: Long = 0,
-    val imageDisplaySize: Long = 0,
+    val mediaSize: Long = 0,
     val imageThumbSize: Long = 0,
     val backupSize: Long = 0,
     val cacheSize: Long = 0,
@@ -36,7 +36,7 @@ data class StorageState(
     val categories: List<StorageCategory>
         get() = listOf(
             StorageCategory("数据库", StorageIcon.DATABASE, databaseSize, "${entryCount} 篇日记"),
-            StorageCategory("图片", StorageIcon.IMAGE, imageDisplaySize, "${imageCount} 张图片"),
+            StorageCategory("媒体文件", StorageIcon.IMAGE, mediaSize, "图片、视频等 ${imageCount} 个文件"),
             StorageCategory("缩略图", StorageIcon.THUMBNAIL, imageThumbSize, "自动生成的预览图"),
             StorageCategory("备份", StorageIcon.BACKUP, backupSize, "本地备份文件"),
             StorageCategory("缓存", StorageIcon.CACHE, cacheSize, "临时缓存数据")
@@ -59,30 +59,37 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             val context = getApplication<Application>()
 
             val result = withContext(Dispatchers.IO) {
+                // Database file size
                 val dbFile = context.getDatabasePath("diary_database")
                 val dbSize = if (dbFile.exists()) dbFile.length() else 0L
 
-                val imageTotalSize = dao.getTotalImageFileSize()
-                val imageCount = dao.getImageCount()
-                val entryCount = dao.getEntryCount()
-
+                // Scan media directory on disk (images, videos, audio)
+                val mediaDir = DiaryMediaManager.mediaDir(context)
                 val thumbDir = DiaryMediaManager.thumbDir(context)
+                val mediaSize = calculateMediaSize(mediaDir, thumbDir)
                 val thumbSize = calculateDirectorySize(thumbDir)
 
+                // Count files in media dir
+                val imageCount = countFiles(mediaDir, thumbDir)
+
+                val entryCount = dao.getEntryCount()
+
+                // Backup sizes
                 val backupHistory = BackupManager.getBackupHistory(context)
                 val backupSize = backupHistory.sumOf { it.fileSize }
 
+                // Cache size
                 val cacheSize = calculateCacheSize(context)
 
-                StorageResult(dbSize, imageTotalSize, thumbSize, backupSize, cacheSize, imageCount, entryCount)
+                StorageResult(dbSize, mediaSize, thumbSize, backupSize, cacheSize, imageCount, entryCount)
             }
 
-            val total = result.dbSize + result.imageSize + result.thumbSize + result.backupSize + result.cacheSize
+            val total = result.dbSize + result.mediaSize + result.thumbSize + result.backupSize + result.cacheSize
 
             _state.value = StorageState(
                 isLoading = false,
                 databaseSize = result.dbSize,
-                imageDisplaySize = result.imageSize,
+                mediaSize = result.mediaSize,
                 imageThumbSize = result.thumbSize,
                 backupSize = result.backupSize,
                 cacheSize = result.cacheSize,
@@ -101,6 +108,24 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             }
             calculateStorage()
         }
+    }
+
+    /** Calculate media dir size, excluding the thumbs/ subdirectory */
+    private fun calculateMediaSize(mediaDir: File, thumbDir: File): Long {
+        if (!mediaDir.exists()) return 0L
+        val thumbPath = thumbDir.canonicalPath
+        return mediaDir.walkTopDown()
+            .filter { it.isFile && !it.canonicalPath.startsWith(thumbPath) }
+            .sumOf { it.length() }
+    }
+
+    /** Count files in media dir, excluding thumbs/ */
+    private fun countFiles(mediaDir: File, thumbDir: File): Int {
+        if (!mediaDir.exists()) return 0
+        val thumbPath = thumbDir.canonicalPath
+        return mediaDir.walkTopDown()
+            .filter { it.isFile && !it.canonicalPath.startsWith(thumbPath) }
+            .count()
     }
 
     private fun calculateDirectorySize(dir: File): Long {
@@ -123,7 +148,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
 
     private data class StorageResult(
         val dbSize: Long,
-        val imageSize: Long,
+        val mediaSize: Long,
         val thumbSize: Long,
         val backupSize: Long,
         val cacheSize: Long,
