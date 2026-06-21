@@ -159,7 +159,7 @@ fun CalendarView(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .pointerInput(calendarMode) {
+                    .pointerInput(calendarMode, isAtCurrent) {
                         var totalDragX = 0f
                         detectHorizontalDragGestures(
                             onDragStart = { totalDragX = 0f },
@@ -169,13 +169,15 @@ fun CalendarView(
                             },
                             onDragEnd = {
                                 val threshold = 40f
-                                if (totalDragX < -threshold) {
+                                if (totalDragX < -threshold && !isAtCurrent) {
+                                    // Swipe left = next (only if not at current)
                                     if (calendarMode == CalendarMode.MONTH) {
                                         currentMonth = currentMonth.plusMonths(1)
                                     } else {
                                         currentWeekStart = currentWeekStart.plusWeeks(1)
                                     }
                                 } else if (totalDragX > threshold) {
+                                    // Swipe right = previous
                                     if (calendarMode == CalendarMode.MONTH) {
                                         currentMonth = currentMonth.minusMonths(1)
                                     } else {
@@ -186,24 +188,31 @@ fun CalendarView(
                         )
                     }
             ) {
+                // Content with slide animation for month/week changes
+                val contentKey = if (calendarMode == CalendarMode.MONTH) {
+                    "${currentMonth.year}-${currentMonth.monthValue}"
+                } else {
+                    "${currentWeekStart}"
+                }
                 AnimatedContent(
-                    targetState = calendarMode,
+                    targetState = contentKey,
                     transitionSpec = {
-                        if (targetState == CalendarMode.MONTH) {
-                            (slideInHorizontally(animationSpec = tween(280)) { width -> width } +
+                        val isForward = targetState > initialState
+                        if (isForward) {
+                            (slideInHorizontally(animationSpec = tween(250)) { width -> width / 3 } +
                                 fadeIn(animationSpec = tween(200))) togetherWith
-                                (slideOutHorizontally(animationSpec = tween(280)) { width -> -width } +
-                                    fadeOut(animationSpec = tween(200)))
+                                (slideOutHorizontally(animationSpec = tween(250)) { width -> -width / 3 } +
+                                    fadeOut(animationSpec = tween(180)))
                         } else {
-                            (slideInHorizontally(animationSpec = tween(280)) { width -> -width } +
+                            (slideInHorizontally(animationSpec = tween(250)) { width -> -width / 3 } +
                                 fadeIn(animationSpec = tween(200))) togetherWith
-                                (slideOutHorizontally(animationSpec = tween(280)) { width -> width } +
-                                    fadeOut(animationSpec = tween(200)))
+                                (slideOutHorizontally(animationSpec = tween(250)) { width -> width / 3 } +
+                                    fadeOut(animationSpec = tween(180)))
                         }
                     },
-                    label = "calendarMode"
-                ) { mode ->
-                    if (mode == CalendarMode.MONTH) {
+                    label = "calendarContent"
+                ) {
+                    if (calendarMode == CalendarMode.MONTH) {
                         MonthView(
                             currentMonth = currentMonth,
                             entryDates = entryDates,
@@ -354,7 +363,7 @@ private fun MonthView(
                             modifier = Modifier.weight(1f)
                         )
                     } else {
-                        Box(modifier = Modifier.weight(1f).height(36.dp))
+                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                     }
                 }
             }
@@ -497,7 +506,7 @@ private fun CalendarDay(
 
     Box(
         modifier = modifier
-            .height(36.dp)
+            .aspectRatio(1f)
             .padding(2.dp)
             .scale(animatedScale)
             .clip(CircleShape)
@@ -529,6 +538,14 @@ private fun CalendarDay(
                     fontSize = 8.sp,
                     color = countColor,
                     fontWeight = FontWeight.SemiBold
+                )
+            } else if (isToday && !isSelected) {
+                // Small dot indicator for today when not selected
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(primary)
                 )
             }
         }

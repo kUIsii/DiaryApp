@@ -253,21 +253,7 @@ fun HomeScreen(
                     }
                 }
 
-                item {
-                    CalendarSection(
-                        entryDates = entryDates,
-                        dayInfoMap = dayInfoMap,
-                        selectedDate = selectedDate,
-                        calendarMode = calendarMode,
-                        onModeChange = { calendarMode = it },
-                        onDateSelected = { date ->
-                            haptic.click()
-                            viewModel.selectDate(date)
-                        }
-                    )
-                }
-
-                // Quick shortcuts
+                // Quick shortcuts (above calendar)
                 item {
                     QuickShortcutsSection(
                         onNavigate = { route ->
@@ -286,6 +272,20 @@ fun HomeScreen(
                                 "backup" -> onNavigateToBackup()
                                 "tag_management" -> onNavigateToTagManagement()
                             }
+                        }
+                    )
+                }
+
+                item {
+                    CalendarSection(
+                        entryDates = entryDates,
+                        dayInfoMap = dayInfoMap,
+                        selectedDate = selectedDate,
+                        calendarMode = calendarMode,
+                        onModeChange = { calendarMode = it },
+                        onDateSelected = { date ->
+                            haptic.click()
+                            viewModel.selectDate(date)
                         }
                     )
                 }
@@ -579,26 +579,26 @@ private fun QuickShortcutsSection(
     var shortcutRoutes by remember { mutableStateOf(QuickShortcutStore.getShortcuts(context)) }
     var showPicker by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    GlassCard(
+        cornerRadius = 18.dp,
+        innerPadding = 14.dp
     ) {
-        shortcutRoutes.forEach { route ->
-            val option = QuickShortcutStore.getOption(route) ?: return@forEach
-            GlassCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onNavigate(route) },
-                cornerRadius = 14.dp,
-                innerPadding = 12.dp
-            ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            shortcutRoutes.forEach { route ->
+                val option = QuickShortcutStore.getOption(route) ?: return@forEach
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .clickable { onNavigate(route) }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
@@ -607,34 +607,29 @@ private fun QuickShortcutsSection(
                             imageVector = option.icon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(5.dp))
                     Text(
                         text = option.label,
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
             }
-        }
 
-        // Edit button
-        GlassCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { showPicker = true },
-            cornerRadius = 14.dp,
-            innerPadding = 12.dp
-        ) {
+            // Edit button
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .clickable { showPicker = true }
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
@@ -646,11 +641,12 @@ private fun QuickShortcutsSection(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = "编辑",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
             }
         }

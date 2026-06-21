@@ -102,6 +102,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _wordCloudPeriod = MutableStateFlow(WordCloudPeriod.MONTH)
     private val _aiWords = MutableStateFlow<List<WordFrequency>>(emptyList())
     private val _isWordCloudLoading = MutableStateFlow(false)
+    private val prefs = application.getSharedPreferences("word_cloud_cache", android.content.Context.MODE_PRIVATE)
 
     fun setHeatmapRange(range: HeatmapRange) {
         _heatmapRange.value = range
@@ -202,6 +203,18 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
+                // Check cache: key = period_entryCount
+                val cacheKey = "${period.name}_${filteredEntries.size}"
+                val cached = prefs.getString(cacheKey, null)
+                if (cached != null) {
+                    val parsed = parseWordCloudJson(cached)
+                    if (parsed.isNotEmpty()) {
+                        _aiWords.value = parsed
+                        _isWordCloudLoading.value = false
+                        return@launch
+                    }
+                }
+
                 val combinedText = texts.takeLast(50).joinToString("\n---\n")
                 val prompt = """请从以下日记文本中提取20个最有代表性的关键词，反映作者关注的主题、情感、活动。
 返回JSON数组格式：[{"word":"关键词","weight":权重}]
@@ -225,6 +238,8 @@ ${combinedText.take(3000)}"""
                             .trim()
                         val parsed = parseWordCloudJson(json)
                         _aiWords.value = parsed
+                        // Save to cache
+                        prefs.edit().putString(cacheKey, json).apply()
                     } catch (e: Exception) {
                         _aiWords.value = extractTopWords(texts, limit = 30)
                     }
