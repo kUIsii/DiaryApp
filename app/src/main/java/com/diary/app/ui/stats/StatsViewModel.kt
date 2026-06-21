@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.ai.aiRequest
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TagUsage
 import com.diary.app.ui.components.moodColorForLevel
@@ -13,7 +14,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -49,6 +52,12 @@ enum class HeatmapRange(val days: Int) {
     ONE_MONTH(30)
 }
 
+enum class WordCloudPeriod(val label: String) {
+    MONTH("本月"),
+    YEAR("今年"),
+    ALL("全部")
+}
+
 data class MoodTrend(
     val recent30Avg: Double?,
     val previous30Avg: Double?,
@@ -78,16 +87,31 @@ data class StatsState(
     val moodTrend: MoodTrend? = null,
     val wordStats: WordStats? = null,
     val topWords: List<WordFrequency> = emptyList(),
+    val wordCloudPeriod: WordCloudPeriod = WordCloudPeriod.MONTH,
+    val isWordCloudLoading: Boolean = false,
+    val isAiConfigured: Boolean = false,
     val heatmapData: List<HeatmapDay> = emptyList(),
     val heatmapRange: HeatmapRange = HeatmapRange.ONE_MONTH,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = (application as DiaryApplication).database.diaryDao()
+    private val app = application as DiaryApplication
+    private val dao = app.database.diaryDao()
+    private val aiService = app.aiService
     private val _heatmapRange = MutableStateFlow(HeatmapRange.ONE_MONTH)
+    private val _wordCloudPeriod = MutableStateFlow(WordCloudPeriod.MONTH)
+    private val _aiWords = MutableStateFlow<List<WordFrequency>>(emptyList())
+    private val _isWordCloudLoading = MutableStateFlow(false)
 
     fun setHeatmapRange(range: HeatmapRange) {
         _heatmapRange.value = range
+    }
+
+    fun setWordCloudPeriod(period: WordCloudPeriod) {
+        if (_wordCloudPeriod.value != period) {
+            _wordCloudPeriod.value = period
+            loadAiWords()
+        }
     }
 
     val state: StateFlow<StatsState> = combine(
@@ -139,11 +163,95 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            topWords = computeTopWords(entries),
+            topWords = _aiWords.value,
+            wordCloudPeriod = _wordCloudPeriod.value,
+            isWordCloudLoading = _isWordCloudLoading.value,
+            isAiConfigured = aiService.isAiEnabled(),
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
+
+    init {
+        loadAiWords()
+    }
+
+    private fun loadAiWords() {
+        if (!aiService.isAiEnabled()) return
+        viewModelScope.launch {
+            _isWordCloudLoading.value = true
+            try {
+                val period = _wordCloudPeriod.value
+                val zone = ZoneId.systemDefault()
+                val now = LocalDate.now()
+                val entries = dao.getAllPreviews().first()
+
+                val filteredEntries = entries.filter { entry ->
+                    val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                    when (period) {
+                        WordCloudPeriod.MONTH -> date.year == now.year && date.monthValue == now.monthValue
+                        WordCloudPeriod.YEAR -> date.year == now.year
+                        WordCloudPeriod.ALL -> true
+                    }
+                }
+
+                val texts = filteredEntries.map { it.plainText }.filter { it.isNotBlank() }
+                if (texts.isEmpty()) {
+                    _aiWords.value = emptyList()
+                    _isWordCloudLoading.value = false
+                    return@launch
+                }
+
+                val combinedText = texts.takeLast(50).joinToString("\n---\n")
+                val prompt = """请从以下日记文本中提取20个最有代表性的关键词，反映作者关注的主题、情感、活动。
+返回JSON数组格式：[{"word":"关键词","weight":权重}]
+权重范围1-10，越重要越大。只返回JSON，不要其他文字。
+
+日记文本：
+${combinedText.take(3000)}"""
+
+                val request = aiRequest(
+                    userMessage = prompt,
+                    temperature = 0.3f,
+                    maxTokens = 512
+                )
+
+                val result = aiService.chat(request, useCache = false)
+                result.onSuccess { response ->
+                    try {
+                        val json = response.content.trim()
+                            .removePrefix("```json").removeSuffix("```")
+                            .removePrefix("```").removeSuffix("```")
+                            .trim()
+                        val parsed = parseWordCloudJson(json)
+                        _aiWords.value = parsed
+                    } catch (e: Exception) {
+                        _aiWords.value = extractTopWords(texts, limit = 30)
+                    }
+                }
+                result.onFailure {
+                    _aiWords.value = extractTopWords(texts, limit = 30)
+                }
+            } catch (e: Exception) {
+                _aiWords.value = emptyList()
+            } finally {
+                _isWordCloudLoading.value = false
+            }
+        }
+    }
+
+    private fun parseWordCloudJson(json: String): List<WordFrequency> {
+        val gson = com.google.gson.Gson()
+        val type = com.google.gson.reflect.TypeToken.getParameterized(
+            List::class.java, Map::class.java, String::class.java, Any::class.java
+        ).type
+        val list: List<Map<String, Any>> = gson.fromJson(json, type) ?: return emptyList()
+        return list.mapNotNull { map ->
+            val word = map["word"] as? String ?: return@mapNotNull null
+            val weight = (map["weight"] as? Number)?.toInt() ?: 5
+            WordFrequency(word, weight)
+        }.sortedByDescending { it.count }
+    }
 
     suspend fun getEntriesForDate(date: LocalDate): List<DiaryPreview> {
         val zone = ZoneId.systemDefault()

@@ -225,19 +225,11 @@ fun StatsScreen(
                         }
                     }
 
-                    if (state.topWords.isNotEmpty()) {
-                        item {
-                            StatsSectionCard(
-                                title = "关键词云",
-                                subtitle = "你最常使用的词汇，反映近期关注点"
-                            ) {
-                                WordCloud(
-                                    words = state.topWords,
-                                    primaryColor = MaterialTheme.colorScheme.primary,
-                                    secondaryColor = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                        }
+                    item {
+                        WordCloudSection(
+                            state = state,
+                            onPeriodChange = { viewModel.setWordCloudPeriod(it) }
+                        )
                     }
 
                     if (state.weatherDistribution.isNotEmpty() || state.tagUsage.isNotEmpty()) {
@@ -564,6 +556,71 @@ private fun RangeChip(
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = content
         )
+    }
+}
+
+@Composable
+private fun WordCloudSection(
+    state: StatsState,
+    onPeriodChange: (WordCloudPeriod) -> Unit
+) {
+    StatsSectionCard(
+        title = "关键词云",
+        subtitle = if (state.isAiConfigured) "AI 提取的关键词，反映你的关注点" else "配置 AI 后可生成关键词云"
+    ) {
+        // Period selector
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WordCloudPeriod.entries.forEach { period ->
+                val selected = state.wordCloudPeriod == period
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        )
+                        .clickable { onPeriodChange(period) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = period.label,
+                        fontSize = 12.sp,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (!state.isAiConfigured) {
+            InlineEmptyHint("在设置中配置 AI 服务后即可使用")
+        } else if (state.isWordCloudLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 2.5.dp
+                )
+            }
+        } else if (state.topWords.isNotEmpty()) {
+            WordCloud(
+                words = state.topWords,
+                primaryColor = MaterialTheme.colorScheme.primary,
+                secondaryColor = MaterialTheme.colorScheme.tertiary
+            )
+        } else {
+            InlineEmptyHint("该时间段暂无足够数据")
+        }
     }
 }
 

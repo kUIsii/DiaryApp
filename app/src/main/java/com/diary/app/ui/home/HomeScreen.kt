@@ -522,26 +522,17 @@ private fun CalendarSection(
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        innerPadding = 12.dp
+        cornerRadius = 18.dp,
+        innerPadding = 0.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                text = "日期选择",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            CalendarView(
-                entryDates = entryDates,
-                dayInfoMap = dayInfoMap,
-                selectedDate = selectedDate,
-                onDateSelected = onDateSelected,
-                calendarMode = calendarMode,
-                onModeChange = onModeChange
-            )
-        }
+        CalendarView(
+            entryDates = entryDates,
+            dayInfoMap = dayInfoMap,
+            selectedDate = selectedDate,
+            onDateSelected = onDateSelected,
+            calendarMode = calendarMode,
+            onModeChange = onModeChange
+        )
     }
 }
 
@@ -1095,10 +1086,12 @@ private fun HomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 12.dp,
-        innerPadding = 4.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(horizontal = 10.dp, vertical = 2.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1107,8 +1100,8 @@ private fun HomeSearchBar(
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.padding(start = 10.dp, end = 6.dp).size(18.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                modifier = Modifier.size(16.dp)
             )
             TextField(
                 value = query,
@@ -1116,9 +1109,9 @@ private fun HomeSearchBar(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        "搜索日记...",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        "搜索",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                     )
                 },
                 colors = TextFieldDefaults.colors(
@@ -1128,19 +1121,22 @@ private fun HomeSearchBar(
                     unfocusedIndicatorColor = Color.Transparent
                 ),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
             )
             if (query.isNotBlank()) {
-                androidx.compose.material3.IconButton(
-                    onClick = { onQueryChange("") },
-                    modifier = Modifier.size(40.dp)
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .clickable { onQueryChange("") },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "清除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }

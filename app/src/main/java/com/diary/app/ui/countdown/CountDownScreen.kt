@@ -230,46 +230,64 @@ private fun CountDownOverviewCard(
     items: List<CountDownItem>,
     viewModel: CountDownViewModel
 ) {
-    val pinnedCount = items.count { it.isPinned }
-    val upcomingCount = items.count { viewModel.getDaysRemaining(it) >= 0 }
-    val nearest = items.minByOrNull { kotlin.math.abs(viewModel.getDaysRemaining(it)) }
+    val now = java.time.LocalDate.now()
+    val upcoming = items.filter { viewModel.getDaysRemaining(it) >= 0 }
+        .sortedBy { viewModel.getDaysRemaining(it) }
+    val nearest = upcoming.firstOrNull()
+    val nearestDays = nearest?.let { viewModel.getDaysRemaining(it) }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
+        cornerRadius = 18.dp,
         innerPadding = 16.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "把重要日期和后续动作放进同一条节奏里，方便继续补充提醒和说明。",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CountDownPill(text = "进行中 $upcomingCount")
-                CountDownPill(text = "已置顶 $pinnedCount")
-                nearest?.let {
-                    CountDownPill(text = "最近 ${it.title.take(6)}")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (nearest != null && nearestDays != null) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = nearest.title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = when {
+                            nearestDays == 0L -> "就是今天"
+                            nearestDays <= 7 -> "还有 $nearestDays 天"
+                            else -> "还有 $nearestDays 天"
+                        },
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = nearest.color.toColor()
+                    )
                 }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "即将到来",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${upcoming.size} 个待办",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    text = "暂无即将到来的日期",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun CountDownPill(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -307,33 +325,48 @@ private fun CountDownItemCard(
                 indication = null,
                 onClick = onClick
             ),
-        cornerRadius = 18.dp,
-        innerPadding = 16.dp
+        cornerRadius = 16.dp,
+        innerPadding = 14.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(item.color.toColor().copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            // Days number - prominent display
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(56.dp)
             ) {
                 Text(
                     text = when {
-                        daysRemaining == 0L -> "今"
-                        isPast -> "过"
-                        else -> "计"
+                        daysRemaining == 0L -> "今天"
+                        isPast -> "${-daysRemaining}"
+                        else -> "$daysRemaining"
                     },
-                    fontSize = 18.sp,
+                    fontSize = if (daysRemaining == 0L) 18.sp else 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = item.color.toColor()
                 )
+                if (daysRemaining != 0L) {
+                    Text(
+                        text = if (isPast) "天前" else "天",
+                        fontSize = 11.sp,
+                        color = item.color.toColor().copy(alpha = 0.7f)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Vertical divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -342,52 +375,36 @@ private fun CountDownItemCard(
                 ) {
                     Text(
                         text = item.title,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     if (item.isPinned) {
-                        CountDownPill(text = "置顶")
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(12.dp)
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = targetDate.format(DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日")),
+                    text = targetDate.format(DateTimeFormatter.ofPattern("M月d日 · EEEE")),
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = when {
-                        daysRemaining == 0L -> "今天就是这一天"
-                        isPast -> "已经过去 ${-daysRemaining} 天"
-                        else -> "还有 $daysRemaining 天"
-                    },
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = item.color.toColor()
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                IconButton(onClick = onPin, modifier = Modifier.size(38.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.PushPin,
-                        contentDescription = if (item.isPinned) "取消置顶" else "置顶",
-                        tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(onClick = onDelete, modifier = Modifier.size(38.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
