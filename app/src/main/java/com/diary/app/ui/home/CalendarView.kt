@@ -489,7 +489,7 @@ private fun CalendarDay(
             .height(36.dp)
             .padding(2.dp)
             .scale(animatedScale)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(CircleShape)
             .background(backgroundBrush)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

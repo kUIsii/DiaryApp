@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -726,6 +727,7 @@ private fun HomeEntryCard(
 
     val moodData = entry.moodLevel?.let { moodIconForLevel(it) }
     val weatherData = entry.weather?.let { weatherIconFor(it) }
+    val hasImage = !imagePath.isNullOrBlank()
 
     Box(
         modifier = Modifier
@@ -760,31 +762,40 @@ private fun HomeEntryCard(
             innerPadding = 0.dp
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Background image overlay for entries with images
-                if (!imagePath.isNullOrBlank()) {
+                // Background: image full coverage or light mood color
+                if (hasImage) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(File(imagePath))
+                            .data(File(imagePath!!))
                             .crossfade(true)
-                            .size(200)
+                            .size(400)
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(160.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .alpha(0.12f)
                     )
-                }
-
-                // Mood color bar for entries without images
-                if (imagePath.isNullOrBlank() && moodData != null) {
+                    // Dark overlay for text readability
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.35f),
+                                        Color.Black.copy(alpha = 0.55f)
+                                    )
+                                )
+                            )
+                    )
+                } else if (moodData != null) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .width(4.dp)
-                            .background(moodData.tint)
+                            .background(moodData.tint.copy(alpha = 0.07f))
                     )
                 }
 
@@ -820,14 +831,14 @@ private fun HomeEntryCard(
                             text = formatEntryTime(entry.createdAt),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (hasImage) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = entry.title.ifBlank { "未命名日记" },
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (hasImage) Color.White else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -837,28 +848,11 @@ private fun HomeEntryCard(
                                 text = cleanPreviewText(entry.plainText),
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (hasImage) Color.White.copy(alpha = 0.78f) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-
-                    if (!imagePath.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.width(12.dp))
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(File(imagePath))
-                                .crossfade(true)
-                                .size(144)
-                                .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(68.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                        )
                     }
                 }
 
@@ -867,14 +861,14 @@ private fun HomeEntryCard(
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            tint = if (hasImage) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = entry.location,
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                            color = if (hasImage) Color.White.copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -891,16 +885,16 @@ private fun HomeEntryCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         moodData?.let { mood ->
-                            MetaChip(icon = mood.icon, label = moodLabelForLevel(entry.moodLevel), tint = mood.tint)
+                            MetaChip(icon = mood.icon, label = moodLabelForLevel(entry.moodLevel), tint = if (hasImage) Color.White.copy(alpha = 0.8f) else mood.tint)
                         }
                         weatherData?.let { weather ->
-                            MetaChip(icon = weather.icon, label = weatherLabelFor(entry.weather), tint = weather.tint)
+                            MetaChip(icon = weather.icon, label = weatherLabelFor(entry.weather), tint = if (hasImage) Color.White.copy(alpha = 0.7f) else weather.tint)
                         }
                         tags.take(2).forEach { tag ->
-                            ColorTagChip(tag = tag)
+                            ColorTagChip(tag = tag, lightMode = hasImage)
                         }
                         if (tags.size > 2) {
-                            SubtleTextChip(text = "+${tags.size - 2}")
+                            SubtleTextChip(text = "+${tags.size - 2}", lightMode = hasImage)
                         }
                     }
                 }
@@ -930,26 +924,27 @@ private fun MetaChip(
 }
 
 @Composable
-private fun ColorTagChip(tag: TagInfo) {
+private fun ColorTagChip(tag: TagInfo, lightMode: Boolean = false) {
+    val chipColor = if (lightMode) Color.White else tag.color
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(tag.color.copy(alpha = 0.10f))
+            .background(chipColor.copy(alpha = if (lightMode) 0.18f else 0.10f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = tag.name, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = tag.color)
+        Text(text = tag.name, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (lightMode) Color.White.copy(alpha = 0.85f) else tag.color)
     }
 }
 
 @Composable
-private fun SubtleTextChip(text: String) {
+private fun SubtleTextChip(text: String, lightMode: Boolean = false) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .background(if (lightMode) Color.White.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = text, fontSize = 10.sp, color = if (lightMode) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

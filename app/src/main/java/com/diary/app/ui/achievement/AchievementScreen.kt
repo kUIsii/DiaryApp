@@ -20,23 +20,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Label
-import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.BookmarkAdded
+import androidx.compose.material.icons.filled.CollectionsBookmark
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.NewLabel
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.TextSnippet
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -60,22 +60,22 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 private fun iconForName(name: String): ImageVector = when (name) {
-    "Edit" -> Icons.Default.Edit
-    "MenuBook" -> Icons.Default.MenuBook
-    "EmojiEvents" -> Icons.Default.EmojiEvents
-    "Diamond" -> Icons.Default.Diamond
-    "LocalFireDepartment" -> Icons.Default.LocalFireDepartment
-    "Star" -> Icons.Default.Star
-    "EditNote" -> Icons.Default.EditNote
-    "LibraryBooks" -> Icons.Default.LibraryBooks
-    "Palette" -> Icons.Default.Palette
-    "Cloud" -> Icons.Default.Cloud
-    "DarkMode" -> Icons.Default.DarkMode
-    "WbSunny" -> Icons.Default.WbSunny
-    "Favorite" -> Icons.Default.Favorite
-    "AutoAwesome" -> Icons.Default.AutoAwesome
-    "Label" -> Icons.Default.Label
-    "Image" -> Icons.Default.Image
+    "AutoFixHigh" -> Icons.Default.AutoFixHigh
+    "HistoryEdu" -> Icons.Default.HistoryEdu
+    "MilitaryTech" -> Icons.Default.MilitaryTech
+    "Whatshot" -> Icons.Default.Whatshot
+    "TrendingUp" -> Icons.Default.TrendingUp
+    "DateRange" -> Icons.Default.DateRange
+    "TextSnippet" -> Icons.Default.TextSnippet
+    "AutoStories" -> Icons.Default.AutoStories
+    "SentimentSatisfied" -> Icons.Default.SentimentSatisfied
+    "Thunderstorm" -> Icons.Default.Thunderstorm
+    "NightsStay" -> Icons.Default.NightsStay
+    "LightMode" -> Icons.Default.LightMode
+    "BookmarkAdded" -> Icons.Default.BookmarkAdded
+    "CollectionsBookmark" -> Icons.Default.CollectionsBookmark
+    "NewLabel" -> Icons.Default.NewLabel
+    "PhotoLibrary" -> Icons.Default.PhotoLibrary
     else -> Icons.Default.Star
 }
 

@@ -3,9 +3,13 @@ package com.diary.app.ui.profile
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -121,11 +128,14 @@ fun TagManagementScreen(
         }
     }
 
+    val existingColorSet = remember(allTags) { allTags.map { it.color }.toSet() }
+
     if (showCreateDialog) {
         TagEditDialog(
             title = "新建标签",
             initialName = "",
             initialColor = presetColors.random(),
+            existingColors = existingColorSet,
             onDismiss = { showCreateDialog = false },
             onConfirm = { name, color ->
                 scope.launch {
@@ -147,6 +157,8 @@ fun TagManagementScreen(
             title = "编辑标签",
             initialName = tag.name,
             initialColor = tag.color,
+            existingColors = existingColorSet,
+            editingTagId = tag.id,
             onDismiss = { editingTag = null },
             onConfirm = { name, color ->
                 scope.launch { dao.updateTagById(tag.id, name.trim(), color) }
@@ -401,6 +413,8 @@ private fun TagEditDialog(
     title: String,
     initialName: String,
     initialColor: Long,
+    existingColors: Set<Long> = emptySet(),
+    editingTagId: Long? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, Long) -> Unit
 ) {
@@ -434,105 +448,57 @@ private fun TagEditDialog(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Hue wheel - arranged in a circle
-                val hueStops = listOf(
-                    0f, 30f, 60f, 90f, 120f, 150f,
-                    180f, 210f, 240f, 270f, 300f, 330f
-                )
+                // HSV Color Wheel
                 val selectedHsv = FloatArray(3)
                 android.graphics.Color.colorToHSV(selectedColor.toInt(), selectedHsv)
-                val selectedHue = selectedHsv[0]
+                var hue by remember { mutableStateOf(selectedHsv[0]) }
+                var sat by remember { mutableStateOf(selectedHsv[1]) }
+                var bri by remember { mutableStateOf(selectedHsv[2]) }
 
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val ringSize = 140.dp
-                    val dotSize = 28.dp
-                    Box(modifier = Modifier.size(ringSize)) {
-                        hueStops.forEachIndexed { index, hue ->
-                            val angleRad = Math.toRadians((hue - 90f).toDouble())
-                            val radiusDp = ringSize / 2 - dotSize / 2
-                            val cosVal = kotlin.math.cos(angleRad).toFloat()
-                            val sinVal = kotlin.math.sin(angleRad).toFloat()
-                            val x = radiusDp * cosVal
-                            val y = radiusDp * sinVal
-                            val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.85f, 0.95f)))
-                            val isHueSelected = kotlin.math.abs(hue - selectedHue) < 15f
-                            Box(
-                                modifier = Modifier
-                                    .size(dotSize)
-                                    .offset { IntOffset(x.roundToPx(), y.roundToPx()) }
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(
-                                        width = if (isHueSelected) 2.5.dp else 0.dp,
-                                        color = if (isHueSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                                        shape = CircleShape
-                                    )
-                                    .clickable {
-                                        selectedColor = android.graphics.Color.HSVToColor(
-                                            floatArrayOf(hue, 0.85f, 0.95f)
-                                        ).toLong() and 0xFFFFFFFFL
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isHueSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.9f))
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Saturation/lightness variants for selected hue
-                Text(
-                    text = "深浅",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                HsvColorWheel(
+                    hue = hue,
+                    saturation = sat,
+                    brightness = bri,
+                    onHueChange = { newHue ->
+                        hue = newHue
+                        selectedColor = android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, bri)).toLong() and 0xFFFFFFFFL
+                    },
+                    onSatBriChange = { newSat, newBri ->
+                        sat = newSat
+                        bri = newBri
+                        selectedColor = android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, bri)).toLong() and 0xFFFFFFFFL
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                val satVariants = listOf(0.3f, 0.5f, 0.7f, 0.85f, 1.0f)
-                val brightVariants = listOf(0.95f, 0.85f, 0.7f, 0.55f, 0.4f)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Color preview + duplicate warning
+                val isDuplicate = existingColors.contains(selectedColor) && selectedColor != initialColor
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    satVariants.zip(brightVariants).forEach { (sat, bri) ->
-                        val variantColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(selectedHue, sat, bri)))
-                        val isSelected = variantColor == Color(selectedColor)
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(variantColor)
-                                .border(
-                                    width = if (isSelected) 2.dp else 0.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    selectedColor = android.graphics.Color.HSVToColor(
-                                        floatArrayOf(selectedHue, sat, bri)
-                                    ).toLong() and 0xFFFFFFFFL
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isSelected) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.9f))
-                                )
-                            }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(selectedColor))
+                            .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                    )
+                    Column {
+                        Text(
+                            text = "#${selectedColor.toULong().toString(16).uppercase().takeLast(6)}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (isDuplicate) {
+                            Text(
+                                text = "该颜色已被其他标签使用",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -556,4 +522,173 @@ private fun TagEditDialog(
             }
         }
     )
+}
+
+@Composable
+private fun HsvColorWheel(
+    hue: Float,
+    saturation: Float,
+    brightness: Float,
+    onHueChange: (Float) -> Unit,
+    onSatBriChange: (Float, Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        // Hue ring
+        Box(
+            modifier = Modifier.size(160.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .size(160.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            val center = Offset(size.width / 2f, size.height / 2f)
+                            val dx = offset.x - center.x
+                            val dy = offset.y - center.y
+                            val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+                            val outerR = size.width / 2f
+                            val ringWidth = outerR * 0.18f
+                            if (dist in (outerR - ringWidth)..outerR || dist in (outerR - ringWidth * 2)..outerR) {
+                                val angle = Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()
+                                val newHue = (angle + 360f) % 360f
+                                onHueChange(newHue)
+                            }
+                        }
+                    }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, _ ->
+                            val center = Offset(size.width / 2f, size.height / 2f)
+                            val dx = change.position.x - center.x
+                            val dy = change.position.y - center.y
+                            val angle = Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()
+                            val newHue = (angle + 360f) % 360f
+                            onHueChange(newHue)
+                            change.consume()
+                        }
+                    }
+            ) {
+                val outerR = size.width / 2f
+                val ringWidth = outerR * 0.18f
+                val innerR = outerR - ringWidth
+
+                // Draw hue ring using sweep gradient approximation via individual arcs
+                for (i in 0 until 360) {
+                    val startAngle = i.toFloat() - 90f
+                    val sweepAngle = 1.5f
+                    val arcColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(i.toFloat(), 1f, 1f)))
+                    drawArc(
+                        color = arcColor,
+                        startAngle = startAngle,
+                        sweepAngle = sweepAngle,
+                        useCenter = false,
+                        topLeft = Offset.Zero,
+                        size = size.copy(width = size.width, height = size.height),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = ringWidth)
+                    )
+                }
+
+                // Hue indicator
+                val indicatorAngle = Math.toRadians((hue - 90f).toDouble())
+                val indicatorR = outerR - ringWidth / 2f
+                val ix = center.x + indicatorR * kotlin.math.cos(indicatorAngle).toFloat()
+                val iy = center.y + indicatorR * kotlin.math.sin(indicatorAngle).toFloat()
+                drawCircle(color = Color.White, radius = ringWidth * 0.55f, center = Offset(ix, iy))
+                drawCircle(
+                    color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))),
+                    radius = ringWidth * 0.4f,
+                    center = Offset(ix, iy)
+                )
+
+                // Saturation-brightness square in the center
+                val sqSize = innerR * 1.2f
+                val sqLeft = center.x - sqSize / 2f
+                val sqTop = center.y - sqSize / 2f
+
+                // Draw SB square: horizontal = saturation, vertical = brightness
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(Color.White, Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))))
+                    ),
+                    topLeft = Offset(sqLeft, sqTop),
+                    size = androidx.compose.ui.geometry.Size(sqSize, sqSize)
+                )
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black)
+                    ),
+                    topLeft = Offset(sqLeft, sqTop),
+                    size = androidx.compose.ui.geometry.Size(sqSize, sqSize)
+                )
+
+                // SB indicator
+                val sbX = sqLeft + saturation * sqSize
+                val sbY = sqTop + (1f - brightness) * sqSize
+                drawCircle(color = Color.White, radius = 8f, center = Offset(sbX, sbY))
+                drawCircle(
+                    color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, brightness))),
+                    radius = 5.5f,
+                    center = Offset(sbX, sbY)
+                )
+            }
+
+            // Tap/drag on SB square (overlay for gesture detection)
+            Box(
+                modifier = Modifier
+                    .size(90.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            val newSat = (offset.x / size.width).coerceIn(0f, 1f)
+                            val newBri = 1f - (offset.y / size.height).coerceIn(0f, 1f)
+                            onSatBriChange(newSat, newBri)
+                        }
+                    }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, _ ->
+                            val newSat = (change.position.x / size.width).coerceIn(0f, 1f)
+                            val newBri = 1f - (change.position.y / size.height).coerceIn(0f, 1f)
+                            onSatBriChange(newSat, newBri)
+                            change.consume()
+                        }
+                    }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Quick preset colors
+        val currentColorLong = android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, brightness)).toLong() and 0xFFFFFFFFL
+        val presets = listOf(
+            0xFF667EEA, 0xFF4E8EF7, 0xFF4A90D9, 0xFF3AAFA9,
+            0xFF6FB98F, 0xFF7C6EE6, 0xFFF06292, 0xFFFF8A65,
+            0xFFFFD54F, 0xFF90A4AE, 0xFF78909C, 0xFF546E7A
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            presets.forEach { color ->
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(color))
+                        .border(
+                            width = if (color == currentColorLong) 2.dp else 0.dp,
+                            color = if (color == currentColorLong) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                            shape = CircleShape
+                        )
+                        .clickable {
+                            val hsv = FloatArray(3)
+                            android.graphics.Color.colorToHSV(color.toInt(), hsv)
+                            onHueChange(hsv[0])
+                            onSatBriChange(hsv[1], hsv[2])
+                        }
+                )
+            }
+        }
+    }
 }
