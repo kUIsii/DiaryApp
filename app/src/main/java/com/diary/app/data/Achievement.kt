@@ -13,7 +13,7 @@ data class Achievement(
     val key: String,
     val name: String,
     val description: String,
-    val iconEmoji: String,
+    val iconName: String,
     val unlockedAt: Long? = null,
     val progress: Int = 0,
     val target: Int = 1

@@ -121,9 +121,8 @@ fun HomeScreen(
 
     // Random review state
     var randomEntry by remember { mutableStateOf<DiaryPreview?>(null) }
-    var randomRefreshTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(randomRefreshTrigger) {
+    LaunchedEffect(Unit) {
         val id = viewModel.getRandomEntryId()
         randomEntry = if (id != null) viewModel.getEntryPreview(id) else null
     }
@@ -181,6 +180,11 @@ fun HomeScreen(
                         stats = stats,
                         unreadCount = unreadCount,
                         aiInsight = aiInsight,
+                        randomEntry = if (searchQuery.isBlank()) randomEntry else null,
+                        onRandomClick = {
+                            haptic.click()
+                            randomEntry?.let { onNavigateToDetail(it.id) }
+                        },
                         onNotificationsClick = {
                             haptic.click()
                             onNavigateToNotifications()
@@ -218,17 +222,6 @@ fun HomeScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                         }
-                    }
-                }
-
-                // Random review card (hidden when searching)
-                if (searchQuery.isBlank() && randomEntry != null) {
-                    item {
-                        RandomReviewCard(
-                            entry = randomEntry!!,
-                            onRefresh = { randomRefreshTrigger++ },
-                            onClick = { onNavigateToDetail(randomEntry!!.id) }
-                        )
                     }
                 }
 
@@ -352,6 +345,8 @@ private fun HomeHeroSection(
     stats: HomeStats,
     unreadCount: Int,
     aiInsight: AiInsight?,
+    randomEntry: DiaryPreview?,
+    onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAiClick: () -> Unit
 ) {
@@ -391,6 +386,13 @@ private fun HomeHeroSection(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (randomEntry != null) {
+                    HomeHeaderAction(
+                        icon = Icons.Default.AutoAwesome,
+                        contentDescription = "随机回顾",
+                        onClick = onRandomClick
+                    )
+                }
                 HomeHeaderAction(
                     icon = Icons.Default.Notifications,
                     contentDescription = "通知",
@@ -1125,78 +1127,6 @@ private fun SearchResultCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp).padding(start = 8.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RandomReviewCard(
-    entry: DiaryPreview,
-    onRefresh: () -> Unit,
-    onClick: () -> Unit
-) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 14.dp,
-        innerPadding = 14.dp
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "随机回顾",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                )
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "换一篇",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clickable { onRefresh() }
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.title.ifBlank { "无标题" },
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (entry.plainText.isNotBlank()) {
-                        Text(
-                            text = cleanPreviewText(entry.plainText),
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-                entry.moodLevel?.let { level ->
-                    Icon(
-                        imageVector = moodIconForLevel(level).icon,
-                        contentDescription = moodLabelForLevel(level),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(22.dp).padding(start = 8.dp)
-                    )
-                }
             }
         }
     }

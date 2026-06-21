@@ -12,27 +12,27 @@ object AchievementManager {
         val key: String,
         val name: String,
         val description: String,
-        val iconEmoji: String,
+        val iconName: String,
         val target: Int
     )
 
     val ACHIEVEMENTS = listOf(
-        AchievementDef("first_entry", "初出茅庐", "写下第一篇日记", "\u270D\uFE0F", 1),
-        AchievementDef("entries_10", "笔耕不辍", "累计写下 10 篇日记", "\uD83D\uDCD6", 10),
-        AchievementDef("entries_50", "日记达人", "累计写下 50 篇日记", "\uD83C\uDFC6", 50),
-        AchievementDef("entries_100", "百篇里程碑", "累计写下 100 篇日记", "\uD83D\uDC8E", 100),
-        AchievementDef("streak_7", "一周坚持", "连续 7 天写日记", "\uD83D\uDD25", 7),
-        AchievementDef("streak_30", "月度坚持", "连续 30 天写日记", "\u2B50", 30),
-        AchievementDef("words_10000", "万字作者", "累计写作 10,000 字", "\uD83D\uDCDD", 10000),
-        AchievementDef("words_100000", "十万字巨匠", "累计写作 100,000 字", "\uD83D\uDCDA", 100000),
-        AchievementDef("moods_5", "情绪丰富", "使用 5 种不同心情", "\uD83C\uDFA8", 5),
-        AchievementDef("all_weather", "风雨无阻", "在所有天气类型下写过日记", "\uD83C\uDF0D", 6),
-        AchievementDef("night_writer", "夜猫子", "在凌晨 0-5 点写日记", "\uD83C\uDF19", 1),
-        AchievementDef("early_bird", "早起鸟", "在早上 5-7 点写日记", "\uD83C\uDF05", 1),
-        AchievementDef("favorite_1", "收藏家", "收藏第一篇日记", "\u2764\uFE0F", 1),
-        AchievementDef("favorites_10", "珍藏满满", "收藏 10 篇日记", "\uD83D\uDC96", 10),
-        AchievementDef("tags_5", "标签达人", "创建 5 个标签", "\uD83C\uDFF7\uFE0F", 5),
-        AchievementDef("images_10", "图文并茂", "在日记中添加 10 张图片", "\uD83D\uDCF7", 10),
+        AchievementDef("first_entry", "初出茅庐", "写下第一篇日记", "Edit", 1),
+        AchievementDef("entries_10", "笔耕不辍", "累计写下 10 篇日记", "MenuBook", 10),
+        AchievementDef("entries_50", "日记达人", "累计写下 50 篇日记", "EmojiEvents", 50),
+        AchievementDef("entries_100", "百篇里程碑", "累计写下 100 篇日记", "Diamond", 100),
+        AchievementDef("streak_7", "一周坚持", "连续 7 天写日记", "LocalFireDepartment", 7),
+        AchievementDef("streak_30", "月度坚持", "连续 30 天写日记", "Star", 30),
+        AchievementDef("words_10000", "万字作者", "累计写作 10,000 字", "EditNote", 10000),
+        AchievementDef("words_100000", "十万字巨匠", "累计写作 100,000 字", "LibraryBooks", 100000),
+        AchievementDef("moods_5", "情绪丰富", "使用 5 种不同心情", "Palette", 5),
+        AchievementDef("all_weather", "风雨无阻", "在所有天气类型下写过日记", "Cloud", 6),
+        AchievementDef("night_writer", "夜猫子", "在凌晨 0-5 点写日记", "DarkMode", 1),
+        AchievementDef("early_bird", "早起鸟", "在早上 5-7 点写日记", "WbSunny", 1),
+        AchievementDef("favorite_1", "收藏家", "收藏第一篇日记", "Favorite", 1),
+        AchievementDef("favorites_10", "珍藏满满", "收藏 10 篇日记", "AutoAwesome", 10),
+        AchievementDef("tags_5", "标签达人", "创建 5 个标签", "Label", 5),
+        AchievementDef("images_10", "图文并茂", "在日记中添加 10 张图片", "Image", 10),
     )
 
     fun initializeAchievements(scope: CoroutineScope, dao: AchievementDao) {
@@ -47,7 +47,7 @@ object AchievementManager {
                             key = def.key,
                             name = def.name,
                             description = def.description,
-                            iconEmoji = def.iconEmoji,
+                            iconName = def.iconName,
                             target = def.target
                         )
                     }

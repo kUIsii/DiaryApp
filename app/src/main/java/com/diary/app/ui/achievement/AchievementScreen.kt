@@ -20,6 +20,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +58,26 @@ import androidx.compose.ui.unit.sp
 import com.diary.app.data.Achievement
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+
+private fun iconForName(name: String): ImageVector = when (name) {
+    "Edit" -> Icons.Default.Edit
+    "MenuBook" -> Icons.Default.MenuBook
+    "EmojiEvents" -> Icons.Default.EmojiEvents
+    "Diamond" -> Icons.Default.Diamond
+    "LocalFireDepartment" -> Icons.Default.LocalFireDepartment
+    "Star" -> Icons.Default.Star
+    "EditNote" -> Icons.Default.EditNote
+    "LibraryBooks" -> Icons.Default.LibraryBooks
+    "Palette" -> Icons.Default.Palette
+    "Cloud" -> Icons.Default.Cloud
+    "DarkMode" -> Icons.Default.DarkMode
+    "WbSunny" -> Icons.Default.WbSunny
+    "Favorite" -> Icons.Default.Favorite
+    "AutoAwesome" -> Icons.Default.AutoAwesome
+    "Label" -> Icons.Default.Label
+    "Image" -> Icons.Default.Image
+    else -> Icons.Default.Star
+}
 
 @Composable
 fun AchievementScreen(
@@ -158,10 +196,12 @@ private fun AchievementCard(achievement: Achievement) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = achievement.iconEmoji,
-                    fontSize = 24.sp,
-                    color = if (isUnlocked) Color.Unspecified else Color.Gray
+                Icon(
+                    imageVector = iconForName(achievement.iconName),
+                    contentDescription = achievement.name,
+                    tint = if (isUnlocked) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(24.dp)
                 )
             }
 

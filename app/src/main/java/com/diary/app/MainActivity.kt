@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,6 +57,9 @@ import com.diary.app.biometric.BiometricHelper
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.lock.PinEntryScreen
 import com.diary.app.ui.navigation.DiaryNavHost
+import com.diary.app.ui.notification.InAppNotification
+import com.diary.app.ui.notification.InAppNotificationBanner
+import com.diary.app.ui.notification.InAppNotificationState
 import com.diary.app.ui.theme.DiaryAppTheme
 import com.diary.app.ui.theme.getFontScale
 import com.diary.app.ui.theme.isDarkStatic
@@ -350,10 +354,42 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
-                    DiaryNavHost(
-                        navigateTo = pendingNavigation,
-                        onNavigateHandled = { navigateTo.value = null }
-                    )
+                    val notificationState = remember { InAppNotificationState() }
+                    val dao = (application as DiaryApplication).database.diaryDao()
+                    var lastNotifCount by remember { mutableIntStateOf(0) }
+
+                    LaunchedEffect(Unit) {
+                        dao.getAllNotifications().collect { notifs ->
+                            val unread = notifs.filter { !it.isRead }
+                            if (unread.size > lastNotifCount && lastNotifCount > 0) {
+                                unread.maxByOrNull { it.createdAt }?.let { latest ->
+                                    notificationState.show(
+                                        InAppNotification(
+                                            id = latest.id,
+                                            title = latest.title,
+                                            subtitle = latest.subtitle
+                                        )
+                                    )
+                                }
+                            }
+                            lastNotifCount = unread.size
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        DiaryNavHost(
+                            navigateTo = pendingNavigation,
+                            onNavigateHandled = { navigateTo.value = null }
+                        )
+                        InAppNotificationBanner(
+                            state = notificationState,
+                            onClick = {
+                                // Navigate to notifications screen
+                                notificationState.dismiss()
+                            },
+                            modifier = Modifier.align(Alignment.TopCenter)
+                        )
+                    }
                 }
             }
         }
