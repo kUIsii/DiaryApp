@@ -595,6 +595,13 @@ interface DiaryDao {
 
     @Query("UPDATE chat_messages SET conversationId = :newConversationId WHERE conversationId = 0")
     suspend fun migrateOldMessages(newConversationId: Long)
+
+    // Storage management queries
+    @Query("SELECT COALESCE(SUM(fileSize), 0) FROM diary_images")
+    suspend fun getTotalImageFileSize(): Long
+
+    @Query("SELECT COUNT(*) FROM diary_images")
+    suspend fun getImageCount(): Int
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM
@@ -630,4 +637,10 @@ data class RecentLocation(
     val location: String,
     val latitude: Double?,
     val longitude: Double?
+)
+
+data class ImageStorageStat(
+    val entryId: Long,
+    val count: Int,
+    val totalSize: Long
 )

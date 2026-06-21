@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -38,6 +39,7 @@ val allShortcutOptions = listOf(
     QuickShortcutOption("notifications", "通知", Icons.Default.Notifications),
     QuickShortcutOption("backup", "备份", Icons.Default.Backup),
     QuickShortcutOption("tag_management", "标签管理", Icons.Default.Label),
+    QuickShortcutOption("storage", "存储", Icons.Default.Memory),
 )
 
 object QuickShortcutStore {

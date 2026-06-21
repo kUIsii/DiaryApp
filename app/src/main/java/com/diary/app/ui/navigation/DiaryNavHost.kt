@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
@@ -179,6 +179,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.LocationOn)
     object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
     object Achievements : Screen("achievements", "成就", Icons.Default.EmojiEvents)
+    object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
 }
 
 data class BottomNavItem(
@@ -269,6 +270,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
+                    onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,
@@ -316,6 +318,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToBiography = { navController.navigate(Screen.Biography.route) },
                     onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
                     onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
@@ -595,6 +598,18 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 val achievementViewModel: AchievementViewModel = viewModel()
                 AchievementScreen(
                     viewModel = achievementViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                Screen.Storage.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                com.diary.app.ui.storage.StorageScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

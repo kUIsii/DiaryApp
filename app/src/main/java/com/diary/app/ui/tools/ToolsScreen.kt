@@ -127,6 +127,7 @@ fun ToolsScreen(
     onNavigateToBiography: () -> Unit = {},
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
+    onNavigateToStorage: () -> Unit = {},
     onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
@@ -249,6 +250,17 @@ fun ToolsScreen(
                         textColor = textColor,
                         textTertiary = textTertiary,
                         onClick = onNavigateToAchievements
+                    )
+                    SettingDivider()
+                    ClickableToolRow(
+                        icon = Icons.Default.Memory,
+                        iconBg = sectionIconBg(0),
+                        iconTint = sectionIconTint(0),
+                        title = "存储管理",
+                        subtitle = "查看存储空间使用情况",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = onNavigateToStorage
                     )
                 }
 

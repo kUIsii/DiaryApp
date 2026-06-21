@@ -8,6 +8,8 @@ import com.diary.app.DiaryApplication
 import com.diary.app.ai.AiInsight
 import com.diary.app.ai.InsightGenerator
 import com.diary.app.data.DiaryEntry
+import com.diary.app.weather.CurrentWeather
+import com.diary.app.weather.WeatherManager
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
 import com.diary.app.data.normalizeContentForExport
@@ -132,6 +134,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _aiInsight = MutableStateFlow<AiInsight?>(null)
     val aiInsight: StateFlow<AiInsight?> = _aiInsight
+
+    private val _currentWeather = MutableStateFlow<CurrentWeather?>(null)
+    val currentWeather: StateFlow<CurrentWeather?> = _currentWeather
 
     val entryDates: StateFlow<Set<LocalDate>> = dao.getAllTimestamps()
         .map { timestamps ->
@@ -368,6 +373,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 _aiInsight.value = InsightGenerator.generate(app, dao, app.aiService)
             } catch (e: Exception) { android.util.Log.e("HomeViewModel", "Failed to load AI insight", e) }
+        }
+    }
+
+    fun loadWeather() {
+        val context = getApplication<Application>()
+        viewModelScope.launch {
+            try {
+                val cached = WeatherManager.getCachedWeather(context)
+                if (cached != null) {
+                    _currentWeather.value = cached
+                }
+                if (WeatherManager.isCacheStale(context)) {
+                    val fresh = WeatherManager.fetchWeather(context)
+                    if (fresh != null) _currentWeather.value = fresh
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("HomeViewModel", "Failed to load weather", e)
+            }
         }
     }
 

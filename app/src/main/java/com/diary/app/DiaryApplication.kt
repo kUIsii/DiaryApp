@@ -13,6 +13,7 @@ import com.diary.app.ai.AiServiceManager
 import com.diary.app.data.AchievementManager
 import com.diary.app.data.BackupManager
 import com.diary.app.data.TrashCleanupWorker
+import com.diary.app.weather.WeatherWorker
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 import com.diary.app.ui.theme.ThemeMode
@@ -49,6 +50,9 @@ class DiaryApplication : Application() {
         }
         // Schedule daily trash cleanup (delete entries older than 30 days)
         TrashCleanupWorker.schedule(this)
+        // Schedule periodic weather refresh
+        WeatherWorker.ensureChannel(this)
+        WeatherWorker.schedule(this)
 
         // Initialize achievements and check for unlocks
         try {

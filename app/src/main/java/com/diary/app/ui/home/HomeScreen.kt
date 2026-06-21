@@ -120,6 +120,7 @@ fun HomeScreen(
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
+    onNavigateToStorage: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -131,6 +132,7 @@ fun HomeScreen(
     val tagsMap by viewModel.tagsMap.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val aiInsight by viewModel.aiInsight.collectAsState()
+    val currentWeather by viewModel.currentWeather.collectAsState()
     val imageMap by viewModel.imageMap.collectAsState()
     val allImagesMap by viewModel.allImagesMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
@@ -160,6 +162,7 @@ fun HomeScreen(
             viewModel.selectDate(LocalDate.now())
         }
         viewModel.loadInsight()
+        viewModel.loadWeather()
     }
 
     LaunchedEffect(selectedDate) {
@@ -198,6 +201,7 @@ fun HomeScreen(
                         stats = stats,
                         unreadCount = unreadCount,
                         aiInsight = aiInsight,
+                        currentWeather = currentWeather,
                         randomEntry = if (searchQuery.isBlank()) randomEntry else null,
                         onRandomClick = {
                             haptic.click()
@@ -271,6 +275,7 @@ fun HomeScreen(
                                 "notifications" -> onNavigateToNotifications()
                                 "backup" -> onNavigateToBackup()
                                 "tag_management" -> onNavigateToTagManagement()
+                                "storage" -> onNavigateToStorage()
                             }
                         }
                     )
@@ -386,6 +391,7 @@ private fun HomeHeroSection(
     stats: HomeStats,
     unreadCount: Int,
     aiInsight: AiInsight?,
+    currentWeather: com.diary.app.weather.CurrentWeather?,
     randomEntry: DiaryPreview?,
     onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
@@ -453,6 +459,15 @@ private fun HomeHeroSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (currentWeather != null && currentWeather.weather.isNotBlank()) {
+                CompactStatChip(
+                    icon = com.diary.app.ui.components.weatherIconForType(
+                        com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
+                    ),
+                    text = "${currentWeather.weather} ${currentWeather.temperature}°C",
+                    modifier = Modifier.weight(1f)
+                )
+            }
             CompactStatChip(
                 icon = Icons.Default.Edit,
                 text = "连续 ${stats.streak} 天",
