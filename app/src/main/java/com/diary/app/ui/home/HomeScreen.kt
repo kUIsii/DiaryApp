@@ -111,6 +111,15 @@ fun HomeScreen(
     onNavigateToTimeline: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {},
+    onNavigateToCountDown: () -> Unit = {},
+    onNavigateToTimeCapsule: () -> Unit = {},
+    onNavigateToMediaLibrary: () -> Unit = {},
+    onNavigateToDiaryMap: () -> Unit = {},
+    onNavigateToBiography: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
+    onNavigateToTagManagement: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -261,10 +270,23 @@ fun HomeScreen(
                 // Quick shortcuts
                 item {
                     QuickShortcutsSection(
-                        onNavigateToStats = onNavigateToTimeline, // placeholder
-                        onNavigateToCountDown = onNavigateToTimeline, // placeholder
-                        onNavigateToAiAssistant = onNavigateToAiAssistant,
-                        onNavigateToFavorites = onNavigateToFavorites
+                        onNavigate = { route ->
+                            when (route) {
+                                "stats" -> onNavigateToStats()
+                                "countdown" -> onNavigateToCountDown()
+                                "ai_assistant" -> onNavigateToAiAssistant()
+                                "favorites" -> onNavigateToFavorites()
+                                "time_capsule" -> onNavigateToTimeCapsule()
+                                "media_library" -> onNavigateToMediaLibrary()
+                                "diary_map" -> onNavigateToDiaryMap()
+                                "biography" -> onNavigateToBiography()
+                                "achievements" -> onNavigateToAchievements()
+                                "timeline" -> onNavigateToTimeline()
+                                "notifications" -> onNavigateToNotifications()
+                                "backup" -> onNavigateToBackup()
+                                "tag_management" -> onNavigateToTagManagement()
+                            }
+                        }
                     )
                 }
 
@@ -551,29 +573,22 @@ private fun CalendarSection(
 
 @Composable
 private fun QuickShortcutsSection(
-    onNavigateToStats: () -> Unit,
-    onNavigateToCountDown: () -> Unit,
-    onNavigateToAiAssistant: () -> Unit,
-    onNavigateToFavorites: () -> Unit
+    onNavigate: (String) -> Unit
 ) {
-    val shortcuts = remember {
-        listOf(
-            Triple("统计", Icons.Default.BarChart, onNavigateToStats),
-            Triple("倒数日", Icons.Default.Timer, onNavigateToCountDown),
-            Triple("AI 助手", Icons.Default.AutoAwesome, onNavigateToAiAssistant),
-            Triple("收藏", Icons.Default.Favorite, onNavigateToFavorites)
-        )
-    }
+    val context = LocalContext.current
+    var shortcutRoutes by remember { mutableStateOf(QuickShortcutStore.getShortcuts(context)) }
+    var showPicker by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        shortcuts.forEach { (title, icon, onClick) ->
+        shortcutRoutes.forEach { route ->
+            val option = QuickShortcutStore.getOption(route) ?: return@forEach
             GlassCard(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { onClick() },
+                    .clickable { onNavigate(route) },
                 cornerRadius = 14.dp,
                 innerPadding = 12.dp
             ) {
@@ -589,7 +604,7 @@ private fun QuickShortcutsSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = icon,
+                            imageVector = option.icon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
@@ -597,13 +612,60 @@ private fun QuickShortcutsSection(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = title,
+                        text = option.label,
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+
+        // Edit button
+        GlassCard(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { showPicker = true },
+            cornerRadius = 14.dp,
+            innerPadding = 12.dp
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "编辑",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "编辑",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    if (showPicker) {
+        QuickShortcutPickerSheet(
+            currentRoutes = shortcutRoutes,
+            onDismiss = { showPicker = false },
+            onConfirm = { newRoutes ->
+                QuickShortcutStore.setShortcuts(context, newRoutes)
+                shortcutRoutes = newRoutes
+                showPicker = false
+            }
+        )
     }
 }
 

@@ -310,14 +310,6 @@ private fun CountDownItemCard(
     val targetDate = Instant.ofEpochMilli(item.targetDate)
         .atZone(ZoneId.systemDefault())
         .toLocalDate()
-    val today = LocalDate.now()
-
-    // Determine display text
-    val daysText = when {
-        daysRemaining == 0L -> "就是今天"
-        daysRemaining > 0 -> "还有 ${daysRemaining} 天"
-        else -> "已过 ${-daysRemaining} 天"
-    }
 
     GlassCard(
         modifier = Modifier
@@ -338,48 +330,84 @@ private fun CountDownItemCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Color indicator
+            // Left: Days number column
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(56.dp)
+            ) {
+                Text(
+                    text = when {
+                        daysRemaining == 0L -> "今天"
+                        daysRemaining > 0 -> "$daysRemaining"
+                        else -> "${-daysRemaining}"
+                    },
+                    fontSize = if (daysRemaining == 0L) 18.sp else 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = item.color.toColor()
+                )
+                if (daysRemaining != 0L) {
+                    Text(
+                        text = if (daysRemaining < 0) "天前" else "天",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = item.color.toColor().copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Vertical divider
             Box(
                 modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(item.color.toColor())
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
+            // Right: Title + date
             Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (item.isPinned) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = item.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = daysText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = item.color.toColor()
-                )
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = targetDate.format(DateTimeFormatter.ofPattern("M/d")),
+                    text = targetDate.format(DateTimeFormatter.ofPattern("M月d日 · EEEE")),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
-                if (item.isPinned) {
-                    Icon(
-                        imageVector = Icons.Default.PushPin,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(10.dp)
-                    )
-                }
+            }
+
+            // Delete button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

@@ -565,8 +565,8 @@ private fun WordCloudSection(
     onPeriodChange: (WordCloudPeriod) -> Unit
 ) {
     StatsSectionCard(
-        title = "关键词云",
-        subtitle = if (state.isAiConfigured) "AI 提取的关键词，反映你的关注点" else "配置 AI 后可生成关键词云"
+        title = "词云",
+        subtitle = if (state.isAiConfigured) "AI 提取的关键词，反映你的关注点" else "配置 AI 后可自动生成词云"
     ) {
         // Period selector
         Row(
@@ -599,7 +599,7 @@ private fun WordCloudSection(
         }
 
         if (!state.isAiConfigured) {
-            InlineEmptyHint("在设置中配置 AI 服务后即可使用")
+            InlineEmptyHint("配置 AI 服务后，可自动生成词云")
         } else if (state.isWordCloudLoading) {
             Box(
                 modifier = Modifier

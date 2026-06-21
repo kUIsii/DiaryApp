@@ -92,19 +92,25 @@ fun WordCloud(
     val maxCount = remember(words) { words.maxOf { it.count } }
     val minCount = remember(words) { words.minOf { it.count } }
 
-    // Pre-calculate word placements using a simple spiral algorithm
-    val placements = remember(words) {
-        calculateWordPlacements(
+    Canvas(modifier = modifier.fillMaxWidth().height(220.dp)) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
+        val centerX = canvasWidth / 2f
+        val centerY = canvasHeight / 2f
+
+        val placements = calculateWordPlacements(
             words = words,
             maxCount = maxCount,
             minCount = minCount,
             primaryColor = primaryColor,
             secondaryColor = secondaryColor,
-            textMeasurer = textMeasurer
+            textMeasurer = textMeasurer,
+            canvasWidth = canvasWidth,
+            canvasHeight = canvasHeight,
+            centerX = centerX,
+            centerY = centerY
         )
-    }
 
-    Canvas(modifier = modifier.fillMaxWidth().height(200.dp)) {
         placements.forEach { placement ->
             drawText(
                 textLayoutResult = placement.layoutResult,
@@ -129,21 +135,23 @@ private fun calculateWordPlacements(
     minCount: Int,
     primaryColor: Color,
     secondaryColor: Color,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    canvasWidth: Float = 600f,
+    canvasHeight: Float = 440f,
+    centerX: Float = canvasWidth / 2f,
+    centerY: Float = canvasHeight / 2f
 ): List<WordPlacement> {
     val placements = mutableListOf<WordPlacement>()
     val occupiedAreas = mutableListOf<androidx.compose.ui.geometry.Rect>()
 
     words.forEachIndexed { index, word ->
-        // Calculate font size based on count (12sp to 28sp)
         val normalizedCount = if (maxCount > minCount) {
             (word.count - minCount).toFloat() / (maxCount - minCount)
         } else {
             0.5f
         }
-        val fontSize = 12 + (normalizedCount * 16)
+        val fontSize = 11 + (normalizedCount * 21)
 
-        // Calculate color (blend between primary and secondary)
         val color = if (primaryColor == Color.Unspecified || secondaryColor == Color.Unspecified) {
             Color(0xFF333333).copy(alpha = 0.6f + normalizedCount * 0.4f)
         } else {
@@ -160,13 +168,12 @@ private fun calculateWordPlacements(
         val width = layoutResult.size.width.toFloat()
         val height = layoutResult.size.height.toFloat()
 
-        // Find position using spiral algorithm
         val position = findNonOverlappingPosition(
             width = width,
             height = height,
             occupiedAreas = occupiedAreas,
-            centerX = 300f, // Will be adjusted to canvas center
-            centerY = 100f
+            centerX = centerX,
+            centerY = centerY
         )
 
         placements.add(WordPlacement(position.x, position.y, layoutResult))
@@ -191,12 +198,12 @@ private fun findNonOverlappingPosition(
     centerY: Float
 ): Offset {
     var angle = 0f
-    var radius = 0f
-    val maxAttempts = 100
+    val maxAttempts = 200
 
     repeat(maxAttempts) {
+        val radius = angle * 8f
         val x = centerX + radius * cos(angle)
-        val y = centerY + radius * sin(angle)
+        val y = centerY + radius * sin(angle) * 0.6f
 
         val candidateRect = androidx.compose.ui.geometry.Rect(
             left = x - width / 2f,
@@ -209,11 +216,9 @@ private fun findNonOverlappingPosition(
             return Offset(x, y)
         }
 
-        angle += 0.5f
-        radius += 0.5f
+        angle += 0.3f
     }
 
-    // Fallback: place at center with offset
     return Offset(centerX + (occupiedAreas.size * 10f) % 200f, centerY)
 }
 

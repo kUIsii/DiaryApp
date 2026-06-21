@@ -260,6 +260,15 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onNavigateToStats = { navController.navigate(Screen.Stats.route) },
+                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) },
+                    onNavigateToTimeCapsule = { navController.navigate(Screen.TimeCapsule.route) },
+                    onNavigateToMediaLibrary = { navController.navigate(Screen.MediaLibrary.route) },
+                    onNavigateToDiaryMap = { navController.navigate(Screen.DiaryMap.route) },
+                    onNavigateToBiography = { navController.navigate(Screen.Biography.route) },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
+                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,

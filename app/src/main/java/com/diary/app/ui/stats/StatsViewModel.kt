@@ -166,7 +166,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             topWords = _aiWords.value,
             wordCloudPeriod = _wordCloudPeriod.value,
             isWordCloudLoading = _isWordCloudLoading.value,
-            isAiConfigured = aiService.isAiEnabled(),
+            isAiConfigured = aiService.getActiveProvider() != null,
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
         )
@@ -177,7 +177,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadAiWords() {
-        if (!aiService.isAiEnabled()) return
+        if (aiService.getActiveProvider() == null) return
         viewModelScope.launch {
             _isWordCloudLoading.value = true
             try {
