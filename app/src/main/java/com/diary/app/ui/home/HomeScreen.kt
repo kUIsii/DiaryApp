@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,6 +57,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -252,6 +255,16 @@ fun HomeScreen(
                             haptic.click()
                             viewModel.selectDate(date)
                         }
+                    )
+                }
+
+                // Quick shortcuts
+                item {
+                    QuickShortcutsSection(
+                        onNavigateToStats = onNavigateToTimeline, // placeholder
+                        onNavigateToCountDown = onNavigateToTimeline, // placeholder
+                        onNavigateToAiAssistant = onNavigateToAiAssistant,
+                        onNavigateToFavorites = onNavigateToFavorites
                     )
                 }
 
@@ -522,8 +535,8 @@ private fun CalendarSection(
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 18.dp,
-        innerPadding = 0.dp
+        cornerRadius = 22.dp,
+        innerPadding = 12.dp
     ) {
         CalendarView(
             entryDates = entryDates,
@@ -533,6 +546,64 @@ private fun CalendarSection(
             calendarMode = calendarMode,
             onModeChange = onModeChange
         )
+    }
+}
+
+@Composable
+private fun QuickShortcutsSection(
+    onNavigateToStats: () -> Unit,
+    onNavigateToCountDown: () -> Unit,
+    onNavigateToAiAssistant: () -> Unit,
+    onNavigateToFavorites: () -> Unit
+) {
+    val shortcuts = remember {
+        listOf(
+            Triple("统计", Icons.Default.BarChart, onNavigateToStats),
+            Triple("倒数日", Icons.Default.Timer, onNavigateToCountDown),
+            Triple("AI 助手", Icons.Default.AutoAwesome, onNavigateToAiAssistant),
+            Triple("收藏", Icons.Default.Favorite, onNavigateToFavorites)
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        shortcuts.forEach { (title, icon, onClick) ->
+            GlassCard(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onClick() },
+                cornerRadius = 14.dp,
+                innerPadding = 12.dp
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = title,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1086,12 +1157,10 @@ private fun HomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            .padding(horizontal = 10.dp, vertical = 2.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        innerPadding = 4.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1100,8 +1169,8 @@ private fun HomeSearchBar(
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                modifier = Modifier.size(16.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(start = 10.dp, end = 6.dp).size(18.dp)
             )
             TextField(
                 value = query,
@@ -1109,9 +1178,9 @@ private fun HomeSearchBar(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        "搜索",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                        "搜索日记...",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 },
                 colors = TextFieldDefaults.colors(
@@ -1121,22 +1190,19 @@ private fun HomeSearchBar(
                     unfocusedIndicatorColor = Color.Transparent
                 ),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
             )
             if (query.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .clickable { onQueryChange("") },
-                    contentAlignment = Alignment.Center
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "清除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }

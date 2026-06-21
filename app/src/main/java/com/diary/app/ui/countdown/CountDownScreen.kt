@@ -311,7 +311,13 @@ private fun CountDownItemCard(
         .atZone(ZoneId.systemDefault())
         .toLocalDate()
     val today = LocalDate.now()
-    val isPast = targetDate.isBefore(today)
+
+    // Determine display text
+    val daysText = when {
+        daysRemaining == 0L -> "就是今天"
+        daysRemaining > 0 -> "还有 ${daysRemaining} 天"
+        else -> "已过 ${-daysRemaining} 天"
+    }
 
     GlassCard(
         modifier = Modifier
@@ -332,79 +338,48 @@ private fun CountDownItemCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Days number - prominent display
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(56.dp)
-            ) {
-                Text(
-                    text = when {
-                        daysRemaining == 0L -> "今天"
-                        isPast -> "${-daysRemaining}"
-                        else -> "$daysRemaining"
-                    },
-                    fontSize = if (daysRemaining == 0L) 18.sp else 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = item.color.toColor()
-                )
-                if (daysRemaining != 0L) {
-                    Text(
-                        text = if (isPast) "天前" else "天",
-                        fontSize = 11.sp,
-                        color = item.color.toColor().copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Vertical divider
+            // Color indicator
             Box(
                 modifier = Modifier
-                    .width(1.dp)
-                    .height(36.dp)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(item.color.toColor())
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = item.title,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (item.isPinned) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = targetDate.format(DateTimeFormatter.ofPattern("M月d日 · EEEE")),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    text = item.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = daysText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = item.color.toColor()
                 )
             }
 
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(16.dp)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = targetDate.format(DateTimeFormatter.ofPattern("M/d")),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
+                if (item.isPinned) {
+                    Icon(
+                        imageVector = Icons.Default.PushPin,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
             }
         }
     }

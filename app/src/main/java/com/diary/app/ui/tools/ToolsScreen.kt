@@ -18,6 +18,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,12 +33,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
@@ -47,10 +50,16 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,9 +71,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.IconCircle
@@ -122,12 +133,31 @@ fun ToolsScreen(
     onSwipeToTimeline: (() -> Unit)? = null,
     onSwipeToTodo: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as? DiaryApplication
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
 
+    // AI config state
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    var configVersion by remember { mutableStateOf(0) }
+    val isAiConfigured = remember(configVersion) { com.diary.app.ai.AiConfigStore.isConfigured(context) }
+
+    // Experimental features state for AI toggles
+    val featuresState = app?.experimentalFeatures?.collectAsState()
+    val features = featuresState?.value ?: com.diary.app.ui.experimental.ExperimentalFeaturesState()
+
     // Expanded state for each section
     var expandedSection by remember { mutableStateOf<String?>(null) }
+
+    // API Key dialog
+    if (showApiKeyDialog && app != null) {
+        AiApiKeyDialog(
+            onDismiss = { showApiKeyDialog = false },
+            onSaved = { configVersion++ }
+        )
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -286,13 +316,24 @@ fun ToolsScreen(
                     iconBg = sectionIconBg(2),
                     iconTint = sectionIconTint(2),
                     title = "AI 伙伴",
-                    subtitle = "AI 助手、AI 传记",
+                    subtitle = if (isAiConfigured) "已配置 API" else "未配置 API",
                     isExpanded = expandedSection == "ai",
                     onToggle = { expandedSection = if (expandedSection == "ai") null else "ai" },
                     textColor = textColor,
                     textSecondary = textSecondary,
                     textTertiary = textTertiary
                 ) {
+                    ClickableToolRow(
+                        icon = Icons.Default.Key,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "API 配置",
+                        subtitle = if (isAiConfigured) "已配置" else "点击配置 AI 密钥",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = { showApiKeyDialog = true }
+                    )
+                    SettingDivider()
                     ClickableToolRow(
                         icon = Icons.Default.ChatBubbleOutline,
                         iconBg = sectionIconBg(2),
@@ -313,6 +354,33 @@ fun ToolsScreen(
                         textColor = textColor,
                         textTertiary = textTertiary,
                         onClick = onNavigateToBiography
+                    )
+                    SettingDivider()
+                    AiFeatureToggleRow(
+                        icon = Icons.Default.Lightbulb,
+                        title = "AI 洞察卡片",
+                        subtitle = "首页偶尔出现轻量的 AI 提示",
+                        checked = features.aiInsightCardEnabled && isAiConfigured,
+                        enabled = isAiConfigured,
+                        onCheckedChange = { app?.setAiInsightCardEnabled(it) }
+                    )
+                    SettingDivider()
+                    AiFeatureToggleRow(
+                        icon = Icons.Default.Chat,
+                        title = "小墨助手",
+                        subtitle = "首页顶栏的专属 AI 助手",
+                        checked = features.aiAssistantEnabled && isAiConfigured,
+                        enabled = isAiConfigured,
+                        onCheckedChange = { app?.setAiAssistantEnabled(it) }
+                    )
+                    SettingDivider()
+                    AiFeatureToggleRow(
+                        icon = Icons.Default.ChatBubbleOutline,
+                        title = "编辑器 AI 助手",
+                        subtitle = "写日记时帮忙构思润色",
+                        checked = features.floatingBubbleEnabled && isAiConfigured,
+                        enabled = isAiConfigured,
+                        onCheckedChange = { app?.setFloatingBubbleEnabled(it) }
                     )
                 }
 
@@ -465,5 +533,126 @@ private fun ClickableToolRow(
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = textColor)
             Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
         }
+    }
+}
+
+@Composable
+private fun AiApiKeyDialog(
+    onDismiss: () -> Unit,
+    onSaved: () -> Unit
+) {
+    val context = LocalContext.current
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    var apiKeyInput by remember { mutableStateOf(com.diary.app.ai.AiConfigStore.getApiKey(context)) }
+    var endpointInput by remember { mutableStateOf(com.diary.app.ai.AiConfigStore.getEndpoint(context)) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("AI 配置") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = apiKeyInput,
+                    onValueChange = { apiKeyInput = it },
+                    label = { Text("API Key") },
+                    placeholder = { Text("粘贴你的 Agnes API Key") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = endpointInput,
+                    onValueChange = { endpointInput = it },
+                    label = { Text("Endpoint") },
+                    placeholder = { Text("https://apihub.agnes-ai.com/v1/") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "填入 Base URL 即可，不需要加 chat/completions。\n默认 Agnes AI 免费服务，无需修改。",
+                    fontSize = 12.sp,
+                    color = textSecondary,
+                    lineHeight = 18.sp
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                com.diary.app.ai.AiConfigStore.setApiKey(context, apiKeyInput.trim())
+                val cleanedEndpoint = endpointInput.trim()
+                    .removeSuffix("/")
+                    .removeSuffix("chat/completions")
+                    .trimEnd('/') + "/"
+                com.diary.app.ai.AiConfigStore.setEndpoint(context, cleanedEndpoint)
+                com.diary.app.ai.AiConfigStore.setActiveProvider(context, "agnes")
+                onSaved()
+                onDismiss()
+            }) { Text("保存") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@Composable
+private fun AiFeatureToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(sectionIconBg(2)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = sectionIconTint(2),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.size(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                color = if (enabled) textColor else textColor.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = if (enabled) textSecondary else textSecondary.copy(alpha = 0.5f),
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(top = 3.dp, end = 8.dp)
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = if (enabled) onCheckedChange else null,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            )
+        )
     }
 }

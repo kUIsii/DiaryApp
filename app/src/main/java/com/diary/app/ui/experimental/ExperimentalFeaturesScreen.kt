@@ -24,39 +24,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Reorder
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import com.diary.app.ai.AiConfigStore
-import com.diary.app.ai.AiUsageTracker
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,14 +66,6 @@ fun ExperimentalFeaturesScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
-    val scope = rememberCoroutineScope()
-
-    // AI config state
-    var showApiKeyDialog by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<String?>(null) }
-    var isTesting by remember { mutableStateOf(false) }
-    var configVersion by remember { mutableStateOf(0) }
-    val isAiConfigured = remember(configVersion) { AiConfigStore.isConfigured(context) }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -180,119 +155,6 @@ fun ExperimentalFeaturesScreen(
                     }
                 }
 
-                // AI features section
-                Text(
-                    text = "AI 功能",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = textSecondary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                )
-
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 24.dp
-                ) {
-                    Column {
-                        ExperimentalNavigateRow(
-                            icon = Icons.Default.Key,
-                            title = "API 配置",
-                            subtitle = if (isAiConfigured) "已配置" else "点击配置 Agnes AI 密钥",
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onClick = { showApiKeyDialog = true }
-                        )
-                        ExperimentalFeatureDivider()
-                        ExperimentalNavigateRow(
-                            icon = Icons.Default.AutoAwesome,
-                            title = "连接测试",
-                            subtitle = when {
-                                isTesting -> "测试中..."
-                                testResult != null -> testResult ?: ""
-                                isAiConfigured -> "Agnes 2.0 Flash (免费)"
-                                else -> "请先配置 API Key"
-                            },
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onClick = if (isAiConfigured && !isTesting) {
-                                {
-                                    isTesting = true
-                                    testResult = null
-                                    scope.launch {
-                                        try {
-                                            val result = app.aiService.chat(
-                                                com.diary.app.ai.aiRequest("hi", maxTokens = 10)
-                                            )
-                                            testResult = result.fold(
-                                                onSuccess = { "连接成功" },
-                                                onFailure = { "失败: ${it.message}" }
-                                            )
-                                        } catch (e: Exception) {
-                                            testResult = "失败: ${e.message}"
-                                        } finally {
-                                            isTesting = false
-                                        }
-                                    }
-                                }
-                            } else null
-                        )
-                        ExperimentalFeatureDivider()
-                        val usage = remember(configVersion) { AiUsageTracker.getTodayStats(context) }
-                        ExperimentalNavigateRow(
-                            icon = Icons.Default.Info,
-                            title = "今日用量",
-                            subtitle = if (usage.requests > 0) "${usage.requests} 次请求，${usage.tokens} tokens" else "今天还没有使用",
-                            accentColor = accentColor,
-                            textColor = textColor,
-                            textSecondary = textSecondary,
-                            onClick = null
-                        )
-                    }
-                }
-
-                // AI features that require API
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 24.dp
-                ) {
-                    Column {
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.Lightbulb,
-                            title = "AI 洞察卡片",
-                            subtitle = if (isAiConfigured) "首页偶尔出现轻量的 AI 提示" else "需要先配置 API Key",
-                            checked = features.aiInsightCardEnabled && isAiConfigured,
-                            accentColor = accentColor,
-                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
-                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
-                            onCheckedChange = { if (isAiConfigured) app.setAiInsightCardEnabled(it) }
-                        )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.Chat,
-                            title = "小墨助手",
-                            subtitle = if (isAiConfigured) "首页顶栏的专属 AI 助手，熟悉你的日记" else "需要先配置 API Key",
-                            checked = features.aiAssistantEnabled && isAiConfigured,
-                            accentColor = accentColor,
-                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
-                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
-                            onCheckedChange = { if (isAiConfigured) app.setAiAssistantEnabled(it) }
-                        )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.ChatBubbleOutline,
-                            title = "编辑器 AI 助手",
-                            subtitle = if (isAiConfigured) "写日记时可以和小墨聊天，帮忙构思润色" else "需要先配置 API Key",
-                            checked = features.floatingBubbleEnabled && isAiConfigured,
-                            accentColor = accentColor,
-                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
-                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
-                            onCheckedChange = { if (isAiConfigured) app.setFloatingBubbleEnabled(it) }
-                        )
-                    }
-                }
-
                 // New features section
                 Text(
                     text = "新功能",
@@ -317,69 +179,7 @@ fun ExperimentalFeaturesScreen(
                             textSecondary = textSecondary,
                             onCheckedChange = { app.setDiaryMapEnabled(it) }
                         )
-                        ExperimentalFeatureDivider()
-                        ExperimentalFeatureRow(
-                            icon = Icons.Default.AutoStories,
-                            title = "AI 传记",
-                            subtitle = if (isAiConfigured) "根据日记内容 AI 生成你的个人传记" else "需要先配置 API Key",
-                            checked = features.aiBiographyEnabled && isAiConfigured,
-                            accentColor = accentColor,
-                            textColor = if (isAiConfigured) textColor else textColor.copy(alpha = 0.5f),
-                            textSecondary = if (isAiConfigured) textSecondary else textSecondary.copy(alpha = 0.5f),
-                            onCheckedChange = { if (isAiConfigured) app.setAiBiographyEnabled(it) }
-                        )
                     }
-                }
-
-                if (showApiKeyDialog) {
-                    var apiKeyInput by remember { mutableStateOf(AiConfigStore.getApiKey(context)) }
-                    var endpointInput by remember { mutableStateOf(AiConfigStore.getEndpoint(context)) }
-                    AlertDialog(
-                        onDismissRequest = { showApiKeyDialog = false },
-                        title = { Text("AI 配置") },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedTextField(
-                                    value = apiKeyInput,
-                                    onValueChange = { apiKeyInput = it },
-                                    label = { Text("API Key") },
-                                    placeholder = { Text("粘贴你的 Agnes API Key") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = endpointInput,
-                                    onValueChange = { endpointInput = it },
-                                    label = { Text("Endpoint") },
-                                    placeholder = { Text("https://apihub.agnes-ai.com/v1/") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    text = "填入 Base URL 即可，不需要加 chat/completions。\n默认 Agnes AI 免费服务，无需修改。",
-                                    fontSize = 12.sp,
-                                    color = textSecondary,
-                                    lineHeight = 18.sp
-                                )
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                AiConfigStore.setApiKey(context, apiKeyInput.trim())
-                                val cleanedEndpoint = endpointInput.trim()
-                                    .removeSuffix("/")
-                                    .removeSuffix("chat/completions")
-                                    .trimEnd('/') + "/"
-                                AiConfigStore.setEndpoint(context, cleanedEndpoint)
-                                AiConfigStore.setActiveProvider(context, "agnes")
-                                configVersion++
-                                showApiKeyDialog = false
-                            }) { Text("保存") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showApiKeyDialog = false }) { Text("取消") }
-                        }
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
