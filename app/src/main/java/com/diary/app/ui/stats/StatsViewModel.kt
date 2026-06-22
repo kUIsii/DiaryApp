@@ -13,10 +13,12 @@ import com.diary.app.ui.components.moodLabelForLevel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.diary.app.util.computeStreak
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -67,6 +69,11 @@ data class MoodTrend(
     val direction: TrendDirection,
 )
 
+data class MoodWeatherInsight(
+    val text: String,
+    val moodLevel: Float,
+)
+
 data class WordStats(
     val totalWords: Int,
     val avgWordsPerEntry: Int,
@@ -95,9 +102,16 @@ data class StatsState(
     val isAiConfigured: Boolean = false,
     val heatmapData: List<HeatmapDay> = emptyList(),
     val heatmapRange: HeatmapRange = HeatmapRange.ONE_MONTH,
+    val moodWeatherInsight: MoodWeatherInsight? = null,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
+    private data class WordCloudSnapshot(
+        val period: WordCloudPeriod,
+        val words: List<WordFrequency>,
+        val isLoading: Boolean,
+    )
+
     private val app = application as DiaryApplication
     private val dao = app.database.diaryDao()
     private val aiService = app.aiService
@@ -118,13 +132,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    val state: StateFlow<StatsState> = combine(
+    // Entry-dependent stats: only recomputes when entries, tags, or heatmap range change
+    private val entryStatsFlow: Flow<StatsState> = combine(
         dao.getAllPreviews(),
         dao.getTagUsage(),
-        _heatmapRange,
-        _wordCloudPeriod,
-        _aiWords
-    ) { entries, tagUsage, heatmapRange, wordCloudPeriod, aiWords ->
+        _heatmapRange
+    ) { entries, tagUsage, heatmapRange ->
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now()
 
@@ -133,7 +146,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         }
         val activeDates = entryDates.toSet()
 
-        val streak = calculateStreak(activeDates)
+        val streak = computeStreak(activeDates)
 
         val thisMonth = entries.count {
             val date = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
@@ -169,12 +182,30 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             writingHabit = computeWritingHabit(entries, zone, now),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
-            topWords = aiWords,
-            wordCloudPeriod = wordCloudPeriod,
-            isWordCloudLoading = _isWordCloudLoading.value,
             isAiConfigured = aiService.getActiveProvider() != null,
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
+            moodWeatherInsight = computeMoodWeatherCorrelation(entries),
+        )
+    }
+
+    // Word cloud state: only recomputes when period, words, or loading state change
+    private val wordCloudFlow: Flow<WordCloudSnapshot> = combine(
+        _wordCloudPeriod,
+        _aiWords,
+        _isWordCloudLoading
+    ) { period, words, isLoading ->
+        WordCloudSnapshot(period, words, isLoading)
+    }
+
+    val state: StateFlow<StatsState> = combine(
+        entryStatsFlow,
+        wordCloudFlow
+    ) { stats, wc ->
+        stats.copy(
+            topWords = wc.words,
+            wordCloudPeriod = wc.period,
+            isWordCloudLoading = wc.isLoading,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -345,15 +376,6 @@ ${combinedText.take(4000)}"""
         return dao.getPreviewsByDateRange(startOfDay, endOfDay)
     }
 
-    private fun calculateStreak(dates: Set<LocalDate>): Int {
-        var streak = 0
-        var current = LocalDate.now()
-        while (dates.contains(current)) {
-            streak++
-            current = current.minusDays(1)
-        }
-        return streak
-    }
 
     private fun computeMonthlyTrend(
         entries: List<DiaryPreview>,
@@ -456,6 +478,40 @@ ${combinedText.take(4000)}"""
             previous30Avg = previousAvg,
             direction = direction,
         )
+    }
+
+    private fun computeMoodWeatherCorrelation(entries: List<DiaryPreview>): MoodWeatherInsight? {
+        val withBoth = entries.filter { it.moodLevel != null && !it.weather.isNullOrBlank() }
+        if (withBoth.size < 10) return null
+
+        val byWeather = withBoth.groupBy { it.weather!! }
+        if (byWeather.size < 2) return null
+
+        val avgByWeather = byWeather.mapValues { (_, list) ->
+            list.mapNotNull { it.moodLevel }.average()
+        }
+
+        val best = avgByWeather.maxByOrNull { it.value }!!
+        val worst = avgByWeather.minByOrNull { it.value }!!
+
+        val overallAvg = withBoth.mapNotNull { it.moodLevel }.average()
+        val bestDiff = best.value - overallAvg
+        val worstDiff = overallAvg - worst.value
+
+        // Show the more notable correlation
+        return if (bestDiff >= worstDiff && bestDiff >= 0.3) {
+            MoodWeatherInsight(
+                text = "${best.key}时心情最好，平均 ${"%.1f".format(best.value)} 分",
+                moodLevel = best.value.toFloat(),
+            )
+        } else if (worstDiff >= 0.3) {
+            MoodWeatherInsight(
+                text = "${worst.key}时心情较低，平均 ${"%.1f".format(worst.value)} 分",
+                moodLevel = worst.value.toFloat(),
+            )
+        } else {
+            null // No notable correlation
+        }
     }
 
     private fun computeWordStats(entries: List<DiaryPreview>): WordStats? {

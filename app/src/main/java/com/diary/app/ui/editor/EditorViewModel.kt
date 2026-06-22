@@ -96,18 +96,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // Writing prompt
-    private val _writingPrompt = MutableStateFlow("")
-    val writingPrompt = _writingPrompt.asStateFlow()
-
-    fun loadWritingPrompt(moodLevel: Int? = null) {
-        _writingPrompt.value = com.diary.app.data.WritingPrompts.getPrompt(moodLevel)
-    }
-
-    fun refreshPrompt() {
-        _writingPrompt.value = com.diary.app.data.WritingPrompts.getRandomPrompt()
-    }
-
     // Title suggestion
     private val _titleSuggestion = MutableStateFlow<String?>(null)
     val titleSuggestion = _titleSuggestion.asStateFlow()

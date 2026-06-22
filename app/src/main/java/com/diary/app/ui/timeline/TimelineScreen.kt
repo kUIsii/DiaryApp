@@ -117,6 +117,7 @@ private val DATE_TITLE_REGEX = Regex("\\d{4}年\\d{1,2}月\\d{1,2}日")
 @Composable
 fun TimelineScreen(
     onNavigateToDetail: (Long) -> Unit,
+    initialSearchQuery: String? = null,
     onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: TimelineViewModel = viewModel()
 ) {
@@ -135,6 +136,13 @@ fun TimelineScreen(
     // Multi-select state
     var multiSelectState by remember { mutableStateOf(TimelineMultiSelectState()) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    // Apply initial search query from navigation (e.g. from Home "查看全部")
+    LaunchedEffect(initialSearchQuery) {
+        if (!initialSearchQuery.isNullOrBlank()) {
+            viewModel.setSearchQuery(initialSearchQuery)
+        }
+    }
 
     // Show scroll-to-top button when scrolled down
     val showScrollToTop by remember {

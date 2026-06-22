@@ -1,10 +1,13 @@
 package com.diary.app.data
 
 import android.content.Context
+import com.diary.app.util.computeStreak
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 
 object AchievementManager {
 
@@ -68,7 +71,10 @@ object AchievementManager {
         val allEntries = diaryDao.getAllPreviews().first()
         val totalEntries = allEntries.size
         val totalWords = allEntries.sumOf { it.plainText.length }
-        val streak = computeStreak(allEntries)
+        val dates = allEntries.map {
+            Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        }.toSet()
+        val streak = computeStreak(dates)
         val uniqueMoods = allEntries.mapNotNull { it.moodLevel }.distinct().size
         val uniqueWeathers = allEntries.mapNotNull { it.weather }.distinct().size
         val favoriteCount = allEntries.count { it.isFavorite }
@@ -91,10 +97,18 @@ object AchievementManager {
         checkUnlock(dao, "tags_5", tagCount)
         checkUnlock(dao, "images_10", imageCount)
 
-        // Time-based achievements
-        val now = java.time.LocalTime.now()
-        checkUnlock(dao, "night_writer", if (now.hour in 0..5) 1 else 0)
-        checkUnlock(dao, "early_bird", if (now.hour in 5..7) 1 else 0)
+        // Time-based achievements: check if any entry was written during those hours
+        val zone = ZoneId.systemDefault()
+        val hasNightEntry = allEntries.any { entry ->
+            val hour = Instant.ofEpochMilli(entry.createdAt).atZone(zone).hour
+            hour in 0..5
+        }
+        val hasEarlyEntry = allEntries.any { entry ->
+            val hour = Instant.ofEpochMilli(entry.createdAt).atZone(zone).hour
+            hour in 5..7
+        }
+        checkUnlock(dao, "night_writer", if (hasNightEntry) 1 else 0)
+        checkUnlock(dao, "early_bird", if (hasEarlyEntry) 1 else 0)
     }
 
     private suspend fun checkUnlock(dao: AchievementDao, key: String, currentValue: Int) {
@@ -108,25 +122,4 @@ object AchievementManager {
         }
     }
 
-    private fun computeStreak(entries: List<DiaryPreview>): Int {
-        if (entries.isEmpty()) return 0
-        val dates = entries
-            .map {
-                java.time.Instant.ofEpochMilli(it.createdAt)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDate()
-            }
-            .distinct()
-            .sortedDescending()
-
-        var streak = 1
-        for (i in 0 until dates.size - 1) {
-            if (dates[i].minusDays(1) == dates[i + 1]) {
-                streak++
-            } else {
-                break
-            }
-        }
-        return streak
-    }
 }

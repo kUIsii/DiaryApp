@@ -41,7 +41,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Memory
@@ -403,7 +403,7 @@ fun ToolsScreen(
                     )
                     SettingDivider()
                     ClickableToolRow(
-                        icon = Icons.Default.LocationOn,
+                        icon = Icons.Default.Science,
                         iconBg = sectionIconBg(3),
                         iconTint = sectionIconTint(3),
                         title = "实验性功能",

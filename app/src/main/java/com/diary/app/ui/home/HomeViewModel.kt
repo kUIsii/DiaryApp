@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.diary.app.util.computeStreak
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -313,20 +314,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun computeStreak(dates: Set<LocalDate>): Int {
-        if (dates.isEmpty()) return 0
-        var streak = 0
-        // Start from the most recent date that has a diary entry
-        var current = dates.maxOrNull() ?: return 0
-        // Only count streak up to today
-        val today = LocalDate.now()
-        if (current.isAfter(today)) return 0
-        while (current in dates) {
-            streak++
-            current = current.minusDays(1)
-        }
-        return streak
-    }
 
     // Selected entries for the selected date - uses DB query instead of client-side filtering
     val selectedEntries: StateFlow<List<DiaryPreview>> = _selectedDate

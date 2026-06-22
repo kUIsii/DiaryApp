@@ -251,7 +251,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
-                    onNavigateToTimeline = { navController.navigate(Screen.Timeline.route) },
+                    onNavigateToTimeline = { query ->
+                        if (!query.isNullOrBlank()) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set("timeline_query", query)
+                        }
+                        navController.navigate(Screen.Timeline.route)
+                    },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
@@ -277,8 +282,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Timeline.route) {
+                val initialQuery = navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("timeline_query")
                 TimelineScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    initialSearchQuery = initialQuery,
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Timeline.route,
@@ -335,7 +344,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(Screen.Stats.route) {
                 StatsScreen(
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToMonthlyReport = {
+                        val now = java.time.LocalDate.now()
+                        navController.navigate(Screen.MonthlyReport.createRoute(now.year, now.monthValue))
+                    }
                 )
             }
             composable(Screen.Profile.route) {

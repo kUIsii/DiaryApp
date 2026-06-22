@@ -111,28 +111,23 @@ class MonthlyReportViewModel(application: Application) : AndroidViewModel(applic
     }
 
     private suspend fun getPhotoCount(entries: List<DiaryPreview>): Int {
-        var total = 0
-        for (entry in entries) {
-            total += dao.getImagesForEntry(entry.id).size
-        }
-        return total
+        val entryIds = entries.map { it.id }
+        return dao.getImagesForEntries(entryIds).size
     }
 
     private suspend fun getTagStats(entries: List<DiaryPreview>): List<MonthlyReport.TagStat> {
-        val tagMap = mutableMapOf<Long, Triple<String, Long, Int>>()
-        for (entry in entries) {
-            val tags = dao.getTagInfoForDiary(entry.id)
-            for (tag in tags) {
-                val existing = tagMap[tag.id]
-                if (existing != null) {
-                    tagMap[tag.id] = Triple(tag.name, tag.color, existing.third + 1)
-                } else {
-                    tagMap[tag.id] = Triple(tag.name, tag.color, 1)
-                }
+        val entryIds = entries.map { it.id }.toSet()
+        val allPairs = dao.getAllDiaryTagPairsOnce()
+        return allPairs
+            .filter { it.diaryId in entryIds }
+            .groupBy { it.tagId }
+            .map { (_, pairs) ->
+                MonthlyReport.TagStat(
+                    name = pairs.first().name,
+                    color = pairs.first().color,
+                    count = pairs.size
+                )
             }
-        }
-        return tagMap.values
-            .map { MonthlyReport.TagStat(name = it.first, color = it.second, count = it.third) }
             .sortedByDescending { it.count }
     }
 }

@@ -110,7 +110,7 @@ fun HomeScreen(
     onNavigateToEditor: (Long?) -> Unit,
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
-    onNavigateToTimeline: () -> Unit = {},
+    onNavigateToTimeline: (String?) -> Unit = { _ -> },
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
@@ -278,7 +278,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onNavigateToTimeline() }
+                                    .clickable { onNavigateToTimeline(searchQuery) }
                                     .padding(horizontal = 4.dp, vertical = 8.dp)
                             )
                         }
@@ -309,12 +309,12 @@ fun HomeScreen(
                                 "diary_map" -> onNavigateToDiaryMap()
                                 "biography" -> onNavigateToBiography()
                                 "achievements" -> onNavigateToAchievements()
-                                "timeline" -> onNavigateToTimeline()
+                                "timeline" -> onNavigateToTimeline(null)
                                 "notifications" -> onNavigateToNotifications()
                                 "backup" -> onNavigateToBackup()
                                 "tag_management" -> onNavigateToTagManagement()
                                 "storage" -> onNavigateToStorage()
-                                "todo" -> onNavigateToTimeline()
+                                "todo" -> onNavigateToTimeline(null)
                             }
                         }
                     )
