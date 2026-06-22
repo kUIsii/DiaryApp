@@ -100,22 +100,28 @@ fun CalendarView(
     // Pager: source of truth for displayed month/week
     val pagerState = rememberPagerState(initialPage = CENTER_PAGE) { Int.MAX_VALUE }
 
-    // When pager settles, update currentMonth/currentWeekStart
+    // Flag to prevent feedback loop: state→pager sync should not trigger pager→state sync
+    var suppressPagerSync by remember { mutableStateOf(false) }
+
+    // When pager settles, update currentMonth/currentWeekStart (pager → state)
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
-            val offset = page - CENTER_PAGE
-            if (calendarMode == CalendarMode.MONTH) {
-                onCurrentMonthChange(YearMonth.now().plusMonths(offset.toLong()))
-            } else {
-                onCurrentWeekStartChange(
-                    today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                        .plusWeeks(offset.toLong())
-                )
+            if (!suppressPagerSync) {
+                val offset = page - CENTER_PAGE
+                if (calendarMode == CalendarMode.MONTH) {
+                    onCurrentMonthChange(YearMonth.now().plusMonths(offset.toLong()))
+                } else {
+                    onCurrentWeekStartChange(
+                        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                            .plusWeeks(offset.toLong())
+                    )
+                }
             }
+            suppressPagerSync = false
         }
     }
 
-    // When external state changes (arrows, back-to-today, jump), animate pager to match
+    // When state changes from arrows/back-to-today/jump, sync pager (state → pager)
     LaunchedEffect(currentMonth, currentWeekStart, calendarMode) {
         val targetOffset = if (calendarMode == CalendarMode.MONTH) {
             ChronoUnit.MONTHS.between(YearMonth.now(), currentMonth).toInt()
@@ -127,7 +133,8 @@ fun CalendarView(
         }
         val targetPage = CENTER_PAGE + targetOffset
         if (pagerState.currentPage != targetPage) {
-            pagerState.animateScrollToPage(targetPage)
+            suppressPagerSync = true
+            pagerState.scrollToPage(targetPage)
         }
     }
 
