@@ -308,6 +308,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         // Strip Base64 data URLs from content before saving to prevent OOM on load
         val safeContent = DiaryMediaManager.contentToStableMediaRefs(stripBase64FromContent(content))
 
+        val durationSeconds = _writingDuration.value.toInt().takeIf { it > 0 }
+
         val entryId = if (diaryId != null) {
             val existing = dao.getEntryByIdSafe(diaryId)
             if (existing != null) {
@@ -320,7 +322,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     location = location,
                     latitude = latitude,
                     longitude = longitude,
-                    updatedAt = System.currentTimeMillis()
+                    updatedAt = System.currentTimeMillis(),
+                    writingDurationSeconds = durationSeconds
                 )
                 dao.updateEntry(updated)
                 diaryId
@@ -329,7 +332,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     DiaryEntry(
                         title = title, content = safeContent, plainText = plainText,
                         moodLevel = moodLevel, weather = weather,
-                        location = location, latitude = latitude, longitude = longitude
+                        location = location, latitude = latitude, longitude = longitude,
+                        writingDurationSeconds = durationSeconds
                     )
                 )
             }
@@ -338,7 +342,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 DiaryEntry(
                     title = title, content = safeContent, plainText = plainText,
                     moodLevel = moodLevel, weather = weather,
-                    location = location, latitude = latitude, longitude = longitude
+                    location = location, latitude = latitude, longitude = longitude,
+                    writingDurationSeconds = durationSeconds
                 )
             )
         }

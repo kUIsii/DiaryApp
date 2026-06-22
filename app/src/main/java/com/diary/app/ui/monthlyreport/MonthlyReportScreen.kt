@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.ShortText
@@ -73,6 +74,7 @@ fun MonthlyReportScreen(
     viewModel: MonthlyReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
+    val comparison by viewModel.comparison.collectAsState()
 
     LaunchedEffect(year, month) {
         viewModel.loadReport(year, month)
@@ -159,6 +161,11 @@ fun MonthlyReportScreen(
 
                     // 标签统计
                     TagStatsCard(currentReport)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 去年同期对比
+                    YearComparisonCard(currentReport, comparison)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -640,7 +647,133 @@ private fun TagStatsCard(report: MonthlyReport) {
     }
 }
 
-// ==================== Card 6: Ending ====================
+// ==================== Card 6: Year Comparison ====================
+@Composable
+private fun YearComparisonCard(report: MonthlyReport, comparison: YearComparison?) {
+    ReportCard(
+        title = "与去年同期对比",
+        subtitle = "${report.year - 1}年${report.month}月 vs ${report.year}年${report.month}月",
+        icon = Icons.Default.CompareArrows
+    ) {
+        if (comparison == null) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "去年同期无记录",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                ComparisonRow(
+                    label = "篇数",
+                    lastYear = comparison.lastYearEntryCount.toString(),
+                    thisYear = report.totalEntries.toString(),
+                    delta = comparison.entryCountDelta,
+                    deltaText = formatDelta(comparison.entryCountDelta),
+                    isPositiveGood = true
+                )
+                if (comparison.lastYearAvgMood != null && report.avgMood != null && comparison.moodDelta != null) {
+                    ComparisonRow(
+                        label = "平均心情",
+                        lastYear = String.format("%.1f", comparison.lastYearAvgMood),
+                        thisYear = String.format("%.1f", report.avgMood),
+                        delta = comparison.moodDelta,
+                        deltaText = formatDeltaFloat(comparison.moodDelta),
+                        isPositiveGood = true
+                    )
+                }
+                ComparisonRow(
+                    label = "总字数",
+                    lastYear = formatWordCount(comparison.lastYearTotalWords),
+                    thisYear = formatWordCount(report.totalWords),
+                    delta = comparison.wordsDelta,
+                    deltaText = formatDelta(comparison.wordsDelta),
+                    isPositiveGood = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComparisonRow(
+    label: String,
+    lastYear: String,
+    thisYear: String,
+    delta: Number,
+    deltaText: String,
+    isPositiveGood: Boolean
+) {
+    val deltaValue = delta.toFloat()
+    val isPositive = deltaValue > 0
+    val isZero = deltaValue == 0f
+    val deltaColor = when {
+        isZero -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        (isPositive && isPositiveGood) || (!isPositive && !isPositiveGood) -> Color(0xFF4CAF50)
+        else -> Color(0xFFE57373)
+    }
+    val arrow = when {
+        isZero -> ""
+        isPositive -> "\u2191"
+        else -> "\u2193"
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = lastYear,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+            Text(
+                text = "  \u2192  ",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
+            Text(
+                text = thisYear,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "$arrow$deltaText",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = deltaColor
+            )
+        }
+    }
+}
+
+private fun formatDelta(value: Int): String {
+    return if (value >= 0) "+$value" else value.toString()
+}
+
+private fun formatDeltaFloat(value: Float): String {
+    return if (value >= 0) String.format("+%.1f", value) else String.format("%.1f", value)
+}
+
+private fun formatWordCount(words: Int): String {
+    return if (words >= 1000) String.format("%.1fk", words / 1000f) else words.toString()
+}
+
+// ==================== Card 7: Ending ====================
 @Composable
 private fun EndingCard(report: MonthlyReport) {
     val primary = MaterialTheme.colorScheme.primary

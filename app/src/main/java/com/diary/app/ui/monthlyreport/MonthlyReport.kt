@@ -21,3 +21,12 @@ data class MonthlyReport(
 ) {
     data class TagStat(val name: String, val color: Long, val count: Int)
 }
+
+data class YearComparison(
+    val lastYearEntryCount: Int,
+    val lastYearAvgMood: Float?,
+    val lastYearTotalWords: Int,
+    val entryCountDelta: Int,
+    val moodDelta: Float?,
+    val wordsDelta: Int
+)

@@ -46,6 +46,7 @@ data class WritingHabit(
     val avgPerWeek: Double,
     val mostActiveDay: String,
     val mostActiveTime: String,
+    val avgWritingMinutes: Int? = null,
 )
 
 enum class TrendDirection { UP, DOWN, FLAT }
@@ -170,6 +171,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             .map { (type, list) -> WeatherStat(type, list.size) }
             .sortedByDescending { it.count }
 
+        val avgWritingMins = dao.getAverageWritingDurationSeconds()?.let { (it / 60).toInt() }
+
         StatsState(
             isLoading = false,
             totalEntries = entries.size,
@@ -179,7 +182,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             weatherDistribution = weatherDistribution,
             tagUsage = tagUsage,
             monthlyTrend = computeMonthlyTrend(entries, zone, now),
-            writingHabit = computeWritingHabit(entries, zone, now),
+            writingHabit = computeWritingHabit(entries, zone, now, avgWritingMins),
             moodTrend = computeMoodTrend(entries, zone, now),
             wordStats = computeWordStats(entries),
             isAiConfigured = aiService.getActiveProvider() != null,
@@ -402,7 +405,8 @@ ${combinedText.take(4000)}"""
     private fun computeWritingHabit(
         entries: List<DiaryPreview>,
         zone: ZoneId,
-        now: LocalDate
+        now: LocalDate,
+        avgWritingMinutes: Int? = null
     ): WritingHabit? {
         if (entries.isEmpty()) return null
 
@@ -435,6 +439,7 @@ ${combinedText.take(4000)}"""
             avgPerWeek = avgPerWeek,
             mostActiveDay = mostActiveDay,
             mostActiveTime = mostActiveTime,
+            avgWritingMinutes = avgWritingMinutes,
         )
     }
 

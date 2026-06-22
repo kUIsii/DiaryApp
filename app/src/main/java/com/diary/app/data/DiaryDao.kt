@@ -107,13 +107,31 @@ interface DiaryDao {
     """)
     suspend fun getEntriesByIdsSafe(ids: List<Long>): List<DiaryEntry>
 
-    @Query("SELECT * FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
+    @Query("""
+        SELECT * FROM diary_entries
+        WHERE plainText LIKE '%' || :query || '%'
+           OR title LIKE '%' || :query || '%'
+           OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
+        ORDER BY createdAt DESC
+    """)
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
 
-    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
+    @Query("""
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
+        WHERE plainText LIKE '%' || :query || '%'
+           OR title LIKE '%' || :query || '%'
+           OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
+        ORDER BY createdAt DESC
+    """)
     fun searchPreviews(query: String): Flow<List<DiaryPreview>>
 
-    @Query("SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries WHERE plainText LIKE '%' || :query || '%' ORDER BY createdAt DESC")
+    @Query("""
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
+        WHERE plainText LIKE '%' || :query || '%'
+           OR title LIKE '%' || :query || '%'
+           OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
+        ORDER BY createdAt DESC
+    """)
     suspend fun searchPreviewsOnce(query: String): List<DiaryPreview>
 
     @Query("UPDATE diary_entries SET isFavorite = :isFavorite WHERE id = :id")
@@ -602,6 +620,10 @@ interface DiaryDao {
 
     @Query("SELECT COUNT(*) FROM diary_images")
     suspend fun getImageCount(): Int
+
+    // Writing duration stats
+    @Query("SELECT AVG(writing_duration_seconds) FROM diary_entries WHERE writing_duration_seconds IS NOT NULL")
+    suspend fun getAverageWritingDurationSeconds(): Double?
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

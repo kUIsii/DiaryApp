@@ -1,5 +1,6 @@
 package com.diary.app.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -25,5 +26,7 @@ data class DiaryEntry(
     val longitude: Double? = null,
     val isFavorite: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "writing_duration_seconds")
+    val writingDurationSeconds: Int? = null
 )
