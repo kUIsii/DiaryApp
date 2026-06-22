@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
@@ -110,7 +111,10 @@ fun CalendarView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left: arrow + date + arrow
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(28.dp)
@@ -149,7 +153,9 @@ fun CalendarView(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = onBackground,
-                        modifier = Modifier.padding(horizontal = 2.dp)
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
                     )
 
                     Box(

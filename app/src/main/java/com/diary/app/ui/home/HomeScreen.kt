@@ -3,7 +3,13 @@ package com.diary.app.ui.home
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.pager.HorizontalPager
@@ -104,9 +110,6 @@ import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-
-private const val DAY_PAGER_INITIAL_PAGE = 5000
-private const val DAY_PAGER_PAGE_COUNT = 10001
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -221,27 +224,6 @@ fun HomeScreen(
         showDeleteConfirm = false
     }
 
-    // Day pager state and sync
-    val today = remember { LocalDate.now() }
-    val pagerState = rememberPagerState(initialPage = DAY_PAGER_INITIAL_PAGE) { DAY_PAGER_PAGE_COUNT }
-
-    fun pageToDate(page: Int): LocalDate = today.plusDays((page - DAY_PAGER_INITIAL_PAGE).toLong())
-    fun dateToPage(date: LocalDate): Int = (DAY_PAGER_INITIAL_PAGE + ChronoUnit.DAYS.between(today, date)).toInt()
-
-    // Pager settles -> update selectedDate
-    LaunchedEffect(pagerState.settledPage) {
-        viewModel.selectDate(pageToDate(pagerState.settledPage))
-    }
-
-    // selectedDate changes (from calendar click) -> animate pager
-    LaunchedEffect(selectedDate) {
-        selectedDate?.let { date ->
-            val targetPage = dateToPage(date)
-            if (pagerState.currentPage != targetPage) {
-                pagerState.animateScrollToPage(targetPage)
-            }
-        }
-    }
 
     GradientBackground {
         Box(
@@ -425,11 +407,12 @@ fun HomeScreen(
                 }
 
                 // Day pager with date header - single item to avoid extra spacing
+                // Day content with swipe to switch dates
                 item(key = "day-pager") {
+                    val currentDate = selectedDate ?: LocalDate.now()
+                    val currentEntries = entriesByDate[currentDate] ?: emptyList()
+
                     Column {
-                        // Date header
-                        val currentDate = pageToDate(pagerState.currentPage)
-                        val currentEntries = entriesByDate[currentDate] ?: emptyList()
                         SelectedDateHeader(
                             date = currentDate,
                             entryCount = currentEntries.size,
@@ -455,49 +438,78 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Pager
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxWidth(),
-                            beyondBoundsPageCount = 2
-                        ) { page ->
-                            val pageDate = pageToDate(page)
-                            val pageEntries = entriesByDate[pageDate] ?: emptyList()
-
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (pageEntries.isEmpty()) {
-                                    NoEntriesForDate()
-                                } else {
-                                    pageEntries.forEach { entry ->
-                                        HomeEntryCard(
-                                            entry = entry,
-                                            tags = tagsMap[entry.id] ?: emptyList(),
-                                        imagePaths = allImagesMap[entry.id] ?: emptyList(),
-                                        isSelected = entry.id in multiSelectState.selectedIds,
-                                        onClick = {
-                                            haptic.click()
-                                            if (multiSelectState.isEnabled) {
-                                                multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                            } else {
-                                                onNavigateToDetail(entry.id)
-                                            }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pointerInput(Unit) {
+                                    var totalDragX = 0f
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { totalDragX = 0f },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            totalDragX += dragAmount
+                                            change.consume()
                                         },
-                                        onLongClick = {
-                                            haptic.click()
-                                            multiSelectState = if (multiSelectState.isEnabled) {
-                                                multiSelectState.toggleSelection(entry.id)
-                                            } else {
-                                                HomeMultiSelectState.startSelection(entry.id)
+                                        onDragEnd = {
+                                            val threshold = 50f
+                                            if (totalDragX < -threshold) {
+                                                viewModel.selectDate(currentDate.plusDays(1))
+                                            } else if (totalDragX > threshold) {
+                                                viewModel.selectDate(currentDate.minusDays(1))
                                             }
                                         }
                                     )
                                 }
+                        ) {
+                            AnimatedContent(
+                                targetState = currentDate,
+                                transitionSpec = {
+                                    val isForward = targetState > initialState
+                                    if (isForward) {
+                                        (slideInHorizontally { it / 4 } + fadeIn(tween(200))) togetherWith
+                                            (slideOutHorizontally { -it / 4 } + fadeOut(tween(180)))
+                                    } else {
+                                        (slideInHorizontally { -it / 4 } + fadeIn(tween(200))) togetherWith
+                                            (slideOutHorizontally { it / 4 } + fadeOut(tween(180)))
+                                    }
+                                },
+                                label = "dayContent"
+                            ) { date ->
+                                val entries = entriesByDate[date] ?: emptyList()
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    if (entries.isEmpty()) {
+                                        NoEntriesForDate()
+                                    } else {
+                                        entries.forEach { entry ->
+                                            HomeEntryCard(
+                                                entry = entry,
+                                                tags = tagsMap[entry.id] ?: emptyList(),
+                                                imagePaths = allImagesMap[entry.id] ?: emptyList(),
+                                                isSelected = entry.id in multiSelectState.selectedIds,
+                                                onClick = {
+                                                    haptic.click()
+                                                    if (multiSelectState.isEnabled) {
+                                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                                    } else {
+                                                        onNavigateToDetail(entry.id)
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.click()
+                                                    multiSelectState = if (multiSelectState.isEnabled) {
+                                                        multiSelectState.toggleSelection(entry.id)
+                                                    } else {
+                                                        HomeMultiSelectState.startSelection(entry.id)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
                     }
                 }
 
