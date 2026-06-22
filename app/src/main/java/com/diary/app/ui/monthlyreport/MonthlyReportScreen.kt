@@ -124,7 +124,7 @@ fun MonthlyReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = innerPadding.calculateTopPadding() - 8.dp)
+                        .padding(top = innerPadding.calculateTopPadding() - 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Header

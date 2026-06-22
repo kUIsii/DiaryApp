@@ -402,12 +402,14 @@ fun HomeScreen(
                             calendarMode = newMode
                             // When switching modes, sync with currentWeekStart/currentMonth
                             if (newMode == CalendarMode.MONTH) {
-                                // Switching to month: use currentWeekStart to determine month
-                                val ym = java.time.YearMonth.from(currentWeekStart)
+                                // Switching to month: use selectedDate to determine month
+                                val refDate = selectedDate ?: LocalDate.now()
+                                val ym = java.time.YearMonth.from(refDate)
                                 if (ym != currentMonth) currentMonth = ym
                             } else {
-                                // Switching to week: use currentMonth to determine week start
-                                val ws = currentMonth.atDay(1).with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                                // Switching to week: use selectedDate to determine week start
+                                val refDate = selectedDate ?: LocalDate.now()
+                                val ws = refDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
                                 if (ws != currentWeekStart) currentWeekStart = ws
                             }
                         },
@@ -451,7 +453,7 @@ fun HomeScreen(
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Pager
                         HorizontalPager(
