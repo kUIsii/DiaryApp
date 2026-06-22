@@ -1061,7 +1061,7 @@ fun EditorScreen(
                     contentDescription = "草稿箱",
                     onClick = { showDraftsDialog = true }
                 )
-                if (experimentalFeatures.floatingBubbleEnabled && experimentalFeatures.aiAssistantEnabled) {
+                if (experimentalFeatures.floatingBubbleEnabled) {
                     EditorTopIconButton(
                         icon = Icons.Default.ChatBubbleOutline,
                         contentDescription = "小墨助手",
@@ -1395,7 +1395,7 @@ fun EditorScreen(
 
         // Floating polish button when text is selected
         AnimatedVisibility(
-            visible = showPolishButton && experimentalFeatures.floatingBubbleEnabled && experimentalFeatures.aiAssistantEnabled,
+            visible = showPolishButton && experimentalFeatures.floatingBubbleEnabled,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
             exit = fadeOut(),
             modifier = Modifier

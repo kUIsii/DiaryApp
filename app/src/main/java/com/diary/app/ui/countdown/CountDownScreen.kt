@@ -330,40 +330,37 @@ private fun CountDownItemCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Days number column
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(56.dp)
-            ) {
-                Text(
-                    text = when {
-                        daysRemaining == 0L -> "今天"
-                        daysRemaining > 0 -> "$daysRemaining"
-                        else -> "${-daysRemaining}"
-                    },
-                    fontSize = if (daysRemaining == 0L) 18.sp else 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = item.color.toColor()
-                )
-                if (daysRemaining != 0L) {
-                    Text(
-                        text = if (daysRemaining < 0) "天前" else "天",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = item.color.toColor().copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Vertical divider
+            // Left: Days number with colored background
+            val itemColor = item.color.toColor()
             Box(
                 modifier = Modifier
-                    .width(1.dp)
-                    .height(36.dp)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
-            )
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(itemColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = when {
+                            daysRemaining == 0L -> "今天"
+                            daysRemaining > 0 -> "$daysRemaining"
+                            else -> "${-daysRemaining}"
+                        },
+                        fontSize = if (daysRemaining == 0L) 18.sp else 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = itemColor
+                    )
+                    if (daysRemaining != 0L) {
+                        Text(
+                            text = if (daysRemaining < 0) "天前" else "天",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = itemColor.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(start = 2.dp, bottom = 3.dp)
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 

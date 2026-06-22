@@ -59,26 +59,31 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             val context = getApplication<Application>()
 
             val result = withContext(Dispatchers.IO) {
-                // Database file size
+                // Database: main .db + WAL + SHM
                 val dbFile = context.getDatabasePath("diary_database")
-                val dbSize = if (dbFile.exists()) dbFile.length() else 0L
+                val dbDir = dbFile.parentFile
+                var dbSize = 0L
+                if (dbDir != null && dbDir.exists()) {
+                    dbDir.listFiles()?.forEach { f ->
+                        if (f.name.startsWith("diary_database")) {
+                            dbSize += f.length()
+                        }
+                    }
+                }
 
                 // Scan media directory on disk (images, videos, audio)
                 val mediaDir = DiaryMediaManager.mediaDir(context)
                 val thumbDir = DiaryMediaManager.thumbDir(context)
                 val mediaSize = calculateMediaSize(mediaDir, thumbDir)
                 val thumbSize = calculateDirectorySize(thumbDir)
-
-                // Count files in media dir
                 val imageCount = countFiles(mediaDir, thumbDir)
 
                 val entryCount = dao.getEntryCount()
 
-                // Backup sizes
-                val backupHistory = BackupManager.getBackupHistory(context)
-                val backupSize = backupHistory.sumOf { it.fileSize }
+                // Backup: scan actual files on disk (both internal and external)
+                val backupSize = calculateBackupSize(context)
 
-                // Cache size
+                // Cache: app cacheDir + code_cache
                 val cacheSize = calculateCacheSize(context)
 
                 StorageResult(dbSize, mediaSize, thumbSize, backupSize, cacheSize, imageCount, entryCount)
@@ -133,6 +138,22 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         return dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
     }
 
+    private fun calculateBackupSize(context: android.content.Context): Long {
+        var size = 0L
+        // Internal backup dir: filesDir/backups/
+        val internalBackup = File(context.filesDir, "backups")
+        if (internalBackup.exists()) {
+            size += calculateDirectorySize(internalBackup)
+        }
+        // External backup dir: Documents/DiaryApp/
+        val docsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS)
+        val externalBackup = File(docsDir, "DiaryApp")
+        if (externalBackup.exists()) {
+            size += calculateDirectorySize(externalBackup)
+        }
+        return size
+    }
+
     private fun calculateCacheSize(context: android.content.Context): Long {
         var size = 0L
         val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
@@ -142,6 +163,10 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         val cacheDir = context.cacheDir
         if (cacheDir.exists()) {
             size += calculateDirectorySize(cacheDir)
+        }
+        val codeCache = File(context.applicationInfo.dataDir, "code_cache")
+        if (codeCache.exists()) {
+            size += calculateDirectorySize(codeCache)
         }
         return size
     }

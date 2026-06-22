@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
+import java.net.URLEncoder
 import java.net.URL
 import java.util.Locale
 
@@ -95,55 +96,85 @@ object WeatherManager {
             description.contains("多云") -> "多云"
             description.contains("阴") -> "阴天"
             description.contains("雷") -> "雷暴"
+            description.contains("雪") -> "雪天"
             description.contains("雨") -> "雨天"
-            description.contains("雪") -> "雨天"
             description.contains("风") || description.contains("台风") -> "大风"
             description.contains("雾") || description.contains("霾") -> "阴天"
             else -> "晴天"
         }
     }
 
+    /**
+     * Get city name. Tries GPS first (if permission granted), then falls back to Amap IP geolocation.
+     */
     private fun getCityName(context: Context): String? {
-        try {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                Log.w(TAG, "No location permission")
-                return null
-            }
-
-            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
-
-            for (provider in providers) {
-                try {
-                    val location = locationManager.getLastKnownLocation(provider) ?: continue
-                    val geocoder = Geocoder(context, Locale.getDefault())
-                    val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        val addr = addresses[0]
-                        // Use locality (city) first, then adminArea (province)
-                        val city = addr.locality ?: addr.subAdminArea ?: addr.adminArea
-                        if (!city.isNullOrBlank()) {
-                            Log.d(TAG, "Resolved city: $city")
-                            return city
+        // Try GPS-based location if permission is available
+        if (hasLocationPermission(context)) {
+            try {
+                val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
+                for (provider in providers) {
+                    try {
+                        if (!locationManager.isProviderEnabled(provider)) continue
+                        val location = locationManager.getLastKnownLocation(provider) ?: continue
+                        val geocoder = Geocoder(context, Locale.getDefault())
+                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            val city = addresses[0].locality ?: addresses[0].subAdminArea ?: addresses[0].adminArea
+                            if (!city.isNullOrBlank()) {
+                                Log.d(TAG, "Resolved city via GPS: $city")
+                                return city
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "GPS provider $provider failed", e)
                     }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to get city from provider $provider", e)
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "GPS location failed", e)
+            }
+        }
+
+        // Fallback: Amap IP geolocation (no permission needed)
+        return getCityByIp(context)
+    }
+
+    /**
+     * Use Amap IP geolocation API to get city name. No GPS needed.
+     */
+    private fun getCityByIp(context: Context): String? {
+        try {
+            val apiKey = BuildConfig.AMAP_API_KEY
+            if (apiKey.isBlank()) return null
+            val url = URL("https://restapi.amap.com/v3/ip?key=$apiKey")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 8000
+                readTimeout = 8000
+            }
+            try {
+                if (conn.responseCode != 200) return null
+                val body = conn.inputStream.bufferedReader().readText()
+                val json = JSONObject(body)
+                if (json.optString("status") != "1") return null
+                val city = json.optString("city", "")
+                if (city.isNotBlank()) {
+                    Log.d(TAG, "Resolved city via IP: $city")
+                    return city
+                }
+            } finally {
+                conn.disconnect()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get city name", e)
+            Log.w(TAG, "IP geolocation failed", e)
         }
         return null
     }
 
     private fun callWeatherApi(apiKey: String, city: String): CurrentWeather? {
         try {
-            val url = URL("$WEATHER_API_URL?key=$apiKey&city=${city}&extensions=base&output=json")
+            val encodedCity = URLEncoder.encode(city, "UTF-8")
+            val url = URL("$WEATHER_API_URL?key=$apiKey&city=$encodedCity&extensions=base&output=json")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 10000

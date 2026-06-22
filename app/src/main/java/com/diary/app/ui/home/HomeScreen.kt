@@ -213,7 +213,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -629,15 +629,15 @@ private fun QuickShortcutsSection(
     var shortcutRoutes by remember { mutableStateOf(QuickShortcutStore.getShortcuts(context)) }
     var showPicker by remember { mutableStateOf(false) }
 
-    GlassCard(
-        cornerRadius = 18.dp,
-        innerPadding = 14.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             shortcutRoutes.forEach { route ->
                 val option = QuickShortcutStore.getOption(route) ?: return@forEach
                 Column(
@@ -700,7 +700,6 @@ private fun QuickShortcutsSection(
                 )
             }
         }
-    }
 
     if (showPicker) {
         QuickShortcutPickerSheet(
@@ -1265,15 +1264,14 @@ private fun HomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 12.dp,
-        innerPadding = 4.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
@@ -1315,7 +1313,6 @@ private fun HomeSearchBar(
                 }
             }
         }
-    }
 }
 
 @Composable

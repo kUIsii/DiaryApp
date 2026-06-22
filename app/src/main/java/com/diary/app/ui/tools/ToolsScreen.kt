@@ -376,24 +376,6 @@ fun ToolsScreen(
                         enabled = isAiConfigured,
                         onCheckedChange = { app?.setAiInsightCardEnabled(it) }
                     )
-                    SettingDivider()
-                    AiFeatureToggleRow(
-                        icon = Icons.Default.Chat,
-                        title = "小墨助手",
-                        subtitle = "首页顶栏的专属 AI 助手",
-                        checked = features.aiAssistantEnabled && isAiConfigured,
-                        enabled = isAiConfigured,
-                        onCheckedChange = { app?.setAiAssistantEnabled(it) }
-                    )
-                    SettingDivider()
-                    AiFeatureToggleRow(
-                        icon = Icons.Default.ChatBubbleOutline,
-                        title = "编辑器 AI 助手",
-                        subtitle = "写日记时帮忙构思润色",
-                        checked = features.floatingBubbleEnabled && isAiConfigured,
-                        enabled = isAiConfigured,
-                        onCheckedChange = { app?.setFloatingBubbleEnabled(it) }
-                    )
                 }
 
                 // 其他

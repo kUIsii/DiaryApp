@@ -205,11 +205,21 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                // Check cache: key = period_entryCount
-                val cacheKey = "${period.name}_${filteredEntries.size}"
+                // Cache key: period + year-month + entry count + text hash
+                val periodKey = when (period) {
+                    WordCloudPeriod.MONTH -> "M${now.year}${now.monthValue}"
+                    WordCloudPeriod.YEAR -> "Y${now.year}"
+                    WordCloudPeriod.ALL -> "ALL"
+                }
+                val textHash = texts.takeLast(10).joinToString("").hashCode().toString(16).take(8)
+                val cacheKey = "${periodKey}_${filteredEntries.size}_$textHash"
+
+                // Check cache with 24h TTL
                 val cached = prefs.getString(cacheKey, null)
-                if (cached != null) {
-                    val parsed = parseWordCloudJson(cached)
+                val cacheTime = prefs.getLong("${cacheKey}_time", 0)
+                val cacheValid = cached != null && (System.currentTimeMillis() - cacheTime < 24 * 60 * 60 * 1000L)
+                if (cacheValid) {
+                    val parsed = parseWordCloudJson(cached!!)
                     if (parsed.isNotEmpty()) {
                         _aiWords.value = parsed
                         _isWordCloudLoading.value = false
@@ -217,21 +227,33 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                val combinedText = texts.takeLast(50).joinToString("\n---\n")
-                val prompt = """请从以下日记文本中提取20个最有代表性的关键词，反映作者关注的主题、情感、活动。
-返回JSON数组格式：[{"word":"关键词","weight":权重}]
-权重范围1-10，越重要越大。只返回JSON，不要其他文字。
+                // Sample text evenly from entries (not just take last 50)
+                val sampledTexts = if (texts.size <= 30) texts else {
+                    val step = texts.size / 30
+                    texts.filterIndexed { index, _ -> index % step == 0 }.takeLast(30)
+                }
+                val combinedText = sampledTexts.joinToString("\n---\n")
+
+                val prompt = """你是文本分析专家。从以下日记中提取10-15个最有代表性的关键词。
+要求：
+1. 只提取有实际意义的主题词、活动、情感（如"旅行""焦虑""跑步"）
+2. 合并相近概念（如"跑步""锻炼"→"运动"）
+3. 不要提取虚词、代词、时间词（如"今天""觉得""可能"）
+4. 每个词2-4个字，不要长短语
+5. 权重1-10，越重要越大
+返回JSON数组：[{"word":"关键词","weight":权重}]，只返回JSON。
 
 日记文本：
-${combinedText.take(3000)}"""
+${combinedText.take(4000)}"""
 
                 val request = aiRequest(
+                    systemPrompt = "你是专业的中文文本分析助手，擅长提取关键词。只返回JSON，不要解释。",
                     userMessage = prompt,
-                    temperature = 0.3f,
+                    temperature = 0.2f,
                     maxTokens = 512
                 )
 
-                val result = aiService.chat(request, useCache = false)
+                val result = aiService.chat(request, useCache = true)
                 result.onSuccess { response ->
                     try {
                         val json = response.content.trim()
@@ -239,15 +261,20 @@ ${combinedText.take(3000)}"""
                             .removePrefix("```").removeSuffix("```")
                             .trim()
                         val parsed = parseWordCloudJson(json)
-                        _aiWords.value = parsed
-                        // Save to cache
-                        prefs.edit().putString(cacheKey, json).apply()
+                        if (parsed.isNotEmpty()) {
+                            _aiWords.value = parsed
+                            prefs.edit().putString(cacheKey, json)
+                                .putLong("${cacheKey}_time", System.currentTimeMillis())
+                                .apply()
+                        } else {
+                            _aiWords.value = extractTopWords(texts, limit = 20)
+                        }
                     } catch (e: Exception) {
-                        _aiWords.value = extractTopWords(texts, limit = 30)
+                        _aiWords.value = extractTopWords(texts, limit = 20)
                     }
                 }
                 result.onFailure {
-                    _aiWords.value = extractTopWords(texts, limit = 30)
+                    _aiWords.value = extractTopWords(texts, limit = 20)
                 }
             } catch (e: Exception) {
                 _aiWords.value = emptyList()
@@ -267,11 +294,18 @@ ${combinedText.take(3000)}"""
             "了", "吗", "的", "是", "在", "我", "有", "和", "就", "不", "都", "一",
             "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "看", "好",
             "这", "他", "她", "它", "们", "那", "里", "为", "什么", "怎么", "吧",
-            "啊", "呢", "嗯", "哦", "哈", "呀", "啦", "了吗", "的了", "是的"
+            "啊", "呢", "嗯", "哦", "哈", "呀", "啦", "吗", "的了", "是的",
+            "一个", "自己", "可以", "已经", "还是", "就是", "不是", "但是", "因为",
+            "所以", "如果", "这个", "那个", "一些", "觉得", "知道", "时候", "现在",
+            "今天", "明天", "昨天", "真的", "可能", "需要", "应该", "一下", "一直",
+            "一样", "没有", "这么", "那么", "比较", "其实", "然后", "或者", "虽然",
+            "不过", "只是", "有点", "有些", "之后", "之前", "开始", "最后", "很多",
+            "那些", "这些", "这么", "那么", "出来", "过去", "下来", "起来", "上来",
+            "了吗", "嗯嗯", "哈哈", "嘻嘻", "嘿嘿"
         )
         return list.mapNotNull { map ->
-            val word = map["word"] as? String ?: return@mapNotNull null
-            if (word.length < 2 || word in stopWords) return@mapNotNull null
+            val word = (map["word"] as? String)?.trim() ?: return@mapNotNull null
+            if (word.length < 2 || word.length > 4 || word in stopWords) return@mapNotNull null
             val weight = (map["weight"] as? Number)?.toInt() ?: 5
             WordFrequency(word, weight)
         }.sortedByDescending { it.count }

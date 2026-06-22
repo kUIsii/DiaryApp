@@ -40,9 +40,12 @@ fun extractTopWords(texts: List<String>, limit: Int = 50): List<WordFrequency> {
         "可以", "已经", "还是", "就是", "不是", "但是", "因为", "所以", "如果",
         "这个", "那个", "一些", "觉得", "知道", "时候", "现在", "今天", "明天",
         "昨天", "真的", "一下", "一些", "一直", "一样", "可能", "需要", "应该",
+        "这么", "那么", "比较", "其实", "然后", "或者", "虽然", "不过", "只是",
+        "有点", "有些", "之后", "之前", "开始", "最后", "很多", "那些", "这些",
+        "出来", "过去", "下来", "起来", "上来", "这样", "那样", "什么", "多少",
         // Multi-character particles and fillers
         "了吗", "的了", "是的", "好吧", "嗯嗯", "哈哈", "呢吧", "了啊",
-        "的吗", "了吗", "了呢", "啊啊", "嘻嘻", "嘿嘿",
+        "的吗", "了呢", "啊啊", "嘻嘻", "嘿嘿",
         // Common English stop words
         "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of",
         "with", "by", "is", "am", "are", "was", "were", "be", "been", "being",
@@ -56,18 +59,21 @@ fun extractTopWords(texts: List<String>, limit: Int = 50): List<WordFrequency> {
     val wordCounts = mutableMapOf<String, Int>()
 
     texts.forEach { text ->
-        // Extract Chinese words (2-4 chars) and English words
-        val chinesePattern = Regex("[\\u4e00-\\u9fff]{2,4}")
-        val englishPattern = Regex("[a-zA-Z]{3,}")
-
-        chinesePattern.findAll(text).forEach { match ->
-            val word = match.value
-            if (word !in stopWords) {
-                wordCounts[word] = (wordCounts[word] ?: 0) + 1
+        // Split by punctuation and whitespace first, then extract Chinese words per segment
+        val segments = text.split(Regex("[\\s\\p{Punct}]+"))
+            .filter { it.isNotBlank() }
+        segments.forEach { segment ->
+            // Extract 2-3 char Chinese words (4-char combos rarely valid)
+            Regex("[\\u4e00-\\u9fff]{2,3}").findAll(segment).forEach { match ->
+                val word = match.value
+                if (word !in stopWords) {
+                    wordCounts[word] = (wordCounts[word] ?: 0) + 1
+                }
             }
         }
 
-        englishPattern.findAll(text).forEach { match ->
+        // Extract English words
+        Regex("[a-zA-Z]{3,}").findAll(text).forEach { match ->
             val word = match.value.lowercase()
             if (word !in stopWords) {
                 wordCounts[word] = (wordCounts[word] ?: 0) + 1
