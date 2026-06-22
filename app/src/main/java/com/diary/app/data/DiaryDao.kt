@@ -624,6 +624,9 @@ interface DiaryDao {
     // Writing duration stats
     @Query("SELECT AVG(writing_duration_seconds) FROM diary_entries WHERE writing_duration_seconds IS NOT NULL")
     suspend fun getAverageWritingDurationSeconds(): Double?
+
+    @Query("SELECT SUM(writing_duration_seconds) FROM diary_entries WHERE createdAt >= :start AND createdAt < :end AND writing_duration_seconds IS NOT NULL")
+    suspend fun getTotalWritingDurationSeconds(start: Long, end: Long): Int?
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

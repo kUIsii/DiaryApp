@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.ai.AiServiceManager
+import com.diary.app.ai.aiRequest
 import com.diary.app.data.DiaryPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,12 +18,67 @@ import java.time.ZoneId
 
 class MonthlyReportViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+    private val aiService = AiServiceManager(application)
 
     private val _report = MutableStateFlow<MonthlyReport?>(null)
     val report: StateFlow<MonthlyReport?> = _report.asStateFlow()
 
     private val _comparison = MutableStateFlow<YearComparison?>(null)
     val comparison: StateFlow<YearComparison?> = _comparison.asStateFlow()
+
+    private val _aiReview = MutableStateFlow<String?>(null)
+    val aiReview: StateFlow<String?> = _aiReview.asStateFlow()
+
+    private val _aiLoading = MutableStateFlow(false)
+    val aiLoading: StateFlow<Boolean> = _aiLoading.asStateFlow()
+
+    fun isAiAvailable(): Boolean = aiService.isAiEnabled()
+
+    fun generateAiReview() {
+        val currentReport = _report.value ?: return
+        if (_aiLoading.value) return
+
+        viewModelScope.launch {
+            _aiLoading.value = true
+            try {
+                val prompt = buildString {
+                    append("你是一个温暖的文字伙伴。请根据以下${currentReport.year}年${currentReport.month}月的日记数据，写一段2-3句的月度回顾。")
+                    append("语气温和自然，像朋友之间的对话，不要提到AI或数据分析。")
+                    append("这个月共写了${currentReport.totalEntries}篇日记，${currentReport.totalWords}字。")
+                    if (currentReport.avgMood != null) {
+                        val moodDesc = when {
+                            currentReport.avgMood >= 4f -> "心情很好"
+                            currentReport.avgMood >= 3f -> "心情平稳"
+                            currentReport.avgMood >= 2f -> "心情有些低落"
+                            else -> "心情不太好"
+                        }
+                        append("平均心情${String.format("%.1f", currentReport.avgMood)}，$moodDesc。")
+                    }
+                    if (currentReport.totalDurationMinutes > 0) {
+                        append("总写作时长${currentReport.totalDurationMinutes}分钟。")
+                    }
+                    val activeDays = currentReport.dailyWordCounts.count { it > 0 }
+                    append("有${activeDays}天在写日记。")
+                }
+
+                val result = aiService.chat(
+                    aiRequest(
+                        userMessage = prompt,
+                        systemPrompt = "你是一个安静、温暖的文字伙伴。回复简洁自然，不要用引号、破折号或特殊符号。",
+                        maxTokens = 128,
+                        temperature = 0.8f
+                    )
+                )
+
+                _aiReview.value = result.getOrNull()?.content?.trim()
+                    ?: "这个月的记录很珍贵，继续写下去吧"
+            } catch (_: Exception) {
+                _aiReview.value = "这个月的记录很珍贵，继续写下去吧"
+            } finally {
+                _aiLoading.value = false
+            }
+        }
+    }
 
     fun loadReport(year: Int, month: Int) {
         viewModelScope.launch {
@@ -42,8 +99,9 @@ class MonthlyReportViewModel(application: Application) : AndroidViewModel(applic
 
             val photoCount = getPhotoCount(entries)
             val tagStats = getTagStats(entries)
+            val totalDurationMinutes = (dao.getTotalWritingDurationSeconds(startMillis, endMillis) ?: 0) / 60
 
-            _report.value = buildReport(year, month, ym.lengthOfMonth(), entries, zone, photoCount, tagStats)
+            _report.value = buildReport(year, month, ym.lengthOfMonth(), entries, zone, photoCount, tagStats, totalDurationMinutes)
 
             // Load last year comparison
             loadComparison(year, month, entries, zone)
@@ -93,7 +151,8 @@ class MonthlyReportViewModel(application: Application) : AndroidViewModel(applic
         entries: List<DiaryPreview>,
         zone: ZoneId,
         photoCount: Int,
-        tagStats: List<MonthlyReport.TagStat>
+        tagStats: List<MonthlyReport.TagStat>,
+        totalDurationMinutes: Int
     ): MonthlyReport {
         val totalWords = entries.sumOf { it.plainText.length }
 
@@ -134,6 +193,14 @@ class MonthlyReportViewModel(application: Application) : AndroidViewModel(applic
             }.sumOf { it.plainText.length }
         }
 
+        // Daily mood averages
+        val dailyMoodAverages = (1..daysInMonth).map { day ->
+            val dayMoods = entries.filter { entry ->
+                Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate().dayOfMonth == day
+            }.mapNotNull { it.moodLevel }
+            if (dayMoods.isNotEmpty()) dayMoods.average().toFloat() else null
+        }
+
         return MonthlyReport(
             year = year,
             month = month,
@@ -149,7 +216,9 @@ class MonthlyReportViewModel(application: Application) : AndroidViewModel(applic
             mostActiveDay = mostActiveDay,
             photoCount = photoCount,
             tags = tagStats,
-            dailyWordCounts = dailyWordCounts
+            dailyWordCounts = dailyWordCounts,
+            dailyMoodAverages = dailyMoodAverages,
+            totalDurationMinutes = totalDurationMinutes
         )
     }
 

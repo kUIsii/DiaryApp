@@ -18,6 +18,8 @@ data class MonthlyReport(
     val photoCount: Int,
     val tags: List<TagStat>,
     val dailyWordCounts: List<Int>,
+    val dailyMoodAverages: List<Float?>,
+    val totalDurationMinutes: Int,
 ) {
     data class TagStat(val name: String, val color: Long, val count: Int)
 }

@@ -102,6 +102,10 @@ import com.diary.app.ui.components.weatherLabelFor
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
+private const val DAY_PAGER_INITIAL_PAGE = 5000
+private const val DAY_PAGER_PAGE_COUNT = 10001
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -140,6 +144,7 @@ fun HomeScreen(
     val stats by viewModel.stats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+    val entriesByDate by viewModel.entriesByDate.collectAsState()
 
     // Random review state
     var randomEntry by remember { mutableStateOf<DiaryPreview?>(null) }
@@ -193,6 +198,28 @@ fun HomeScreen(
     LaunchedEffect(selectedDate) {
         multiSelectState = HomeMultiSelectState()
         showDeleteConfirm = false
+    }
+
+    // Day pager state and sync
+    val today = remember { LocalDate.now() }
+    val pagerState = rememberPagerState(initialPage = DAY_PAGER_INITIAL_PAGE) { DAY_PAGER_PAGE_COUNT }
+
+    fun pageToDate(page: Int): LocalDate = today.plusDays((page - DAY_PAGER_INITIAL_PAGE).toLong())
+    fun dateToPage(date: LocalDate): Int = (DAY_PAGER_INITIAL_PAGE + ChronoUnit.DAYS.between(today, date)).toInt()
+
+    // Pager settles -> update selectedDate
+    LaunchedEffect(pagerState.settledPage) {
+        viewModel.selectDate(pageToDate(pagerState.settledPage))
+    }
+
+    // selectedDate changes (from calendar click) -> animate pager
+    LaunchedEffect(selectedDate) {
+        selectedDate?.let { date ->
+            val targetPage = dateToPage(date)
+            if (pagerState.currentPage != targetPage) {
+                pagerState.animateScrollToPage(targetPage)
+            }
+        }
     }
 
     GradientBackground {
@@ -334,59 +361,72 @@ fun HomeScreen(
                     )
                 }
 
-                selectedDate?.let { currentDate ->
-                    item {
-                        SelectedDateHeader(
-                            date = currentDate,
-                            entryCount = selectedEntries.size,
-                            multiSelectState = multiSelectState,
-                            onFavoriteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                // Day pager - swipe left/right to navigate between days
+                item(key = "day-pager") {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxWidth(),
+                        beyondBoundsPageCount = 1
+                    ) { page ->
+                        val pageDate = pageToDate(page)
+                        val pageEntries = entriesByDate[pageDate] ?: emptyList()
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            SelectedDateHeader(
+                                date = pageDate,
+                                entryCount = pageEntries.size,
+                                multiSelectState = multiSelectState,
+                                onFavoriteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                        multiSelectState = multiSelectState.clearSelection()
+                                    }
+                                },
+                                onDeleteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        showDeleteConfirm = true
+                                    }
+                                },
+                                onCancelMultiSelect = {
                                     haptic.click()
-                                    viewModel.favoriteEntries(multiSelectState.selectedIds)
                                     multiSelectState = multiSelectState.clearSelection()
                                 }
-                            },
-                            onDeleteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
-                                    haptic.click()
-                                    showDeleteConfirm = true
-                                }
-                            },
-                            onCancelMultiSelect = {
-                                haptic.click()
-                                multiSelectState = multiSelectState.clearSelection()
-                            }
-                        )
-                    }
-                }
+                            )
 
-                if (selectedDate != null && selectedEntries.isEmpty()) {
-                    item { NoEntriesForDate() }
-                } else {
-                    items(items = selectedEntries, key = { entry -> entry.id }) { entry ->
-                        HomeEntryCard(
-                            entry = entry,
-                            tags = tagsMap[entry.id] ?: emptyList(),
-                            imagePaths = allImagesMap[entry.id] ?: emptyList(),
-                            isSelected = entry.id in multiSelectState.selectedIds,
-                            onClick = {
-                                haptic.click()
-                                if (multiSelectState.isEnabled) {
-                                    multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                } else {
-                                    onNavigateToDetail(entry.id)
-                                }
-                            },
-                            onLongClick = {
-                                haptic.click()
-                                multiSelectState = if (multiSelectState.isEnabled) {
-                                    multiSelectState.toggleSelection(entry.id)
-                                } else {
-                                    HomeMultiSelectState.startSelection(entry.id)
+                            if (pageEntries.isEmpty()) {
+                                NoEntriesForDate()
+                            } else {
+                                pageEntries.forEach { entry ->
+                                    HomeEntryCard(
+                                        entry = entry,
+                                        tags = tagsMap[entry.id] ?: emptyList(),
+                                        imagePaths = allImagesMap[entry.id] ?: emptyList(),
+                                        isSelected = entry.id in multiSelectState.selectedIds,
+                                        onClick = {
+                                            haptic.click()
+                                            if (multiSelectState.isEnabled) {
+                                                multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                            } else {
+                                                onNavigateToDetail(entry.id)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptic.click()
+                                            multiSelectState = if (multiSelectState.isEnabled) {
+                                                multiSelectState.toggleSelection(entry.id)
+                                            } else {
+                                                HomeMultiSelectState.startSelection(entry.id)
+                                            }
+                                        }
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
                 }
 
@@ -1058,7 +1098,7 @@ private fun HomeEntryCard(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .background(moodData.tint.copy(alpha = 0.07f))
+                            .background(moodData.tint.copy(alpha = 0.18f))
                     )
                 }
 

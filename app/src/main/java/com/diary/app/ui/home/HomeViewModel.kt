@@ -162,6 +162,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    // Entries grouped by date (for day pager)
+    val entriesByDate: StateFlow<Map<LocalDate, List<DiaryPreview>>> = allEntries
+        .map { entries ->
+            entries.groupBy { entry ->
+                Instant.ofEpochMilli(entry.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val stats: StateFlow<HomeStats> = combine(allEntries, entryDates) { entries, dates ->
         val now = LocalDate.now()
         val streak = computeStreak(dates)

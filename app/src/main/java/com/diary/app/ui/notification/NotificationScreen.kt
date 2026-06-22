@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.History
@@ -322,7 +323,7 @@ private fun NotificationList(
                             initialOffsetY = { it / 5 }
                         )
             ) {
-                SwipeableNotificationCard(
+                NotificationCardWithMenu(
                     item = item,
                     onTrash = { onTrash(item.id) },
                     onClick = {
@@ -427,7 +428,8 @@ private fun NotificationCardWithMenu(
             item = item,
             onClick = if (clickable) onClick else ({}),
             clickable = clickable,
-            onLongClick = { showMenu = true }
+            onLongClick = { showMenu = true },
+            onClose = onTrash
         )
 
         // 长按菜单
@@ -458,7 +460,8 @@ private fun NotificationCard(
     item: NotificationItem,
     onClick: () -> Unit,
     clickable: Boolean,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onClose: () -> Unit
 ) {
     val (icon, iconColor, title, subtitle) = getNotificationStyle(item)
     val timeText = formatTimestamp(item.timestamp)
@@ -471,46 +474,65 @@ private fun NotificationCard(
             .clip(RoundedCornerShape(16.dp))
             .clickable(enabled = clickable, onClick = onClick)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // 左侧图标
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = iconColor.copy(alpha = 0.12f)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 28.dp)
+            ) {
+                // 左侧图标
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = iconColor.copy(alpha = 0.12f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.padding(10.dp).size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                // 中间文字
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                // 右侧时间
+                Text(
+                    text = timeText,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+            // 右上角关闭按钮
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(28.dp)
             ) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.padding(10.dp).size(20.dp)
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "关闭",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(14.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(14.dp))
-            // 中间文字
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            // 右侧时间
-            Text(
-                text = timeText,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
         }
     }
 }
