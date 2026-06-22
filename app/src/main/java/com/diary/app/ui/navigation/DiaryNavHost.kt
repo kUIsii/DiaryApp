@@ -292,17 +292,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
-                    onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
-                    onMainScreenSwipe = { dragAmount ->
-                        val targetRoute = resolveMainScreenSwipeTarget(
-                            currentRoute = Screen.Home.route,
-                            totalDrag = dragAmount,
-                            enabled = true
-                        )
-                        if (targetRoute != null) {
-                            navigateToBottomRoute(targetRoute)
-                        }
-                    }
+                    onNavigateToStorage = { navController.navigate(Screen.Storage.route) }
                 )
             }
             composable(Screen.Timeline.route) {

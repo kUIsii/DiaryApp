@@ -52,7 +52,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
@@ -154,7 +153,6 @@ fun CalendarView(
                         fontWeight = FontWeight.SemiBold,
                         color = onBackground,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
                     )
 
@@ -276,17 +274,21 @@ fun CalendarView(
                             },
                             onDragEnd = {
                                 val threshold = 40f
-                                if (totalDragX < -threshold && !isAtCurrent) {
-                                    // Swipe left = next (only if not at current)
+                                if (totalDragX < -threshold) {
+                                    // Swipe left = next
                                     if (calendarMode == CalendarMode.MONTH) {
-                                        onCurrentMonthChange(currentMonth.plusMonths(1))
+                                        if (!isAtCurrent) {
+                                            onCurrentMonthChange(currentMonth.plusMonths(1))
+                                        }
                                     } else {
-                                        val newStart = currentWeekStart.plusWeeks(1)
-                                        onCurrentWeekStartChange(newStart)
-                                        // Sync selectedDate to the new week
-                                        val newDate = newStart.plusDays(
-                                            (selectedDate?.dayOfWeek?.value ?: 1) - 1L
-                                        ).coerceAtMost(newStart.plusDays(6))
+                                        // Week mode: move day by day
+                                        val currentDate = selectedDate ?: today
+                                        val newDate = currentDate.plusDays(1)
+                                        // Update week start if crossing week boundary
+                                        val newWeekStart = newDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                        if (newWeekStart != currentWeekStart) {
+                                            onCurrentWeekStartChange(newWeekStart)
+                                        }
                                         onDateSelected(newDate)
                                     }
                                 } else if (totalDragX > threshold) {
@@ -294,12 +296,14 @@ fun CalendarView(
                                     if (calendarMode == CalendarMode.MONTH) {
                                         onCurrentMonthChange(currentMonth.minusMonths(1))
                                     } else {
-                                        val newStart = currentWeekStart.minusWeeks(1)
-                                        onCurrentWeekStartChange(newStart)
-                                        // Sync selectedDate to the new week
-                                        val newDate = newStart.plusDays(
-                                            (selectedDate?.dayOfWeek?.value ?: 1) - 1L
-                                        ).coerceAtMost(newStart.plusDays(6))
+                                        // Week mode: move day by day
+                                        val currentDate = selectedDate ?: today
+                                        val newDate = currentDate.minusDays(1)
+                                        // Update week start if crossing week boundary
+                                        val newWeekStart = newDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                        if (newWeekStart != currentWeekStart) {
+                                            onCurrentWeekStartChange(newWeekStart)
+                                        }
                                         onDateSelected(newDate)
                                     }
                                 }

@@ -131,7 +131,6 @@ fun HomeScreen(
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
-    onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -227,21 +226,7 @@ fun HomeScreen(
 
     GradientBackground {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(onMainScreenSwipe) {
-                    var totalDrag = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { totalDrag = 0f },
-                        onHorizontalDrag = { change, dragAmount ->
-                            totalDrag += dragAmount
-                            change.consume()
-                        },
-                        onDragEnd = {
-                            onMainScreenSwipe?.invoke(totalDrag)
-                        }
-                    )
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(
                 modifier = Modifier
