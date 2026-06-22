@@ -240,8 +240,32 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = navHostModifier,
-            enterTransition = { fadeIn(animationSpec = tween(250)) },
-            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            enterTransition = {
+                val from = initialState.destination.route
+                val to = targetState.destination.route
+                val fromIdx = bottomNavItems.indexOfFirst { it.screen.route == from }
+                val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
+                if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
+                    val direction = if (toIdx > fromIdx) 1 else -1
+                    slideInHorizontally(tween(280)) { direction * it / 3 } +
+                        fadeIn(tween(200))
+                } else {
+                    fadeIn(animationSpec = tween(250))
+                }
+            },
+            exitTransition = {
+                val from = initialState.destination.route
+                val to = targetState.destination.route
+                val fromIdx = bottomNavItems.indexOfFirst { it.screen.route == from }
+                val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
+                if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
+                    val direction = if (toIdx > fromIdx) -1 else 1
+                    slideOutHorizontally(tween(280)) { direction * it / 4 } +
+                        fadeOut(tween(200))
+                } else {
+                    fadeOut(animationSpec = tween(200))
+                }
+            },
             popEnterTransition = { fadeIn(animationSpec = tween(250)) },
             popExitTransition = { fadeOut(animationSpec = tween(200)) }
         ) {

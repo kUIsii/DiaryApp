@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.BarChart
@@ -289,25 +290,49 @@ fun HomeScreen(
 
                 // Search results (when query is active)
                 if (searchQuery.isNotBlank() && searchResults.isNotEmpty()) {
-                    items(searchResults.take(5), key = { it.id }) { entry ->
+                    item {
+                        Text(
+                            text = "找到 ${searchResults.size} 条结果",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(searchResults.take(10), key = { it.id }) { entry ->
                         SearchResultCard(
                             entry = entry,
                             imageMap = imageMap,
                             onClick = { onNavigateToDetail(entry.id) }
                         )
                     }
-                    if (searchResults.size > 5) {
+                    if (searchResults.size > 10) {
                         item {
-                            Text(
-                                text = "查看全部 ${searchResults.size} 条结果",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onNavigateToTimeline(searchQuery) }
-                                    .padding(horizontal = 4.dp, vertical = 8.dp)
-                            )
+                            GlassCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onNavigateToTimeline(searchQuery) },
+                                cornerRadius = 12.dp,
+                                innerPadding = 12.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "查看全部 ${searchResults.size} 条结果",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -366,7 +391,7 @@ fun HomeScreen(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxWidth(),
-                        beyondBoundsPageCount = 1
+                        beyondBoundsPageCount = 2
                     ) { page ->
                         val pageDate = pageToDate(page)
                         val pageEntries = entriesByDate[pageDate] ?: emptyList()
@@ -570,28 +595,13 @@ private fun HomeHeroSection(
             }
         }
 
-        // Compact stats row (without weather, moved to header)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        // AI insight only (streak/month stats removed)
+        if (aiInsight != null) {
             CompactStatChip(
-                icon = Icons.Default.Edit,
-                text = "连续 ${stats.streak} 天",
-                modifier = Modifier.weight(1f)
+                icon = Icons.Default.AutoAwesome,
+                text = aiInsight.text.take(20),
+                modifier = Modifier.fillMaxWidth()
             )
-            CompactStatChip(
-                icon = Icons.Default.CalendarMonth,
-                text = "本月 ${stats.thisMonth} 篇",
-                modifier = Modifier.weight(1f)
-            )
-            if (aiInsight != null) {
-                CompactStatChip(
-                    icon = Icons.Default.AutoAwesome,
-                    text = aiInsight.text.take(20),
-                    modifier = Modifier.weight(1f)
-                )
-            }
         }
     }
 }
@@ -1343,6 +1353,10 @@ private fun SearchResultCard(
     imageMap: Map<Long, String>,
     onClick: () -> Unit
 ) {
+    val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+    val dateStr = "${entryDate.monthValue}/${entryDate.dayOfMonth}"
+
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -1354,14 +1368,23 @@ private fun SearchResultCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = entry.title.ifBlank { "无标题" },
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = entry.title.ifBlank { "无标题" },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Text(
+                        text = dateStr,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
                 if (entry.plainText.isNotBlank()) {
                     Text(
                         text = cleanPreviewText(entry.plainText),

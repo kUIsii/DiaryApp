@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,19 @@ fun CalendarView(
         mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
     }
     val today = remember { LocalDate.now() }
+
+    // Sync calendar view with selectedDate from day pager
+    LaunchedEffect(selectedDate, calendarMode) {
+        selectedDate?.let { date ->
+            if (calendarMode == CalendarMode.MONTH) {
+                val ym = YearMonth.from(date)
+                if (ym != currentMonth) currentMonth = ym
+            } else {
+                val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                if (weekStart != currentWeekStart) currentWeekStart = weekStart
+            }
+        }
+    }
 
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant

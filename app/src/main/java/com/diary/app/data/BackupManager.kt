@@ -24,7 +24,11 @@ import java.util.zip.ZipOutputStream
 
 enum class BackupFrequency(val label: String, val days: Int) {
     DAILY("每日", 1),
+    EVERY_3_DAYS("每3天", 3),
+    EVERY_5_DAYS("每5天", 5),
     WEEKLY("每周", 7),
+    BIWEEKLY("每两周", 14),
+    MONTHLY("每月", 30),
     DISABLED("关闭", 0)
 }
 
@@ -49,8 +53,8 @@ fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"
         .trim('-', '.')
         .ifBlank { fallbackBaseName }
 
-    // 确保以 diary_backup_ 开头，这样导入扫描能找到
-    val prefixed = if (baseName.startsWith("diary_backup_")) baseName else "diary_backup_$baseName"
+    // 确保以备份前缀开头，这样导入扫描能找到
+    val prefixed = if (baseName.startsWith("diary_backup_") || baseName.startsWith("日记备份_")) baseName else "diary_backup_$baseName"
     return "$prefixed$FULL_BACKUP_EXTENSION"
 }
 
@@ -271,8 +275,10 @@ object BackupManager {
     }
 
     suspend fun createBackup(context: Context, dao: DiaryDao): BackupRecord {
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        val fileName = "diary_backup_$timestamp$FULL_BACKUP_EXTENSION"
+        val now = LocalDateTime.now()
+        val dateStr = now.format(DateTimeFormatter.ofPattern("yyyy年M月d日"))
+        val timeStr = now.format(DateTimeFormatter.ofPattern("HHmmss"))
+        val fileName = "日记备份_${dateStr}_${timeStr}$FULL_BACKUP_EXTENSION"
         val json = buildBackupJson(dao)
         val tempFile = buildFullBackupFile(context, dao, json)
 
@@ -632,7 +638,7 @@ object BackupManager {
     )
 
     /**
-     * 扫描 Downloads 目录中所有的 diary_backup_* 备份文件。
+     * 扫描 Downloads 目录中所有的备份文件。
      */
     fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
         val results = mutableListOf<DownloadBackupFile>()
@@ -647,23 +653,25 @@ object BackupManager {
                 MediaStore.Downloads.SIZE,
                 MediaStore.Downloads.DATE_MODIFIED
             )
-            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
-            val selectionArgs = arrayOf("diary_backup_%")
-            context.contentResolver.query(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs,
-                "${MediaStore.Downloads.DATE_MODIFIED} DESC"
-            )?.use { cursor ->
-                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
-                val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
-                val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
-                while (cursor.moveToNext()) {
-                    val fileName = cursor.getString(nameIdx)
-                    if (results.none { it.fileName == fileName }) {
-                        results.add(DownloadBackupFile(
-                            fileName = fileName,
-                            fileSize = cursor.getLong(sizeIdx),
-                            lastModified = cursor.getLong(dateIdx) * 1000
-                        ))
+            // Query both old and new naming prefixes
+            for (prefix in listOf("diary_backup_%", "日记备份_%")) {
+                val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
+                context.contentResolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf(prefix),
+                    "${MediaStore.Downloads.DATE_MODIFIED} DESC"
+                )?.use { cursor ->
+                    val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                    val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
+                    val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
+                    while (cursor.moveToNext()) {
+                        val fileName = cursor.getString(nameIdx)
+                        if (results.none { it.fileName == fileName }) {
+                            results.add(DownloadBackupFile(
+                                fileName = fileName,
+                                fileSize = cursor.getLong(sizeIdx),
+                                lastModified = cursor.getLong(dateIdx) * 1000
+                            ))
+                        }
                     }
                 }
             }
@@ -672,7 +680,7 @@ object BackupManager {
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (dir.exists()) {
                 dir.listFiles()?.filter {
-                    it.name.startsWith("diary_backup_") &&
+                    (it.name.startsWith("diary_backup_") || it.name.startsWith("日记备份_")) &&
                         (it.name.endsWith(".json") || it.name.endsWith(FULL_BACKUP_EXTENSION))
                 }
                     ?.sortedByDescending { it.lastModified() }
@@ -800,7 +808,7 @@ object BackupManager {
         val dir = getBackupDir()
         if (!dir.exists()) return emptyArray()
         return dir.listFiles { file ->
-            file.isFile && file.name.startsWith("diary_backup_") &&
+            file.isFile && (file.name.startsWith("diary_backup_") || file.name.startsWith("日记备份_")) &&
                 (file.name.endsWith(".json") || file.name.endsWith(FULL_BACKUP_EXTENSION))
         } ?: emptyArray()
     }

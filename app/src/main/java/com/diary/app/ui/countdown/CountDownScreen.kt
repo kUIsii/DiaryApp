@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -230,9 +231,9 @@ private fun CountDownOverviewCard(
     items: List<CountDownItem>,
     viewModel: CountDownViewModel
 ) {
-    val now = java.time.LocalDate.now()
     val upcoming = items.filter { viewModel.getDaysRemaining(it) >= 0 }
         .sortedBy { viewModel.getDaysRemaining(it) }
+    val past = items.filter { viewModel.getDaysRemaining(it) < 0 }
     val nearest = upcoming.firstOrNull()
     val nearestDays = nearest?.let { viewModel.getDaysRemaining(it) }
 
@@ -241,50 +242,95 @@ private fun CountDownOverviewCard(
         cornerRadius = 18.dp,
         innerPadding = 16.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (nearest != null && nearestDays != null) {
+        if (nearest != null && nearestDays != null) {
+            val nearestColor = nearest.color.toColor()
+            val targetDate = Instant.ofEpochMilli(nearest.targetDate)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left: days number
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(nearestColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = when {
+                                nearestDays == 0L -> "今天"
+                                else -> "$nearestDays"
+                            },
+                            fontSize = if (nearestDays == 0L) 20.sp else 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = nearestColor
+                        )
+                        if (nearestDays != 0L) {
+                            Text(
+                                text = "天",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = nearestColor.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(start = 2.dp, bottom = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // Right: title + date + stats
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = nearest.title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = when {
-                            nearestDays == 0L -> "就是今天"
-                            nearestDays <= 7 -> "还有 $nearestDays 天"
-                            else -> "还有 $nearestDays 天"
-                        },
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = nearest.color.toColor()
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "即将到来",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${upcoming.size} 个待办",
+                        text = targetDate.format(DateTimeFormatter.ofPattern("M月d日 · EEEE")),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
+                    if (upcoming.size > 1 || past.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = buildString {
+                                if (upcoming.size > 1) append("${upcoming.size} 个即将到来")
+                                if (upcoming.size > 1 && past.isNotEmpty()) append(" · ")
+                                if (past.isNotEmpty()) append("${past.size} 个已过去")
+                            },
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
                 }
-            } else {
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "暂无即将到来的日期",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
         }
