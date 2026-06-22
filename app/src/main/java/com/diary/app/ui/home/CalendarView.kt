@@ -28,16 +28,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.ViewWeek
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +67,7 @@ import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 
 enum class CalendarMode { WEEK, MONTH }
@@ -92,18 +99,19 @@ fun CalendarView(
         currentWeekStart.plusDays(6) >= today
     }
 
-    // Check if we can go back to today
     val canGoToToday = if (calendarMode == CalendarMode.MONTH) {
         !(currentMonth.year == today.year && currentMonth.monthValue == today.monthValue)
     } else {
         !(currentWeekStart <= today && currentWeekStart.plusDays(6) >= today)
     }
 
+    var showJumpDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            // Header: only date + arrows
+            // Row 1: [<] date range [>]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -119,12 +127,7 @@ fun CalendarView(
                             if (calendarMode == CalendarMode.MONTH) {
                                 onCurrentMonthChange(currentMonth.minusMonths(1))
                             } else {
-                                val newStart = currentWeekStart.minusWeeks(1)
-                                onCurrentWeekStartChange(newStart)
-                                val newDate = newStart.plusDays(
-                                    (selectedDate?.dayOfWeek?.value ?: 1) - 1L
-                                ).coerceAtMost(newStart.plusDays(6))
-                                onDateSelected(newDate)
+                                onCurrentWeekStartChange(currentWeekStart.minusWeeks(1))
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -168,12 +171,7 @@ fun CalendarView(
                                 if (calendarMode == CalendarMode.MONTH) {
                                     onCurrentMonthChange(currentMonth.plusMonths(1))
                                 } else {
-                                    val newStart = currentWeekStart.plusWeeks(1)
-                                    onCurrentWeekStartChange(newStart)
-                                    val newDate = newStart.plusDays(
-                                        (selectedDate?.dayOfWeek?.value ?: 1) - 1L
-                                    ).coerceAtMost(newStart.plusDays(6))
-                                    onDateSelected(newDate)
+                                    onCurrentWeekStartChange(currentWeekStart.plusWeeks(1))
                                 }
                             }
                         },
@@ -184,6 +182,36 @@ fun CalendarView(
                         contentDescription = "下一页",
                         tint = if (isAtCurrent) onSurfaceVariant.copy(alpha = 0.3f) else onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Row 2: mode toggle centered
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ModeToggleButton(
+                        icon = Icons.Default.ViewWeek,
+                        label = "周",
+                        isSelected = calendarMode == CalendarMode.WEEK,
+                        onClick = { onModeChange(CalendarMode.WEEK) }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    ModeToggleButton(
+                        icon = Icons.Default.CalendarViewMonth,
+                        label = "月",
+                        isSelected = calendarMode == CalendarMode.MONTH,
+                        onClick = { onModeChange(CalendarMode.MONTH) }
                     )
                 }
             }
@@ -205,7 +233,7 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Calendar grid with swipe
+            // Calendar grid with swipe (only changes displayed month/week, not selectedDate)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -225,25 +253,15 @@ fun CalendarView(
                                             onCurrentMonthChange(currentMonth.plusMonths(1))
                                         }
                                     } else {
-                                        val currentDate = selectedDate ?: today
-                                        val newDate = currentDate.plusDays(1)
-                                        val newWeekStart = newDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                                        if (newWeekStart != currentWeekStart) {
-                                            onCurrentWeekStartChange(newWeekStart)
+                                        if (!isAtCurrent) {
+                                            onCurrentWeekStartChange(currentWeekStart.plusWeeks(1))
                                         }
-                                        onDateSelected(newDate)
                                     }
                                 } else if (totalDragX > threshold) {
                                     if (calendarMode == CalendarMode.MONTH) {
                                         onCurrentMonthChange(currentMonth.minusMonths(1))
                                     } else {
-                                        val currentDate = selectedDate ?: today
-                                        val newDate = currentDate.minusDays(1)
-                                        val newWeekStart = newDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                                        if (newWeekStart != currentWeekStart) {
-                                            onCurrentWeekStartChange(newWeekStart)
-                                        }
-                                        onDateSelected(newDate)
+                                        onCurrentWeekStartChange(currentWeekStart.minusWeeks(1))
                                     }
                                 }
                             }
@@ -299,7 +317,7 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Bottom bar: today button + mode toggle
+            // Bottom bar: jump to today + jump to date
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -334,29 +352,139 @@ fun CalendarView(
                     Spacer(modifier = Modifier)
                 }
 
-                Row(
+                Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-                        .padding(3.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(onSurfaceVariant.copy(alpha = 0.1f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            showJumpDialog = true
+                        }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    ModeToggleButton(
-                        icon = Icons.Default.ViewWeek,
-                        label = "周",
-                        isSelected = calendarMode == CalendarMode.WEEK,
-                        onClick = { onModeChange(CalendarMode.WEEK) }
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    ModeToggleButton(
-                        icon = Icons.Default.CalendarViewMonth,
-                        label = "月",
-                        isSelected = calendarMode == CalendarMode.MONTH,
-                        onClick = { onModeChange(CalendarMode.MONTH) }
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = null,
+                            tint = onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "跳转",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
+    }
+
+    // Jump to date dialog
+    if (showJumpDialog) {
+        JumpToDateDialog(
+            onDismiss = { showJumpDialog = false },
+            onConfirm = { date ->
+                if (calendarMode == CalendarMode.MONTH) {
+                    onCurrentMonthChange(YearMonth.from(date))
+                } else {
+                    onCurrentWeekStartChange(date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+                }
+                onDateSelected(date)
+                showJumpDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun JumpToDateDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate) -> Unit
+) {
+    var dateText by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("跳转到指定日期") },
+        text = {
+            Column {
+                Text(
+                    text = "输入日期，格式如 2025-06-15 或 06-15（默认今年）",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                TextField(
+                    value = dateText,
+                    onValueChange = {
+                        dateText = it
+                        isError = false
+                    },
+                    placeholder = { Text("2025-06-15", fontSize = 14.sp) },
+                    isError = isError,
+                    supportingText = if (isError) {
+                        { Text("日期格式不正确") }
+                    } else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val parsed = parseJumpDate(dateText.trim())
+                    if (parsed != null) {
+                        onConfirm(parsed)
+                    } else {
+                        isError = true
+                    }
+                }
+            ) {
+                Text("跳转")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+private fun parseJumpDate(input: String): LocalDate? {
+    return try {
+        // Try full date: 2025-06-15
+        if (input.matches(Regex("\\d{4}-\\d{1,2}-\\d{1,2}"))) {
+            LocalDate.parse(input, DateTimeFormatter.ofPattern("yyyy-M-d"))
+        }
+        // Try month-day: 06-15 or 6-15
+        else if (input.matches(Regex("\\d{1,2}-\\d{1,2}"))) {
+            val parts = input.split("-")
+            val month = parts[0].toInt()
+            val day = parts[1].toInt()
+            if (month in 1..12 && day in 1..31) {
+                LocalDate.of(LocalDate.now().year, month, day)
+            } else null
+        } else null
+    } catch (_: Exception) {
+        null
     }
 }
 
