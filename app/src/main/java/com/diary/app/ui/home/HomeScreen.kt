@@ -3,13 +3,7 @@ package com.diary.app.ui.home
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.pager.HorizontalPager
@@ -17,8 +11,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -391,8 +383,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Day pager with date header - single item to avoid extra spacing
-                // Day content with swipe to switch dates
+                // Day content - display only, no swipe
                 item(key = "day-pager") {
                     val currentDate = selectedDate ?: LocalDate.now()
                     val currentEntries = entriesByDate[currentDate] ?: emptyList()
@@ -423,75 +414,36 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .pointerInput(Unit) {
-                                    var totalDragX = 0f
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { totalDragX = 0f },
-                                        onHorizontalDrag = { change, dragAmount ->
-                                            totalDragX += dragAmount
-                                            change.consume()
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (currentEntries.isEmpty()) {
+                                NoEntriesForDate()
+                            } else {
+                                currentEntries.forEach { entry ->
+                                    HomeEntryCard(
+                                        entry = entry,
+                                        tags = tagsMap[entry.id] ?: emptyList(),
+                                        imagePaths = allImagesMap[entry.id] ?: emptyList(),
+                                        isSelected = entry.id in multiSelectState.selectedIds,
+                                        onClick = {
+                                            haptic.click()
+                                            if (multiSelectState.isEnabled) {
+                                                multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                            } else {
+                                                onNavigateToDetail(entry.id)
+                                            }
                                         },
-                                        onDragEnd = {
-                                            val threshold = 50f
-                                            if (totalDragX < -threshold) {
-                                                viewModel.selectDate(currentDate.plusDays(1))
-                                            } else if (totalDragX > threshold) {
-                                                viewModel.selectDate(currentDate.minusDays(1))
+                                        onLongClick = {
+                                            haptic.click()
+                                            multiSelectState = if (multiSelectState.isEnabled) {
+                                                multiSelectState.toggleSelection(entry.id)
+                                            } else {
+                                                HomeMultiSelectState.startSelection(entry.id)
                                             }
                                         }
                                     )
-                                }
-                        ) {
-                            AnimatedContent(
-                                targetState = currentDate,
-                                transitionSpec = {
-                                    val isForward = targetState > initialState
-                                    if (isForward) {
-                                        (slideInHorizontally { it / 4 } + fadeIn(tween(200))) togetherWith
-                                            (slideOutHorizontally { -it / 4 } + fadeOut(tween(180)))
-                                    } else {
-                                        (slideInHorizontally { -it / 4 } + fadeIn(tween(200))) togetherWith
-                                            (slideOutHorizontally { it / 4 } + fadeOut(tween(180)))
-                                    }
-                                },
-                                label = "dayContent"
-                            ) { date ->
-                                val entries = entriesByDate[date] ?: emptyList()
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    if (entries.isEmpty()) {
-                                        NoEntriesForDate()
-                                    } else {
-                                        entries.forEach { entry ->
-                                            HomeEntryCard(
-                                                entry = entry,
-                                                tags = tagsMap[entry.id] ?: emptyList(),
-                                                imagePaths = allImagesMap[entry.id] ?: emptyList(),
-                                                isSelected = entry.id in multiSelectState.selectedIds,
-                                                onClick = {
-                                                    haptic.click()
-                                                    if (multiSelectState.isEnabled) {
-                                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                                    } else {
-                                                        onNavigateToDetail(entry.id)
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    haptic.click()
-                                                    multiSelectState = if (multiSelectState.isEnabled) {
-                                                        multiSelectState.toggleSelection(entry.id)
-                                                    } else {
-                                                        HomeMultiSelectState.startSelection(entry.id)
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
