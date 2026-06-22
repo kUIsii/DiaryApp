@@ -139,10 +139,7 @@ fun StatsScreen(
                     }
 
                     item {
-                        StatsHeroSection(
-                            state = state,
-                            onRangeSelected = viewModel::setHeatmapRange
-                        )
+                        StatsHeroSection(state = state)
                     }
 
                     if (state.heatmapData.isNotEmpty()) {
@@ -151,6 +148,28 @@ fun StatsScreen(
                                 title = "记录热力图",
                                 subtitle = "查看最近 ${state.heatmapRange.days} 天的记录密度，点按某一天可查看当天日记"
                             ) {
+                                // Range selector inside the card
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    HeatmapRange.entries.forEach { range ->
+                                        val rangeLabel = when (range) {
+                                            HeatmapRange.ONE_MONTH -> "30天"
+                                            HeatmapRange.THREE_MONTHS -> "3月"
+                                            HeatmapRange.SIX_MONTHS -> "6月"
+                                            HeatmapRange.ONE_YEAR -> "1年"
+                                        }
+                                        RangeChip(
+                                            label = rangeLabel,
+                                            selected = state.heatmapRange == range,
+                                            onClick = { viewModel.setHeatmapRange(range) }
+                                        )
+                                    }
+                                }
+
                                 DiaryHeatmap(
                                     data = state.heatmapData,
                                     range = state.heatmapRange,
@@ -521,8 +540,7 @@ private fun MonthlyReportEntryCard(onClick: () -> Unit) {
 
 @Composable
 private fun StatsHeroSection(
-    state: StatsState,
-    onRangeSelected: (HeatmapRange) -> Unit
+    state: StatsState
 ) {
     val avgWords = state.wordStats?.avgWordsPerEntry ?: 0
     val totalWords = state.wordStats?.totalWords ?: 0
@@ -574,27 +592,6 @@ private fun StatsHeroSection(
                 }
             }
 
-            // Range selector
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HeatmapRange.entries.forEach { range ->
-                    val rangeLabel = when (range) {
-                        HeatmapRange.ONE_MONTH -> "最近 30 天"
-                        HeatmapRange.THREE_MONTHS -> "最近 3 月"
-                        HeatmapRange.SIX_MONTHS -> "最近 6 月"
-                        HeatmapRange.ONE_YEAR -> "最近 1 年"
-                    }
-                    RangeChip(
-                        label = rangeLabel,
-                        selected = state.heatmapRange == range,
-                        onClick = { onRangeSelected(range) }
-                    )
-                }
-            }
         }
     }
 }
@@ -663,7 +660,7 @@ private fun WordCloudSection(
 ) {
     StatsSectionCard(
         title = "词云",
-        subtitle = if (state.isAiConfigured) "AI 提取的关键词，反映你的关注点" else "配置 AI 后可自动生成词云"
+        subtitle = "从日记中提取的高频词，反映你的关注点"
     ) {
         // Period selector
         Row(
@@ -695,9 +692,7 @@ private fun WordCloudSection(
             }
         }
 
-        if (!state.isAiConfigured) {
-            InlineEmptyHint("配置 AI 服务后，可自动生成词云")
-        } else if (state.isWordCloudLoading) {
+        if (state.isWordCloudLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1228,10 +1223,11 @@ private fun DiaryHeatmap(
         return
     }
 
-    MonthlyHeatmap(
-        data = data,
-        onDayClick = onDayClick
-    )
+    if (range.days <= 30) {
+        MonthlyHeatmap(data = data, onDayClick = onDayClick)
+    } else {
+        CompactHeatmap(data = data, onDayClick = onDayClick)
+    }
 
     Spacer(modifier = Modifier.height(10.dp))
 
@@ -1250,7 +1246,6 @@ private fun MonthlyHeatmap(
     data: List<HeatmapDay>,
     onDayClick: (LocalDate) -> Unit
 ) {
-    val dark = themeMode().isDark()
     val today = LocalDate.now()
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
@@ -1319,6 +1314,119 @@ private fun MonthlyHeatmap(
             }
         }
 
+        HeatmapLegend()
+    }
+}
+
+@Composable
+private fun CompactHeatmap(
+    data: List<HeatmapDay>,
+    onDayClick: (LocalDate) -> Unit
+) {
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val primary = MaterialTheme.colorScheme.primary
+
+    // Organize data into weeks (Mon=0 ... Sun=6), each week is a column
+    val weeks = remember(data) {
+        val firstDate = data.first().date
+        val startOffset = (firstDate.dayOfWeek.value - 1 + 7) % 7
+        val padded = List(startOffset) { null } + data.map { it }
+        padded.chunked(7)
+    }
+
+    // Find month boundaries for labels
+    val monthLabels = remember(data) {
+        val labels = mutableListOf<Pair<Int, String>>()
+        var prevMonth = -1
+        weeks.forEachIndexed { weekIdx, week ->
+            val firstDay = week.firstOrNull { it != null }
+            if (firstDay != null && firstDay.date.monthValue != prevMonth) {
+                prevMonth = firstDay.date.monthValue
+                labels.add(weekIdx to "${firstDay.date.monthValue}月")
+            }
+        }
+        labels
+    }
+
+    val cellSize = 12.dp
+    val cellGap = 3.dp
+    val labelWidth = 20.dp
+
+    Column {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            // Day-of-week labels
+            Column(
+                modifier = Modifier.width(labelWidth),
+                verticalArrangement = Arrangement.spacedBy(cellGap)
+            ) {
+                for (d in 0 until 7) {
+                    Box(
+                        modifier = Modifier.height(cellSize),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (d % 2 == 0) { // Show Mon, Wed, Fri
+                            Text(
+                                text = listOf("一", "二", "三", "四", "五", "六", "日")[d],
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Grid columns
+            weeks.forEach { week ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(cellGap),
+                    modifier = Modifier.width(cellSize)
+                ) {
+                    for (dayIndex in 0 until 7) {
+                        val day = week.getOrNull(dayIndex)
+                        if (day == null) {
+                            Spacer(modifier = Modifier.size(cellSize))
+                        } else {
+                            val background = when {
+                                day.count == 0 -> surfaceVariant.copy(alpha = 0.30f)
+                                day.count == 1 -> primary.copy(alpha = 0.20f)
+                                day.count == 2 -> primary.copy(alpha = 0.40f)
+                                day.count == 3 -> primary.copy(alpha = 0.60f)
+                                day.count == 4 -> primary.copy(alpha = 0.80f)
+                                else -> primary
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(cellSize)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(background)
+                                    .clickable { onDayClick(day.date) }
+                                    .semantics {
+                                        contentDescription = "${day.date.monthValue}月${day.date.dayOfMonth}日，${day.count} 篇"
+                                    }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.width(cellGap))
+            }
+        }
+
+        // Month labels below
+        Box(modifier = Modifier.padding(start = labelWidth)) {
+            Row {
+                monthLabels.forEach { (weekIdx, label) ->
+                    val offsetWeeks = weekIdx
+                    Text(
+                        text = label,
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = (offsetWeeks * 15).dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
         HeatmapLegend()
     }
 }

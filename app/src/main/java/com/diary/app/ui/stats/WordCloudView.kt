@@ -32,20 +32,27 @@ data class WordFrequency(
  */
 fun extractTopWords(texts: List<String>, limit: Int = 50): List<WordFrequency> {
     val stopWords = setOf(
-        // Common Chinese stop words
+        // Common Chinese particles and function words
         "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一", "一个",
         "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没有", "看", "好",
         "自己", "这", "他", "她", "它", "们", "那", "里", "为", "什么", "怎么", "吗",
-        "吧", "啊", "呢", "嗯", "哦", "哈", "呀", "啦", "哎", "唉", "嗨",
+        "吧", "啊", "呢", "嗯", "哦", "哈", "呀", "啦", "哎", "唉", "嗨", "噢",
         "可以", "已经", "还是", "就是", "不是", "但是", "因为", "所以", "如果",
         "这个", "那个", "一些", "觉得", "知道", "时候", "现在", "今天", "明天",
-        "昨天", "真的", "一下", "一些", "一直", "一样", "可能", "需要", "应该",
+        "昨天", "真的", "一下", "一直", "一样", "可能", "需要", "应该", "没",
         "这么", "那么", "比较", "其实", "然后", "或者", "虽然", "不过", "只是",
         "有点", "有些", "之后", "之前", "开始", "最后", "很多", "那些", "这些",
-        "出来", "过去", "下来", "起来", "上来", "这样", "那样", "什么", "多少",
-        // Multi-character particles and fillers
+        "出来", "过去", "下来", "起来", "上来", "这样", "那样", "多少", "还",
+        "又", "再", "才", "只", "被", "把", "给", "让", "对", "向", "从", "跟",
+        "想", "做", "没", "太", "挺", "更", "最", "比较", "非常", "特别",
+        "感觉", "认为", "希望", "应该", "能够", "可以", "需要", "必须",
+        // Time/date words (not meaningful for word cloud)
+        "今天", "明天", "昨天", "后天", "前天", "上午", "下午", "晚上", "早上",
+        "中午", "半夜", "周一", "周二", "周三", "周四", "周五", "周六", "周日",
+        "星期", "月份", "小时", "分钟", "秒钟", "早上", "晚上", "中午",
+        // Common compound fillers
         "了吗", "的了", "是的", "好吧", "嗯嗯", "哈哈", "呢吧", "了啊",
-        "的吗", "了呢", "啊啊", "嘻嘻", "嘿嘿",
+        "的吗", "了呢", "啊啊", "嘻嘻", "嘿嘿", "哈哈", "嗯嗯",
         // Common English stop words
         "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of",
         "with", "by", "is", "am", "are", "was", "were", "be", "been", "being",
@@ -53,27 +60,42 @@ fun extractTopWords(texts: List<String>, limit: Int = 50): List<WordFrequency> {
         "may", "might", "can", "shall", "i", "you", "he", "she", "it", "we", "they",
         "me", "him", "her", "us", "them", "my", "your", "his", "its", "our", "their",
         "this", "that", "these", "those", "not", "no", "so", "if", "then", "than",
-        "too", "very", "just", "about", "up", "out", "all", "from", "get", "got"
+        "too", "very", "just", "about", "up", "out", "all", "from", "get", "got",
+        "day", "days", "time", "year", "years", "month", "months", "week", "weeks"
+    )
+
+    // Single characters that are rarely meaningful alone
+    val singleCharBlacklist = setOf(
+        '的', '了', '在', '是', '我', '有', '和', '就', '不', '都', '一', '上', '也',
+        '很', '到', '说', '要', '去', '你', '会', '着', '看', '好', '这', '他', '她',
+        '它', '们', '那', '里', '为', '吗', '吧', '啊', '呢', '嗯', '哦', '哈', '呀',
+        '啦', '又', '再', '才', '只', '被', '把', '给', '让', '对', '向', '从', '跟',
+        '想', '做', '太', '挺', '更', '最', '还', '没', '人', '大', '小', '多', '少',
+        '年', '月', '日', '天', '时', '分', '秒', '个', '些', '种', '样', '次'
     )
 
     val wordCounts = mutableMapOf<String, Int>()
 
     texts.forEach { text ->
-        // Split by punctuation and whitespace first, then extract Chinese words per segment
-        val segments = text.split(Regex("[\\s\\p{Punct}]+"))
-            .filter { it.isNotBlank() }
-        segments.forEach { segment ->
-            // Extract 2-3 char Chinese words (4-char combos rarely valid)
-            Regex("[\\u4e00-\\u9fff]{2,3}").findAll(segment).forEach { match ->
-                val word = match.value
-                if (word !in stopWords) {
-                    wordCounts[word] = (wordCounts[word] ?: 0) + 1
-                }
+        // Extract 2-char Chinese words (most common word length in Chinese)
+        Regex("[\\u4e00-\\u9fff]{2}").findAll(text).forEach { match ->
+            val word = match.value
+            // Filter: not in stop words, both chars not blacklisted
+            if (word !in stopWords && word[0] !in singleCharBlacklist && word[1] !in singleCharBlacklist) {
+                wordCounts[word] = (wordCounts[word] ?: 0) + 1
             }
         }
 
-        // Extract English words
-        Regex("[a-zA-Z]{3,}").findAll(text).forEach { match ->
+        // Extract 3-char Chinese words (compound words, names, etc.)
+        Regex("[\\u4e00-\\u9fff]{3}").findAll(text).forEach { match ->
+            val word = match.value
+            if (word !in stopWords) {
+                wordCounts[word] = (wordCounts[word] ?: 0) + 1
+            }
+        }
+
+        // Extract English words (4+ chars, more meaningful)
+        Regex("[a-zA-Z]{4,}").findAll(text).forEach { match ->
             val word = match.value.lowercase()
             if (word !in stopWords) {
                 wordCounts[word] = (wordCounts[word] ?: 0) + 1
@@ -81,8 +103,12 @@ fun extractTopWords(texts: List<String>, limit: Int = 50): List<WordFrequency> {
         }
     }
 
+    // Filter out words that appear only once across all texts (noise)
+    // and prefer 2-char words (most natural Chinese word length)
     return wordCounts.entries
-        .sortedByDescending { it.value }
+        .filter { it.value >= 2 } // Must appear at least twice
+        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }
+            .thenBy { it.key.length }) // Prefer shorter words
         .take(limit)
         .map { WordFrequency(it.key, it.value) }
 }
@@ -156,7 +182,7 @@ private fun calculateWordPlacements(
     val placements = mutableListOf<WordPlacement>()
     val occupiedAreas = mutableListOf<androidx.compose.ui.geometry.Rect>()
 
-    words.forEachIndexed { index, word ->
+    words.forEach { word ->
         val normalizedCount = if (maxCount > minCount) {
             (word.count - minCount).toFloat() / (maxCount - minCount)
         } else {
