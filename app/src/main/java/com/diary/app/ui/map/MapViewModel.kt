@@ -19,7 +19,8 @@ data class MapMarker(
     val longitude: Double,
     val location: String,
     val createdAt: Long,
-    val moodLevel: Int?
+    val moodLevel: Int?,
+    val plainText: String = ""
 )
 
 data class MapStats(
@@ -64,7 +65,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                         longitude = lon,
                         location = entry.location ?: "",
                         createdAt = entry.createdAt,
-                        moodLevel = entry.moodLevel
+                        moodLevel = entry.moodLevel,
+                        plainText = entry.plainText
                     )
                 }
 

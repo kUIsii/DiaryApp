@@ -180,20 +180,6 @@ fun TimeCapsuleScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = onNavigateToCreate,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "写一封",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
 
             if (capsules.isEmpty()) {
@@ -260,30 +246,6 @@ fun TimeCapsuleScreen(
                                     haptic.click()
                                     onNavigateToRead(capsule.id)
                                 },
-                                onDelete = {
-                                    capsuleToDelete = capsule
-                                    showDeleteDialog = true
-                                }
-                            )
-                        }
-                    }
-
-                    // Locked section (not yet due)
-                    if (locked.isNotEmpty()) {
-                        item {
-                            SectionHeader(
-                                title = "等待中",
-                                count = locked.size,
-                                accent = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                        itemsIndexed(
-                            items = locked,
-                            key = { _, item -> item.id }
-                        ) { index, capsule ->
-                            LockedCapsuleCard(
-                                capsule = capsule,
-                                index = index,
                                 onDelete = {
                                     capsuleToDelete = capsule
                                     showDeleteDialog = true
@@ -374,7 +336,6 @@ private fun SummaryCard(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 MetricBlock(label = "总数", value = total.toString(), modifier = Modifier.weight(1f))
-                MetricBlock(label = "等待中", value = lockedCount.toString(), modifier = Modifier.weight(1f))
                 MetricBlock(label = "未拆", value = sealedCount.toString(), modifier = Modifier.weight(1f))
                 MetricBlock(label = "已打开", value = openedCount.toString(), modifier = Modifier.weight(1f))
             }

@@ -142,6 +142,9 @@ fun DiaryMapScreen(
                         onLocationClick = { location ->
                             selectedLocation = location.name
                             showMap = true
+                        },
+                        onEntryClick = { entryId ->
+                            onNavigateToDetail(entryId)
                         }
                     )
                 }
@@ -155,7 +158,8 @@ data class LocationGroup(
     val count: Int,
     val markers: List<MapMarker>,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val latestMarker: MapMarker? = markers.maxByOrNull { it.createdAt }
 )
 
 @Composable
@@ -225,7 +229,8 @@ private fun DiaryMapHeader(
 @Composable
 private fun LocationList(
     locations: List<LocationGroup>,
-    onLocationClick: (LocationGroup) -> Unit
+    onLocationClick: (LocationGroup) -> Unit,
+    onEntryClick: (Long) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -239,7 +244,8 @@ private fun LocationList(
         items(locations) { location ->
             LocationItem(
                 location = location,
-                onClick = { onLocationClick(location) }
+                onClick = { onLocationClick(location) },
+                onEntryClick = onEntryClick
             )
         }
 
@@ -250,6 +256,7 @@ private fun LocationList(
 @Composable
 private fun LocationOverviewCard(locations: List<LocationGroup>) {
     val topLocation = locations.maxByOrNull { it.count }
+    val totalEntries = locations.sumOf { it.count }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -257,42 +264,55 @@ private fun LocationOverviewCard(locations: List<LocationGroup>) {
         innerPadding = 16.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "地图页更适合做地点目录，而不是单纯摆一张地图。",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MapPill(text = "地点 ${locations.size}")
-                MapPill(text = "最多 ${topLocation?.count ?: 0} 篇")
-                topLocation?.let { MapPill(text = "常看 ${it.name.take(6)}") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "$totalEntries 篇位置日记",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "分布在 ${locations.size} 个地点",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (topLocation != null) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "最常去",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = topLocation.name.take(8),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MapPill(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
 private fun LocationItem(
     location: LocationGroup,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEntryClick: (Long) -> Unit
 ) {
+    val latest = location.latestMarker
+    val latestPreview = latest?.plainText?.take(40)?.let {
+        if (it.length >= 40) "$it..." else it
+    }?.ifBlank { null }
+
     GlassCard(
         cornerRadius = 18.dp,
         innerPadding = 16.dp,
@@ -301,7 +321,7 @@ private fun LocationItem(
             .clickable(onClick = onClick)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
@@ -323,25 +343,53 @@ private fun LocationItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = location.name,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${location.count} 篇日记，最近一篇 ${formatDate(location.markers.maxOfOrNull { it.createdAt } ?: 0L)}",
+                    text = "${location.count} 篇",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (latest != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onEntryClick(latest.id) }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = latest.title,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (latestPreview != null) {
+                            Text(
+                                text = latestPreview,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
             }
 
             Icon(
                 Icons.Default.Map,
                 contentDescription = "查看地图",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
             )
         }
     }

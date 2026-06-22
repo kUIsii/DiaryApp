@@ -25,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -129,14 +130,14 @@ fun StatsScreen(
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     item {
+                        StatsPageHeader(totalEntries = state.totalEntries)
+                    }
+
+                    item {
                         StatsHeroSection(
                             state = state,
                             onRangeSelected = viewModel::setHeatmapRange
                         )
-                    }
-
-                    item {
-                        SummaryGrid(state = state)
                     }
 
                     if (state.heatmapData.isNotEmpty()) {
@@ -406,64 +407,96 @@ private fun DayEntriesDialog(
 }
 
 @Composable
+private fun StatsPageHeader(totalEntries: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp, top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "统计",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (totalEntries == 0) "记录你的写作轨迹" else "共 $totalEntries 篇日记",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Analytics,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun StatsHeroSection(
     state: StatsState,
     onRangeSelected: (HeatmapRange) -> Unit
 ) {
     val avgWords = state.wordStats?.avgWordsPerEntry ?: 0
+    val totalWords = state.wordStats?.totalWords ?: 0
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 24.dp,
         innerPadding = 18.dp
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            // Hero number - total entries
-            Column {
-                Text(
-                    text = "统计",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "${state.totalEntries}",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        lineHeight = 40.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "篇日记",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
-                }
-            }
-
-            // Compact stats row
+            // Hero number + stats in one row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CompactStatItem(
-                    label = "平均字数",
-                    value = formatWordCount(avgWords),
-                    modifier = Modifier.weight(1f)
-                )
-                CompactStatItem(
-                    label = "本月",
-                    value = "${state.thisMonthEntries} 篇",
-                    modifier = Modifier.weight(1f)
-                )
-                CompactStatItem(
-                    label = "连续",
-                    value = "${state.currentStreak} 天",
-                    modifier = Modifier.weight(1f)
-                )
+                // Total entries - hero number
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "${state.totalEntries}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            lineHeight = 40.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "篇",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+                    if (totalWords > 0) {
+                        Text(
+                            text = "累计 ${formatWordCount(totalWords)}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                // Compact stats column
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    CompactStatChip(label = "平均", value = "${avgWords}字")
+                    CompactStatChip(label = "本月", value = "${state.thisMonthEntries}篇")
+                    CompactStatChip(label = "连续", value = "${state.currentStreak}天")
+                }
             }
 
             // Range selector
@@ -489,30 +522,26 @@ private fun StatsHeroSection(
 }
 
 @Composable
-private fun CompactStatItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+private fun CompactStatChip(label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = label,
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = value,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

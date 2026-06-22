@@ -324,23 +324,24 @@ fun ReadCapsuleScreen(
                             )
 
                             // Time info
-                            Row(
+                            Text(
+                                text = "写于 ${formatTimestamp(currentCapsule.createdAt)}",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+
+                            // Divider
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                InfoPanel(
-                                    label = "写于",
-                                    value = formatTimestamp(currentCapsule.createdAt),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                InfoPanel(
-                                    label = "解锁于",
-                                    value = formatTimestamp(currentCapsule.unlockDate),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                                    .fillMaxWidth(0.3f)
+                                    .height(1.dp)
+                                    .align(Alignment.CenterHorizontally)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
+                                        RoundedCornerShape(0.5.dp)
+                                    )
+                            )
 
                             // Image if exists
                             if (!currentCapsule.imageUri.isNullOrEmpty()) {
@@ -369,34 +370,6 @@ fun ReadCapsuleScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun InfoPanel(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2
-            )
         }
     }
 }

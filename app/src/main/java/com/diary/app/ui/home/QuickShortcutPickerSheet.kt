@@ -54,7 +54,7 @@ fun QuickShortcutPickerSheet(
     var selectedRoutes by remember { mutableStateOf(currentRoutes.toMutableList()) }
     var replacingIndex by remember { mutableStateOf<Int?>(null) }
     var deleteIndex by remember { mutableStateOf<Int?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Delete confirmation dialog
     if (deleteIndex != null) {
@@ -84,6 +84,7 @@ fun QuickShortcutPickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
