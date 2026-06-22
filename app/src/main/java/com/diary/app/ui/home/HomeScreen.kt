@@ -400,15 +400,15 @@ fun HomeScreen(
                         calendarMode = calendarMode,
                         onModeChange = { newMode ->
                             calendarMode = newMode
-                            // When switching to month mode, ensure currentMonth matches selectedDate
-                            selectedDate?.let { date ->
-                                if (newMode == CalendarMode.MONTH) {
-                                    val ym = java.time.YearMonth.from(date)
-                                    if (ym != currentMonth) currentMonth = ym
-                                } else {
-                                    val ws = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-                                    if (ws != currentWeekStart) currentWeekStart = ws
-                                }
+                            // When switching modes, sync with currentWeekStart/currentMonth
+                            if (newMode == CalendarMode.MONTH) {
+                                // Switching to month: use currentWeekStart to determine month
+                                val ym = java.time.YearMonth.from(currentWeekStart)
+                                if (ym != currentMonth) currentMonth = ym
+                            } else {
+                                // Switching to week: use currentMonth to determine week start
+                                val ws = currentMonth.atDay(1).with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                                if (ws != currentWeekStart) currentWeekStart = ws
                             }
                         },
                         onDateSelected = { date ->
@@ -422,55 +422,57 @@ fun HomeScreen(
                     )
                 }
 
-                // Date header - outside pager for consistent spacing
-                item(key = "date-header") {
-                    val currentDate = pageToDate(pagerState.currentPage)
-                    val currentEntries = entriesByDate[currentDate] ?: emptyList()
-                    SelectedDateHeader(
-                        date = currentDate,
-                        entryCount = currentEntries.size,
-                        multiSelectState = multiSelectState,
-                        onFavoriteSelected = {
-                            if (multiSelectState.selectedIds.isNotEmpty()) {
+                // Day pager with date header - single item to avoid extra spacing
+                item(key = "day-pager") {
+                    Column {
+                        // Date header
+                        val currentDate = pageToDate(pagerState.currentPage)
+                        val currentEntries = entriesByDate[currentDate] ?: emptyList()
+                        SelectedDateHeader(
+                            date = currentDate,
+                            entryCount = currentEntries.size,
+                            multiSelectState = multiSelectState,
+                            onFavoriteSelected = {
+                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                                    haptic.click()
+                                    viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                    multiSelectState = multiSelectState.clearSelection()
+                                }
+                            },
+                            onDeleteSelected = {
+                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                                    haptic.click()
+                                    showDeleteConfirm = true
+                                }
+                            },
+                            onCancelMultiSelect = {
                                 haptic.click()
-                                viewModel.favoriteEntries(multiSelectState.selectedIds)
                                 multiSelectState = multiSelectState.clearSelection()
                             }
-                        },
-                        onDeleteSelected = {
-                            if (multiSelectState.selectedIds.isNotEmpty()) {
-                                haptic.click()
-                                showDeleteConfirm = true
-                            }
-                        },
-                        onCancelMultiSelect = {
-                            haptic.click()
-                            multiSelectState = multiSelectState.clearSelection()
-                        }
-                    )
-                }
+                        )
 
-                // Day pager - swipe left/right to navigate between days
-                item(key = "day-pager") {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxWidth(),
-                        beyondBoundsPageCount = 2
-                    ) { page ->
-                        val pageDate = pageToDate(page)
-                        val pageEntries = entriesByDate[pageDate] ?: emptyList()
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        Column(
+                        // Pager
+                        HorizontalPager(
+                            state = pagerState,
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            if (pageEntries.isEmpty()) {
-                                NoEntriesForDate()
-                            } else {
-                                pageEntries.forEach { entry ->
-                                    HomeEntryCard(
-                                        entry = entry,
-                                        tags = tagsMap[entry.id] ?: emptyList(),
+                            beyondBoundsPageCount = 2
+                        ) { page ->
+                            val pageDate = pageToDate(page)
+                            val pageEntries = entriesByDate[pageDate] ?: emptyList()
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (pageEntries.isEmpty()) {
+                                    NoEntriesForDate()
+                                } else {
+                                    pageEntries.forEach { entry ->
+                                        HomeEntryCard(
+                                            entry = entry,
+                                            tags = tagsMap[entry.id] ?: emptyList(),
                                         imagePaths = allImagesMap[entry.id] ?: emptyList(),
                                         isSelected = entry.id in multiSelectState.selectedIds,
                                         onClick = {
@@ -493,6 +495,7 @@ fun HomeScreen(
                                 }
                             }
                         }
+                    }
                     }
                 }
 
