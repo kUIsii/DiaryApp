@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
+import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
@@ -534,12 +535,28 @@ private fun CalendarDay(
                     primaryMoodColor != null -> primaryMoodColor.copy(alpha = 0.92f)
                     else -> primary.copy(alpha = 0.82f)
                 }
-                Text(
-                    text = "${dayInfo?.entryCount ?: 1}",
-                    fontSize = 8.sp,
-                    color = countColor,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    val weather = dayInfo?.weather
+                    if (!weather.isNullOrBlank()) {
+                        val (weatherIcon, weatherTint) = weatherIconFor(weather)
+                        Icon(
+                            imageVector = weatherIcon,
+                            contentDescription = null,
+                            tint = if (isSelected) Color.White.copy(alpha = 0.85f) else weatherTint.copy(alpha = 0.7f),
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+                    Text(
+                        text = "${dayInfo?.entryCount ?: 1}",
+                        fontSize = 8.sp,
+                        color = countColor,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             } else if (isToday && !isSelected) {
                 // Small dot indicator for today when not selected
                 Box(

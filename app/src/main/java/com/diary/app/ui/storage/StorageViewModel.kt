@@ -155,20 +155,8 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun calculateCacheSize(context: android.content.Context): Long {
-        var size = 0L
-        val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
-        if (prefsDir.exists()) {
-            size += prefsDir.listFiles()?.sumOf { it.length() } ?: 0L
-        }
         val cacheDir = context.cacheDir
-        if (cacheDir.exists()) {
-            size += calculateDirectorySize(cacheDir)
-        }
-        val codeCache = File(context.applicationInfo.dataDir, "code_cache")
-        if (codeCache.exists()) {
-            size += calculateDirectorySize(codeCache)
-        }
-        return size
+        return if (cacheDir.exists()) calculateDirectorySize(cacheDir) else 0L
     }
 
     private data class StorageResult(

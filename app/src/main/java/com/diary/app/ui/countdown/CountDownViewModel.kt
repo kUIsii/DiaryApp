@@ -100,9 +100,18 @@ class CountDownViewModel(application: Application) : AndroidViewModel(applicatio
 
         return if (item.isRepeatYearly) {
             // Calculate days to next occurrence
-            var nextTarget = targetDate.withYear(today.year)
+            var nextTarget = try {
+                targetDate.withYear(today.year)
+            } catch (e: java.time.DateTimeException) {
+                // Feb 29 in non-leap year → use Feb 28
+                targetDate.withDayOfMonth(28).withYear(today.year)
+            }
             if (nextTarget.isBefore(today)) {
-                nextTarget = nextTarget.plusYears(1)
+                nextTarget = try {
+                    nextTarget.plusYears(1)
+                } catch (e: java.time.DateTimeException) {
+                    targetDate.withDayOfMonth(28).withYear(today.year + 1)
+                }
             }
             ChronoUnit.DAYS.between(today, nextTarget)
         } else {

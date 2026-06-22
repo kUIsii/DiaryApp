@@ -639,8 +639,3 @@ data class RecentLocation(
     val longitude: Double?
 )
 
-data class ImageStorageStat(
-    val entryId: Long,
-    val count: Int,
-    val totalSize: Long
-)

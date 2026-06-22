@@ -58,9 +58,6 @@ import com.amap.api.maps.model.MarkerOptions
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun DiaryMapScreen(
@@ -69,7 +66,7 @@ fun DiaryMapScreen(
     viewModel: MapViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var showMap by remember { mutableStateOf(false) }
+    var showMap by remember { mutableStateOf(true) }
     var selectedLocation by remember { mutableStateOf<String?>(null) }
 
     val locations = remember(state.markers) {
@@ -535,7 +532,3 @@ private fun MapViewWithLocation(
     }
 }
 
-private fun formatDate(timestamp: Long): String {
-    if (timestamp <= 0L) return "暂无"
-    return SimpleDateFormat("MM-dd", Locale.CHINA).format(Date(timestamp))
-}

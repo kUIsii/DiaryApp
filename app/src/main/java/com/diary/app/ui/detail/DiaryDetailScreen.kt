@@ -867,60 +867,6 @@ private fun BottomActionButton(
     }
 }
 
-@Composable
-private fun RelatedEntriesSection(
-    entries: List<DiaryPreview>,
-    onEntryClick: (DiaryPreview) -> Unit,
-    textSecondary: Color
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-    ) {
-        Text(
-            text = "历年今日",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = textSecondary.copy(alpha = 0.55f),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        entries.forEach { entry ->
-            val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                .atZone(ZoneId.systemDefault()).toLocalDate()
-            val year = entryDate.year
-            val preview = entry.plainText.take(50)
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onEntryClick(entry) }
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${year}年",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
-                )
-                Text(
-                    text = preview,
-                    fontSize = 12.sp,
-                    color = textSecondary.copy(alpha = 0.55f),
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-        }
-    }
-}
-
 private fun formatFullTimestamp(timestamp: Long): String {
     val dateTime = Instant.ofEpochMilli(timestamp)
         .atZone(ZoneId.systemDefault()).toLocalDateTime()

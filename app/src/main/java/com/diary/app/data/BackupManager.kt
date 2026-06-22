@@ -274,44 +274,49 @@ object BackupManager {
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
         val fileName = "diary_backup_$timestamp$FULL_BACKUP_EXTENSION"
         val json = buildBackupJson(dao)
-        val dataBytes = buildFullBackupBytes(context, dao, json)
+        val tempFile = buildFullBackupFile(context, dao, json)
 
-        val filePath: String
-        if (hasStoragePermission()) {
-            val dir = createBackupDir()
-            val file = File(dir, fileName)
-            file.writeBytes(dataBytes)
-            filePath = file.absolutePath
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/zip")
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        try {
+            val fileSize = tempFile.length()
+            val filePath: String
+            if (hasStoragePermission()) {
+                val dir = createBackupDir()
+                val file = File(dir, fileName)
+                tempFile.copyTo(file, overwrite = true)
+                filePath = file.absolutePath
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/zip")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw Exception("无法创建文件")
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    tempFile.inputStream().use { it.copyTo(out) }
+                } ?: throw Exception("无法写入文件")
+                filePath = queryFilePath(context, uri) ?: "${Environment.DIRECTORY_DOWNLOADS}/$fileName"
+            } else {
+                @Suppress("DEPRECATION")
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                val file = File(downloadsDir, fileName)
+                tempFile.copyTo(file, overwrite = true)
+                filePath = file.absolutePath
             }
-            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: throw Exception("无法创建文件")
-            context.contentResolver.openOutputStream(uri)?.use { out ->
-                out.write(dataBytes)
-            } ?: throw Exception("无法写入文件")
-            filePath = queryFilePath(context, uri) ?: "${Environment.DIRECTORY_DOWNLOADS}/$fileName"
-        } else {
-            @Suppress("DEPRECATION")
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!downloadsDir.exists()) downloadsDir.mkdirs()
-            val file = File(downloadsDir, fileName)
-            file.writeBytes(dataBytes)
-            filePath = file.absolutePath
-        }
 
-        val record = BackupRecord(
-            fileName = fileName,
-            filePath = filePath,
-            timestamp = System.currentTimeMillis(),
-            entryCount = dao.getEntryCount(),
-            fileSize = dataBytes.size.toLong()
-        )
-        addBackupRecord(context, record)
-        return record
+            val record = BackupRecord(
+                fileName = fileName,
+                filePath = filePath,
+                timestamp = System.currentTimeMillis(),
+                entryCount = dao.getEntryCount(),
+                fileSize = fileSize
+            )
+            addBackupRecord(context, record)
+            return record
+        } finally {
+            tempFile.delete()
+        }
     }
 
     private fun buildFullBackupBytesFromJson(json: String): ByteArray {
@@ -344,30 +349,42 @@ object BackupManager {
         }
     }
 
-    private suspend fun buildFullBackupBytes(context: Context, dao: DiaryDao, json: String): ByteArray {
-        val output = java.io.ByteArrayOutputStream()
-        ZipOutputStream(output).use { zip ->
-            zip.putNextEntry(ZipEntry(BACKUP_JSON_NAME))
-            zip.write(json.toByteArray(Charsets.UTF_8))
-            zip.closeEntry()
+    /**
+     * Build a full backup package by streaming to a temp file on disk,
+     * avoiding OOM when media files are large.
+     * Caller is responsible for deleting the returned temp file.
+     */
+    private suspend fun buildFullBackupFile(context: Context, dao: DiaryDao, json: String): File {
+        val tempFile = File(context.cacheDir, "backup_temp_${System.currentTimeMillis()}.zip")
+        try {
+            java.io.FileOutputStream(tempFile).use { fos ->
+                ZipOutputStream(fos).use { zip ->
+                    zip.putNextEntry(ZipEntry(BACKUP_JSON_NAME))
+                    zip.write(json.toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
 
-            val mediaNames = referencedMediaNames(dao)
-            for (mediaName in mediaNames) {
-                val displayFile = File(DiaryMediaManager.mediaDir(context), mediaName)
-                if (displayFile.exists() && displayFile.isFile) {
-                    zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/$mediaName"))
-                    displayFile.inputStream().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                }
-                val thumbFile = File(DiaryMediaManager.thumbDir(context), mediaName)
-                if (thumbFile.exists() && thumbFile.isFile) {
-                    zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/${DiaryMediaManager.THUMB_DIR_NAME}/$mediaName"))
-                    thumbFile.inputStream().use { it.copyTo(zip) }
-                    zip.closeEntry()
+                    val mediaNames = referencedMediaNames(dao)
+                    for (mediaName in mediaNames) {
+                        val displayFile = File(DiaryMediaManager.mediaDir(context), mediaName)
+                        if (displayFile.exists() && displayFile.isFile) {
+                            zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/$mediaName"))
+                            displayFile.inputStream().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
+                        val thumbFile = File(DiaryMediaManager.thumbDir(context), mediaName)
+                        if (thumbFile.exists() && thumbFile.isFile) {
+                            zip.putNextEntry(ZipEntry("${DiaryMediaManager.MEDIA_DIR_NAME}/${DiaryMediaManager.THUMB_DIR_NAME}/$mediaName"))
+                            thumbFile.inputStream().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
+                    }
                 }
             }
+        } catch (e: Exception) {
+            tempFile.delete()
+            throw e
         }
-        return output.toByteArray()
+        return tempFile
     }
 
     private suspend fun referencedMediaNames(dao: DiaryDao): Set<String> {

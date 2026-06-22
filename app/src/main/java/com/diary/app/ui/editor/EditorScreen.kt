@@ -183,6 +183,7 @@ fun EditorScreen(
     var showTemplateDialog by remember { mutableStateOf(false) }
     var showLinkDialog by remember { mutableStateOf(false) }
     var showDraftsDialog by remember { mutableStateOf(false) }
+    var draftVersion by remember { mutableIntStateOf(0) }
     var currentDraftId by remember { mutableStateOf(draftId) }
 
     // Which metadata overlay is open: null = none, "mood", "weather", "tags", "location"
@@ -900,7 +901,7 @@ fun EditorScreen(
 
     // Drafts dialog
     if (showDraftsDialog) {
-        val drafts = remember(showDraftsDialog) { viewModel.getAllDrafts() }
+        val drafts = remember(showDraftsDialog, draftVersion) { viewModel.getAllDrafts() }
         AlertDialog(
             onDismissRequest = { showDraftsDialog = false },
             title = { Text("草稿箱", fontWeight = FontWeight.Bold) },
@@ -952,8 +953,7 @@ fun EditorScreen(
                                 IconButton(
                                     onClick = {
                                         viewModel.deleteDraft(draft.id)
-                                        showDraftsDialog = false
-                                        showDraftsDialog = true // Refresh
+                                        draftVersion++
                                     },
                                     modifier = Modifier.size(40.dp)
                                 ) {
@@ -1413,7 +1413,7 @@ fun EditorScreen(
                         // Send polish request with selected text
                         val textToPolish = selectedEditorText ?: ""
                         if (textToPolish.isNotBlank()) {
-                            aiViewModel.sendMessage("请用深色修改以下文字，保持原意但让表达更优雅：\n\n$textToPolish")
+                            aiViewModel.sendMessage("请润色以下文字，保持原意但让表达更优雅：\n\n$textToPolish")
                         }
                     },
                 contentAlignment = Alignment.Center

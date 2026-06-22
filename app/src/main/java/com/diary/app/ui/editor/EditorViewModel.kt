@@ -18,6 +18,7 @@ import com.diary.app.data.RecentLocation
 import com.diary.app.data.Tag
 import com.diary.app.data.defaultPresetTags
 import com.diary.app.data.normalizeTagNameForMatching
+import androidx.room.withTransaction
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +39,8 @@ data class DraftData(
 )
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = (application as DiaryApplication).database.diaryDao()
+    private val database = (application as DiaryApplication).database
+    private val dao = database.diaryDao()
     private val appContext = application.applicationContext
     private val prefs = application.getSharedPreferences("editor_drafts", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -353,10 +355,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             )
         }
 
-        // Save tag associations
-        dao.deleteTagsForDiary(entryId)
-        _selectedTagIds.value.forEach { tagId ->
-            dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
+        // Save tag associations (atomic: prevents data loss if coroutine cancels mid-way)
+        database.withTransaction {
+            dao.deleteTagsForDiary(entryId)
+            _selectedTagIds.value.forEach { tagId ->
+                dao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tagId))
+            }
         }
         syncEntryImages(entryId, safeContent)
 
@@ -387,7 +391,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     thumbPath = thumbFile.absolutePath.takeIf { thumbFile.exists() },
                     mediaName = mediaName,
                     mediaRef = DiaryMediaManager.toMediaRef(mediaName),
-                    mimeType = "image/jpeg",
+                    mimeType = when (mediaName.substringAfterLast('.').lowercase()) {
+                        "png" -> "image/png"
+                        "webp" -> "image/webp"
+                        "gif" -> "image/gif"
+                        else -> "image/jpeg"
+                    },
                     fileSize = displayFile.takeIf { it.exists() }?.length() ?: 0L,
                     sortOrder = index,
                     createdAt = System.currentTimeMillis()

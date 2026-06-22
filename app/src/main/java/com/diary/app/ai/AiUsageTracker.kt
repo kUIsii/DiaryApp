@@ -16,6 +16,7 @@ object AiUsageTracker {
     private fun todayKey(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
+    @Synchronized
     fun record(context: Context, tokens: Int) {
         val key = todayKey()
         val p = prefs(context)

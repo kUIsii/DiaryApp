@@ -49,7 +49,10 @@ data class WritingHabit(
 enum class TrendDirection { UP, DOWN, FLAT }
 
 enum class HeatmapRange(val days: Int) {
-    ONE_MONTH(30)
+    ONE_MONTH(30),
+    THREE_MONTHS(90),
+    SIX_MONTHS(180),
+    ONE_YEAR(365)
 }
 
 enum class WordCloudPeriod(val label: String) {
@@ -180,7 +183,31 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadAiWords() {
-        if (aiService.getActiveProvider() == null) return
+        if (aiService.getActiveProvider() == null) {
+            // AI 不可用时用本地词频提取
+            viewModelScope.launch {
+                _isWordCloudLoading.value = true
+                try {
+                    val period = _wordCloudPeriod.value
+                    val zone = ZoneId.systemDefault()
+                    val now = LocalDate.now()
+                    val entries = dao.getAllPreviews().first()
+                    val filteredEntries = entries.filter { entry ->
+                        val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                        when (period) {
+                            WordCloudPeriod.MONTH -> date.year == now.year && date.monthValue == now.monthValue
+                            WordCloudPeriod.YEAR -> date.year == now.year
+                            WordCloudPeriod.ALL -> true
+                        }
+                    }
+                    val texts = filteredEntries.map { it.plainText }.filter { it.isNotBlank() }
+                    _aiWords.value = if (texts.isEmpty()) emptyList() else extractTopWords(texts, limit = 20)
+                } finally {
+                    _isWordCloudLoading.value = false
+                }
+            }
+            return
+        }
         viewModelScope.launch {
             _isWordCloudLoading.value = true
             try {
@@ -439,12 +466,6 @@ ${combinedText.take(4000)}"""
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
-    }
-
-    private fun computeTopWords(entries: List<DiaryPreview>): List<WordFrequency> {
-        if (entries.isEmpty()) return emptyList()
-        val texts = entries.map { it.plainText }.filter { it.isNotBlank() }
-        return extractTopWords(texts, limit = 40)
     }
 
 }

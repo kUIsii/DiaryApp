@@ -160,12 +160,16 @@ fun HomeScreen(
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
     // Location permission for weather
+    var weatherPermissionDenied by remember { mutableStateOf(false) }
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions.values.any { it }
         if (granted) {
+            weatherPermissionDenied = false
             viewModel.loadWeather()
+        } else {
+            weatherPermissionDenied = true
         }
     }
 
@@ -224,6 +228,15 @@ fun HomeScreen(
                         aiInsight = aiInsight,
                         currentWeather = currentWeather,
                         randomEntry = if (searchQuery.isBlank()) randomEntry else null,
+                        weatherPermissionDenied = weatherPermissionDenied,
+                        onRequestPermission = {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
                         onRandomClick = {
                             haptic.click()
                             randomEntry?.let { onNavigateToDetail(it.id) }
@@ -259,10 +272,14 @@ fun HomeScreen(
                     if (searchResults.size > 5) {
                         item {
                             Text(
-                                text = "还有 ${searchResults.size - 5} 条结果...",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier = Modifier.padding(horizontal = 4.dp)
+                                text = "查看全部 ${searchResults.size} 条结果",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigateToTimeline() }
+                                    .padding(horizontal = 4.dp, vertical = 8.dp)
                             )
                         }
                     }
@@ -297,6 +314,7 @@ fun HomeScreen(
                                 "backup" -> onNavigateToBackup()
                                 "tag_management" -> onNavigateToTagManagement()
                                 "storage" -> onNavigateToStorage()
+                                "todo" -> onNavigateToTimeline()
                             }
                         }
                     )
@@ -414,6 +432,8 @@ private fun HomeHeroSection(
     aiInsight: AiInsight?,
     currentWeather: com.diary.app.weather.CurrentWeather?,
     randomEntry: DiaryPreview?,
+    weatherPermissionDenied: Boolean = false,
+    onRequestPermission: () -> Unit = {},
     onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAiClick: () -> Unit
@@ -472,6 +492,18 @@ private fun HomeHeroSection(
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    } else if (weatherPermissionDenied) {
+                        Text(
+                            text = "  ·  ",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "开启位置权限查看天气",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.clickable { onRequestPermission() }
+                        )
                     }
                 }
             }
@@ -516,7 +548,7 @@ private fun HomeHeroSection(
             if (aiInsight != null) {
                 CompactStatChip(
                     icon = Icons.Default.AutoAwesome,
-                    text = aiInsight.text.take(10),
+                    text = aiInsight.text.take(20),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -1183,56 +1215,6 @@ private fun SubtleTextChip(text: String, lightMode: Boolean = false) {
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(text = text, fontSize = 10.sp, color = if (lightMode) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun HomeInsightCard(insight: AiInsight?, compact: Boolean = false) {
-    if (insight == null) return
-
-    val icon = when (insight.type) {
-        "mood" -> Icons.Default.Favorite
-        "pattern" -> Icons.Default.CalendarMonth
-        else -> Icons.Default.ChatBubbleOutline
-    }
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 20.dp,
-        innerPadding = 14.dp
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(if (compact) 40.dp else 36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "AI 提醒",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = insight.text,
-                    fontSize = if (compact) 13.sp else 14.sp,
-                    lineHeight = if (compact) 20.sp else 21.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
     }
 }
 

@@ -43,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -75,6 +77,17 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.runtime.LaunchedEffect
+
+private data class SaveData(
+    val title: String,
+    val content: String,
+    val unlockDate: Long,
+    val theme: CapsuleTheme,
+    val imageUri: String?,
+    val unlockHour: Int,
+    val unlockMinute: Int
+)
 
 // Theme color definitions for capsule themes
 private data class CapsuleThemeColors(
@@ -151,9 +164,12 @@ fun CreateCapsuleScreen(
     var selectedMinute by remember { mutableIntStateOf(0) }
     var isRandomMode by remember { mutableStateOf(false) }
 
+    // Save success feedback
+    var pendingSaveData by remember { mutableStateOf<SaveData?>(null) }
+
     // Collapsible sections
     var showThemeSection by remember { mutableStateOf(false) }
-    var showTimeSection by remember { mutableStateOf(false) }
+    var showTimeSection by remember { mutableStateOf(true) }
 
     // Dialogs
     var showDatePicker by remember { mutableStateOf(false) }
@@ -225,8 +241,19 @@ fun CreateCapsuleScreen(
 
     val themeColors = capsuleThemeColors(selectedTheme)
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(pendingSaveData) {
+        pendingSaveData?.let { data ->
+            snackbarHostState.showSnackbar("胶囊已封存")
+            onCreateCapsule(data.title, data.content, data.unlockDate, data.theme, data.imageUri, data.unlockHour, data.unlockMinute)
+            pendingSaveData = null
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -266,14 +293,14 @@ fun CreateCapsuleScreen(
                                     }
                                     else -> System.currentTimeMillis()
                                 }
-                                onCreateCapsule(
-                                    title.trim(),
-                                    content.trim(),
-                                    unlockMillis,
-                                    selectedTheme,
-                                    imageUri?.toString(),
-                                    selectedHour,
-                                    selectedMinute
+                                pendingSaveData = SaveData(
+                                    title = title.trim(),
+                                    content = content.trim(),
+                                    unlockDate = unlockMillis,
+                                    theme = selectedTheme,
+                                    imageUri = imageUri?.toString(),
+                                    unlockHour = selectedHour,
+                                    unlockMinute = selectedMinute
                                 )
                             }
                         },
@@ -353,7 +380,7 @@ fun CreateCapsuleScreen(
                         ) {
                             if (content.isEmpty()) {
                                 Text(
-                                    "写下此刻想对未说的话...",
+                                    "写下此刻想对未来的自己说的话...",
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontFamily = FontFamily.Serif,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)

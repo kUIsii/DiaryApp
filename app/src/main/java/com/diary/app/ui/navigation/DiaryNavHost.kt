@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,17 +38,14 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonalInjury
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Badge
@@ -99,7 +95,6 @@ import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.media.MediaLibraryScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
-import com.diary.app.ui.settings.SettingsScreen
 import com.diary.app.ui.stats.StatsScreen
 import com.diary.app.ui.timeline.TimelineScreen
 import com.diary.app.ui.todo.TodoScreen
@@ -112,7 +107,6 @@ import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 // Sub-page transition specs: smooth slide without bounce
@@ -159,7 +153,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
     object Changelog : Screen("changelog", "更新日志", Icons.Default.History)
     object TagManagement : Screen("tag_management", "标签管理", Icons.Default.Label)
-    object Settings : Screen("settings", "设置", Icons.Default.Settings)
     object Backup : Screen("backup", "备份", Icons.Default.Backup)
     object Favorites : Screen("favorites", "收藏", Icons.Default.Favorite)
     object MediaLibrary : Screen("media_library", "媒体库", Icons.Default.Image)
@@ -341,7 +334,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Stats.route) {
-                StatsScreen()
+                StatsScreen(
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -380,20 +375,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 TagManagementScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(
-                Screen.Settings.route,
-                enterTransition = { subPageEnterTransition() },
-                exitTransition = { subPageExitTransition() },
-                popEnterTransition = { subPagePopEnterTransition() },
-                popExitTransition = { subPagePopExitTransition() }
-            ) {
-                SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
-                    onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
-                    onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) }
-                )
             }
             composable(
                 Screen.Backup.route,
@@ -545,7 +526,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popEnterTransition = { subPagePopEnterTransition() },
                 popExitTransition = { subPagePopExitTransition() }
             ) { backStackEntry ->
-                val year = backStackEntry.arguments?.getInt("year") ?: 2026
+                val year = backStackEntry.arguments?.getInt("year") ?: java.time.LocalDate.now().year
                 val month = backStackEntry.arguments?.getInt("month") ?: 1
                 MonthlyReportScreen(
                     year = year,

@@ -60,15 +60,6 @@ data class DayInfo(
     val entryCount: Int = 0
 )
 
-data class SearchFilters(
-    val moodLevel: Int? = null,
-    val weather: String? = null,
-    val dateRangeStart: LocalDate? = null,
-    val dateRangeEnd: LocalDate? = null
-) {
-    val isActive: Boolean get() = moodLevel != null || weather != null || dateRangeStart != null || dateRangeEnd != null
-}
-
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -82,19 +73,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedTagFilter = MutableStateFlow<Long?>(null)
     val selectedTagFilter: StateFlow<Long?> = _selectedTagFilter
-
-    private val _searchFilters = MutableStateFlow(SearchFilters())
-    val searchFilters: StateFlow<SearchFilters> = _searchFilters
-
-    enum class SortOrder(val label: String) {
-        NEWEST("最新优先"),
-        OLDEST("最早优先"),
-        BEST_MOOD("心情最好"),
-        FAVORITES("收藏优先")
-    }
-
-    private val _sortOrder = MutableStateFlow(SortOrder.NEWEST)
-    val sortOrder: StateFlow<SortOrder> = _sortOrder
 
     val tagsMap: StateFlow<Map<Long, List<TagInfo>>> = dao.getAllDiaryTagPairs()
         .map { pairs ->
@@ -195,70 +173,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         HomeStats(entries.size, streak, thisMonth)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
 
-    private data class EntryFilterSnapshot(
-        val entries: List<DiaryPreview>,
-        val date: LocalDate?,
-        val query: String,
-        val tagFilter: Long?,
-        val tags: Map<Long, List<TagInfo>>
-    )
-
-    private val filteredEntries: StateFlow<List<DiaryPreview>> = combine(
-        allEntries,
-        _selectedDate,
-        debouncedSearchQuery,
-        _selectedTagFilter,
-        tagsMap
-    ) { entries, date, query, tagFilter, tags ->
-        EntryFilterSnapshot(
-            entries = entries,
-            date = date,
-            query = query,
-            tagFilter = tagFilter,
-            tags = tags
-        )
-    }.combine(_searchFilters) { snapshot, filters ->
-        val entries = snapshot.entries
-        val date = snapshot.date
-        val query = snapshot.query
-        val tagFilter = snapshot.tagFilter
-        val tags = snapshot.tags
-
-        entries.filter { entry ->
-            val matchesDate = date == null || run {
-                val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate()
-                entryDate == date
-            }
-            val matchesQuery = query.isBlank() || entry.plainText.contains(query, ignoreCase = true)
-            val matchesTag = tagFilter == null || (tags[entry.id]?.any { it.id == tagFilter } == true)
-            val matchesMood = filters.moodLevel == null || entry.moodLevel == filters.moodLevel
-            val matchesWeather = filters.weather == null || entry.weather == filters.weather
-            val matchesDateRange = run {
-                if (filters.dateRangeStart == null && filters.dateRangeEnd == null) true
-                else {
-                    val entryDate = Instant.ofEpochMilli(entry.createdAt)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate()
-                    val afterStart = filters.dateRangeStart == null || !entryDate.isBefore(filters.dateRangeStart)
-                    val beforeEnd = filters.dateRangeEnd == null || !entryDate.isAfter(filters.dateRangeEnd)
-                    afterStart && beforeEnd
-                }
-            }
-            matchesDate && matchesQuery && matchesTag && matchesMood && matchesWeather && matchesDateRange
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val entries: StateFlow<List<DiaryPreview>> = combine(filteredEntries, _sortOrder) { filtered, sort ->
-        sortEntries(filtered, sort)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    // Search result count (derived from entries since count is unchanged by sorting)
-    val searchResultCount: StateFlow<Int> = entries
-        .map { it.size }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
     fun selectDate(date: LocalDate?) {
         _selectedDate.value = date
     }
@@ -291,18 +205,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTagFilter(tagId: Long?) {
         _selectedTagFilter.value = if (_selectedTagFilter.value == tagId) null else tagId
-    }
-
-    fun setSearchFilters(filters: SearchFilters) {
-        _searchFilters.value = filters
-    }
-
-    fun clearSearchFilters() {
-        _searchFilters.value = SearchFilters()
-    }
-
-    fun setSortOrder(order: SortOrder) {
-        _sortOrder.value = order
     }
 
     fun toggleFavorite(entry: DiaryPreview) {
@@ -424,17 +326,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             current = current.minusDays(1)
         }
         return streak
-    }
-
-    private fun sortEntries(entries: List<DiaryPreview>, sort: SortOrder): List<DiaryPreview> {
-        return when (sort) {
-            SortOrder.NEWEST -> entries.sortedByDescending { it.createdAt }
-            SortOrder.OLDEST -> entries.sortedBy { it.createdAt }
-            SortOrder.BEST_MOOD -> entries.sortedByDescending { it.moodLevel ?: 0 }
-            SortOrder.FAVORITES -> entries.sortedWith(
-                compareByDescending<DiaryPreview> { it.isFavorite }.thenByDescending { it.createdAt }
-            )
-        }
     }
 
     // Selected entries for the selected date - uses DB query instead of client-side filtering

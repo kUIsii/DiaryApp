@@ -23,6 +23,7 @@ class RateLimiter(private val context: Context) {
         val modelLimit: Int = MODEL_LIMIT
     )
 
+    @Synchronized
     fun canMakeRequest(model: String): Boolean {
         resetIfNewDay()
         val total = prefs.getInt(KEY_DAILY_TOTAL, 0)
@@ -30,6 +31,7 @@ class RateLimiter(private val context: Context) {
         return canMakeRequestInternal(total, modelCount)
     }
 
+    @Synchronized
     fun recordRequest(model: String) {
         resetIfNewDay()
         val total = prefs.getInt(KEY_DAILY_TOTAL, 0)

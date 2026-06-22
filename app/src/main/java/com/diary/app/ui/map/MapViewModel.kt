@@ -87,7 +87,6 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(selectedMarker = marker)
     }
 
-    private fun extractCity(location: String): String = extractCityFromLocation(location)
 }
 
 internal fun extractCityFromLocation(location: String): String {

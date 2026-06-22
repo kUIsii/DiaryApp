@@ -90,19 +90,6 @@ private fun getCapsuleState(capsule: TimeCapsule, now: LocalDate): CapsuleState 
 }
 
 @Composable
-private fun capsuleThemeColor(theme: CapsuleTheme): Color {
-    return when (theme) {
-        CapsuleTheme.NORMAL -> MaterialTheme.colorScheme.primary
-        CapsuleTheme.BIRTHDAY -> Color(0xFFE8A0BF)
-        CapsuleTheme.NEW_YEAR -> Color(0xFFE07070)
-        CapsuleTheme.GRADUATION -> Color(0xFF9B8EBA)
-        CapsuleTheme.TRAVEL -> Color(0xFF78B8B0)
-        CapsuleTheme.LOVE -> Color(0xFFD99AB8)
-        CapsuleTheme.DREAM -> Color(0xFFA88BC9)
-    }
-}
-
-@Composable
 fun TimeCapsuleScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreate: () -> Unit,
@@ -500,78 +487,6 @@ private fun SealedCapsuleCard(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-            }
-        }
-    }
-}
-
-// Locked capsule card - waiting for unlock date
-@Composable
-private fun LockedCapsuleCard(
-    capsule: TimeCapsule,
-    index: Int,
-    onDelete: () -> Unit
-) {
-    val now = remember { LocalDate.now() }
-    val unlockDate = remember(capsule) {
-        Instant.ofEpochMilli(capsule.unlockDate)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
-    }
-    val daysRemaining = remember(capsule, now) {
-        ChronoUnit.DAYS.between(now, unlockDate).toInt().coerceAtLeast(0)
-    }
-
-    GlassCard(
-        cornerRadius = 20.dp,
-        innerPadding = 16.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Lock icon
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                        RoundedCornerShape(14.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "等待解锁",
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily.Serif,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "还有 $daysRemaining 天",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
     }

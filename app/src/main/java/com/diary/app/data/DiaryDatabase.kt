@@ -371,7 +371,25 @@ abstract class DiaryDatabase : RoomDatabase() {
                     .build()
                     .also { it.openHelper.writableDatabase } // Force migration
                 } catch (e: Exception) {
-                    android.util.Log.e("DiaryDatabase", "Migration failed, recreating database", e)
+                    android.util.Log.e("DiaryDatabase", "Migration failed, backing up database before destructive migration", e)
+                    // Backup database files before destructive migration to prevent data loss
+                    try {
+                        val dbFile = context.getDatabasePath("diary_database")
+                        val backupDir = java.io.File(context.filesDir, "db_backup")
+                        if (!backupDir.exists()) backupDir.mkdirs()
+                        val timestamp = System.currentTimeMillis()
+                        val suffixes = listOf("", "-wal", "-shm", "-journal")
+                        for (suffix in suffixes) {
+                            val src = java.io.File(dbFile.parentFile, "diary_database$suffix")
+                            if (src.exists()) {
+                                val dst = java.io.File(backupDir, "diary_database${suffix}_$timestamp")
+                                src.copyTo(dst, overwrite = true)
+                            }
+                        }
+                        android.util.Log.e("DiaryDatabase", "Database backed up to: ${backupDir.absolutePath}/diary_database*_$timestamp")
+                    } catch (backupError: Exception) {
+                        android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
+                    }
                     // Schema validation or migration failed — recreate from scratch
                     Room.databaseBuilder(
                         context.applicationContext,

@@ -26,13 +26,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
@@ -86,6 +83,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun StatsScreen(
+    onNavigateToDetail: (Long) -> Unit = {},
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,7 +101,8 @@ fun StatsScreen(
             onDismiss = {
                 selectedDate = null
                 selectedEntries = emptyList()
-            }
+            },
+            onNavigateToDetail = onNavigateToDetail
         )
     }
 
@@ -312,7 +311,8 @@ private fun DayEntriesDialog(
     date: LocalDate,
     entries: List<DiaryPreview>,
     isLoading: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onNavigateToDetail: (Long) -> Unit = {}
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("M月d日") }
     AlertDialog(
@@ -391,6 +391,18 @@ private fun DayEntriesDialog(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
+                                    Text(
+                                        text = "查看",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .align(Alignment.End)
+                                            .clickable {
+                                                onNavigateToDetail(entry.id)
+                                                onDismiss()
+                                            }
+                                            .padding(top = 4.dp)
+                                    )
                                 }
                             }
                         }
@@ -509,6 +521,9 @@ private fun StatsHeroSection(
                 HeatmapRange.entries.forEach { range ->
                     val rangeLabel = when (range) {
                         HeatmapRange.ONE_MONTH -> "最近 30 天"
+                        HeatmapRange.THREE_MONTHS -> "最近 3 月"
+                        HeatmapRange.SIX_MONTHS -> "最近 6 月"
+                        HeatmapRange.ONE_YEAR -> "最近 1 年"
                     }
                     RangeChip(
                         label = rangeLabel,
@@ -639,99 +654,6 @@ private fun WordCloudSection(
             )
         } else {
             InlineEmptyHint("该时间段暂无足够数据")
-        }
-    }
-}
-
-@Composable
-private fun SummaryGrid(state: StatsState) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SummaryCard(
-                label = "累计日记",
-                value = state.totalEntries.toString(),
-                icon = Icons.Default.Edit,
-                accent = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            SummaryCard(
-                label = "连续记录",
-                value = "${state.currentStreak} 天",
-                icon = Icons.Default.LocalFireDepartment,
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SummaryCard(
-                label = "本月记录",
-                value = "${state.thisMonthEntries} 篇",
-                icon = Icons.Default.CalendarMonth,
-                accent = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.weight(1f)
-            )
-            SummaryCard(
-                label = "累计字数",
-                value = formatWordCount(state.wordStats?.totalWords ?: 0),
-                icon = Icons.Default.TextSnippet,
-                accent = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    accent: Color,
-    modifier: Modifier = Modifier
-) {
-    GlassCard(
-        modifier = modifier,
-        cornerRadius = 18.dp,
-        innerPadding = 14.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = accent,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = value,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = label,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
