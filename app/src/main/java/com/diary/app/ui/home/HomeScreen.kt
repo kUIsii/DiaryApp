@@ -163,6 +163,26 @@ fun HomeScreen(
 
     var calendarMode by remember { mutableStateOf(CalendarMode.WEEK) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    // Calendar view state (managed here for pager sync)
+    val todayForCalendar = remember { LocalDate.now() }
+    var currentMonth by remember { mutableStateOf(java.time.YearMonth.now()) }
+    var currentWeekStart by remember {
+        mutableStateOf(todayForCalendar.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)))
+    }
+
+    // Sync calendar state when selectedDate changes (from pager swipe)
+    LaunchedEffect(selectedDate) {
+        selectedDate?.let { date ->
+            if (calendarMode == CalendarMode.MONTH) {
+                val ym = java.time.YearMonth.from(date)
+                if (ym != currentMonth) currentMonth = ym
+            } else {
+                val weekStart = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                if (weekStart != currentWeekStart) currentWeekStart = weekStart
+            }
+        }
+    }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
     // Location permission for weather
@@ -378,10 +398,54 @@ fun HomeScreen(
                         dayInfoMap = dayInfoMap,
                         selectedDate = selectedDate,
                         calendarMode = calendarMode,
-                        onModeChange = { calendarMode = it },
+                        onModeChange = { newMode ->
+                            calendarMode = newMode
+                            // When switching to month mode, ensure currentMonth matches selectedDate
+                            selectedDate?.let { date ->
+                                if (newMode == CalendarMode.MONTH) {
+                                    val ym = java.time.YearMonth.from(date)
+                                    if (ym != currentMonth) currentMonth = ym
+                                } else {
+                                    val ws = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                                    if (ws != currentWeekStart) currentWeekStart = ws
+                                }
+                            }
+                        },
                         onDateSelected = { date ->
                             haptic.click()
                             viewModel.selectDate(date)
+                        },
+                        currentMonth = currentMonth,
+                        onCurrentMonthChange = { currentMonth = it },
+                        currentWeekStart = currentWeekStart,
+                        onCurrentWeekStartChange = { currentWeekStart = it }
+                    )
+                }
+
+                // Date header - outside pager for consistent spacing
+                item(key = "date-header") {
+                    val currentDate = pageToDate(pagerState.currentPage)
+                    val currentEntries = entriesByDate[currentDate] ?: emptyList()
+                    SelectedDateHeader(
+                        date = currentDate,
+                        entryCount = currentEntries.size,
+                        multiSelectState = multiSelectState,
+                        onFavoriteSelected = {
+                            if (multiSelectState.selectedIds.isNotEmpty()) {
+                                haptic.click()
+                                viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                multiSelectState = multiSelectState.clearSelection()
+                            }
+                        },
+                        onDeleteSelected = {
+                            if (multiSelectState.selectedIds.isNotEmpty()) {
+                                haptic.click()
+                                showDeleteConfirm = true
+                            }
+                        },
+                        onCancelMultiSelect = {
+                            haptic.click()
+                            multiSelectState = multiSelectState.clearSelection()
                         }
                     )
                 }
@@ -400,29 +464,6 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            SelectedDateHeader(
-                                date = pageDate,
-                                entryCount = pageEntries.size,
-                                multiSelectState = multiSelectState,
-                                onFavoriteSelected = {
-                                    if (multiSelectState.selectedIds.isNotEmpty()) {
-                                        haptic.click()
-                                        viewModel.favoriteEntries(multiSelectState.selectedIds)
-                                        multiSelectState = multiSelectState.clearSelection()
-                                    }
-                                },
-                                onDeleteSelected = {
-                                    if (multiSelectState.selectedIds.isNotEmpty()) {
-                                        haptic.click()
-                                        showDeleteConfirm = true
-                                    }
-                                },
-                                onCancelMultiSelect = {
-                                    haptic.click()
-                                    multiSelectState = multiSelectState.clearSelection()
-                                }
-                            )
-
                             if (pageEntries.isEmpty()) {
                                 NoEntriesForDate()
                             } else {
@@ -685,7 +726,11 @@ private fun CalendarSection(
     selectedDate: LocalDate?,
     calendarMode: CalendarMode,
     onModeChange: (CalendarMode) -> Unit,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    currentMonth: java.time.YearMonth,
+    onCurrentMonthChange: (java.time.YearMonth) -> Unit,
+    currentWeekStart: LocalDate,
+    onCurrentWeekStartChange: (LocalDate) -> Unit
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -698,7 +743,11 @@ private fun CalendarSection(
             selectedDate = selectedDate,
             onDateSelected = onDateSelected,
             calendarMode = calendarMode,
-            onModeChange = onModeChange
+            onModeChange = onModeChange,
+            currentMonth = currentMonth,
+            onCurrentMonthChange = onCurrentMonthChange,
+            currentWeekStart = currentWeekStart,
+            onCurrentWeekStartChange = onCurrentWeekStartChange
         )
     }
 }

@@ -73,28 +73,15 @@ fun CalendarView(
     onDateSelected: (LocalDate) -> Unit,
     calendarMode: CalendarMode = CalendarMode.MONTH,
     onModeChange: (CalendarMode) -> Unit = {},
+    currentMonth: YearMonth = YearMonth.now(),
+    onCurrentMonthChange: (YearMonth) -> Unit = {},
+    currentWeekStart: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+    onCurrentWeekStartChange: (LocalDate) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val isDark = themeMode().isDark()
-    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-    var currentWeekStart by remember {
-        mutableStateOf(LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
-    }
     val today = remember { LocalDate.now() }
 
-    // Sync calendar view with selectedDate from day pager
-    LaunchedEffect(selectedDate, calendarMode) {
-        selectedDate?.let { date ->
-            if (calendarMode == CalendarMode.MONTH) {
-                val ym = YearMonth.from(date)
-                if (ym != currentMonth) currentMonth = ym
-            } else {
-                val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                if (weekStart != currentWeekStart) currentWeekStart = weekStart
-            }
-        }
-    }
-
+    val isDark = themeMode().isDark()
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
@@ -133,9 +120,14 @@ fun CalendarView(
                                 indication = null
                             ) {
                                 if (calendarMode == CalendarMode.MONTH) {
-                                    currentMonth = currentMonth.minusMonths(1)
+                                    onCurrentMonthChange(currentMonth.minusMonths(1))
                                 } else {
-                                    currentWeekStart = currentWeekStart.minusWeeks(1)
+                                    val newStart = currentWeekStart.minusWeeks(1)
+                                    onCurrentWeekStartChange(newStart)
+                                    val newDate = newStart.plusDays(
+                                        (selectedDate?.dayOfWeek?.value ?: 1) - 1L
+                                    ).coerceAtMost(newStart.plusDays(6))
+                                    onDateSelected(newDate)
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -171,9 +163,14 @@ fun CalendarView(
                             ) {
                                 if (!isAtCurrent) {
                                     if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth = currentMonth.plusMonths(1)
+                                        onCurrentMonthChange(currentMonth.plusMonths(1))
                                     } else {
-                                        currentWeekStart = currentWeekStart.plusWeeks(1)
+                                        val newStart = currentWeekStart.plusWeeks(1)
+                                        onCurrentWeekStartChange(newStart)
+                                        val newDate = newStart.plusDays(
+                                            (selectedDate?.dayOfWeek?.value ?: 1) - 1L
+                                        ).coerceAtMost(newStart.plusDays(6))
+                                        onDateSelected(newDate)
                                     }
                                 }
                             },
@@ -203,10 +200,11 @@ fun CalendarView(
                                     indication = null
                                 ) {
                                     if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth = YearMonth.now()
+                                        onCurrentMonthChange(YearMonth.now())
                                     } else {
-                                        currentWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                        onCurrentWeekStartChange(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
                                     }
+                                    onDateSelected(today)
                                 }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -275,16 +273,28 @@ fun CalendarView(
                                 if (totalDragX < -threshold && !isAtCurrent) {
                                     // Swipe left = next (only if not at current)
                                     if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth = currentMonth.plusMonths(1)
+                                        onCurrentMonthChange(currentMonth.plusMonths(1))
                                     } else {
-                                        currentWeekStart = currentWeekStart.plusWeeks(1)
+                                        val newStart = currentWeekStart.plusWeeks(1)
+                                        onCurrentWeekStartChange(newStart)
+                                        // Sync selectedDate to the new week
+                                        val newDate = newStart.plusDays(
+                                            (selectedDate?.dayOfWeek?.value ?: 1) - 1L
+                                        ).coerceAtMost(newStart.plusDays(6))
+                                        onDateSelected(newDate)
                                     }
                                 } else if (totalDragX > threshold) {
                                     // Swipe right = previous
                                     if (calendarMode == CalendarMode.MONTH) {
-                                        currentMonth = currentMonth.minusMonths(1)
+                                        onCurrentMonthChange(currentMonth.minusMonths(1))
                                     } else {
-                                        currentWeekStart = currentWeekStart.minusWeeks(1)
+                                        val newStart = currentWeekStart.minusWeeks(1)
+                                        onCurrentWeekStartChange(newStart)
+                                        // Sync selectedDate to the new week
+                                        val newDate = newStart.plusDays(
+                                            (selectedDate?.dayOfWeek?.value ?: 1) - 1L
+                                        ).coerceAtMost(newStart.plusDays(6))
+                                        onDateSelected(newDate)
                                     }
                                 }
                             }

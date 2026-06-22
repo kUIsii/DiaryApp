@@ -50,6 +50,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,7 +124,7 @@ fun MonthlyReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(top = innerPadding.calculateTopPadding())
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Header
@@ -347,13 +353,27 @@ private fun MoodTrendChart(report: MonthlyReport) {
             }
         } else {
             val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+            var selectedDay by remember { mutableStateOf<Int?>(null) }
 
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .padding(start = 28.dp, end = 8.dp, top = 8.dp, bottom = 24.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(start = 28.dp, end = 8.dp, top = 8.dp, bottom = 24.dp)
+                        .pointerInput(report.dailyMoodAverages) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown()
+                                val x = down.position.x
+                                val days = report.dailyMoodAverages.size
+                                if (days > 0) {
+                                    val xStep = size.width.toFloat() / (days - 1).coerceAtLeast(1)
+                                    val dayIndex = (x / xStep).toInt().coerceIn(0, days - 1)
+                                    selectedDay = if (report.dailyMoodAverages[dayIndex] != null) dayIndex else null
+                                }
+                            }
+                        }
+                ) {
                 val width = size.width
                 val height = size.height
                 val days = report.dailyMoodAverages.size
@@ -439,10 +459,57 @@ private fun MoodTrendChart(report: MonthlyReport) {
                             center = p
                         )
                     }
+
+                    // Selected day indicator
+                    val sel = selectedDay
+                    if (sel != null && sel < points.size) {
+                        val sp = points[sel]
+                        drawLine(
+                            color = lineColor.copy(alpha = 0.3f),
+                            start = Offset(sp.x, 0f),
+                            end = Offset(sp.x, height),
+                            strokeWidth = 2f,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))
+                        )
+                        drawCircle(
+                            color = lineColor,
+                            radius = 7f,
+                            center = sp
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 4f,
+                            center = sp
+                        )
+                    }
                 }
             }
 
-            // X-axis labels
+            // Tooltip overlay
+            val sel = selectedDay
+            if (sel != null && sel < report.dailyMoodAverages.size) {
+                val moodVal = report.dailyMoodAverages[sel]
+                if (moodVal != null) {
+                    val dayNum = sel + 1
+                    val label = moodLabels[moodVal.toInt().coerceIn(1, 5)]
+                    val tooltipText = "${dayNum}日 ${String.format("%.1f", moodVal)} $label"
+                    Text(
+                        text = tooltipText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = getMoodColor(moodVal),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 12.dp, top = 4.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // X-axis labels
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -498,7 +565,7 @@ private fun WordCountBarChart(report: MonthlyReport) {
 
                 // Color intensity based on word count
                 val intensity = (words.toFloat() / maxWords).coerceIn(0f, 1f)
-                val barColor = Color(0xFF7E57C2).copy(alpha = 0.3f + 0.7f * intensity)
+                val barColor = Color(0xFF5C9EAD).copy(alpha = 0.3f + 0.7f * intensity)
 
                 if (barHeight > 0) {
                     drawRoundRect(
