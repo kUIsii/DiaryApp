@@ -5,8 +5,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,19 +33,18 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -57,11 +60,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.weatherIconFor
-import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
@@ -85,18 +86,32 @@ internal fun targetPageForWeek(baseWeekStart: LocalDate, currentWeekStart: Local
     return CENTER_PAGE + ChronoUnit.WEEKS.between(baseWeekStart, currentWeekStart).toInt()
 }
 
-internal fun localDateToPickerMillis(
-    date: LocalDate,
-    zoneId: ZoneId = ZoneId.systemDefault()
-): Long {
-    return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+internal fun centeredPickerValue(
+    rawIndex: Int?,
+    paddingItems: Int,
+    items: List<Int>
+): Int? {
+    if (rawIndex == null) return null
+    val itemIndex = rawIndex - paddingItems
+    return items.getOrNull(itemIndex)
 }
 
-internal fun pickerMillisToLocalDate(
-    millis: Long,
-    zoneId: ZoneId = ZoneId.systemDefault()
-): LocalDate {
-    return Instant.ofEpochMilli(millis).atZone(zoneId).toLocalDate()
+internal fun pickerListIndexForValue(
+    value: Int,
+    items: List<Int>,
+    @Suppress("UNUSED_PARAMETER")
+    paddingItems: Int
+): Int {
+    val itemIndex = items.indexOf(value).takeIf { it >= 0 } ?: 0
+    return maxOf(0, itemIndex)
+}
+
+internal fun clampedDayForMonth(year: Int, month: Int, day: Int): Int {
+    return day.coerceIn(1, YearMonth.of(year, month).lengthOfMonth())
+}
+
+internal fun initialJumpPickerDate(selectedDate: LocalDate?, today: LocalDate): LocalDate {
+    return selectedDate ?: today
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -443,20 +458,53 @@ fun CalendarView(
     }
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate?.let {
-                localDateToPickerMillis(it)
-            } ?: localDateToPickerMillis(today)
-        )
+        val initDate = initialJumpPickerDate(selectedDate, today)
+        var pickedYear by remember(showDatePicker) { mutableStateOf(initDate.year) }
+        var pickedMonth by remember(showDatePicker) { mutableStateOf(initDate.monthValue) }
+        var pickedDay by remember(showDatePicker) { mutableStateOf(initDate.dayOfMonth) }
+        val clampedDay = clampedDayForMonth(pickedYear, pickedMonth, pickedDay)
 
-        DatePickerDialog(
+        LaunchedEffect(clampedDay) {
+            if (pickedDay != clampedDay) {
+                pickedDay = clampedDay
+            }
+        }
+
+        AlertDialog(
             onDismissRequest = { showDatePicker = false },
+            title = {
+                Text("选择日期", fontWeight = FontWeight.SemiBold)
+            },
+            text = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    WheelPicker(
+                        value = pickedYear,
+                        range = 2000..today.year + 1,
+                        label = { "${it}年" },
+                        onValueChange = { pickedYear = it }
+                    )
+                    WheelPicker(
+                        value = pickedMonth,
+                        range = 1..12,
+                        label = { "${it}月" },
+                        onValueChange = { pickedMonth = it }
+                    )
+                    WheelPicker(
+                        value = clampedDay,
+                        range = 1..YearMonth.of(pickedYear, pickedMonth).lengthOfMonth(),
+                        label = { "${it}日" },
+                        onValueChange = { pickedDay = it }
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val selectedMillis = datePickerState.selectedDateMillis
-                            ?: localDateToPickerMillis(selectedDate ?: today)
-                        val date = pickerMillisToLocalDate(selectedMillis)
+                        val date = LocalDate.of(pickedYear, pickedMonth, clampedDay)
                         if (calendarMode == CalendarMode.MONTH) {
                             onCurrentMonthChange(YearMonth.from(date))
                         } else {
@@ -468,17 +516,15 @@ fun CalendarView(
                         showDatePicker = false
                     }
                 ) {
-                    Text("纭畾")
+                    Text("确定")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("鍙栨秷")
+                    Text("取消")
                 }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 }
 
@@ -719,5 +765,109 @@ private fun CalendarDay(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun WheelPicker(
+    value: Int,
+    range: IntRange,
+    label: (Int) -> String,
+    onValueChange: (Int) -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+
+    val itemHeight = 40.dp
+    val visibleItems = 5
+    val paddingItems = visibleItems / 2
+    val pickerHeight = itemHeight * visibleItems
+    val items = remember(range) { range.toList() }
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = pickerListIndexForValue(value, items, paddingItems)
+    )
+    val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    var centeredValue by remember(range, value) { mutableStateOf(value) }
+    val latestValue by rememberUpdatedState(value)
+    val latestOnValueChange by rememberUpdatedState(onValueChange)
+
+    LaunchedEffect(range, value) {
+        centeredValue = value
+        val targetIndex = pickerListIndexForValue(value, items, paddingItems)
+        if (listState.firstVisibleItemIndex != targetIndex) {
+            listState.scrollToItem(targetIndex)
+        }
+    }
+
+    LaunchedEffect(listState, items) {
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val viewportCenter =
+                (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+            val rawIndex = layoutInfo.visibleItemsInfo.minByOrNull {
+                kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+            }?.index
+
+            centeredPickerValue(
+                rawIndex = rawIndex,
+                paddingItems = paddingItems,
+                items = items
+            ) to listState.isScrollInProgress
+        }.collect { (newCenteredValue, isScrolling) ->
+            if (newCenteredValue != null) {
+                centeredValue = newCenteredValue
+            }
+            if (!isScrolling && newCenteredValue != null && newCenteredValue != latestValue) {
+                latestOnValueChange(newCenteredValue)
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(pickerHeight)
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            flingBehavior = snapBehavior,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            items(count = items.size + paddingItems * 2) { rawIndex ->
+                val itemIndex = rawIndex - paddingItems
+                val itemValue = items.getOrNull(itemIndex)
+                val isSelected = itemValue == centeredValue
+
+                Box(
+                    modifier = Modifier
+                        .height(itemHeight)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (itemValue != null) {
+                        Text(
+                            text = label(itemValue),
+                            fontSize = if (isSelected) 18.sp else 15.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) primary else onBackground.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(itemHeight)
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+        )
     }
 }

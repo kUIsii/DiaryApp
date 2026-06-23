@@ -19,14 +19,14 @@ class CalendarSourceTest {
     }
 
     @Test
-    fun `jump date uses material date picker instead of wheel picker`() {
+    fun `jump date uses stable wheel picker instead of material date picker`() {
         val source = File("src/main/java/com/diary/app/ui/home/CalendarView.kt").readText()
 
-        assertTrue(source.contains("DatePickerDialog("))
-        assertTrue(source.contains("rememberDatePickerState("))
-        assertTrue(source.contains("selectedDate?.let"))
-        assertTrue(source.contains("localDateToPickerMillis(today)"))
-        assertFalse(source.contains("WheelPicker("))
-        assertFalse(source.contains("centeredPickerValue("))
+        assertTrue(source.contains("WheelPicker("))
+        assertTrue(source.contains("centeredPickerValue("))
+        assertTrue(source.contains("pickerListIndexForValue("))
+        assertTrue(source.contains("LaunchedEffect(range, value)"))
+        assertFalse(source.contains("DatePickerDialog("))
+        assertFalse(source.contains("rememberDatePickerState("))
     }
 }

@@ -3,7 +3,6 @@ package com.diary.app.ui.home
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.YearMonth
 
 class CalendarViewLogicTest {
@@ -31,12 +30,32 @@ class CalendarViewLogicTest {
     }
 
     @Test
-    fun `picker date conversion round trips through millis in utc`() {
-        val zone = ZoneId.of("UTC")
-        val date = LocalDate.of(2026, 6, 23)
+    fun `centered picker value maps visible index back to value`() {
+        val days = (1..31).toList()
 
-        val millis = localDateToPickerMillis(date, zone)
+        assertEquals(15, centeredPickerValue(rawIndex = 16, paddingItems = 2, items = days))
+    }
 
-        assertEquals(date, pickerMillisToLocalDate(millis, zone))
+    @Test
+    fun `picker list index centers the target value`() {
+        val years = (2000..2030).toList()
+
+        assertEquals(26, pickerListIndexForValue(value = 2026, items = years, paddingItems = 2))
+    }
+
+    @Test
+    fun `day picker clamps invalid day when month changes`() {
+        assertEquals(29, clampedDayForMonth(year = 2024, month = 2, day = 31))
+        assertEquals(28, clampedDayForMonth(year = 2025, month = 2, day = 31))
+        assertEquals(30, clampedDayForMonth(year = 2026, month = 4, day = 31))
+    }
+
+    @Test
+    fun `jump picker initial date uses selected date before today`() {
+        val today = LocalDate.of(2026, 6, 23)
+        val selected = LocalDate.of(2024, 3, 5)
+
+        assertEquals(selected, initialJumpPickerDate(selectedDate = selected, today = today))
+        assertEquals(today, initialJumpPickerDate(selectedDate = null, today = today))
     }
 }
