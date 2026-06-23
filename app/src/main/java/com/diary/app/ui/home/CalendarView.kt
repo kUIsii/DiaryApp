@@ -28,14 +28,12 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,10 +44,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -272,26 +267,10 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // NestedScroll connection: intercept horizontal drags so LazyColumn doesn't steal them
-            val nestedScrollConnection = remember {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        // If horizontal drag is dominant, consume it so parent (LazyColumn) doesn't scroll
-                        return if (available.x != 0f && kotlin.math.abs(available.x) > kotlin.math.abs(available.y)) {
-                            Offset(available.x, 0f)
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-                }
-            }
-
             // Calendar pager
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .nestedScroll(nestedScrollConnection),
+                modifier = Modifier.fillMaxWidth(),
                 key = { "${calendarMode.name}-$it" },
                 beyondBoundsPageCount = 1
             ) { page ->
@@ -424,27 +403,62 @@ fun CalendarView(
         }
     }
 
-    // Material3 DatePicker dialog
+    // Scrollable year/month/day picker dialog
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-        )
-        DatePickerDialog(
+        val initDate = selectedDate ?: today
+        var pickedYear by remember { mutableStateOf(initDate.year) }
+        var pickedMonth by remember { mutableStateOf(initDate.monthValue) }
+        var pickedDay by remember { mutableStateOf(initDate.dayOfMonth) }
+
+        // Clamp day to valid range
+        val maxDay = try {
+            YearMonth.of(pickedYear, pickedMonth).lengthOfMonth()
+        } catch (_: Exception) { 31 }
+        val clampedDay = pickedDay.coerceIn(1, maxDay)
+        if (clampedDay != pickedDay) pickedDay = clampedDay
+
+        AlertDialog(
             onDismissRequest = { showDatePicker = false },
+            title = { Text("选择日期", fontWeight = FontWeight.SemiBold) },
+            text = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Year column
+                    WheelPicker(
+                        value = pickedYear,
+                        range = 2000..today.year + 1,
+                        label = { "${it}年" },
+                        onValueChange = { pickedYear = it }
+                    )
+                    // Month column
+                    WheelPicker(
+                        value = pickedMonth,
+                        range = 1..12,
+                        label = { "${it}月" },
+                        onValueChange = { pickedMonth = it }
+                    )
+                    // Day column
+                    WheelPicker(
+                        value = clampedDay,
+                        range = 1..maxDay,
+                        label = { "${it}日" },
+                        onValueChange = { pickedDay = it }
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val date = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDate()
-                            if (calendarMode == CalendarMode.MONTH) {
-                                onCurrentMonthChange(YearMonth.from(date))
-                            } else {
-                                onCurrentWeekStartChange(date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
-                            }
-                            onDateSelected(date)
+                        val date = LocalDate.of(pickedYear, pickedMonth, clampedDay)
+                        if (calendarMode == CalendarMode.MONTH) {
+                            onCurrentMonthChange(YearMonth.from(date))
+                        } else {
+                            onCurrentWeekStartChange(date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
                         }
+                        onDateSelected(date)
                         showDatePicker = false
                     }
                 ) {
@@ -456,9 +470,7 @@ fun CalendarView(
                     Text("取消")
                 }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 }
 
@@ -698,6 +710,95 @@ private fun CalendarDay(
                         .background(primary)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun <T> WheelPicker(
+    value: T,
+    range: IntRange,
+    label: (Int) -> String,
+    onValueChange: (T) -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Up arrow
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    val intVal = (value as Int)
+                    val newVal = if (intVal - 1 < range.first) range.last else intVal - 1
+                    @Suppress("UNCHECKED_CAST")
+                    onValueChange(newVal as T)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChevronLeft,
+                contentDescription = null,
+                tint = onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer { rotationZ = 90f }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Value display
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(primary.copy(alpha = 0.1f))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label(value as Int),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Down arrow
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    val intVal = (value as Int)
+                    val newVal = if (intVal + 1 > range.last) range.first else intVal + 1
+                    @Suppress("UNCHECKED_CAST")
+                    onValueChange(newVal as T)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer { rotationZ = 90f }
+            )
         }
     }
 }
