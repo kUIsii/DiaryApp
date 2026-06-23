@@ -46,6 +46,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -268,11 +272,28 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // NestedScroll connection: intercept horizontal drags so LazyColumn doesn't steal them
+            val nestedScrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        // If horizontal drag is dominant, consume it so parent (LazyColumn) doesn't scroll
+                        return if (available.x != 0f && kotlin.math.abs(available.x) > kotlin.math.abs(available.y)) {
+                            Offset(available.x, 0f)
+                        } else {
+                            Offset.Zero
+                        }
+                    }
+                }
+            }
+
             // Calendar pager
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth(),
-                key = { "${calendarMode.name}-$it" }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .nestedScroll(nestedScrollConnection),
+                key = { "${calendarMode.name}-$it" },
+                beyondBoundsPageCount = 1
             ) { page ->
                 val offset = page - CENTER_PAGE
                 if (calendarMode == CalendarMode.MONTH) {
@@ -289,15 +310,46 @@ fun CalendarView(
                 } else {
                     val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                         .plusWeeks(offset.toLong())
-                    WeekView(
-                        weekStart = weekStart,
-                        entryDates = entryDates,
-                        dayInfoMap = dayInfoMap,
-                        selectedDate = selectedDate,
-                        today = today,
-                        onDateSelected = onDateSelected,
-                        primary = primary
-                    )
+                    Box {
+                        WeekView(
+                            weekStart = weekStart,
+                            entryDates = entryDates,
+                            dayInfoMap = dayInfoMap,
+                            selectedDate = selectedDate,
+                            today = today,
+                            onDateSelected = onDateSelected,
+                            primary = primary
+                        )
+                        // Subtle edge shadows to show page boundaries
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(6.dp)
+                                .matchParentSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(6.dp)
+                                .matchParentSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+                                        )
+                                    )
+                                )
+                        )
+                    }
                 }
             }
 
