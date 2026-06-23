@@ -50,13 +50,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -75,7 +69,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
-import kotlin.math.abs
 
 enum class CalendarMode { WEEK, MONTH }
 
@@ -280,38 +273,10 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Horizontal drag detection to block LazyColumn from stealing vertical scroll
-            var isHorizontalDrag by remember { mutableStateOf(false) }
-            val nestedScrollConnection = remember {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        return if (isHorizontalDrag) {
-                            Offset(0f, available.y) // consume vertical, let horizontal pass through
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-                }
-            }
-
             // Calendar pager
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .nestedScroll(nestedScrollConnection)
-                    .pointerInput(calendarMode) {
-                        detectDragGestures(
-                            onDragStart = { isHorizontalDrag = false },
-                            onDrag = { change, dragAmount ->
-                                if (!isHorizontalDrag && abs(dragAmount.x) > abs(dragAmount.y) && abs(dragAmount.x) > 10f) {
-                                    isHorizontalDrag = true
-                                }
-                            },
-                            onDragEnd = { isHorizontalDrag = false },
-                            onDragCancel = { isHorizontalDrag = false }
-                        )
-                    },
+                modifier = Modifier.fillMaxWidth(),
                 key = { "${calendarMode.name}-$it" },
                 beyondBoundsPageCount = 1
             ) { page ->

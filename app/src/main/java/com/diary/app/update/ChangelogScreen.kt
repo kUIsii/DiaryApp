@@ -299,50 +299,51 @@ private fun ReleaseItem(
             }
 
             Column(modifier = Modifier.padding(18.dp)) {
-                // Date on the right
-                if (dateStr.isNotBlank()) {
-                    Text(
-                        text = dateStr,
-                        fontSize = 12.sp,
-                        color = textSecondary.copy(alpha = 0.7f),
-                        modifier = Modifier.align(Alignment.End)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // Version badges on the left
+                // Version badges + date in same row
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "v$version",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    if (isCurrent) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SuccessColor.copy(alpha = 0.15f))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Brush.horizontalGradient(listOf(DarkAccentStart, DarkAccentEnd)))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "当前版本",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = SuccessColor
+                                text = "v$version",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
                         }
+
+                        if (isCurrent) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SuccessColor.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "当前版本",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = SuccessColor
+                                )
+                            }
+                        }
+                    }
+
+                    if (dateStr.isNotBlank()) {
+                        Text(
+                            text = dateStr,
+                            fontSize = 12.sp,
+                            color = textSecondary.copy(alpha = 0.7f)
+                        )
                     }
                 }
 
