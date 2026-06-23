@@ -1,5 +1,6 @@
 package com.diary.app.ui.settings
 
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,7 +68,14 @@ import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import com.diary.app.update.ApkInstaller
+import com.diary.app.update.DownloadState
+import com.diary.app.update.UpdateChecker
+import com.diary.app.update.UpdateCheckResult
+import com.diary.app.update.UpdateDialog
+import com.diary.app.update.toUserMessage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -77,6 +87,16 @@ fun SettingsScreen(
     val context = LocalContext.current
     val app = context.applicationContext as? DiaryApplication ?: return
     val currentThemeMode by app.themeMode.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    var isChecking by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateVersion by remember { mutableStateOf("") }
+    var updateNotes by remember { mutableStateOf("") }
+    var updateUrl by remember { mutableStateOf("") }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(-1f) }
+    var isForceUpdate by remember { mutableStateOf(false) }
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -84,6 +104,58 @@ fun SettingsScreen(
 
     var showContent by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showContent = true }
+
+    if (showUpdateDialog) {
+        UpdateDialog(
+            versionName = updateVersion,
+            releaseNotes = updateNotes,
+            isDownloading = isDownloading,
+            downloadProgress = downloadProgress,
+            isForceUpdate = isForceUpdate,
+            onConfirm = {
+                isDownloading = true
+                downloadProgress = -1f
+                val fileName = "DiaryApp-v$updateVersion.apk"
+                scope.launch {
+                    try {
+                        ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
+                            .collect { state ->
+                                when (state) {
+                                    is DownloadState.Progress -> {
+                                        downloadProgress = if (state.totalBytes > 0) {
+                                            state.bytesDownloaded.toFloat() / state.totalBytes
+                                        } else {
+                                            -1f
+                                        }
+                                    }
+                                    is DownloadState.Completed -> {
+                                        isDownloading = false
+                                        downloadProgress = -1f
+                                        showUpdateDialog = false
+                                    }
+                                    is DownloadState.Failed -> {
+                                        isDownloading = false
+                                        downloadProgress = -1f
+                                        showUpdateDialog = false
+                                        Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                    } catch (e: Exception) {
+                        isDownloading = false
+                        downloadProgress = -1f
+                        showUpdateDialog = false
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.update_check_failed_detail, e.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            },
+            onDismiss = { showUpdateDialog = false }
+        )
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -258,11 +330,61 @@ fun SettingsScreen(
                             SettingsNavigateItem(
                                 icon = Icons.Default.SystemUpdate,
                                 title = stringResource(R.string.settings_check_update),
-                                subtitle = stringResource(R.string.settings_check_update_desc),
+                                subtitle = if (isChecking) {
+                                    stringResource(R.string.update_checking)
+                                } else {
+                                    stringResource(R.string.settings_check_update_desc)
+                                },
                                 iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 iconTint = MaterialTheme.colorScheme.primary,
                                 textColor = textColor,
-                                textTertiary = textTertiary
+                                textTertiary = textTertiary,
+                                trailing = if (isChecking) {
+                                    {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                                onClick = {
+                                    if (!isChecking) {
+                                        isChecking = true
+                                        scope.launch {
+                                            try {
+                                                val result = UpdateChecker.checkForUpdateDetailed(
+                                                    context,
+                                                    BuildConfig.VERSION_NAME
+                                                )
+                                                isChecking = false
+                                                when (result) {
+                                                    is UpdateCheckResult.UpdateAvailable -> {
+                                                        updateVersion = result.info.versionName
+                                                        updateNotes = result.info.releaseNotes
+                                                        updateUrl = result.info.downloadUrl
+                                                        isForceUpdate = result.info.isForceUpdate
+                                                        showUpdateDialog = true
+                                                    }
+                                                    else -> Toast.makeText(
+                                                        context,
+                                                        result.toUserMessage(context),
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                isChecking = false
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.update_check_failed),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
                             )
                             SettingDivider()
                             SettingsNavigateItem(
@@ -310,6 +432,7 @@ private fun SettingsNavigateItem(
     iconTint: Color,
     textColor: Color,
     textTertiary: Color,
+    trailing: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -346,7 +469,9 @@ private fun SettingsNavigateItem(
             Text(text = title, fontSize = 15.sp, color = textColor)
             Text(text = subtitle, fontSize = 12.sp, color = textTertiary, modifier = Modifier.padding(top = 2.dp))
         }
-        if (onClick != null) {
+        if (trailing != null) {
+            trailing()
+        } else if (onClick != null) {
             Icon(
                 Icons.Default.ArrowForward,
                 contentDescription = "进入",

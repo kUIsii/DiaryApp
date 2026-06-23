@@ -119,7 +119,9 @@ import com.diary.app.data.BackupManager
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
+import com.diary.app.update.UpdateCheckResult
 import com.diary.app.update.UpdateDialog
+import com.diary.app.update.toUserMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
@@ -573,10 +575,18 @@ fun ProfileScreen(
                                 isChecking = true
                                 scope.launch {
                                     try {
-                                        val result = UpdateChecker.checkForUpdate(context, BuildConfig.VERSION_NAME)
+                                        val result = UpdateChecker.checkForUpdateDetailed(context, BuildConfig.VERSION_NAME)
                                         isChecking = false
-                                        if (result != null) { updateVersion = result.versionName; updateNotes = result.releaseNotes; updateUrl = result.downloadUrl; isForceUpdate = result.isForceUpdate; showUpdateDialog = true }
-                                        else { Toast.makeText(context, context.getString(R.string.profile_latest_version), Toast.LENGTH_SHORT).show() }
+                                        when (result) {
+                                            is UpdateCheckResult.UpdateAvailable -> {
+                                                updateVersion = result.info.versionName
+                                                updateNotes = result.info.releaseNotes
+                                                updateUrl = result.info.downloadUrl
+                                                isForceUpdate = result.info.isForceUpdate
+                                                showUpdateDialog = true
+                                            }
+                                            else -> Toast.makeText(context, result.toUserMessage(context), Toast.LENGTH_SHORT).show()
+                                        }
                                     } catch (e: Exception) { isChecking = false; Toast.makeText(context, context.getString(R.string.profile_update_failed), Toast.LENGTH_SHORT).show() }
                                 }
                             }

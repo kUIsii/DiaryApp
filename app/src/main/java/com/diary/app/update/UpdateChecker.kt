@@ -2,6 +2,7 @@ package com.diary.app.update
 
 import android.content.Context
 import com.diary.app.BuildConfig
+import com.diary.app.R
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
@@ -27,9 +28,25 @@ data class UpdateInfo(
     val isForceUpdate: Boolean = false
 )
 
+sealed interface UpdateCheckResult {
+    data class UpdateAvailable(val info: UpdateInfo) : UpdateCheckResult
+    data object Latest : UpdateCheckResult
+    data object NoMatchingRelease : UpdateCheckResult
+    data object NoApkAsset : UpdateCheckResult
+    data class NetworkError(val message: String? = null) : UpdateCheckResult
+}
+
 object UpdateChecker {
 
     suspend fun checkForUpdate(context: Context, currentVersionName: String): UpdateInfo? {
+        return when (val result = checkForUpdateDetailed(context, currentVersionName)) {
+            is UpdateCheckResult.UpdateAvailable -> result.info
+            else -> null
+        }
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun checkForUpdateDetailed(_context: Context, currentVersionName: String): UpdateCheckResult {
         return withContext(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
@@ -44,55 +61,97 @@ object UpdateChecker {
                 connection.readTimeout = 10000
 
                 if (connection.responseCode != 200) {
-                    return@withContext null
+                    return@withContext UpdateCheckResult.NetworkError("HTTP ${connection.responseCode}")
                 }
 
                 val json = connection.inputStream.bufferedReader().use { it.readText() }
                 val releases = Gson().fromJson(json, Array<GitHubRelease>::class.java).toList()
 
-                val matchingRelease = releases
-                    .filter { release ->
-                        val tag = release.tagName.lowercase()
-                        val hasApk = release.assets?.any { it.name.endsWith(".apk") } == true
-                        hasApk && if (isExperimental) {
-                            tag.contains("experimental")
-                        } else {
-                            !tag.contains("experimental")
-                        }
-                    }
-                    .maxWithOrNull { left, right ->
-                        compareVersionNames(
-                            left.tagName.removePrefix("v"),
-                            right.tagName.removePrefix("v")
-                        )
-                    } ?: return@withContext null
-
-                val latestVersion = matchingRelease.tagName.removePrefix("v")
-                if (compareVersionNames(latestVersion, currentVersionName) <= 0) {
-                    return@withContext null
-                }
-
-                val apkAsset = matchingRelease.assets?.firstOrNull { it.name.endsWith(".apk") } ?: return@withContext null
-                val releaseBody = matchingRelease.body ?: ""
-                val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
-                    releaseBody.contains("[强制更新]")
-
-                UpdateInfo(
-                    versionName = latestVersion,
-                    releaseNotes = releaseBody
-                        .replace("[force]", "", ignoreCase = true)
-                        .replace("[强制更新]", "")
-                        .trim(),
-                    downloadUrl = apkAsset.downloadUrl,
-                    isForceUpdate = isForce
+                selectUpdateFromReleases(
+                    releases = releases,
+                    currentVersionName = currentVersionName,
+                    isExperimental = isExperimental
                 )
-            } catch (_: Exception) {
-                null
+            } catch (e: Exception) {
+                UpdateCheckResult.NetworkError(e.message)
             } finally {
                 connection?.disconnect()
             }
         }
     }
+}
+
+fun UpdateCheckResult.toUserMessage(context: Context): String {
+    return when (this) {
+        is UpdateCheckResult.UpdateAvailable -> ""
+        UpdateCheckResult.Latest -> context.getString(R.string.update_latest_version)
+        UpdateCheckResult.NoMatchingRelease -> context.getString(R.string.update_no_matching_release)
+        UpdateCheckResult.NoApkAsset -> context.getString(R.string.update_no_apk_asset)
+        is UpdateCheckResult.NetworkError -> {
+            if (message.isNullOrBlank()) {
+                context.getString(R.string.update_check_failed)
+            } else {
+                context.getString(R.string.update_check_failed_detail, message)
+            }
+        }
+    }
+}
+
+internal fun selectUpdateFromReleases(
+    releases: List<GitHubRelease>,
+    currentVersionName: String,
+    isExperimental: Boolean
+): UpdateCheckResult {
+    val channelReleases = releases.filter { release ->
+        val tag = release.tagName.lowercase()
+        if (isExperimental) {
+            tag.contains("experimental")
+        } else {
+            !tag.contains("experimental")
+        }
+    }
+
+    if (channelReleases.isEmpty()) {
+        return UpdateCheckResult.NoMatchingRelease
+    }
+
+    val releasesWithApk = channelReleases.filter { release ->
+        release.assets?.any { it.name.endsWith(".apk") } == true
+    }
+
+    if (releasesWithApk.isEmpty()) {
+        return UpdateCheckResult.NoApkAsset
+    }
+
+    val matchingRelease = releasesWithApk.maxWithOrNull { left, right ->
+        compareVersionNames(
+            left.tagName.removePrefix("v"),
+            right.tagName.removePrefix("v")
+        )
+    } ?: return UpdateCheckResult.NoMatchingRelease
+
+    val latestVersion = matchingRelease.tagName.removePrefix("v")
+    if (compareVersionNames(latestVersion, currentVersionName) <= 0) {
+        return UpdateCheckResult.Latest
+    }
+
+    val apkAsset = matchingRelease.assets?.firstOrNull { it.name.endsWith(".apk") }
+        ?: return UpdateCheckResult.NoApkAsset
+    val releaseBody = matchingRelease.body ?: ""
+    val isForce = releaseBody.contains("[force]", ignoreCase = true) ||
+        releaseBody.contains("[强制更新]")
+
+    return UpdateCheckResult.UpdateAvailable(
+        UpdateInfo(
+            versionName = latestVersion,
+            releaseNotes = releaseBody
+                .replace("[force]", "", ignoreCase = true)
+                .replace("[强制更新]", "")
+                .trim(),
+            downloadUrl = apkAsset.downloadUrl,
+            isForceUpdate = isForce
+        )
+    )
 }
 
 internal fun compareVersionNames(left: String, right: String): Int {

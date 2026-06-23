@@ -259,6 +259,12 @@
     <string name="profile_more_settings_desc">备份管理、应用锁、隐私设置</string>
     <string name="profile_latest_version">已是最新版本</string>
     <string name="profile_update_failed">检查更新失败</string>
+    <string name="update_checking">正在检查...</string>
+    <string name="update_latest_version">已是最新版本</string>
+    <string name="update_no_matching_release">没有找到当前渠道的发布版本</string>
+    <string name="update_no_apk_asset">找到发布版本，但没有可安装的 APK</string>
+    <string name="update_check_failed">检查更新失败</string>
+    <string name="update_check_failed_detail">检查更新失败：%s</string>
     <string name="profile_select_reminder_time">选择提醒时间</string>
     <string name="profile_notification_permission">需要通知权限才能开启提醒</string>
     <string name="profile_pin_set_success">PIN码已设置</string>
