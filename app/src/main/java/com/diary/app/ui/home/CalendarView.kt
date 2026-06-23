@@ -5,12 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +29,14 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,9 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.weatherIconFor
+import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
@@ -85,14 +85,18 @@ internal fun targetPageForWeek(baseWeekStart: LocalDate, currentWeekStart: Local
     return CENTER_PAGE + ChronoUnit.WEEKS.between(baseWeekStart, currentWeekStart).toInt()
 }
 
-internal fun centeredPickerValue(
-    rawIndex: Int?,
-    paddingItems: Int,
-    items: List<Int>
-): Int? {
-    if (rawIndex == null) return null
-    val itemIndex = rawIndex - paddingItems
-    return items.getOrNull(itemIndex)
+internal fun localDateToPickerMillis(
+    date: LocalDate,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): Long {
+    return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+}
+
+internal fun pickerMillisToLocalDate(
+    millis: Long,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): LocalDate {
+    return Instant.ofEpochMilli(millis).atZone(zoneId).toLocalDate()
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -438,74 +442,43 @@ fun CalendarView(
         }
     }
 
-    // Scrollable year/month/day picker dialog
     if (showDatePicker) {
-        val initDate = selectedDate ?: today
-        var pickedYear by remember { mutableStateOf(initDate.year) }
-        var pickedMonth by remember { mutableStateOf(initDate.monthValue) }
-        var pickedDay by remember { mutableStateOf(initDate.dayOfMonth) }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate?.let {
+                localDateToPickerMillis(it)
+            } ?: localDateToPickerMillis(today)
+        )
 
-        // Clamp day to valid range
-        val maxDay = try {
-            YearMonth.of(pickedYear, pickedMonth).lengthOfMonth()
-        } catch (_: Exception) { 31 }
-        val clampedDay = pickedDay.coerceIn(1, maxDay)
-        if (clampedDay != pickedDay) pickedDay = clampedDay
-
-        AlertDialog(
+        DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            title = { Text("选择日期", fontWeight = FontWeight.SemiBold) },
-            text = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Year column
-                    WheelPicker(
-                        value = pickedYear,
-                        range = 2000..today.year + 1,
-                        label = { "${it}年" },
-                        onValueChange = { pickedYear = it }
-                    )
-                    // Month column
-                    WheelPicker(
-                        value = pickedMonth,
-                        range = 1..12,
-                        label = { "${it}月" },
-                        onValueChange = { pickedMonth = it }
-                    )
-                    // Day column
-                    WheelPicker(
-                        value = clampedDay,
-                        range = 1..maxDay,
-                        label = { "${it}日" },
-                        onValueChange = { pickedDay = it }
-                    )
-                }
-            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val date = LocalDate.of(pickedYear, pickedMonth, clampedDay)
+                        val selectedMillis = datePickerState.selectedDateMillis
+                            ?: localDateToPickerMillis(selectedDate ?: today)
+                        val date = pickerMillisToLocalDate(selectedMillis)
                         if (calendarMode == CalendarMode.MONTH) {
                             onCurrentMonthChange(YearMonth.from(date))
                         } else {
-                            onCurrentWeekStartChange(date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+                            onCurrentWeekStartChange(
+                                date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                            )
                         }
                         onDateSelected(date)
                         showDatePicker = false
                     }
                 ) {
-                    Text("确定")
+                    Text("纭畾")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("取消")
+                    Text("鍙栨秷")
                 }
             }
-        )
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }
 
@@ -746,110 +719,5 @@ private fun CalendarDay(
                 )
             }
         }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun <T> WheelPicker(
-    value: T,
-    range: IntRange,
-    label: (Int) -> String,
-    onValueChange: (T) -> Unit
-) {
-    val primary = MaterialTheme.colorScheme.primary
-    val onBackground = MaterialTheme.colorScheme.onBackground
-
-    val itemHeight = 40.dp
-    val visibleItems = 5
-    val pickerHeight = itemHeight * visibleItems
-    val paddingItems = (visibleItems / 2)
-
-    val items = remember(range) { range.toList() }
-    val initialIndex = remember(value, range) { (value as Int) - range.first }
-
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, initialIndex - paddingItems))
-    val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-
-    // Commit the centered value only after scrolling settles, so the highlight
-    // and the external state stay in sync.
-    LaunchedEffect(listState) {
-        snapshotFlow { Pair(
-            centeredPickerValue(
-                rawIndex = run {
-                    val layoutInfo = listState.layoutInfo
-                    val viewportCenter =
-                        (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
-                    layoutInfo.visibleItemsInfo.minByOrNull {
-                        kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
-                    }?.index
-                },
-                paddingItems = paddingItems,
-                items = items
-            ),
-            listState.isScrollInProgress
-        ) }.collect { (centeredValue, isScrolling) ->
-            if (!isScrolling && centeredValue != null && centeredValue != (value as Int)) {
-                @Suppress("UNCHECKED_CAST")
-                onValueChange(centeredValue as T)
-            }
-        }
-    }
-
-    // Scroll to value when changed externally
-    LaunchedEffect(value) {
-        val index = (value as Int) - range.first
-        if (index >= 0 && index < items.size) {
-            listState.animateScrollToItem(maxOf(0, index - paddingItems))
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .width(80.dp)
-            .height(pickerHeight)
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            flingBehavior = snapBehavior,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            items(count = items.size + paddingItems * 2) { rawIndex ->
-                val itemIndex = rawIndex - paddingItems
-                val isValid = itemIndex in items.indices
-                val itemValue = if (isValid) items[itemIndex] else 0
-                val isSelected = isValid && itemValue == (value as Int)
-
-                Box(
-                    modifier = Modifier
-                        .height(itemHeight)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isValid) {
-                        Text(
-                            text = label(itemValue),
-                            fontSize = if (isSelected) 18.sp else 15.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) primary else onBackground.copy(alpha = 0.4f)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Center highlight indicator (top and bottom lines)
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-                .height(itemHeight)
-                .border(
-                    width = 1.dp,
-                    color = primary.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(8.dp)
-                )
-        )
     }
 }

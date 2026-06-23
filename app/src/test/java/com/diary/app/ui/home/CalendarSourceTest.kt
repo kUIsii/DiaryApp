@@ -19,11 +19,14 @@ class CalendarSourceTest {
     }
 
     @Test
-    fun `wheel picker commits the centered value after scrolling settles`() {
+    fun `jump date uses material date picker instead of wheel picker`() {
         val source = File("src/main/java/com/diary/app/ui/home/CalendarView.kt").readText()
 
-        assertTrue(source.contains("snapshotFlow { Pair("))
-        assertTrue(source.contains("centeredPickerValue("))
-        assertFalse(source.contains("if (rawIndex != null && !isUserScrolling)"))
+        assertTrue(source.contains("DatePickerDialog("))
+        assertTrue(source.contains("rememberDatePickerState("))
+        assertTrue(source.contains("selectedDate?.let"))
+        assertTrue(source.contains("localDateToPickerMillis(today)"))
+        assertFalse(source.contains("WheelPicker("))
+        assertFalse(source.contains("centeredPickerValue("))
     }
 }

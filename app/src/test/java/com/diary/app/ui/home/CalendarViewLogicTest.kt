@@ -1,9 +1,9 @@
 package com.diary.app.ui.home
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.YearMonth
 
 class CalendarViewLogicTest {
@@ -31,10 +31,12 @@ class CalendarViewLogicTest {
     }
 
     @Test
-    fun `centered picker value maps visible index back to the underlying value`() {
-        val days = (1..31).toList()
+    fun `picker date conversion round trips through millis in utc`() {
+        val zone = ZoneId.of("UTC")
+        val date = LocalDate.of(2026, 6, 23)
 
-        assertEquals(15, centeredPickerValue(rawIndex = 16, paddingItems = 2, items = days))
-        assertNull(centeredPickerValue(rawIndex = null, paddingItems = 2, items = days))
+        val millis = localDateToPickerMillis(date, zone)
+
+        assertEquals(date, pickerMillisToLocalDate(millis, zone))
     }
 }
