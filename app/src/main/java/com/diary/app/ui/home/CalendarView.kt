@@ -5,14 +5,19 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +50,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,6 +75,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.abs
 
 enum class CalendarMode { WEEK, MONTH }
 
@@ -267,10 +280,38 @@ fun CalendarView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // Horizontal drag detection to block LazyColumn from stealing vertical scroll
+            var isHorizontalDrag by remember { mutableStateOf(false) }
+            val nestedScrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        return if (isHorizontalDrag) {
+                            Offset(0f, available.y) // consume vertical, let horizontal pass through
+                        } else {
+                            Offset.Zero
+                        }
+                    }
+                }
+            }
+
             // Calendar pager
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .nestedScroll(nestedScrollConnection)
+                    .pointerInput(calendarMode) {
+                        detectDragGestures(
+                            onDragStart = { isHorizontalDrag = false },
+                            onDrag = { change, dragAmount ->
+                                if (!isHorizontalDrag && abs(dragAmount.x) > abs(dragAmount.y) && abs(dragAmount.x) > 10f) {
+                                    isHorizontalDrag = true
+                                }
+                            },
+                            onDragEnd = { isHorizontalDrag = false },
+                            onDragCancel = { isHorizontalDrag = false }
+                        )
+                    },
                 key = { "${calendarMode.name}-$it" },
                 beyondBoundsPageCount = 1
             ) { page ->
@@ -714,6 +755,7 @@ private fun CalendarDay(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun <T> WheelPicker(
     value: T,
@@ -723,82 +765,100 @@ private fun <T> WheelPicker(
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val onBackground = MaterialTheme.colorScheme.onBackground
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    val itemHeight = 40.dp
+    val visibleItems = 5
+    val pickerHeight = itemHeight * visibleItems
+    val paddingItems = (visibleItems / 2)
+
+    val items = remember(range) { range.toList() }
+    val initialIndex = remember(value, range) { (value as Int) - range.first }
+
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, initialIndex - paddingItems))
+    val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    var isUserScrolling by remember { mutableStateOf(false) }
+
+    // Track scroll to update value
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+            layoutInfo.visibleItemsInfo.minByOrNull {
+                kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+            }?.index
+        }.collect { index ->
+            if (index != null && !isUserScrolling) {
+                val newValue = range.first + index
+                if (newValue in range && newValue != (value as Int)) {
+                    @Suppress("UNCHECKED_CAST")
+                    onValueChange(newValue as T)
+                }
+            }
+        }
+    }
+
+    // Detect user scrolling state
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+            isUserScrolling = scrolling
+        }
+    }
+
+    // Scroll to value when changed externally
+    LaunchedEffect(value) {
+        val index = (value as Int) - range.first
+        if (index >= 0 && index < items.size) {
+            listState.animateScrollToItem(maxOf(0, index - paddingItems))
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(pickerHeight)
     ) {
-        // Up arrow
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            flingBehavior = snapBehavior,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            items(count = items.size + paddingItems * 2) { rawIndex ->
+                val itemIndex = rawIndex - paddingItems
+                val isValid = itemIndex in items.indices
+                val itemValue = if (isValid) items[itemIndex] else 0
+                val isSelected = isValid && itemValue == (value as Int)
+
+                Box(
+                    modifier = Modifier
+                        .height(itemHeight)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    val intVal = (value as Int)
-                    val newVal = if (intVal - 1 < range.first) range.last else intVal - 1
-                    @Suppress("UNCHECKED_CAST")
-                    onValueChange(newVal as T)
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.ChevronLeft,
-                contentDescription = null,
-                tint = onSurfaceVariant,
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer { rotationZ = 90f }
-            )
+                    if (isValid) {
+                        Text(
+                            text = label(itemValue),
+                            fontSize = if (isSelected) 18.sp else 15.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) primary else onBackground.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Value display
+        // Center highlight indicator (top and bottom lines)
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(primary.copy(alpha = 0.1f))
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = label(value as Int),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = primary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Down arrow
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    val intVal = (value as Int)
-                    val newVal = if (intVal + 1 > range.last) range.first else intVal + 1
-                    @Suppress("UNCHECKED_CAST")
-                    onValueChange(newVal as T)
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = onSurfaceVariant,
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer { rotationZ = 90f }
-            )
-        }
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(itemHeight)
+                .border(
+                    width = 1.dp,
+                    color = primary.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+        )
     }
 }
