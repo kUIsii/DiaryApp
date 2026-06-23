@@ -41,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +49,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -61,18 +59,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.weatherIconFor
-import com.diary.app.ui.theme.themeMode
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
 enum class CalendarMode { WEEK, MONTH }
 
-private const val CENTER_PAGE = Int.MAX_VALUE / 2
+internal const val CENTER_PAGE = Int.MAX_VALUE / 2
+
+internal fun monthForPage(baseMonth: YearMonth, page: Int): YearMonth {
+    return baseMonth.plusMonths((page - CENTER_PAGE).toLong())
+}
+
+internal fun targetPageForMonth(baseMonth: YearMonth, currentMonth: YearMonth): Int {
+    return CENTER_PAGE + ChronoUnit.MONTHS.between(baseMonth, currentMonth).toInt()
+}
+
+internal fun weekStartForPage(baseWeekStart: LocalDate, page: Int): LocalDate {
+    return baseWeekStart.plusWeeks((page - CENTER_PAGE).toLong())
+}
+
+internal fun targetPageForWeek(baseWeekStart: LocalDate, currentWeekStart: LocalDate): Int {
+    return CENTER_PAGE + ChronoUnit.WEEKS.between(baseWeekStart, currentWeekStart).toInt()
+}
+
+internal fun centeredPickerValue(
+    rawIndex: Int?,
+    paddingItems: Int,
+    items: List<Int>
+): Int? {
+    if (rawIndex == null) return null
+    val itemIndex = rawIndex - paddingItems
+    return items.getOrNull(itemIndex)
+}
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +111,9 @@ fun CalendarView(
     modifier: Modifier = Modifier
 ) {
     val today = remember { LocalDate.now() }
+    val todayWeekStart = remember(today) {
+        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    }
     val onBackground = MaterialTheme.colorScheme.onBackground
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val primary = MaterialTheme.colorScheme.primary
@@ -104,22 +128,33 @@ fun CalendarView(
 
     // Pager: source of truth for displayed month/week
     val pagerState = rememberPagerState(initialPage = CENTER_PAGE) { Int.MAX_VALUE }
+    var monthPagerBase by remember(calendarMode) { mutableStateOf(currentMonth) }
+    var weekPagerBase by remember(calendarMode) { mutableStateOf(currentWeekStart) }
 
     // Flag to prevent feedback loop: state→pager sync should not trigger pager→state sync
     var isProgrammaticScroll by remember { mutableStateOf(false) }
 
+    LaunchedEffect(calendarMode) {
+        if (calendarMode == CalendarMode.MONTH) {
+            monthPagerBase = currentMonth
+        } else {
+            weekPagerBase = currentWeekStart
+        }
+        if (pagerState.currentPage != CENTER_PAGE) {
+            isProgrammaticScroll = true
+            pagerState.scrollToPage(CENTER_PAGE)
+            isProgrammaticScroll = false
+        }
+    }
+
     // When pager settles, update currentMonth/currentWeekStart (pager → state)
-    LaunchedEffect(pagerState) {
+    LaunchedEffect(pagerState, calendarMode, monthPagerBase, weekPagerBase) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             if (!isProgrammaticScroll) {
-                val offset = page - CENTER_PAGE
                 if (calendarMode == CalendarMode.MONTH) {
-                    onCurrentMonthChange(YearMonth.now().plusMonths(offset.toLong()))
+                    onCurrentMonthChange(monthForPage(monthPagerBase, page))
                 } else {
-                    onCurrentWeekStartChange(
-                        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                            .plusWeeks(offset.toLong())
-                    )
+                    onCurrentWeekStartChange(weekStartForPage(weekPagerBase, page))
                 }
             }
         }
@@ -127,15 +162,11 @@ fun CalendarView(
 
     // When state changes from arrows/back-to-today/jump, sync pager (state → pager)
     LaunchedEffect(currentMonth, currentWeekStart, calendarMode) {
-        val targetOffset = if (calendarMode == CalendarMode.MONTH) {
-            ChronoUnit.MONTHS.between(YearMonth.now(), currentMonth).toInt()
+        val targetPage = if (calendarMode == CalendarMode.MONTH) {
+            targetPageForMonth(monthPagerBase, currentMonth)
         } else {
-            ChronoUnit.WEEKS.between(
-                today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
-                currentWeekStart
-            ).toInt()
+            targetPageForWeek(weekPagerBase, currentWeekStart)
         }
-        val targetPage = CENTER_PAGE + targetOffset
         if (pagerState.currentPage != targetPage) {
             isProgrammaticScroll = true
             pagerState.scrollToPage(targetPage)
@@ -280,9 +311,8 @@ fun CalendarView(
                 key = { "${calendarMode.name}-$it" },
                 beyondBoundsPageCount = 1
             ) { page ->
-                val offset = page - CENTER_PAGE
                 if (calendarMode == CalendarMode.MONTH) {
-                    val month = YearMonth.now().plusMonths(offset.toLong())
+                    val month = monthForPage(monthPagerBase, page)
                     MonthView(
                         currentMonth = month,
                         entryDates = entryDates,
@@ -293,8 +323,7 @@ fun CalendarView(
                         primary = primary
                     )
                 } else {
-                    val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                        .plusWeeks(offset.toLong())
+                    val weekStart = weekStartForPage(weekPagerBase, page)
                     Box {
                         WeekView(
                             weekStart = weekStart,
@@ -358,7 +387,7 @@ fun CalendarView(
                                 if (calendarMode == CalendarMode.MONTH) {
                                     onCurrentMonthChange(YearMonth.now())
                                 } else {
-                                    onCurrentWeekStartChange(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+                                    onCurrentWeekStartChange(todayWeekStart)
                                 }
                                 onDateSelected(today)
                             }
@@ -742,34 +771,28 @@ private fun <T> WheelPicker(
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, initialIndex - paddingItems))
     val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
-    var isUserScrolling by remember { mutableStateOf(false) }
-
-    // Track scroll to update value
+    // Commit the centered value only after scrolling settles, so the highlight
+    // and the external state stay in sync.
     LaunchedEffect(listState) {
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-            val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
-            layoutInfo.visibleItemsInfo.minByOrNull {
-                kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
-            }?.index
-        }.collect { rawIndex ->
-            if (rawIndex != null && !isUserScrolling) {
-                val itemIndex = rawIndex - paddingItems
-                if (itemIndex in items.indices) {
-                    val newValue = items[itemIndex]
-                    if (newValue != (value as Int)) {
-                        @Suppress("UNCHECKED_CAST")
-                        onValueChange(newValue as T)
-                    }
-                }
+        snapshotFlow { Pair(
+            centeredPickerValue(
+                rawIndex = run {
+                    val layoutInfo = listState.layoutInfo
+                    val viewportCenter =
+                        (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+                    layoutInfo.visibleItemsInfo.minByOrNull {
+                        kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+                    }?.index
+                },
+                paddingItems = paddingItems,
+                items = items
+            ),
+            listState.isScrollInProgress
+        ) }.collect { (centeredValue, isScrolling) ->
+            if (!isScrolling && centeredValue != null && centeredValue != (value as Int)) {
+                @Suppress("UNCHECKED_CAST")
+                onValueChange(centeredValue as T)
             }
-        }
-    }
-
-    // Detect user scrolling state
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
-            isUserScrolling = scrolling
         }
     }
 
