@@ -106,12 +106,12 @@ fun CalendarView(
     val pagerState = rememberPagerState(initialPage = CENTER_PAGE) { Int.MAX_VALUE }
 
     // Flag to prevent feedback loop: state→pager sync should not trigger pager→state sync
-    var suppressPagerSync by remember { mutableStateOf(false) }
+    var isProgrammaticScroll by remember { mutableStateOf(false) }
 
     // When pager settles, update currentMonth/currentWeekStart (pager → state)
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
-            if (!suppressPagerSync) {
+            if (!isProgrammaticScroll) {
                 val offset = page - CENTER_PAGE
                 if (calendarMode == CalendarMode.MONTH) {
                     onCurrentMonthChange(YearMonth.now().plusMonths(offset.toLong()))
@@ -122,7 +122,6 @@ fun CalendarView(
                     )
                 }
             }
-            suppressPagerSync = false
         }
     }
 
@@ -138,8 +137,9 @@ fun CalendarView(
         }
         val targetPage = CENTER_PAGE + targetOffset
         if (pagerState.currentPage != targetPage) {
-            suppressPagerSync = true
+            isProgrammaticScroll = true
             pagerState.scrollToPage(targetPage)
+            isProgrammaticScroll = false
         }
     }
 
@@ -752,12 +752,15 @@ private fun <T> WheelPicker(
             layoutInfo.visibleItemsInfo.minByOrNull {
                 kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
             }?.index
-        }.collect { index ->
-            if (index != null && !isUserScrolling) {
-                val newValue = range.first + index
-                if (newValue in range && newValue != (value as Int)) {
-                    @Suppress("UNCHECKED_CAST")
-                    onValueChange(newValue as T)
+        }.collect { rawIndex ->
+            if (rawIndex != null && !isUserScrolling) {
+                val itemIndex = rawIndex - paddingItems
+                if (itemIndex in items.indices) {
+                    val newValue = items[itemIndex]
+                    if (newValue != (value as Int)) {
+                        @Suppress("UNCHECKED_CAST")
+                        onValueChange(newValue as T)
+                    }
                 }
             }
         }
