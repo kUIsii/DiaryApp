@@ -7,6 +7,8 @@ import android.os.Build
 import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.di.AppContainer
+import com.diary.app.reminder.AchievementNotificationManager
+import com.diary.app.reminder.PetReminderManager
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
@@ -44,6 +46,8 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
         TodoReminderManager.createNotificationChannel(this)
+        AchievementNotificationManager.ensureChannel(this)
+        PetReminderManager.ensureChannel(this)
         // Schedule periodic auto-backup via WorkManager
         if (BackupManager.isAutoBackupEnabled(this)) {
             BackupManager.scheduleAutoBackup(this)
@@ -53,6 +57,7 @@ class DiaryApplication : Application() {
         // Schedule periodic weather refresh
         WeatherWorker.ensureChannel(this)
         WeatherWorker.schedule(this)
+        PetReminderManager.schedule(this)
 
         // Initialize unified achievement system
         try {
@@ -63,6 +68,7 @@ class DiaryApplication : Application() {
                 runCatching {
                     repo.initialize()
                     repo.checkAndUnlock()
+                    AchievementNotificationManager.scheduleCheck(this@DiaryApplication)
                 }.onFailure {
                     android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
                 }

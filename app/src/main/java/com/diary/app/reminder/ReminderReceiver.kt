@@ -11,6 +11,10 @@ import com.diary.app.R
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        // Respect notification preference
+        if (!NotificationPreferencesManager.isDailyReminderEnabled(context)) return
+        if (NotificationPreferencesManager.isInQuietHours(context)) return
+
         showNotification(context)
 
         // Reschedule for the next day

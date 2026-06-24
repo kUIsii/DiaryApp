@@ -355,6 +355,10 @@ class MainActivity : FragmentActivity() {
                     }
 
                     val notificationState = remember { InAppNotificationState() }
+                    // Wire up achievement notifications to in-app banner
+                    LaunchedEffect(Unit) {
+                        com.diary.app.reminder.AchievementNotificationManager.inAppNotificationState = notificationState
+                    }
                     val dao = (application as DiaryApplication).database.diaryDao()
                     var lastNotifCount by remember { mutableIntStateOf(0) }
 
