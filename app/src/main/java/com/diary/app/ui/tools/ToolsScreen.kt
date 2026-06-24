@@ -40,7 +40,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
@@ -131,6 +133,9 @@ fun ToolsScreen(
     onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
+    onNavigateToTitleWall: (() -> Unit)? = null,
+    onNavigateToPet: (() -> Unit)? = null,
+    onNavigateToIsland: (() -> Unit)? = null,
     onSwipeToTimeline: (() -> Unit)? = null,
     onSwipeToTodo: (() -> Unit)? = null
 ) {
@@ -375,6 +380,53 @@ fun ToolsScreen(
                         checked = features.aiInsightCardEnabled && isAiConfigured,
                         enabled = isAiConfigured,
                         onCheckedChange = { app?.setAiInsightCardEnabled(it) }
+                    )
+                }
+
+                // 养成世界
+                CollapsibleSection(
+                    icon = Icons.Default.Pets,
+                    iconBg = sectionIconBg(2),
+                    iconTint = sectionIconTint(2),
+                    title = "养成世界",
+                    subtitle = "称号墙、情绪宠物、心情小岛",
+                    isExpanded = expandedSection == "nurturing",
+                    onToggle = { expandedSection = if (expandedSection == "nurturing") null else "nurturing" },
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    textTertiary = textTertiary
+                ) {
+                    ClickableToolRow(
+                        icon = Icons.Default.EmojiEvents,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "成就殿堂",
+                        subtitle = "查看你的成就与称号",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = onNavigateToAchievements
+                    )
+                    SettingDivider()
+                    ClickableToolRow(
+                        icon = Icons.Default.Pets,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "情绪宠物",
+                        subtitle = "你的专属心情伙伴",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = { onNavigateToPet?.invoke() }
+                    )
+                    SettingDivider()
+                    ClickableToolRow(
+                        icon = Icons.Default.Landscape,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "心情小岛",
+                        subtitle = "心情塑造你的专属小岛",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        onClick = { onNavigateToIsland?.invoke() }
                     )
                 }
 

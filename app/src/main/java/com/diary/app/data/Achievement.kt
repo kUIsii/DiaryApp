@@ -16,5 +16,11 @@ data class Achievement(
     val iconName: String,
     val unlockedAt: Long? = null,
     val progress: Int = 0,
-    val target: Int = 1
+    val target: Int = 1,
+    // Unified achievement system fields
+    val category: String = "writing",
+    val tier: Int = 1,
+    val iconEmoji: String = "",
+    val flavorText: String = "",
+    val isHidden: Boolean = false
 )

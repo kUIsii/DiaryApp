@@ -38,4 +38,27 @@ interface AchievementDao {
 
     @Query("SELECT COUNT(*) FROM achievements")
     fun getTotalCount(): Flow<Int>
+
+    // Unified achievement system queries
+
+    @Query("SELECT * FROM achievements ORDER BY category, tier DESC, key ASC")
+    fun getAllUnified(): Flow<List<Achievement>>
+
+    @Query("SELECT * FROM achievements WHERE category = :category ORDER BY tier DESC, key ASC")
+    fun getByCategory(category: String): Flow<List<Achievement>>
+
+    @Query("SELECT * FROM achievements WHERE tier = :tier ORDER BY category, key ASC")
+    fun getByTier(tier: Int): Flow<List<Achievement>>
+
+    @Query("SELECT COUNT(*) FROM achievements WHERE unlockedAt IS NOT NULL AND category = :category")
+    fun getUnlockedCountByCategory(category: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM achievements WHERE category = :category")
+    fun getTotalCountByCategory(category: String): Flow<Int>
+
+    @Query("UPDATE achievements SET progress = :progress WHERE key = :key")
+    suspend fun setProgress(key: String, progress: Int)
+
+    @Query("UPDATE achievements SET category = :category, tier = :tier, iconEmoji = :iconEmoji, flavorText = :flavorText, isHidden = :isHidden, target = :target WHERE key = :key")
+    suspend fun updateMetadata(key: String, category: String, tier: Int, iconEmoji: String, flavorText: String, isHidden: Boolean, target: Int)
 }

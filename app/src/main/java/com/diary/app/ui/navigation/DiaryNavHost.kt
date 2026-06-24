@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Timer
@@ -107,6 +108,11 @@ import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
+import com.diary.app.ui.title.TitleScreen
+import com.diary.app.ui.pet.PetScreen
+import com.diary.app.ui.island.IslandScreen
+import com.diary.app.ui.island.IslandTimelineScreen
+import com.diary.app.ui.island.IslandViewModel
 import kotlinx.coroutines.launch
 
 // Sub-page transition specs: smooth slide without bounce
@@ -173,6 +179,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
     object Achievements : Screen("achievements", "成就", Icons.Default.EmojiEvents)
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
+    object TitleWall : Screen("title_wall", "称号墙", Icons.Default.EmojiEvents)
+    object Pet : Screen("pet", "情绪宠物", Icons.Default.Favorite)
+    object Island : Screen("island", "心情小岛", Icons.Default.Star)
+    object IslandTimeline : Screen("island_timeline", "小岛历史", Icons.Default.History)
 }
 
 data class BottomNavItem(
@@ -338,6 +348,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onNavigateToTitleWall = { navController.navigate(Screen.TitleWall.route) },
+                    onNavigateToPet = { navController.navigate(Screen.Pet.route) },
+                    onNavigateToIsland = { navController.navigate(Screen.Island.route) },
                     onSwipeToTimeline = { navigateToBottomRoute(Screen.Timeline.route) },
                     onSwipeToTodo = { navigateToBottomRoute(Screen.Todo.route) }
                 )
@@ -393,6 +406,49 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 ChangelogScreen(onNavigateBack = { navController.popBackStack() })
+            }
+            composable(
+                Screen.TitleWall.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                TitleScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                Screen.Pet.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                PetScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                Screen.Island.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                IslandScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToTimeline = { navController.navigate(Screen.IslandTimeline.route) }
+                )
+            }
+            composable(
+                Screen.IslandTimeline.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                val islandViewModel: IslandViewModel = viewModel()
+                IslandTimelineScreen(
+                    onBack = { navController.popBackStack() },
+                    viewModel = islandViewModel
+                )
             }
             composable(
                 Screen.TagManagement.route,

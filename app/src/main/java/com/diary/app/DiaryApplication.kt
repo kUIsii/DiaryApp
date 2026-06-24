@@ -10,7 +10,7 @@ import com.diary.app.di.AppContainer
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
-import com.diary.app.data.AchievementManager
+import com.diary.app.data.AchievementRepository
 import com.diary.app.data.BackupManager
 import com.diary.app.data.TrashCleanupWorker
 import com.diary.app.weather.WeatherWorker
@@ -54,13 +54,15 @@ class DiaryApplication : Application() {
         WeatherWorker.ensureChannel(this)
         WeatherWorker.schedule(this)
 
-        // Initialize achievements and check for unlocks
+        // Initialize unified achievement system
         try {
             val achievementDao = database.achievementDao()
-            AchievementManager.initializeAchievements(appScope, achievementDao)
+            val diaryDao = database.diaryDao()
+            val repo = AchievementRepository(achievementDao, diaryDao)
             appScope.launch {
                 runCatching {
-                    AchievementManager.checkAndUnlock(achievementDao, database.diaryDao(), this@DiaryApplication)
+                    repo.initialize()
+                    repo.checkAndUnlock()
                 }.onFailure {
                     android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
                 }
