@@ -183,7 +183,15 @@ private fun AchievementCard(item: AchievementItem, onClick: () -> Unit) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = if (isUnlocked) item.def.iconEmoji else "\uD83D\uDD12", fontSize = 26.sp)
+                if (isUnlocked) {
+                    AchievementIcon(
+                        category = item.def.category,
+                        tier = item.def.tier,
+                        isUnlocked = true
+                    )
+                } else {
+                    LockIcon()
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.diary.app.data.AchievementCategory
 import com.diary.app.data.AchievementItem
 import com.diary.app.data.AchievementTier
 import java.text.SimpleDateFormat
@@ -79,7 +80,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            AchievementBadgeLarge(emoji = item.def.iconEmoji, tier = item.def.tier, isUnlocked = item.isUnlocked)
+            AchievementBadgeLarge(category = item.def.category, tier = item.def.tier, isUnlocked = item.isUnlocked)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -142,7 +143,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun AchievementBadgeLarge(emoji: String, tier: AchievementTier, isUnlocked: Boolean) {
+private fun AchievementBadgeLarge(category: AchievementCategory, tier: AchievementTier, isUnlocked: Boolean) {
     val backgroundBrush = if (isUnlocked) {
         when (tier) {
             AchievementTier.COMMON -> Brush.linearGradient(listOf(Color(0xFF90A4AE), Color(0xFF78909C)))
@@ -158,7 +159,16 @@ private fun AchievementBadgeLarge(emoji: String, tier: AchievementTier, isUnlock
         modifier = Modifier.size(80.dp).clip(RoundedCornerShape(20.dp)).background(backgroundBrush),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = if (isUnlocked) emoji else "\uD83D\uDD12", fontSize = 36.sp)
+        if (isUnlocked) {
+            AchievementIcon(
+                category = category,
+                tier = tier,
+                isUnlocked = true,
+                modifier = Modifier.size(48.dp)
+            )
+        } else {
+            LockIcon(modifier = Modifier.size(48.dp))
+        }
     }
 }
 
