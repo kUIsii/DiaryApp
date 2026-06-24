@@ -164,7 +164,7 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
                 if (connection.responseCode == 200) {
-                    val json = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
                     val data = Gson().fromJson(json, Array<ChangelogRelease>::class.java)?.toList() ?: emptyList()
                     ChangelogCache.set(data)
                     releases = sortReleasesForDisplay(data)

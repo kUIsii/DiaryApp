@@ -6,6 +6,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.border
@@ -123,6 +125,7 @@ fun HomeScreen(
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
+    onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
     val haptic = rememberHapticFeedback()
@@ -218,7 +221,21 @@ fun HomeScreen(
 
     GradientBackground {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(onMainScreenSwipe) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            totalDrag += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            onMainScreenSwipe?.invoke(totalDrag)
+                        }
+                    )
+                }
         ) {
             LazyColumn(
                 modifier = Modifier
