@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -34,19 +35,43 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
     private val _selectedTier = MutableStateFlow<AchievementTier?>(null)
     val selectedTier: StateFlow<AchievementTier?> = _selectedTier
 
+    private val _selectedStateFilter = MutableStateFlow(AchievementGalleryFilter.ALL)
+    val selectedStateFilter: StateFlow<AchievementGalleryFilter> = _selectedStateFilter
+
     private val _selectedAchievement = MutableStateFlow<AchievementItem?>(null)
     val selectedAchievement: StateFlow<AchievementItem?> = _selectedAchievement
 
-    val filteredItems: StateFlow<List<AchievementItem>> = combine(
-        allItems, _selectedCategory, _selectedTier
-    ) { items, cat, tier ->
-        items.filter { item ->
-            if (item.isHiddenLocked) return@filter false
-            val catMatch = cat == null || item.def.category == cat
-            val tierMatch = tier == null || item.def.tier == tier
-            catMatch && tierMatch
-        }.sortedWith(compareByDescending<AchievementItem> { it.isUnlocked }.thenByDescending { it.def.tier.tierInt })
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val galleryState: StateFlow<AchievementGalleryState> = combine(
+        allItems,
+        stats,
+        _selectedCategory,
+        _selectedTier,
+        _selectedStateFilter
+    ) { items, galleryStats, cat, tier, stateFilter ->
+        buildAchievementGalleryState(
+            items = items,
+            stats = galleryStats,
+            selectedCategory = cat,
+            selectedTier = tier,
+            stateFilter = stateFilter
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        AchievementGalleryState(
+            hero = buildAchievementHeroSummary(
+                stats = AchievementStats(0, 0, emptyMap()),
+                items = emptyList()
+            ),
+            recentUnlocks = emptyList(),
+            nearCompletion = emptyList(),
+            filteredCards = emptyList()
+        )
+    )
+
+    val filteredItems: StateFlow<List<AchievementItem>> = galleryState
+        .map { state -> state.filteredCards.map { it.item } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -77,6 +102,14 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
         _selectedTier.value = if (_selectedTier.value == tier) null else tier
     }
 
+    fun selectStateFilter(filter: AchievementGalleryFilter) {
+        _selectedStateFilter.value = if (_selectedStateFilter.value == filter) {
+            AchievementGalleryFilter.ALL
+        } else {
+            filter
+        }
+    }
+
     fun showAchievementDetail(item: AchievementItem) {
         _selectedAchievement.value = item
     }
@@ -89,6 +122,10 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             runCatching { repository.checkAndUnlock() }
         }
+    }
+
+    fun getHiddenAchievementCount(): Int {
+        return allItems.value.count { it.def.isHidden && !it.isUnlocked }
     }
 
     fun getCategoryProgress(category: AchievementCategory): Pair<Int, Int> {

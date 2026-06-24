@@ -8,7 +8,6 @@ import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.di.AppContainer
 import com.diary.app.reminder.AchievementNotificationManager
-import com.diary.app.reminder.PetReminderManager
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
@@ -47,7 +46,6 @@ class DiaryApplication : Application() {
         createNotificationChannel()
         TodoReminderManager.createNotificationChannel(this)
         AchievementNotificationManager.ensureChannel(this)
-        PetReminderManager.ensureChannel(this)
         // Schedule periodic auto-backup via WorkManager
         if (BackupManager.isAutoBackupEnabled(this)) {
             BackupManager.scheduleAutoBackup(this)
@@ -57,7 +55,6 @@ class DiaryApplication : Application() {
         // Schedule periodic weather refresh
         WeatherWorker.ensureChannel(this)
         WeatherWorker.schedule(this)
-        PetReminderManager.schedule(this)
 
         // Initialize unified achievement system
         try {

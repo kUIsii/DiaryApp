@@ -33,16 +33,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
@@ -78,16 +75,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
-import com.diary.app.data.CrossSystemManager
-import com.diary.app.data.PetState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
-import com.diary.app.ui.nurturing.NurturingJourneyCard
-import com.diary.app.ui.nurturing.NurturingWorldEntryCard
-import com.diary.app.ui.nurturing.buildNurturingJourneyState
-import com.diary.app.ui.nurturing.buildNurturingWorldPreview
 
 // Section icon colors — same approach as ProfileScreen
 @Composable
@@ -139,9 +130,6 @@ fun ToolsScreen(
     onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
-    onNavigateToTitleWall: (() -> Unit)? = null,
-    onNavigateToPet: (() -> Unit)? = null,
-    onNavigateToIsland: (() -> Unit)? = null,
     onSwipeToTimeline: (() -> Unit)? = null,
     onSwipeToTodo: (() -> Unit)? = null
 ) {
@@ -150,12 +138,6 @@ fun ToolsScreen(
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
-    val islandLevel by CrossSystemManager.islandLevel.collectAsState()
-    val recentAchievementUnlock by CrossSystemManager.recentAchievementUnlock.collectAsState()
-    val nextAchievementMilestone by CrossSystemManager.nextAchievementMilestone.collectAsState()
-    val petStreakDays by CrossSystemManager.petStreakDays.collectAsState()
-    val activeRareDiscoveryCount by CrossSystemManager.activeRareDiscoveryCount.collectAsState()
-    val petState by CrossSystemManager.petState.collectAsState()
 
     // AI config state
     var showApiKeyDialog by remember { mutableStateOf(false) }
@@ -392,93 +374,6 @@ fun ToolsScreen(
                         checked = features.aiInsightCardEnabled && isAiConfigured,
                         enabled = isAiConfigured,
                         onCheckedChange = { app?.setAiInsightCardEnabled(it) }
-                    )
-                }
-
-                // 养成世界
-                CollapsibleSection(
-                    icon = Icons.Default.Pets,
-                    iconBg = sectionIconBg(2),
-                    iconTint = sectionIconTint(2),
-                    title = "养成世界",
-                    subtitle = "陪伴、探索与珍藏的夜间空间",
-                    isExpanded = expandedSection == "nurturing",
-                    onToggle = { expandedSection = if (expandedSection == "nurturing") null else "nurturing" },
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    textTertiary = textTertiary
-                ) {
-                    val previewState = buildNurturingWorldPreview(
-                        petName = "小记",
-                        petStateLabel = petState.displayName,
-                        petMessage = when (petState) {
-                            PetState.HAPPY -> "它今晚状态很好，像是刚听见你回来了。"
-                            PetState.EXCITED -> "它好像知道有新的变化发生了，正等着炫耀给你看。"
-                            PetState.WORRIED -> "它今晚有点安静，也许在等你先靠近一点。"
-                            else -> "今晚也辛苦了，我在这里。"
-                        },
-                        islandLevel = islandLevel,
-                        islandMoodLabel = when {
-                            islandLevel >= 12 -> "灯影渐丰"
-                            islandLevel >= 6 -> "夜色宁静"
-                            else -> "微光初起"
-                        },
-                        recentTitle = recentAchievementUnlock
-                    )
-                    val journeyState = buildNurturingJourneyState(
-                        petState = petState,
-                        islandLevel = islandLevel,
-                        recentAchievementUnlock = recentAchievementUnlock,
-                        hasRareDiscovery = activeRareDiscoveryCount > 0,
-                        nearMilestoneName = nextAchievementMilestone,
-                        streakDays = petStreakDays
-                    )
-
-                    NurturingWorldEntryCard(
-                        state = previewState,
-                        onOpenPet = { onNavigateToPet?.invoke() },
-                        onOpenIsland = { onNavigateToIsland?.invoke() },
-                        onOpenCollection = { onNavigateToTitleWall?.invoke() ?: onNavigateToAchievements() }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    NurturingJourneyCard(
-                        state = journeyState,
-                        onOpenPet = { onNavigateToPet?.invoke() },
-                        onOpenIsland = { onNavigateToIsland?.invoke() },
-                        onOpenAchievement = { onNavigateToTitleWall?.invoke() ?: onNavigateToAchievements() }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ClickableToolRow(
-                        icon = Icons.Default.EmojiEvents,
-                        iconBg = sectionIconBg(2),
-                        iconTint = sectionIconTint(2),
-                        title = "成就殿堂",
-                        subtitle = "看看最近又多了什么珍藏",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        onClick = onNavigateToAchievements
-                    )
-                    SettingDivider()
-                    ClickableToolRow(
-                        icon = Icons.Default.Pets,
-                        iconBg = sectionIconBg(2),
-                        iconTint = sectionIconTint(2),
-                        title = "情绪宠物",
-                        subtitle = "回到它正在等你的陪伴角落",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        onClick = { onNavigateToPet?.invoke() }
-                    )
-                    SettingDivider()
-                    ClickableToolRow(
-                        icon = Icons.Default.Landscape,
-                        iconBg = sectionIconBg(2),
-                        iconTint = sectionIconTint(2),
-                        title = "心情小岛",
-                        subtitle = "去看看夜里又长出了什么变化",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        onClick = { onNavigateToIsland?.invoke() }
                     )
                 }
 

@@ -1,8 +1,8 @@
 package com.diary.app.data
 
 /**
- * Unified achievement definitions — merges old Achievement (16) + TitleDefinition (35+).
- * All achievements are defined here with unified category/tier/icon/flavorText.
+ * Unified achievement definitions.
+ * All achievements are defined here with consistent category, tier and copy.
  */
 object UnifiedAchievementSeedData {
 
@@ -134,7 +134,7 @@ object UnifiedAchievementSeedData {
             category = AchievementCategory.HABIT,
             tier = AchievementTier.LEGENDARY,
             iconEmoji = "\uD83C\uDFC5",
-            flavorText = "100天，你证明了坚持不是口号，而是行动。这个小岛因为你而繁荣。你是创造者。",
+            flavorText = "100天，你把日常写成了一条稳定延伸的生活轨迹。这不是冲刺，而是长期留下的痕迹。",
             target = 100
         ),
 
@@ -344,7 +344,7 @@ object UnifiedAchievementSeedData {
         ),
 
         // ═══════════════════════════════════════════════════════
-        //  文字匠人 (WRITING) — from TitleSeedData
+        //  文字匠人 (WRITING) — extended collection milestones
         // ═══════════════════════════════════════════════════════
 
         AchievementDef(
@@ -524,7 +524,7 @@ object UnifiedAchievementSeedData {
         ),
 
         // ═══════════════════════════════════════════════════════
-        //  传说徽章 (LEGENDARY)
+        //  传说收藏 (LEGENDARY)
         // ═══════════════════════════════════════════════════════
 
         AchievementDef(
@@ -544,7 +544,7 @@ object UnifiedAchievementSeedData {
             category = AchievementCategory.LEGENDARY,
             tier = AchievementTier.LEGENDARY,
             iconEmoji = "\uD83C\uDF1F",
-            flavorText = "365天，你证明了坚持不是口号，而是生活方式。这个小岛因为你而繁荣，宠物因为你而快乐。你是创造者。",
+            flavorText = "365天，你把一年完整地写进了收藏册。每一次落笔都不是重复，而是对生活的持续回应。",
             target = 365
         ),
         AchievementDef(

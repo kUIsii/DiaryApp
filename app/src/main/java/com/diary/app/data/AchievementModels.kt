@@ -2,8 +2,8 @@ package com.diary.app.data
 
 /**
  * Unified achievement system data models.
- * Merges the old Achievement (progress tracking) and TitleDefinition (categories/tiers/flavor text)
- * systems into a single unified achievement system with 8 categories and 4 rarity tiers.
+ * Consolidates progress tracking and presentation metadata into a single
+ * achievement system with 8 categories and 4 rarity tiers.
  */
 
 // ── Category definitions ─────────────────────────────────────
@@ -13,14 +13,14 @@ enum class AchievementCategory(
     val description: String,
     val iconEmoji: String
 ) {
-    TIME("时间旅人", "记录时间的痕迹", "\uD83D\uDCC5"),
-    MOOD("情绪画师", "捕捉情感的色彩", "\uD83C\uDFA8"),
-    WEATHER("风雨行者", "穿越天气的旅程", "\u26C5"),
-    WRITING("文字匠人", "锤炼文字的技艺", "\u270D\uFE0F"),
-    HABIT("习惯先锋", "坚持的力量", "\uD83D\uDD25"),
-    EXPLORER("探险家", "发现隐藏的世界", "\uD83E\uDDED"),
-    COLLECTOR("收藏家", "珍藏记忆的宝库", "\uD83D\uDCDC"),
-    LEGENDARY("传说徽章", "最高荣耀", "\uD83C\uDFC6")
+    TIME("时间旅人", "收录一天当中的时间痕迹", ""),
+    MOOD("情绪画师", "保存情绪流动留下的色阶", ""),
+    WEATHER("风雨行者", "记录天气与心境交会的片段", ""),
+    WRITING("文字匠人", "整理书写本身留下的手感与厚度", ""),
+    HABIT("习惯先锋", "归档持续出现的日常节律", ""),
+    EXPLORER("探险家", "发现少见但真实发生过的时刻", ""),
+    COLLECTOR("收藏家", "把值得回看的内容收进个人目录", ""),
+    LEGENDARY("传说藏品", "那些足以代表长期生活轨迹的珍藏", "")
 }
 
 // ── Tier definitions ─────────────────────────────────────────
