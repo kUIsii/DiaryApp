@@ -423,7 +423,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popEnterTransition = { subPagePopEnterTransition() },
                 popExitTransition = { subPagePopExitTransition() }
             ) {
-                PetScreen(onBack = { navController.popBackStack() })
+                PetScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToIsland = { navController.navigate(Screen.Island.route) },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) }
+                )
             }
             composable(
                 Screen.Island.route,
@@ -434,7 +438,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 IslandScreen(
                     onBack = { navController.popBackStack() },
-                    onNavigateToTimeline = { navController.navigate(Screen.IslandTimeline.route) }
+                    onNavigateToTimeline = { navController.navigate(Screen.IslandTimeline.route) },
+                    onNavigateToPet = { navController.navigate(Screen.Pet.route) },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) }
                 )
             }
             composable(
@@ -662,7 +668,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 val achievementViewModel: AchievementViewModel = viewModel()
                 AchievementScreen(
                     viewModel = achievementViewModel,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToPet = { navController.navigate(Screen.Pet.route) },
+                    onNavigateToIsland = { navController.navigate(Screen.Island.route) }
                 )
             }
 

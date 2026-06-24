@@ -9,6 +9,7 @@ import com.diary.app.data.AchievementItem
 import com.diary.app.data.AchievementRepository
 import com.diary.app.data.AchievementStats
 import com.diary.app.data.AchievementTier
+import com.diary.app.data.CrossSystemManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +53,18 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
             runCatching {
                 repository.initialize()
                 repository.checkAndUnlock()
+            }
+        }
+        viewModelScope.launch {
+            allItems.collect { items ->
+                val latestUnlocked = items
+                    .filter { it.isUnlocked }
+                    .maxByOrNull { it.state.unlockedAt ?: 0L }
+                val nextMilestone = items
+                    .filterNot { it.isUnlocked }
+                    .maxByOrNull { it.progressFraction }
+                CrossSystemManager.updateRecentAchievementUnlock(latestUnlocked?.def?.name)
+                CrossSystemManager.updateNextAchievementMilestone(nextMilestone?.def?.name)
             }
         }
     }

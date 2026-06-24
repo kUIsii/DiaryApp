@@ -198,7 +198,9 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         viewModelScope.launch {
-            _activeRareElements.value = repository.getActiveRareElements()
+            val rareElements = repository.getActiveRareElements()
+            _activeRareElements.value = rareElements
+            CrossSystemManager.updateActiveRareDiscoveryCount(rareElements.size)
         }
     }
 
@@ -431,7 +433,9 @@ class IslandViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun refreshActiveRareElements() {
         viewModelScope.launch {
-            _activeRareElements.value = repository.getActiveRareElements()
+            val rareElements = repository.getActiveRareElements()
+            _activeRareElements.value = rareElements
+            CrossSystemManager.updateActiveRareDiscoveryCount(rareElements.size)
         }
     }
 

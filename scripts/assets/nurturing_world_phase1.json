@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "name": "pet-main-moon-drop",
+      "preset": "pet_character",
+      "prompt": "温柔的月滴精灵，夜间陪伴感，正视图，圆中带挺，柔光半透明",
+      "negative_prompt": "史莱姆感，实验品感，低幼，诡异表情",
+      "seed": 424242
+    },
+    {
+      "name": "badge-rare-observer",
+      "preset": "achievement_badge",
+      "prompt": "高级游戏成就徽章，观察者主题，植物纹样与月相边饰，深墨绿与暗月金",
+      "negative_prompt": "实物摄影，桌面摆拍，文字标签，AI角标",
+      "seed": 515151
+    },
+    {
+      "name": "island-lantern-treehouse",
+      "preset": "island_asset",
+      "prompt": "心情小岛装饰素材，小木屋与树灯组合，绘本纸片生态风格，夜间柔和发光",
+      "negative_prompt": "复杂背景，多角色，写实照片，文字",
+      "seed": 848484
+    }
+  ]
+}

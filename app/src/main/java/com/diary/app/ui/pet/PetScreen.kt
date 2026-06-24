@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -71,6 +70,10 @@ import com.diary.app.data.PetStateMachine
 import com.diary.app.data.TitleDefinition
 import com.diary.app.data.ActiveCombination
 import com.diary.app.data.CombinationEffect
+import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.nurturing.NurturingJourneyCard
+import com.diary.app.ui.nurturing.buildNurturingJourneyState
+import com.diary.app.ui.nurturing.buildPetSceneVisualState
 import com.diary.app.ui.title.TitleViewModel
 import kotlinx.coroutines.delay
 
@@ -78,6 +81,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun PetScreen(
     onBack: () -> Unit,
+    onNavigateToIsland: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
     viewModel: PetViewModel = viewModel(),
     titleViewModel: TitleViewModel = viewModel()
 ) {
@@ -85,7 +90,6 @@ fun PetScreen(
     val personality by viewModel.personality.collectAsState()
     val currentState by viewModel.currentState.collectAsState()
     val feedbackText by viewModel.feedbackText.collectAsState()
-    val lastTrigger by viewModel.lastTrigger.collectAsState()
     val interactionType by viewModel.interactionType.collectAsState()
     val interactionCounter by viewModel.interactionCounter.collectAsState()
     val moodHistory by viewModel.moodHistory.collectAsState()
@@ -101,6 +105,9 @@ fun PetScreen(
 
     // 小岛等级（影响宠物外观装饰）
     val islandLevel by CrossSystemManager.islandLevel.collectAsState()
+    val recentAchievementUnlock by CrossSystemManager.recentAchievementUnlock.collectAsState()
+    val nextAchievementMilestone by CrossSystemManager.nextAchievementMilestone.collectAsState()
+    val activeRareDiscoveryCount by CrossSystemManager.activeRareDiscoveryCount.collectAsState()
 
     // 当前称号数据
     val titleProfile by titleViewModel.titleProfile.collectAsState()
@@ -113,285 +120,293 @@ fun PetScreen(
 
     var isEditingName by remember { mutableStateOf(false) }
     var editingName by remember { mutableStateOf("") }
+    val petName = petProfile?.name ?: "小记"
+    val moodCopy = buildPetMoodCopy(
+        stateLabel = currentState.displayName,
+        feedbackText = feedbackText
+    )
+    val petVisualState = remember(currentState, recentAchievementUnlock, islandLevel) {
+        buildPetSceneVisualState(
+            petState = currentState,
+            recentAchievementUnlock = recentAchievementUnlock,
+            islandLevel = islandLevel
+        )
+    }
+    val journeyState = remember(
+        currentState,
+        islandLevel,
+        recentAchievementUnlock,
+        nextAchievementMilestone,
+        activeRareDiscoveryCount,
+        petProfile?.streakDays
+    ) {
+        buildNurturingJourneyState(
+            petState = currentState,
+            islandLevel = islandLevel,
+            recentAchievementUnlock = recentAchievementUnlock,
+            hasRareDiscovery = activeRareDiscoveryCount > 0,
+            nearMilestoneName = nextAchievementMilestone,
+            streakDays = petProfile?.streakDays ?: 0
+        )
+    }
+    val growthLabel = buildString {
+        append(growthStage.displayName)
+        petProfile?.evolvedAt?.let {
+            val daysInStage = PetStateMachine.getDaysInStage(it, growthStage)
+            if (daysInStage > 0) {
+                append(" · ")
+                append(daysInStage)
+                append("天")
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.getDailyGreeting()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("情绪宠物", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = petProfile?.name ?: "小记",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // 宠物展示区（带手势交互）
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { viewModel.onPetTapped() },
-                            onLongPress = { viewModel.onPetLongPressed() }
+    GradientBackground {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("情绪宠物", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = petName,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val (dx, dy) = dragAmount
-                            when {
-                                dy > 20f -> viewModel.onPetFed()
-                                kotlin.math.abs(dx) > kotlin.math.abs(dy) && kotlin.math.abs(dx) > 10f -> viewModel.onPetGroomed()
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PetComposable(
-                    state = currentState,
-                    modifier = Modifier.size(200.dp),
+                PetSceneCard(
+                    petName = petName,
+                    petState = currentState,
+                    moodCopy = moodCopy,
+                    growthLabel = growthLabel,
+                    sceneLabel = petVisualState.sceneLabel,
+                    companionHint = petVisualState.companionHint,
+                    artKey = petVisualState.artKey,
                     interactionType = interactionType,
                     interactionCounter = interactionCounter,
                     appearanceLevel = islandLevel,
                     growthStage = growthStage,
                     hiddenState = activeHiddenState,
-                    activeEffects = activeEffects
+                    activeEffects = activeEffects,
+                    onTapPet = { viewModel.onPetTapped() },
+                    onFeedPet = { viewModel.onPetFed() }
                 )
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-            // 宠物名称
-            if (isEditingName) {
-                TextField(
-                    value = editingName,
-                    onValueChange = { editingName = it },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            viewModel.updatePetName(editingName)
-                            isEditingName = false
-                        }) {
-                            Icon(Icons.Default.Edit, contentDescription = "保存")
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isEditingName) {
+                        TextField(
+                            value = editingName,
+                            onValueChange = { editingName = it },
+                            modifier = Modifier.weight(1f),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
+                            ),
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    viewModel.updatePetName(editingName)
+                                    isEditingName = false
+                                }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "保存")
+                                }
+                            }
+                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    editingName = petName
+                                    isEditingName = true
+                                }
+                        ) {
+                            Text(
+                                text = petName,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "编辑名称",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
-                )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable {
-                        editingName = petProfile?.name ?: "小记"
-                        isEditingName = true
-                    }
-                ) {
-                    Text(
-                        text = petProfile?.name ?: "小记",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "编辑名称",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.size(16.dp)
+
+                    GrowthStageBadge(
+                        stage = growthStage,
+                        evolvedAt = petProfile?.evolvedAt
                     )
                 }
-            }
 
-            // 当前称号标签
-            activeTitle?.let { title ->
-                Spacer(modifier = Modifier.height(8.dp))
-                ActiveTitleBadge(title = title)
-            }
+                activeTitle?.let { title ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        ActiveTitleBadge(title = title)
+                    }
+                }
 
-            // 成长阶段标签
-            Spacer(modifier = Modifier.height(8.dp))
-            GrowthStageBadge(
-                stage = growthStage,
-                evolvedAt = petProfile?.evolvedAt
-            )
+                evolutionHint?.let { hint ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = hint,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
-            // 进化提示
-            evolutionHint?.let { hint ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = hint,
+                    text = "已发现 $discoveredHiddenCount/5 种形态",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
 
-            // 隐藏状态发现进度
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "已发现 $discoveredHiddenCount/5 种形态",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-
-            // 称号组合信息
-            if (activeCombinations.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                CombinationSection(combinations = activeCombinations)
-            }
+                NurturingJourneyCard(
+                    state = journeyState,
+                    title = "照顾完它以后",
+                    onOpenPet = { viewModel.onPetTapped() },
+                    onOpenIsland = onNavigateToIsland,
+                    onOpenAchievement = onNavigateToAchievements
+                )
 
-            // 组合通知
-            AnimatedVisibility(
-                visible = combinationNotification != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                combinationNotification?.let { notification ->
-                    LaunchedEffect(notification) {
-                        delay(3000)
-                        viewModel.clearCombinationNotification()
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFFFD700).copy(alpha = 0.15f))
-                            .padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = notification,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            color = Color(0xFFB8860B)
-                        )
-                    }
+                if (activeCombinations.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CombinationSection(combinations = activeCombinations)
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 状态和反馈
-            AnimatedVisibility(
-                visible = feedbackText.isNotBlank(),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                AnimatedVisibility(
+                    visible = combinationNotification != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    Text(
-                        text = feedbackText,
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // 记忆触发文案
-            AnimatedVisibility(
-                visible = memoryTrigger != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                memoryTrigger?.let { trigger ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f))
-                            .padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "记忆",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = trigger,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
+                    combinationNotification?.let { notification ->
+                        LaunchedEffect(notification) {
+                            delay(3000)
+                            viewModel.clearCombinationNotification()
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFFFD700).copy(alpha = 0.15f))
+                                .padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = notification,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                color = Color(0xFFB8860B)
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                AnimatedVisibility(
+                    visible = memoryTrigger != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    memoryTrigger?.let { trigger ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.38f))
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "记忆回响",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.76f)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = trigger,
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
 
-            // 宠物信息卡片
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 好感度
-                InfoCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Favorite,
-                    title = "好感度",
-                    value = "${petProfile?.affection ?: 0}",
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // 连续记录
-                InfoCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Info,
-                    title = "连续记录",
-                    value = "${petProfile?.streakDays ?: 0}天",
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 性格信息
-            personality?.let { p ->
-                Card(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    InfoCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Favorite,
+                        title = "好感度",
+                        value = "${petProfile?.affection ?: 0}",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    InfoCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Info,
+                        title = "连续记录",
+                        value = "${petProfile?.streakDays ?: 0}天",
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                personality?.let { p ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(16.dp)
+                    ) {
                         Text(
                             text = "宠物性格",
                             fontSize = 14.sp,
@@ -412,10 +427,11 @@ fun PetScreen(
                         PersonalityBar("情绪稳定", p.emotionalStability)
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            MoodHistorySection(moodHistory, moodDistribution, currentState)
+                Spacer(modifier = Modifier.height(12.dp))
+                MoodHistorySection(moodHistory, moodDistribution, currentState)
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
     }
 }

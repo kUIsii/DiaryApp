@@ -42,6 +42,40 @@ object CrossSystemManager {
     fun emitTitleUnlock(tier: Int, titleName: String) {
         _titleUnlockEvents.tryEmit(TitleUnlockEvent(tier, titleName))
     }
+
+    // ==================== 成就 -> 全系统 ====================
+
+    /** 最近解锁的成就名 */
+    private val _recentAchievementUnlock = MutableStateFlow<String?>(null)
+    val recentAchievementUnlock: StateFlow<String?> = _recentAchievementUnlock.asStateFlow()
+
+    fun updateRecentAchievementUnlock(name: String?) {
+        _recentAchievementUnlock.value = name
+    }
+
+    /** 最接近完成的成就名 */
+    private val _nextAchievementMilestone = MutableStateFlow<String?>(null)
+    val nextAchievementMilestone: StateFlow<String?> = _nextAchievementMilestone.asStateFlow()
+
+    fun updateNextAchievementMilestone(name: String?) {
+        _nextAchievementMilestone.value = name
+    }
+
+    /** 宠物连续记录天数 */
+    private val _petStreakDays = MutableStateFlow(0)
+    val petStreakDays: StateFlow<Int> = _petStreakDays.asStateFlow()
+
+    fun updatePetStreakDays(days: Int) {
+        _petStreakDays.value = days.coerceAtLeast(0)
+    }
+
+    /** 小岛当前激活的稀有现象数量 */
+    private val _activeRareDiscoveryCount = MutableStateFlow(0)
+    val activeRareDiscoveryCount: StateFlow<Int> = _activeRareDiscoveryCount.asStateFlow()
+
+    fun updateActiveRareDiscoveryCount(count: Int) {
+        _activeRareDiscoveryCount.value = count.coerceAtLeast(0)
+    }
 }
 
 /**

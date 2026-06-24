@@ -157,6 +157,7 @@ class PetViewModel(application: Application) : AndroidViewModel(application) {
                     previousStage = _growthStage.value
                     // 发布宠物状态给小岛系统
                     CrossSystemManager.updatePetState(_currentState.value)
+                    CrossSystemManager.updatePetStreakDays(it.streakDays)
                 }
             }
         }
