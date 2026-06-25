@@ -20,6 +20,7 @@ import java.time.ZoneId
 
 enum class NotificationCategory(val label: String) {
     ALL("全部"),
+    WEATHER_ALERT("天气预警"),
     MONTHLY_REPORT("月报"),
     ANNUAL_REPORT("年报"),
     TIME_CAPSULE("胶囊"),
@@ -77,6 +78,14 @@ data class MonthlyReportNotification(
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
 
+data class WeatherAlertNotification(
+    val weatherCity: String,
+    val weatherDesc: String,
+    val temperature: String,
+    override val id: String = "weather_alert_${System.currentTimeMillis()}",
+    override val timestamp: Long = System.currentTimeMillis()
+) : NotificationItem()
+
 // endregion
 
 // region 分类映射
@@ -89,6 +98,7 @@ val NotificationItem.category: NotificationCategory
         is StreakNotification -> NotificationCategory.MILESTONE
         is AnnualReportNotification -> NotificationCategory.ANNUAL_REPORT
         is MonthlyReportNotification -> NotificationCategory.MONTHLY_REPORT
+        is WeatherAlertNotification -> NotificationCategory.WEATHER_ALERT
     }
 
 // endregion
@@ -421,6 +431,14 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 colorHex = 0xFF4A90E2,
                 relatedId = null
             )
+            is WeatherAlertNotification -> NotificationMeta(
+                type = "weather_alert",
+                title = "天气预警 · $weatherCity",
+                subtitle = "$weatherDesc $temperature°C",
+                iconType = "thunderstorm",
+                colorHex = 0xFFE53935,
+                relatedId = null
+            )
         }
         return NotificationEntity(
             id = id,
@@ -503,6 +521,18 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                     month = month,
                     entryCount = entryCount,
                     wordCount = wordCount,
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            "weather_alert" -> {
+                val city = title.removePrefix("天气预警 · ")
+                val temp = subtitle.substringAfterLast(" ").removeSuffix("°C")
+                val desc = subtitle.substringBeforeLast(" ")
+                WeatherAlertNotification(
+                    weatherCity = city,
+                    weatherDesc = desc,
+                    temperature = temp,
                     id = id,
                     timestamp = createdAt
                 )

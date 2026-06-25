@@ -116,6 +116,7 @@ import com.diary.app.ui.theme.DarkAccentStart
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.isDarkStatic
 import com.diary.app.data.BackupManager
+import com.diary.app.reminder.NotificationPreferencesManager
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
@@ -212,6 +213,11 @@ fun ProfileScreen(
     var reminderHour by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).first) }
     var reminderMinute by remember { mutableIntStateOf(ReminderManager.getReminderTime(context).second) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    // Notification settings
+    var weatherAlertsEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertsEnabled(context)) }
+    var achievementsNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isAchievementsEnabled(context)) }
+    var petCareNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isPetCareEnabled(context)) }
 
     var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isBiometricLockEnabled(context)) }
     val canUseBiometric = BiometricHelper.canAuthenticate(context)
@@ -455,13 +461,13 @@ fun ProfileScreen(
                     )
                 }
 
-                // Reminders section
+                // Notification settings section
                 CollapsibleSection(
                     icon = Icons.Default.Notifications,
                     iconBg = sectionIconBg(2),
                     iconTint = sectionIconTint(2),
-                    title = stringResource(R.string.profile_reminder_settings),
-                    subtitle = "每日提醒时间设置",
+                    title = "通知设置",
+                    subtitle = "管理各类通知提醒",
                     isExpanded = expandedSection == "reminder",
                     onToggle = { expandedSection = if (expandedSection == "reminder") null else "reminder" },
                     textColor = textColor,
@@ -488,6 +494,54 @@ fun ProfileScreen(
                             } else { ReminderManager.cancelReminder(context); reminderEnabled = false }
                         },
                         subtitleClick = if (reminderEnabled) {{ showTimePicker = true }} else null
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Notifications,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "天气预警",
+                        subtitle = if (weatherAlertsEnabled) "恶劣天气时发送通知" else "已关闭",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = weatherAlertsEnabled,
+                        onCheckedChange = { newValue ->
+                            NotificationPreferencesManager.setWeatherAlertsEnabled(context, newValue)
+                            weatherAlertsEnabled = newValue
+                        }
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Notifications,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "成就解锁",
+                        subtitle = if (achievementsNotifEnabled) "解锁成就时通知" else "已关闭",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = achievementsNotifEnabled,
+                        onCheckedChange = { newValue ->
+                            NotificationPreferencesManager.setAchievementsEnabled(context, newValue)
+                            achievementsNotifEnabled = newValue
+                        }
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Notifications,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "宠物关怀",
+                        subtitle = if (petCareNotifEnabled) "宠物需要照顾时通知" else "已关闭",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = petCareNotifEnabled,
+                        onCheckedChange = { newValue ->
+                            NotificationPreferencesManager.setPetCareEnabled(context, newValue)
+                            petCareNotifEnabled = newValue
+                        }
                     )
                 }
 

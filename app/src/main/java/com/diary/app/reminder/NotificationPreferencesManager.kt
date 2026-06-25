@@ -17,6 +17,7 @@ object NotificationPreferencesManager {
     private const val KEY_DAILY_REMINDER_ENABLED = "daily_reminder_enabled"
     private const val KEY_ACHIEVEMENTS_ENABLED = "achievements_enabled"
     private const val KEY_PET_CARE_ENABLED = "pet_care_enabled"
+    private const val KEY_WEATHER_ALERTS_ENABLED = "weather_alerts_enabled"
     private const val KEY_QUIET_HOURS_ENABLED = "quiet_hours_enabled"
     private const val KEY_QUIET_HOURS_START_HOUR = "quiet_hours_start_hour"
     private const val KEY_QUIET_HOURS_START_MINUTE = "quiet_hours_start_minute"
@@ -27,6 +28,7 @@ object NotificationPreferencesManager {
     private const val DEFAULT_DAILY_REMINDER = true
     private const val DEFAULT_ACHIEVEMENTS = true
     private const val DEFAULT_PET_CARE = true
+    private const val DEFAULT_WEATHER_ALERTS = true
     private const val DEFAULT_QUIET_HOURS_ENABLED = false
     private const val DEFAULT_QUIET_START_HOUR = 22
     private const val DEFAULT_QUIET_START_MINUTE = 0
@@ -65,6 +67,16 @@ object NotificationPreferencesManager {
 
     fun setPetCareEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_PET_CARE_ENABLED, enabled).apply()
+    }
+
+    // ── Weather alerts ─────────────────────────────────────────
+
+    fun isWeatherAlertsEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_WEATHER_ALERTS_ENABLED, DEFAULT_WEATHER_ALERTS)
+    }
+
+    fun setWeatherAlertsEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_WEATHER_ALERTS_ENABLED, enabled).apply()
     }
 
     // ── Quiet hours ────────────────────────────────────────────
@@ -134,6 +146,7 @@ object NotificationPreferencesManager {
     fun isAnyNotificationEnabled(context: Context): Boolean {
         return isDailyReminderEnabled(context) ||
                 isAchievementsEnabled(context) ||
-                isPetCareEnabled(context)
+                isPetCareEnabled(context) ||
+                isWeatherAlertsEnabled(context)
     }
 }

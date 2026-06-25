@@ -126,6 +126,7 @@ fun HomeScreen(
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
+    onNavigateToWeatherDetail: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -201,6 +202,7 @@ fun HomeScreen(
             viewModel.selectDate(LocalDate.now())
         }
         viewModel.loadInsight()
+        viewModel.autoLoadWeather()
     }
 
     LaunchedEffect(selectedDate) {
@@ -258,6 +260,10 @@ fun HomeScreen(
                             } else {
                                 viewModel.disableWeather()
                             }
+                        },
+                        onWeatherClick = {
+                            haptic.click()
+                            onNavigateToWeatherDetail()
                         },
                         onRandomClick = {
                             haptic.click()
@@ -509,6 +515,7 @@ private fun HomeHeroSection(
     randomEntry: DiaryPreview?,
     isWeatherEnabled: Boolean = false,
     onWeatherToggle: (Boolean) -> Unit = {},
+    onWeatherClick: () -> Unit = {},
     onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAiClick: () -> Unit
@@ -541,59 +548,11 @@ private fun HomeHeroSection(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$dateStr · 共 ${stats.total} 篇日记",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (currentWeather != null && currentWeather.weather.isNotBlank()) {
-                        Text(
-                            text = "  ·  ",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Icon(
-                            imageVector = com.diary.app.ui.components.weatherIconForType(
-                                com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
-                            ),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "${currentWeather.weather} ${currentWeather.temperature}°C",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else if (!isWeatherEnabled) {
-                        // Weather toggle button
-                        Surface(
-                            onClick = { onWeatherToggle(true) },
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(10.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                                Text(
-                                    text = "天气",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                    }
-                }
+                Text(
+                    text = "$dateStr · 共 ${stats.total} 篇日记",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -614,6 +573,55 @@ private fun HomeHeroSection(
                     icon = Icons.Default.ChatBubbleOutline,
                     contentDescription = "AI 助手",
                     onClick = onAiClick
+                )
+            }
+        }
+
+        // Weather row (separate, stable layout)
+        if (currentWeather != null && currentWeather.weather.isNotBlank()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                    .clickable { onWeatherClick() }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            ) {
+                Icon(
+                    imageVector = com.diary.app.ui.components.weatherIconForType(
+                        com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
+                    ),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "${currentWeather.city} · ${currentWeather.weather} ${currentWeather.temperature}°C",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (!isWeatherEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f))
+                    .clickable { onWeatherToggle(true) }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "查看天气",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
         }

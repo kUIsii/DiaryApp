@@ -179,6 +179,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun createRoute(key: String): String = "achievement_detail/$key"
     }
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
+    object WeatherDetail : Screen("weather_detail", "天气详情", Icons.Default.LocationOn)
 }
 
 data class BottomNavItem(
@@ -299,6 +300,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
                     onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
+                    onNavigateToWeatherDetail = { navController.navigate(Screen.WeatherDetail.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,
@@ -668,6 +670,18 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 com.diary.app.ui.storage.StorageScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                Screen.WeatherDetail.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                com.diary.app.ui.home.WeatherDetailScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
 

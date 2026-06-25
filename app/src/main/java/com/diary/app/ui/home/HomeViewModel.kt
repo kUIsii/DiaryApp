@@ -326,6 +326,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _currentWeather.value = null
     }
 
+    fun autoLoadWeather() {
+        val context = getApplication<Application>()
+        if (WeatherManager.hasLocationPermission(context)) {
+            _isWeatherEnabled.value = true
+            loadWeather()
+        }
+    }
+
     fun loadWeatherWithPermissionCheck(onRequestPermission: () -> Unit) {
         val context = getApplication<Application>()
         // First try cache

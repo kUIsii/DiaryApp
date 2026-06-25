@@ -720,6 +720,7 @@ private fun TrashedNotificationCard(
 private fun EmptyNotificationsView(category: NotificationCategory) {
     val (title, subtitle) = when (category) {
         NotificationCategory.ALL -> "暂时没有新消息" to "有值得关注的事会出现在这里"
+        NotificationCategory.WEATHER_ALERT -> "没有天气预警" to "恶劣天气时会在这里通知你"
         NotificationCategory.MONTHLY_REPORT -> "没有月报通知" to "当月有日记数据时会生成月报"
         NotificationCategory.ANNUAL_REPORT -> "没有年报通知" to "每年12月25日后会生成年度报告"
         NotificationCategory.TIME_CAPSULE -> "没有胶囊通知" to "时间胶囊到期时会出现在这里"
@@ -797,6 +798,12 @@ private fun getNotificationStyle(item: NotificationItem): NotificationStyle {
             iconColor = Color(0xFF4A90E2),
             title = "${item.month}月写作报告",
             subtitle = "本月写了 ${item.entryCount} 篇日记，共 ${item.wordCount} 字"
+        )
+        is WeatherAlertNotification -> NotificationStyle(
+            icon = Icons.Default.Notifications,
+            iconColor = Color(0xFFE53935),
+            title = "天气预警 · ${item.weatherCity}",
+            subtitle = "${item.weatherDesc} ${item.temperature}°C"
         )
     }
 }
