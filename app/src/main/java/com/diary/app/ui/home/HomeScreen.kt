@@ -64,6 +64,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -182,7 +183,19 @@ fun HomeScreen(
     }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
-    // Weather loading disabled for debugging
+    // Weather state
+    val isWeatherEnabled by viewModel.isWeatherEnabled.collectAsState()
+
+    // Weather permission handling
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.values.any { it }
+        if (granted) {
+            viewModel.loadWeather()
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
             viewModel.selectDate(LocalDate.now())
@@ -227,7 +240,25 @@ fun HomeScreen(
                         stats = stats,
                         unreadCount = unreadCount,
                         aiInsight = aiInsight,
+                        currentWeather = if (isWeatherEnabled) currentWeather else null,
                         randomEntry = if (searchQuery.isBlank()) randomEntry else null,
+                        isWeatherEnabled = isWeatherEnabled,
+                        onWeatherToggle = { enabled ->
+                            if (enabled) {
+                                viewModel.enableWeather(
+                                    onRequestPermission = {
+                                        locationPermissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                            )
+                                        )
+                                    }
+                                )
+                            } else {
+                                viewModel.disableWeather()
+                            }
+                        },
                         onRandomClick = {
                             haptic.click()
                             randomEntry?.let { onNavigateToDetail(it.id) }
@@ -474,7 +505,10 @@ private fun HomeHeroSection(
     stats: HomeStats,
     unreadCount: Int,
     aiInsight: AiInsight?,
+    currentWeather: com.diary.app.weather.CurrentWeather?,
     randomEntry: DiaryPreview?,
+    isWeatherEnabled: Boolean = false,
+    onWeatherToggle: (Boolean) -> Unit = {},
     onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAiClick: () -> Unit
@@ -513,7 +547,52 @@ private fun HomeHeroSection(
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    // Weather display temporarily removed for debugging
+                    if (currentWeather != null && currentWeather.weather.isNotBlank()) {
+                        Text(
+                            text = "  ·  ",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Icon(
+                            imageVector = com.diary.app.ui.components.weatherIconForType(
+                                com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
+                            ),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${currentWeather.weather} ${currentWeather.temperature}°C",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (!isWeatherEnabled) {
+                        // Weather toggle button
+                        Surface(
+                            onClick = { onWeatherToggle(true) },
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                                Text(
+                                    text = "天气",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

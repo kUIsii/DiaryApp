@@ -117,6 +117,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentWeather = MutableStateFlow<CurrentWeather?>(null)
     val currentWeather: StateFlow<CurrentWeather?> = _currentWeather
 
+    private val _isWeatherEnabled = MutableStateFlow(false)
+    val isWeatherEnabled: StateFlow<Boolean> = _isWeatherEnabled
+
     val entryDates: StateFlow<Set<LocalDate>> = dao.getAllTimestamps()
         .map { timestamps ->
             timestamps.map { ts ->
@@ -306,6 +309,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 android.util.Log.w("HomeViewModel", "Failed to load weather", e)
             }
         }
+    }
+
+    fun enableWeather(onRequestPermission: () -> Unit) {
+        val context = getApplication<Application>()
+        _isWeatherEnabled.value = true
+        if (WeatherManager.hasLocationPermission(context)) {
+            loadWeather()
+        } else {
+            onRequestPermission()
+        }
+    }
+
+    fun disableWeather() {
+        _isWeatherEnabled.value = false
+        _currentWeather.value = null
     }
 
     fun loadWeatherWithPermissionCheck(onRequestPermission: () -> Unit) {
