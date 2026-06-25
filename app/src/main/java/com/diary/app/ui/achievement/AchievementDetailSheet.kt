@@ -1,6 +1,12 @@
 package com.diary.app.ui.achievement
 
+import android.content.Intent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,10 +25,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -34,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +75,7 @@ private fun tierColor(tier: AchievementTier): Color = when (tier) {
 fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val tierColor = tierColor(item.def.tier)
+    val context = LocalContext.current
 
     val unlockTimeText = remember(item.state.unlockedAt) {
         item.state.unlockedAt?.let {
@@ -112,7 +124,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (item.isHiddenLocked) "\u5B8C\u6210\u7279\u5B9A\u6761\u4EF6\u89E3\u9501\u6B64\u9690\u85CF\u6210\u5C31" else item.def.description,
+                text = if (item.isHiddenLocked) "完成特定条件解锁此隐藏成就" else item.def.description,
                 fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center, lineHeight = 22.sp
             )
@@ -132,7 +144,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
                 val animProgress by animateFloatAsState(targetValue = item.progressFraction, animationSpec = tween(600), label = "progress")
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "\u89E3\u9501\u8FDB\u5EA6", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        Text(text = "解锁进度", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         Text(text = "${item.state.progress} / ${item.def.target}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -143,14 +155,38 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     val remaining = (item.def.target - item.state.progress).coerceAtLeast(0)
-                    Text(text = "\u8FD8\u5DEE $remaining \u8FBE\u6210", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    Text(text = "还差 $remaining 达成", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
                 }
             }
 
             if (item.isUnlocked && unlockTimeText != null) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "\u89E3\u9501\u65F6\u95F4", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text(text = "解锁时间", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     Text(text = unlockTimeText, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                }
+            }
+
+            if (item.isUnlocked) {
+                Spacer(modifier = Modifier.height(20.dp))
+                OutlinedButton(
+                    onClick = {
+                        val shareText = buildString {
+                            append("我在日记APP达成了成就: ${item.def.name}\n")
+                            append("${item.def.description}\n")
+                            if (item.def.flavorText.isNotBlank()) append("\"${item.def.flavorText}\"\n")
+                            append("${item.def.tier.displayName} | ${item.def.category.displayName}")
+                        }
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "分享成就"))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("分享成就")
                 }
             }
 
@@ -182,27 +218,58 @@ private fun AchievementBadgeLarge(
     val badgeSize = if (isUnlocked && imageRes != null) 120.dp else 80.dp
     val cornerRadiusValue = if (isUnlocked && imageRes != null) 24 else 20
 
-    Box(
-        modifier = Modifier.size(badgeSize).clip(RoundedCornerShape(cornerRadiusValue.dp)).background(backgroundBrush),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isUnlocked && imageRes != null) {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadiusValue.dp))
+    // Celebration glow animation for unlocked achievements
+    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Reverse),
+        label = "glowAlpha"
+    )
+    val glowScale by infiniteTransition.animateFloat(
+        initialValue = 1f, targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Reverse),
+        label = "glowScale"
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        // Glow ring for unlocked achievements
+        if (isUnlocked) {
+            val glowColor = when (tier) {
+                AchievementTier.COMMON -> Color(0xFF90A4AE)
+                AchievementTier.RARE -> Color(0xFF42A5F5)
+                AchievementTier.EPIC -> Color(0xFFAB47BC)
+                AchievementTier.LEGENDARY -> Color(0xFFFFC107)
+            }
+            Box(
+                modifier = Modifier
+                    .size((badgeSize + 24.dp) * glowScale)
+                    .clip(RoundedCornerShape((cornerRadiusValue + 8).dp))
+                    .background(glowColor.copy(alpha = glowAlpha * 0.18f))
             )
-        } else if (isUnlocked) {
-            AchievementIcon(
-                achievementKey = achievementKey,
-                category = category,
-                tier = tier,
-                isUnlocked = true,
-                modifier = Modifier.size(48.dp)
-            )
-        } else {
-            LockIcon(modifier = Modifier.size(48.dp))
+        }
+
+        Box(
+            modifier = Modifier.size(badgeSize).clip(RoundedCornerShape(cornerRadiusValue.dp)).background(backgroundBrush),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isUnlocked && imageRes != null) {
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadiusValue.dp))
+                )
+            } else if (isUnlocked) {
+                AchievementIcon(
+                    achievementKey = achievementKey,
+                    category = category,
+                    tier = tier,
+                    isUnlocked = true,
+                    modifier = Modifier.size(48.dp)
+                )
+            } else {
+                LockIcon(modifier = Modifier.size(48.dp))
+            }
         }
     }
 }

@@ -110,6 +110,7 @@ data class NotificationUiState(
 
 class NotificationViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
+    private val prefs = application.getSharedPreferences("notification_cache", android.content.Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(NotificationUiState())
     val uiState: StateFlow<NotificationUiState> = _uiState.asStateFlow()
@@ -137,31 +138,33 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
 
             val now = LocalDate.now()
             val zone = ZoneId.systemDefault()
+            val todayKey = now.toString()
 
-            // 1. 从数据库读取已有通知
-            val existingEntities = dao.getAllNotifications().first()
-            val existingIds = existingEntities.map { it.id }.toSet()
+            // 跳过同一天的重复生成，直接从 DB 读取
+            val lastGenerated = prefs.getString("last_generated_date", "")
+            val shouldGenerate = lastGenerated != todayKey
 
-            // 2. 读取被删除的通知 ID，避免重复生成
-            val trashedEntities = dao.getTrashedNotifications().first()
-            val trashedIds = trashedEntities.map { it.id }.toSet()
+            if (shouldGenerate) {
+                val existingEntities = dao.getAllNotifications().first()
+                val existingIds = existingEntities.map { it.id }.toSet()
+                val trashedEntities = dao.getTrashedNotifications().first()
+                val trashedIds = trashedEntities.map { it.id }.toSet()
 
-            // 3. 动态生成新通知
-            val generated = generateNotifications(now, zone)
-            val newEntities = generated
-                .filter { it.id !in existingIds && it.id !in trashedIds }
-                .map { it.toEntity() }
+                val generated = generateNotifications(now, zone)
+                val newEntities = generated
+                    .filter { it.id !in existingIds && it.id !in trashedIds }
+                    .map { it.toEntity() }
 
-            // 4. 新通知插入数据库
-            if (newEntities.isNotEmpty()) {
-                dao.insertNotifications(newEntities)
+                if (newEntities.isNotEmpty()) {
+                    dao.insertNotifications(newEntities)
+                }
+                prefs.edit().putString("last_generated_date", todayKey).apply()
             }
 
-            // 5. 重新从数据库读取（包含新插入的）
             val allEntities = dao.getAllNotifications().first()
+            val trashedEntities = dao.getTrashedNotifications().first()
             val unreadCount = allEntities.count { !it.isRead }.coerceAtLeast(0)
 
-            // 6. 转换为 UI 模型
             val allItems = allEntities.mapNotNull { it.toNotificationItem() }
             val trashedItems = trashedEntities.mapNotNull { it.toNotificationItem() }
 

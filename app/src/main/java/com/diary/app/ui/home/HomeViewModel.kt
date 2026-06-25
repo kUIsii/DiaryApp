@@ -86,12 +86,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val allTags: StateFlow<List<com.diary.app.data.Tag>> = dao.getAllTags()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Image map: entryId -> first image localPath (original quality)
+    // Image map: entryId -> first image thumbPath (optimized for card display)
     val imageMap: StateFlow<Map<Long, String>> = dao.getAllImagesFlow()
         .map { images ->
             images.groupBy { it.entryId }
                 .mapValues { (_, entryImages) ->
-                    entryImages.minByOrNull { it.sortOrder }?.localPath ?: ""
+                    val first = entryImages.minByOrNull { it.sortOrder }
+                    first?.thumbPath?.takeIf { it.isNotBlank() } ?: first?.localPath ?: ""
                 }
                 .filter { it.value.isNotBlank() }
         }
