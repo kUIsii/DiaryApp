@@ -182,35 +182,12 @@ fun HomeScreen(
     }
     var multiSelectState by remember { mutableStateOf(HomeMultiSelectState()) }
 
-    // Location permission for weather
-    var weatherPermissionDenied by remember { mutableStateOf(false) }
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val granted = permissions.values.any { it }
-        if (granted) {
-            weatherPermissionDenied = false
-            viewModel.loadWeather()
-        } else {
-            weatherPermissionDenied = true
-        }
-    }
-
+    // Weather loading disabled for debugging
     LaunchedEffect(Unit) {
         if (selectedDate == null) {
             viewModel.selectDate(LocalDate.now())
         }
         viewModel.loadInsight()
-        viewModel.loadWeatherWithPermissionCheck(
-            onRequestPermission = {
-                locationPermissionLauncher.launch(
-                    arrayOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
-            }
-        )
     }
 
     LaunchedEffect(selectedDate) {
@@ -250,17 +227,7 @@ fun HomeScreen(
                         stats = stats,
                         unreadCount = unreadCount,
                         aiInsight = aiInsight,
-                        currentWeather = currentWeather,
                         randomEntry = if (searchQuery.isBlank()) randomEntry else null,
-                        weatherPermissionDenied = weatherPermissionDenied,
-                        onRequestPermission = {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
-                            )
-                        },
                         onRandomClick = {
                             haptic.click()
                             randomEntry?.let { onNavigateToDetail(it.id) }
@@ -507,10 +474,7 @@ private fun HomeHeroSection(
     stats: HomeStats,
     unreadCount: Int,
     aiInsight: AiInsight?,
-    currentWeather: com.diary.app.weather.CurrentWeather?,
     randomEntry: DiaryPreview?,
-    weatherPermissionDenied: Boolean = false,
-    onRequestPermission: () -> Unit = {},
     onRandomClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAiClick: () -> Unit
@@ -549,39 +513,7 @@ private fun HomeHeroSection(
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (currentWeather != null && currentWeather.weather.isNotBlank()) {
-                        Text(
-                            text = "  ·  ",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Icon(
-                            imageVector = com.diary.app.ui.components.weatherIconForType(
-                                com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
-                            ),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "${currentWeather.weather} ${currentWeather.temperature}°C",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else if (weatherPermissionDenied) {
-                        Text(
-                            text = "  ·  ",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "开启位置权限查看天气",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            modifier = Modifier.clickable { onRequestPermission() }
-                        )
-                    }
+                    // Weather display temporarily removed for debugging
                 }
             }
 
