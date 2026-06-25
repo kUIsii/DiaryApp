@@ -104,6 +104,7 @@ import com.diary.app.ui.monthlyreport.MonthlyReportScreen
 import com.diary.app.ui.annualreport.AnnualReportScreen
 import com.diary.app.ui.map.DiaryMapScreen
 import com.diary.app.ui.achievement.AchievementScreen
+import com.diary.app.ui.achievement.AchievementDetailScreen
 import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.tools.ToolsScreen
@@ -174,6 +175,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object DiaryMap : Screen("diary_map", "日记地图", Icons.Default.LocationOn)
     object Biography : Screen("biography", "AI 传记", Icons.Default.AutoAwesome)
     object Achievements : Screen("achievements", "成就", Icons.Default.EmojiEvents)
+    object AchievementDetail : Screen("achievement_detail/{key}", "成就详情", Icons.Default.EmojiEvents) {
+        fun createRoute(key: String): String = "achievement_detail/$key"
+    }
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
 }
 
@@ -631,6 +635,25 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 val achievementViewModel: AchievementViewModel = viewModel()
                 AchievementScreen(
+                    viewModel = achievementViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { key ->
+                        navController.navigate(Screen.AchievementDetail.createRoute(key))
+                    }
+                )
+            }
+
+            composable(
+                Screen.AchievementDetail.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) { backStackEntry ->
+                val key = backStackEntry.arguments?.getString("key") ?: return@composable
+                val achievementViewModel: AchievementViewModel = viewModel()
+                AchievementDetailScreen(
+                    achievementKey = key,
                     viewModel = achievementViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )

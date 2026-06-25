@@ -58,23 +58,23 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val CommonColor = Color(0xFF78909C)
-private val RareColor = Color(0xFF42A5F5)
-private val EpicColor = Color(0xFFAB47BC)
-private val LegendaryColor = Color(0xFFFFC107)
+private val OldCommonColor = Color(0xFF78909C)
+private val OldRareColor = Color(0xFF42A5F5)
+private val OldEpicColor = Color(0xFFAB47BC)
+private val OldLegendaryColor = Color(0xFFFFC107)
 
-private fun tierColor(tier: AchievementTier): Color = when (tier) {
-    AchievementTier.COMMON -> CommonColor
-    AchievementTier.RARE -> RareColor
-    AchievementTier.EPIC -> EpicColor
-    AchievementTier.LEGENDARY -> LegendaryColor
+private fun oldTierColor(tier: AchievementTier): Color = when (tier) {
+    AchievementTier.COMMON -> OldCommonColor
+    AchievementTier.RARE -> OldRareColor
+    AchievementTier.EPIC -> OldEpicColor
+    AchievementTier.LEGENDARY -> OldLegendaryColor
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val tierColor = tierColor(item.def.tier)
+    val tierColor = oldTierColor(item.def.tier)
     val context = LocalContext.current
 
     val unlockTimeText = remember(item.state.unlockedAt) {
@@ -276,7 +276,7 @@ private fun AchievementBadgeLarge(
 
 @Composable
 fun TierBadge(tier: AchievementTier) {
-    val color = tierColor(tier)
+    val color = oldTierColor(tier)
     Box(
         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(color.copy(alpha = 0.15f))
             .padding(horizontal = 10.dp, vertical = 4.dp)

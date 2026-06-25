@@ -1,7 +1,12 @@
 package com.diary.app.ui.achievement
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,18 +29,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,102 +47,97 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.times
-import androidx.compose.foundation.layout.WindowInsets
 import com.diary.app.data.AchievementCategory
 import com.diary.app.data.AchievementItem
 import com.diary.app.data.AchievementStats
 import com.diary.app.data.AchievementTier
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.SectionHeader
+import com.diary.app.ui.components.SettingDivider
 
-private val TierCommon = Color(0xFF8B8A84)
-private val TierRare = Color(0xFF4B7FD1)
-private val TierEpic = Color(0xFF8F57C8)
-private val TierLegendary = Color(0xFFD79B28)
+internal val TierColors = mapOf(
+    AchievementTier.COMMON to Color(0xFF8B8A84),
+    AchievementTier.RARE to Color(0xFF4B7FD1),
+    AchievementTier.EPIC to Color(0xFF8F57C8),
+    AchievementTier.LEGENDARY to Color(0xFFD79B28)
+)
 
-private fun tierColor(tier: AchievementTier): Color = when (tier) {
-    AchievementTier.COMMON -> TierCommon
-    AchievementTier.RARE -> TierRare
-    AchievementTier.EPIC -> TierEpic
-    AchievementTier.LEGENDARY -> TierLegendary
-}
+internal fun tierColor(tier: AchievementTier): Color = TierColors[tier] ?: Color.Gray
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementScreen(
     viewModel: AchievementViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToDetail: (String) -> Unit = {}
 ) {
     val stats by viewModel.stats.collectAsState()
     val galleryState by viewModel.galleryState.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedTier by viewModel.selectedTier.collectAsState()
     val selectedStateFilter by viewModel.selectedStateFilter.collectAsState()
-    val selectedAchievement by viewModel.selectedAchievement.collectAsState()
     val isFilterExpanded by viewModel.isFilterExpanded.collectAsState()
+
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "成就收藏",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+            // Standard header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "返回",
+                        tint = textSecondary,
+                        modifier = Modifier.size(20.dp)
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                windowInsets = WindowInsets(0.dp),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "成就收藏",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
                 )
-            )
+            }
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Overview card - full width
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    AchievementHeroCard(stats = stats, galleryState = galleryState)
+                    AchievementOverviewCard(stats = stats, galleryState = galleryState)
                 }
 
-                if (galleryState.recentUnlocks.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        AchievementSpotlightSection(
-                            title = "最近达成",
-                            subtitle = "刚刚收进收藏册的几枚小纪念",
-                            items = galleryState.recentUnlocks,
-                            onClick = viewModel::showAchievementDetail
-                        )
-                    }
-                }
-
-                if (galleryState.nearCompletion.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        AchievementSpotlightSection(
-                            title = "即将达成",
-                            subtitle = "离解锁只差一点点的条目",
-                            items = galleryState.nearCompletion,
-                            onClick = viewModel::showAchievementDetail
-                        )
-                    }
-                }
-
+                // Filter bar - full width
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    CompactFilterBar(
+                    AchievementFilterBar(
                         selectedStateFilter = selectedStateFilter,
                         selectedCategory = selectedCategory,
                         selectedTier = selectedTier,
@@ -151,15 +149,28 @@ fun AchievementScreen(
                     )
                 }
 
+                // 3-column grid of achievement cards
                 if (galleryState.filteredCards.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        EmptyGalleryState()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "这个筛选下暂时还没有藏品",
+                                fontSize = 13.sp,
+                                color = textTertiary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 } else {
                     items(galleryState.filteredCards, key = { it.item.def.key }) { card ->
-                        AchievementGalleryCard(
+                        AchievementCompactCard(
                             card = card,
-                            onClick = { viewModel.showAchievementDetail(card.item) }
+                            onClick = { onNavigateToDetail(card.item.def.key) }
                         )
                     }
                 }
@@ -167,15 +178,8 @@ fun AchievementScreen(
         }
     }
 
-    selectedAchievement?.let { item ->
-        AchievementDetailSheet(
-            item = item,
-            onDismiss = { viewModel.dismissAchievementDetail() }
-        )
-    }
-
     if (isFilterExpanded) {
-        FilterPanelBottomSheet(
+        AchievementFilterSheet(
             selectedStateFilter = selectedStateFilter,
             selectedCategory = selectedCategory,
             selectedTier = selectedTier,
@@ -188,9 +192,106 @@ fun AchievementScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CompactFilterBar(
+private fun AchievementOverviewCard(
+    stats: AchievementStats,
+    galleryState: AchievementGalleryState
+) {
+    val hero = galleryState.hero
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 20.dp,
+        innerPadding = 16.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: progress ring + text
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Circular progress
+                Box(
+                    modifier = Modifier.size(56.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = hero.completionFraction,
+                        modifier = Modifier.fillMaxSize(),
+                        strokeWidth = 5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${stats.unlockedCount}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "/ ${stats.totalCount}",
+                            fontSize = 9.sp,
+                            color = textSecondary
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = hero.headline,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = hero.supportingLine,
+                        fontSize = 11.sp,
+                        color = textSecondary
+                    )
+                }
+            }
+
+            // Right: mini stats
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                MiniStat(label = "最近", value = galleryState.recentUnlocks.size)
+                MiniStat(label = "即将", value = galleryState.nearCompletion.size)
+                MiniStat(label = "传说", value = hero.unlockedLegendaryCount)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStat(label: String, value: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        Text(
+            text = "$value",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun AchievementFilterBar(
     selectedStateFilter: AchievementGalleryFilter,
     selectedCategory: AchievementCategory?,
     selectedTier: AchievementTier?,
@@ -200,8 +301,7 @@ private fun CompactFilterBar(
     onCategoryClick: (AchievementCategory?) -> Unit,
     onTierClick: (AchievementTier?) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Filter button row
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -209,77 +309,64 @@ private fun CompactFilterBar(
         ) {
             Text(
                 text = "全部藏品",
-                fontSize = 16.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Surface(
                 onClick = onFilterClick,
                 shape = RoundedCornerShape(999.dp),
-                color = if (activeFilterCount > 0) Color(0xFF6B5744).copy(alpha = 0.12f)
+                color = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.FilterList,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (activeFilterCount > 0) Color(0xFF6B5744)
+                        modifier = Modifier.size(14.dp),
+                        tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = if (activeFilterCount > 0) "筛选 ($activeFilterCount)" else "筛选",
-                        fontSize = 12.sp,
-                        color = if (activeFilterCount > 0) Color(0xFF6B5744)
+                        fontSize = 11.sp,
+                        color = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
 
-        // Active filter chips (only show when filters are active)
         if (activeFilterCount > 0) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 if (selectedStateFilter != AchievementGalleryFilter.ALL) {
                     item {
-                        FilterChip(
-                            selected = true,
-                            onClick = { onStateFilterClick(selectedStateFilter) },
-                            label = { Text(selectedStateFilter.label, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF6B5744),
-                                selectedLabelColor = Color.White
-                            )
+                        FilterChipSmall(
+                            label = selectedStateFilter.label,
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = { onStateFilterClick(selectedStateFilter) }
                         )
                     }
                 }
                 if (selectedCategory != null) {
                     item {
-                        FilterChip(
-                            selected = true,
-                            onClick = { onCategoryClick(selectedCategory) },
-                            label = { Text(selectedCategory.displayName, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = categoryColor(selectedCategory).copy(alpha = 0.88f),
-                                selectedLabelColor = Color.White
-                            )
+                        FilterChipSmall(
+                            label = selectedCategory.displayName,
+                            color = categoryColor(selectedCategory),
+                            onClick = { onCategoryClick(selectedCategory) }
                         )
                     }
                 }
                 if (selectedTier != null) {
                     item {
-                        FilterChip(
-                            selected = true,
-                            onClick = { onTierClick(selectedTier) },
-                            label = { Text(selectedTier.displayName, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = tierColor(selectedTier).copy(alpha = 0.88f),
-                                selectedLabelColor = Color.White
-                            )
+                        FilterChipSmall(
+                            label = selectedTier.displayName,
+                            color = tierColor(selectedTier),
+                            onClick = { onTierClick(selectedTier) }
                         )
                     }
                 }
@@ -288,9 +375,125 @@ private fun CompactFilterBar(
     }
 }
 
+@Composable
+private fun FilterChipSmall(label: String, color: Color, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun AchievementCompactCard(
+    card: AchievementGalleryCardState,
+    onClick: () -> Unit
+) {
+    val item = card.item
+    val context = LocalContext.current
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val imageRes = rememberAchievementImageRes(context, item.def.key)
+    val isLocked = !item.isUnlocked
+
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Image area
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageRes != 0) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = item.def.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Fallback: category color background
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(categoryColor(item.def.category).copy(alpha = if (isLocked) 0.08f else 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.def.iconEmoji,
+                        fontSize = 28.sp
+                    )
+                }
+            }
+
+            // Tier dot - top right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(tierColor(item.def.tier))
+            )
+
+            // Lock overlay
+            if (isLocked) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.25f))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Name
+        Text(
+            text = if (isHiddenLocked(item)) "???" else item.def.name,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Status
+        if (item.isUnlocked) {
+            Text(
+                text = "已达成",
+                fontSize = 9.sp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
+        } else if (!isHiddenLocked(item) && item.progressFraction > 0f) {
+            Text(
+                text = "${(item.progressFraction * 100).toInt()}%",
+                fontSize = 9.sp,
+                color = textTertiary
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilterPanelBottomSheet(
+private fun AchievementFilterSheet(
     selectedStateFilter: AchievementGalleryFilter,
     selectedCategory: AchievementCategory?,
     selectedTier: AchievementTier?,
@@ -313,9 +516,8 @@ private fun FilterPanelBottomSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Drag handle
             Box(
                 modifier = Modifier
                     .width(40.dp)
@@ -332,14 +534,9 @@ private fun FilterPanelBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            // State filter section
+            // State filter
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "状态",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = "状态", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(AchievementGalleryFilter.entries, key = { it.name }) { filter ->
                         FilterChip(
@@ -347,36 +544,26 @@ private fun FilterPanelBottomSheet(
                             onClick = { onStateFilterClick(filter) },
                             label = { Text(filter.label, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF6B5744),
-                                selectedLabelColor = Color.White
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.surface
                             )
                         )
                     }
                 }
             }
 
-            // Category filter section
+            // Category filter
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "分类",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = "分类", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(AchievementCategory.entries, key = { it.name }) { category ->
-                        val categoryStats = stats.categoryCounts[category] ?: (0 to 0)
+                        val catStats = stats.categoryCounts[category] ?: (0 to 0)
                         FilterChip(
                             selected = selectedCategory == category,
                             onClick = { onCategoryClick(category) },
-                            label = {
-                                Text(
-                                    text = "${category.displayName} ${categoryStats.first}/${categoryStats.second}",
-                                    fontSize = 12.sp
-                                )
-                            },
+                            label = { Text("${category.displayName} ${catStats.first}/${catStats.second}", fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = categoryColor(category).copy(alpha = 0.88f),
+                                selectedContainerColor = categoryColor(category),
                                 selectedLabelColor = Color.White
                             )
                         )
@@ -384,14 +571,9 @@ private fun FilterPanelBottomSheet(
                 }
             }
 
-            // Tier filter section
+            // Tier filter
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "稀有度",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = "稀有度", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(AchievementTier.entries, key = { it.name }) { tier ->
                         FilterChip(
@@ -399,7 +581,7 @@ private fun FilterPanelBottomSheet(
                             onClick = { onTierClick(tier) },
                             label = { Text(tier.displayName, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = tierColor(tier).copy(alpha = 0.88f),
+                                selectedContainerColor = tierColor(tier),
                                 selectedLabelColor = Color.White
                             )
                         )
@@ -411,331 +593,10 @@ private fun FilterPanelBottomSheet(
 }
 
 @Composable
-private fun AchievementHeroCard(
-    stats: AchievementStats,
-    galleryState: AchievementGalleryState
-) {
-    val hero = galleryState.hero
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 26.dp,
-        gradientColors = listOf(Color(0xFFF7F0E6), Color(0xFFF0E4D6)),
-        innerPadding = 18.dp
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "生活留下的痕迹",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF8D6E52)
-                    )
-                    Text(
-                        text = hero.headline,
-                        fontSize = 18.sp,
-                        lineHeight = 26.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF34261D)
-                    )
-                }
-
-                Surface(
-                    color = Color.White.copy(alpha = 0.55f),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${stats.unlockedCount}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B4B2F)
-                        )
-                        Text(
-                            text = "/ ${stats.totalCount}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF8D6E52)
-                        )
-                    }
-                }
-            }
-
-            LinearProgressIndicator(
-                progress = hero.completionFraction,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(7.dp)
-                    .clip(RoundedCornerShape(999.dp)),
-                color = Color(0xFFD8A96E),
-                trackColor = Color(0xFFE6D9C8)
-            )
-
-            Text(
-                text = hero.supportingLine,
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = Color(0xFF8D6E52)
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeroMetaPill(label = "最近", value = galleryState.recentUnlocks.size.toString())
-                HeroMetaPill(label = "接近完成", value = galleryState.nearCompletion.size.toString())
-                HeroMetaPill(label = "传说", value = hero.unlockedLegendaryCount.toString())
-            }
-        }
-    }
+fun rememberAchievementImageRes(context: android.content.Context, key: String): Int {
+    return context.resources.getIdentifier("achievement_$key", "drawable", context.packageName)
 }
 
-@Composable
-private fun HeroMetaPill(label: String, value: String) {
-    Surface(
-        color = Color.White.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(999.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                color = Color(0xFF8D6E52)
-            )
-            Text(
-                text = value,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF4B3424)
-            )
-        }
-    }
-}
-
-@Composable
-private fun AchievementSpotlightSection(
-    title: String,
-    subtitle: String,
-    items: List<AchievementItem>,
-    onClick: (AchievementItem) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(items, key = { it.def.key }) { item ->
-                SpotlightCard(item = item, onClick = { onClick(item) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun SpotlightCard(item: AchievementItem, onClick: () -> Unit) {
-    GlassCard(
-        modifier = Modifier.size(width = 154.dp, height = 192.dp),
-        cornerRadius = 22.dp,
-        innerPadding = 12.dp,
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            AchievementArtwork(
-                achievementKey = item.def.key,
-                category = item.def.category,
-                tier = item.def.tier,
-                isUnlocked = item.isUnlocked,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(108.dp)
-            )
-
-            Text(
-                text = item.def.name,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MetaDot(label = item.def.category.displayName)
-                StatusCapsule(
-                    label = buildAchievementStatusLabel(item),
-                    color = tierColor(item.def.tier)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyGalleryState() {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 20.dp,
-        innerPadding = 20.dp
-    ) {
-        Text(
-            text = "这个筛选下暂时还没有藏品，换一个条件看看。",
-            fontSize = 13.sp,
-            lineHeight = 20.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun AchievementGalleryCard(
-    card: AchievementGalleryCardState,
-    onClick: () -> Unit
-) {
-    val item = card.item
-    val badgeColor = tierColor(item.def.tier)
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        innerPadding = 12.dp,
-        onClick = onClick
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box {
-                AchievementArtwork(
-                    achievementKey = item.def.key,
-                    category = item.def.category,
-                    tier = item.def.tier,
-                    isUnlocked = item.isUnlocked,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(118.dp)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White.copy(alpha = 0.7f))
-                        .align(Alignment.TopStart)
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = item.def.tier.displayName,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = badgeColor
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = card.title,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = card.description,
-                    fontSize = 11.sp,
-                    lineHeight = 17.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MetaDot(label = item.def.category.displayName)
-                StatusCapsule(label = card.statusLabel, color = badgeColor)
-            }
-
-            if (!item.isUnlocked && !card.isConcealed) {
-                LinearProgressIndicator(
-                    progress = item.progressFraction,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(999.dp)),
-                    color = badgeColor,
-                    trackColor = badgeColor.copy(alpha = 0.14f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MetaDot(label: String) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFB48B5D))
-        )
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun StatusCapsule(label: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 8.dp, vertical = 5.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color
-        )
-    }
+private fun isHiddenLocked(item: AchievementItem): Boolean {
+    return item.def.isHidden && !item.isUnlocked
 }
