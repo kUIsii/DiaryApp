@@ -3,8 +3,12 @@ package com.diary.app.ui.achievement
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -35,6 +39,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -43,13 +48,17 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,8 +70,8 @@ import com.diary.app.data.AchievementStats
 import com.diary.app.data.AchievementTier
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
+import com.diary.app.ui.components.staggeredListItem
 
 internal val TierColors = mapOf(
     AchievementTier.COMMON to Color(0xFF8B8A84),
@@ -89,7 +98,6 @@ fun AchievementScreen(
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -132,7 +140,7 @@ fun AchievementScreen(
             ) {
                 // Overview card - full width
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    AchievementOverviewCard(stats = stats, galleryState = galleryState)
+                    AchievementOverviewCard(stats = stats, galleryState = galleryState, viewModel = viewModel)
                 }
 
                 // Filter bar - full width
@@ -161,16 +169,21 @@ fun AchievementScreen(
                             Text(
                                 text = "这个筛选下暂时还没有藏品",
                                 fontSize = 13.sp,
-                                color = textTertiary,
+                                color = textSecondary.copy(alpha = 0.5f),
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                 } else {
-                    items(galleryState.filteredCards, key = { it.item.def.key }) { card ->
+                    items(
+                        count = galleryState.filteredCards.size,
+                        key = { galleryState.filteredCards[it].item.def.key }
+                    ) { index ->
+                        val card = galleryState.filteredCards[index]
                         AchievementCompactCard(
                             card = card,
-                            onClick = { onNavigateToDetail(card.item.def.key) }
+                            onClick = { onNavigateToDetail(card.item.def.key) },
+                            modifier = Modifier.staggeredListItem(index)
                         )
                     }
                 }
@@ -184,6 +197,7 @@ fun AchievementScreen(
             selectedCategory = selectedCategory,
             selectedTier = selectedTier,
             stats = stats,
+            viewModel = viewModel,
             onStateFilterClick = viewModel::selectStateFilter,
             onCategoryClick = viewModel::selectCategory,
             onTierClick = viewModel::selectTier,
@@ -195,7 +209,8 @@ fun AchievementScreen(
 @Composable
 private fun AchievementOverviewCard(
     stats: AchievementStats,
-    galleryState: AchievementGalleryState
+    galleryState: AchievementGalleryState,
+    viewModel: AchievementViewModel
 ) {
     val hero = galleryState.hero
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -205,15 +220,12 @@ private fun AchievementOverviewCard(
         cornerRadius = 20.dp,
         innerPadding = 16.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left: progress ring + text
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Top row: progress ring + headline
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Circular progress
                 Box(
@@ -242,51 +254,148 @@ private fun AchievementOverviewCard(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Text(
                         text = hero.headline,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        lineHeight = 20.sp
                     )
                     Text(
                         text = hero.supportingLine,
                         fontSize = 11.sp,
-                        color = textSecondary
+                        color = textSecondary,
+                        lineHeight = 16.sp
                     )
                 }
             }
 
-            // Right: mini stats
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            // Category progress bars
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "分类进度",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textSecondary
+                )
+                AchievementCategory.entries.forEach { category ->
+                    val (unlocked, total) = viewModel.getCategoryProgress(category)
+                    if (total > 0) {
+                        CategoryProgressBar(
+                            name = category.displayName,
+                            unlocked = unlocked,
+                            total = total,
+                            color = categoryColor(category)
+                        )
+                    }
+                }
+            }
+
+            // Tier distribution
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MiniStat(label = "最近", value = galleryState.recentUnlocks.size)
-                MiniStat(label = "即将", value = galleryState.nearCompletion.size)
-                MiniStat(label = "传说", value = hero.unlockedLegendaryCount)
+                AchievementTier.entries.forEach { tier ->
+                    val (unlocked, total) = viewModel.getTierProgress(tier)
+                    TierCountChip(
+                        tier = tier,
+                        unlocked = unlocked,
+                        total = total,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MiniStat(label: String, value: Int) {
+private fun CategoryProgressBar(
+    name: String,
+    unlocked: Int,
+    total: Int,
+    color: Color
+) {
+    val fraction = if (total > 0) unlocked.toFloat() / total else 0f
+
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = label,
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        )
-        Text(
-            text = "$value",
+            text = name,
             fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(52.dp)
         )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(color.copy(alpha = 0.7f), color)
+                        )
+                    )
+            )
+        }
+
+        Text(
+            text = "$unlocked/$total",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(28.dp),
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun TierCountChip(
+    tier: AchievementTier,
+    unlocked: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = tierColor(tier).copy(alpha = 0.08f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = tier.displayName,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                color = tierColor(tier)
+            )
+            Text(
+                text = "$unlocked/$total",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
     }
 }
 
@@ -301,7 +410,7 @@ private fun AchievementFilterBar(
     onCategoryClick: (AchievementCategory?) -> Unit,
     onTierClick: (AchievementTier?) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,7 +418,7 @@ private fun AchievementFilterBar(
         ) {
             Text(
                 text = "全部藏品",
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -341,53 +450,86 @@ private fun AchievementFilterBar(
             }
         }
 
-        if (activeFilterCount > 0) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                if (selectedStateFilter != AchievementGalleryFilter.ALL) {
-                    item {
-                        FilterChipSmall(
-                            label = selectedStateFilter.label,
-                            color = MaterialTheme.colorScheme.primary,
-                            onClick = { onStateFilterClick(selectedStateFilter) }
-                        )
-                    }
-                }
-                if (selectedCategory != null) {
-                    item {
-                        FilterChipSmall(
-                            label = selectedCategory.displayName,
-                            color = categoryColor(selectedCategory),
-                            onClick = { onCategoryClick(selectedCategory) }
-                        )
-                    }
-                }
-                if (selectedTier != null) {
-                    item {
-                        FilterChipSmall(
-                            label = selectedTier.displayName,
-                            color = tierColor(selectedTier),
-                            onClick = { onTierClick(selectedTier) }
-                        )
-                    }
-                }
+        // Quick filter chips row
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            // State filter chips
+            items(AchievementGalleryFilter.entries) { filter ->
+                val isSelected = selectedStateFilter == filter
+                FilterChipQuick(
+                    label = filter.label,
+                    isSelected = isSelected,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = { onStateFilterClick(filter) }
+                )
+            }
+
+            // Divider
+            item {
+                Box(
+                    modifier = Modifier
+                        .height(16.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                )
+            }
+
+            // Category chips
+            items(AchievementCategory.entries) { category ->
+                val isSelected = selectedCategory == category
+                FilterChipQuick(
+                    label = category.displayName,
+                    isSelected = isSelected,
+                    color = categoryColor(category),
+                    onClick = { onCategoryClick(category) }
+                )
+            }
+
+            // Divider
+            item {
+                Box(
+                    modifier = Modifier
+                        .height(16.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                )
+            }
+
+            // Tier chips
+            items(AchievementTier.entries) { tier ->
+                val isSelected = selectedTier == tier
+                FilterChipQuick(
+                    label = tier.displayName,
+                    isSelected = isSelected,
+                    color = tierColor(tier),
+                    onClick = { onTierClick(tier) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FilterChipSmall(label: String, color: Color, onClick: () -> Unit) {
+private fun FilterChipQuick(
+    label: String,
+    isSelected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = 0.12f)
+        color = if (isSelected) color.copy(alpha = 0.15f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Text(
             text = label,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            fontSize = 11.sp,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
         )
     }
 }
@@ -395,38 +537,67 @@ private fun FilterChipSmall(label: String, color: Color, onClick: () -> Unit) {
 @Composable
 private fun AchievementCompactCard(
     card: AchievementGalleryCardState,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val item = card.item
     val context = LocalContext.current
-    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val imageRes = rememberAchievementImageRes(context, item.def.key)
     val isLocked = !item.isUnlocked
+    val tierCol = tierColor(item.def.tier)
+
+    // Press animation
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale = androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(100),
+        label = "cardPress"
+    )
 
     Column(
-        modifier = Modifier
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
             .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Image area
+        // Image area with tier-colored border frame
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(14.dp))
+                .border(
+                    width = 2.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            tierCol.copy(alpha = 0.6f),
+                            tierCol.copy(alpha = 0.2f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
             contentAlignment = Alignment.Center
         ) {
             if (imageRes != 0) {
-                androidx.compose.foundation.Image(
+                Image(
                     painter = painterResource(id = imageRes),
                     contentDescription = item.def.name,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Fallback: category color background
+                // Fallback: category color background with icon
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -439,16 +610,6 @@ private fun AchievementCompactCard(
                     )
                 }
             }
-
-            // Tier dot - top right
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(tierColor(item.def.tier))
-            )
 
             // Lock overlay
             if (isLocked) {
@@ -465,7 +626,7 @@ private fun AchievementCompactCard(
         // Name
         Text(
             text = if (isHiddenLocked(item)) "???" else item.def.name,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
@@ -474,19 +635,42 @@ private fun AchievementCompactCard(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Status
-        if (item.isUnlocked) {
+        // Category + status row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Category label
             Text(
-                text = "已达成",
+                text = item.def.category.displayName,
                 fontSize = 9.sp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                color = categoryColor(item.def.category).copy(alpha = 0.8f)
             )
-        } else if (!isHiddenLocked(item) && item.progressFraction > 0f) {
-            Text(
-                text = "${(item.progressFraction * 100).toInt()}%",
-                fontSize = 9.sp,
-                color = textTertiary
-            )
+
+            if (item.isUnlocked || (!isHiddenLocked(item) && item.progressFraction > 0f)) {
+                Text(
+                    text = " · ",
+                    fontSize = 9.sp,
+                    color = textSecondary.copy(alpha = 0.4f)
+                )
+            }
+
+            // Status
+            if (item.isUnlocked) {
+                Text(
+                    text = "已达成",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                )
+            } else if (!isHiddenLocked(item) && item.progressFraction > 0f) {
+                Text(
+                    text = "${(item.progressFraction * 100).toInt()}%",
+                    fontSize = 9.sp,
+                    color = textSecondary.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }
@@ -498,6 +682,7 @@ private fun AchievementFilterSheet(
     selectedCategory: AchievementCategory?,
     selectedTier: AchievementTier?,
     stats: AchievementStats,
+    viewModel: AchievementViewModel,
     onStateFilterClick: (AchievementGalleryFilter) -> Unit,
     onCategoryClick: (AchievementCategory?) -> Unit,
     onTierClick: (AchievementTier?) -> Unit,
@@ -576,10 +761,11 @@ private fun AchievementFilterSheet(
                 Text(text = "稀有度", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(AchievementTier.entries, key = { it.name }) { tier ->
+                        val tierStats = viewModel.getTierProgress(tier)
                         FilterChip(
                             selected = selectedTier == tier,
                             onClick = { onTierClick(tier) },
-                            label = { Text(tier.displayName, fontSize = 12.sp) },
+                            label = { Text("${tier.displayName} ${tierStats.first}/${tierStats.second}", fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = tierColor(tier),
                                 selectedLabelColor = Color.White

@@ -2,6 +2,7 @@ package com.diary.app.ui.achievement
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,10 +34,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -67,6 +71,8 @@ fun AchievementDetailScreen(
     val imageRes = context.resources.getIdentifier("achievement_${item.def.key}", "drawable", context.packageName)
     val isLocked = !item.isUnlocked
     val scrollState = rememberScrollState()
+    val tierCol = tierColor(item.def.tier)
+    val catCol = categoryColor(item.def.category)
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -113,12 +119,22 @@ fun AchievementDetailScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Large image
+                // Large image with tier-colored border
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
+                        .height(260.dp)
                         .clip(RoundedCornerShape(20.dp))
+                        .border(
+                            width = 2.5.dp,
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    tierCol.copy(alpha = 0.7f),
+                                    tierCol.copy(alpha = 0.2f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        )
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -145,7 +161,7 @@ fun AchievementDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Default.ArrowBack, // placeholder lock
+                                Icons.Default.Lock,
                                 contentDescription = "未解锁",
                                 tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(40.dp)
@@ -156,41 +172,68 @@ fun AchievementDetailScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Tier badge
+                // Tier + Category badges
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(tierColor(item.def.tier))
-                    )
-                    Text(
-                        text = item.def.tier.displayName,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = tierColor(item.def.tier)
-                    )
-                    Text(
-                        text = "·",
-                        fontSize = 12.sp,
-                        color = textTertiary
-                    )
-                    Text(
-                        text = item.def.category.displayName,
-                        fontSize = 12.sp,
-                        color = textSecondary
-                    )
+                    // Tier badge
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = tierCol.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(tierCol)
+                            )
+                            Text(
+                                text = item.def.tier.displayName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = tierCol
+                            )
+                        }
+                    }
+
+                    // Category badge
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = catCol.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(catCol)
+                            )
+                            Text(
+                                text = item.def.category.displayName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = catCol
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Title
                 Text(
                     text = if (isHiddenLocked(item)) "???" else item.def.name,
-                    fontSize = 22.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
                     textAlign = TextAlign.Center
@@ -207,7 +250,7 @@ fun AchievementDetailScreen(
                     lineHeight = 22.sp
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Progress section
                 GlassCard(
@@ -215,7 +258,7 @@ fun AchievementDetailScreen(
                     cornerRadius = 16.dp,
                     innerPadding = 16.dp
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -223,13 +266,13 @@ fun AchievementDetailScreen(
                         ) {
                             Text(
                                 text = "进度",
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = textSecondary
                             )
                             Text(
                                 text = "${item.state.progress} / ${item.def.target}",
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = textColor
                             )
@@ -239,9 +282,9 @@ fun AchievementDetailScreen(
                             progress = item.progressFraction,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp)
+                                .height(8.dp)
                                 .clip(RoundedCornerShape(999.dp)),
-                            color = if (item.isUnlocked) MaterialTheme.colorScheme.primary else tierColor(item.def.tier),
+                            color = if (item.isUnlocked) MaterialTheme.colorScheme.primary else tierCol,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
 
@@ -253,14 +296,14 @@ fun AchievementDetailScreen(
                             ) {
                                 Text(
                                     text = "已达成",
-                                    fontSize = 12.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 item.state.unlockedAt?.let { time ->
                                     Text(
                                         text = " · ${formatTime(time)}",
-                                        fontSize = 12.sp,
+                                        fontSize = 13.sp,
                                         color = textTertiary
                                     )
                                 }
@@ -271,16 +314,22 @@ fun AchievementDetailScreen(
 
                 // Flavor text
                 if (item.isUnlocked && item.def.flavorText.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = item.def.flavorText,
-                        fontSize = 13.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        color = textSecondary,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 16.dp,
+                        innerPadding = 16.dp
+                    ) {
+                        Text(
+                            text = item.def.flavorText,
+                            fontSize = 14.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = textSecondary,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
