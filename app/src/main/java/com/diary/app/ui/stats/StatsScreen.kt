@@ -36,9 +36,15 @@ import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Weekend
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,6 +78,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.formatWordCount
+import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.stats.WordCloud
@@ -249,7 +256,10 @@ fun StatsScreen(
                     item {
                         WordCloudSection(
                             state = state,
-                            onPeriodChange = { viewModel.setWordCloudPeriod(it) }
+                            onPeriodChange = { viewModel.setWordCloudPeriod(it) },
+                            onWordClick = { word ->
+                                viewModel.analyzeContent(word)
+                            }
                         )
                     }
 
@@ -320,6 +330,16 @@ fun StatsScreen(
                 }
             }
         }
+    }
+
+    // AI Analysis Bottom Sheet
+    if (state.analysisQuery.isNotEmpty()) {
+        AnalysisBottomSheet(
+            query = state.analysisQuery,
+            result = state.analysisResult,
+            isAnalyzing = state.isAnalyzing,
+            onDismiss = { viewModel.dismissAnalysis() }
+        )
     }
 }
 
@@ -656,7 +676,8 @@ private fun RangeChip(
 @Composable
 private fun WordCloudSection(
     state: StatsState,
-    onPeriodChange: (WordCloudPeriod) -> Unit
+    onPeriodChange: (WordCloudPeriod) -> Unit,
+    onWordClick: ((String) -> Unit)? = null
 ) {
     StatsSectionCard(
         title = "词云",
@@ -708,7 +729,8 @@ private fun WordCloudSection(
             WordCloud(
                 words = state.topWords,
                 primaryColor = MaterialTheme.colorScheme.primary,
-                secondaryColor = MaterialTheme.colorScheme.tertiary
+                secondaryColor = MaterialTheme.colorScheme.tertiary,
+                onWordClick = onWordClick
             )
         } else {
             InlineEmptyHint("该时间段暂无足够数据")
@@ -779,39 +801,95 @@ private fun MoodWeatherInsightCard(insight: MoodWeatherInsight) {
         cornerRadius = 22.dp,
         innerPadding = 16.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.WaterDrop,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WaterDrop,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "天气与心情",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = insight.text,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "天气与心情",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = insight.text,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Per-weather average mood bars
+            if (insight.perWeatherAverages.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    insight.perWeatherAverages.entries
+                        .sortedByDescending { it.value }
+                        .forEach { (weather, avgMood) ->
+                            val (icon, tint) = weatherIconFor(weather)
+                            val progress = (avgMood / 6f).coerceIn(0f, 1f)
+                            val barColor = moodColorForLevel(avgMood.toInt().coerceIn(1, 6))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = tint,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = weather,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.width(40.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(progress)
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(barColor)
+                                    )
+                                }
+                                Text(
+                                    text = "%.1f".format(avgMood),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.width(24.dp)
+                                )
+                            }
+                        }
+                }
             }
         }
     }
@@ -1465,5 +1543,103 @@ private fun HeatmapLegend() {
             fontSize = 10.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AnalysisBottomSheet(
+    query: String,
+    result: String?,
+    isAnalyzing: Boolean,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "AI 分析",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "关闭")
+                }
+            }
+
+            // Query tag
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text = "关键词: $query",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            // Content
+            when {
+                isAnalyzing -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                strokeWidth = 2.5.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "正在分析你的日记...",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                result != null -> {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 16.dp,
+                        innerPadding = 16.dp
+                    ) {
+                        Text(
+                            text = result,
+                            fontSize = 14.sp,
+                            lineHeight = 22.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
     }
 }

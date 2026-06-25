@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -726,6 +728,8 @@ private fun EmptyNotificationsView(category: NotificationCategory) {
         NotificationCategory.TIME_CAPSULE -> "没有胶囊通知" to "时间胶囊到期时会出现在这里"
         NotificationCategory.MILESTONE -> "没有里程碑通知" to "达成写作里程碑时会通知你"
         NotificationCategory.ON_THIS_DAY -> "没有今日回顾" to "往年今天写的日记会出现在这里"
+        NotificationCategory.INACTIVITY -> "没有写作提醒" to "连续3天未写日记时会提醒你"
+        NotificationCategory.WEEKLY_SUMMARY -> "没有周报" to "每周一会生成上周写作总结"
     }
 
     Column(
@@ -804,6 +808,19 @@ private fun getNotificationStyle(item: NotificationItem): NotificationStyle {
             iconColor = Color(0xFFE53935),
             title = "天气预警 · ${item.weatherCity}",
             subtitle = "${item.weatherDesc} ${item.temperature}°C"
+        )
+        is InactivityNotification -> NotificationStyle(
+            icon = Icons.Default.Edit,
+            iconColor = Color(0xFF7B61FF),
+            title = "你好久没写日记了",
+            subtitle = "已经 ${item.daysSinceLastEntry} 天没记录了，写点什么吧"
+        )
+        is WeeklySummaryNotification -> NotificationStyle(
+            icon = Icons.Default.DateRange,
+            iconColor = Color(0xFF4CAF50),
+            title = "本周写作回顾",
+            subtitle = "本周写了 ${item.entryCount} 篇日记，共 ${item.wordCount} 字" +
+                (item.topWeather?.let { "，最常在${it}时记录" } ?: "")
         )
     }
 }

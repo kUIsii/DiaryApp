@@ -105,14 +105,62 @@ class AchievementRepository(
             "flash_writer" to 0, "deep_writer" to 0, "twin_stars" to 0,
             "legendary_entries_500" to totalEntries, "legendary_streak_365" to streak, "legendary_words_million" to totalWords
         )
+
+        // Get or create milestone tag
+        val milestoneTag = diaryDao.getTagByName("\u91CC\u7A0B\u7891")
+            ?: run {
+                val tagId = diaryDao.insertTag(Tag(name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50))
+                Tag(id = tagId, name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50)
+            }
+
+        val today = java.time.LocalDate.now()
+        val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
+        val todayEnd = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+
         for ((key, value) in updates) {
             val achievement = achievementDao.getByKey(key) ?: continue
             if (achievement.unlockedAt != null) continue
             val def = UnifiedAchievementSeedData.byKey[key]
             val target = def?.target ?: achievement.target
-            if (value >= target) { achievementDao.unlock(key, System.currentTimeMillis(), value) }
+            if (value >= target) {
+                achievementDao.unlock(key, System.currentTimeMillis(), value)
+                // Create milestone diary entry
+                if (def != null) {
+                    createMilestoneDiary(def, milestoneTag, todayStart, todayEnd)
+                }
+            }
             else if (value > achievement.progress) { achievementDao.setProgress(key, value) }
         }
+    }
+
+    private suspend fun createMilestoneDiary(
+        def: AchievementDef,
+        tag: com.diary.app.data.Tag,
+        todayStart: Long,
+        todayEnd: Long
+    ) {
+        // Check if milestone diary already exists today
+        val existingEntries = diaryDao.getPreviewsByDateRange(todayStart, todayEnd)
+        val alreadyExists = existingEntries.any { it.title?.startsWith("\u91CC\u7A0B\u7891: ${def.name}") == true }
+        if (alreadyExists) return
+
+        val now = System.currentTimeMillis()
+        val entry = DiaryEntry(
+            title = "\u91CC\u7A0B\u7891: ${def.name}",
+            plainText = "\u6210\u5C31\u89E3\u9501: ${def.name}\n${def.description}\n\n${def.flavorText}",
+            content = "<p>\u6210\u5C31\u89E3\u9501: ${def.name}</p><p>${def.description}</p><p>${def.flavorText}</p>",
+            moodLevel = 5,
+            weather = null,
+            location = null,
+            latitude = null,
+            longitude = null,
+            isFavorite = false,
+            createdAt = now,
+            updatedAt = now,
+            writingDurationSeconds = 0
+        )
+        val entryId = diaryDao.insertEntry(entry)
+        diaryDao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tag.id))
     }
 
     private fun <T> countConsecutiveFromEnd(list: List<T>, predicate: (T) -> Boolean): Int {

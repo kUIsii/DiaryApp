@@ -1,11 +1,15 @@
 package com.diary.app.ui.stats
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -14,11 +18,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 data class WordFrequency(
@@ -122,7 +129,8 @@ fun WordCloud(
     words: List<WordFrequency>,
     modifier: Modifier = Modifier,
     primaryColor: Color = Color.Unspecified,
-    secondaryColor: Color = Color.Unspecified
+    secondaryColor: Color = Color.Unspecified,
+    onWordClick: ((String) -> Unit)? = null
 ) {
     if (words.isEmpty()) return
 
@@ -130,33 +138,53 @@ fun WordCloud(
     val maxCount = remember(words) { words.maxOf { it.count } }
     val minCount = remember(words) { words.minOf { it.count } }
 
-    Canvas(modifier = modifier.fillMaxWidth().height(220.dp)) {
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val centerX = canvasWidth / 2f
-        val centerY = canvasHeight / 2f
-
-        val placements = calculateWordPlacements(
+    val placements = remember(words, primaryColor, secondaryColor) {
+        calculateWordPlacements(
             words = words,
             maxCount = maxCount,
             minCount = minCount,
             primaryColor = primaryColor,
             secondaryColor = secondaryColor,
             textMeasurer = textMeasurer,
-            canvasWidth = canvasWidth,
-            canvasHeight = canvasHeight,
-            centerX = centerX,
-            centerY = centerY
+            canvasWidth = 600f,
+            canvasHeight = 440f,
+            centerX = 300f,
+            centerY = 220f
         )
+    }
 
-        placements.forEach { placement ->
-            drawText(
-                textLayoutResult = placement.layoutResult,
-                topLeft = Offset(
-                    placement.x - placement.layoutResult.size.width / 2f,
-                    placement.y - placement.layoutResult.size.height / 2f
+    Box(modifier = modifier.fillMaxWidth().height(220.dp).clipToBounds()) {
+        // Canvas for rendering
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val scaleX = size.width / 600f
+            val scaleY = size.height / 440f
+
+            placements.forEach { placement ->
+                drawText(
+                    textLayoutResult = placement.layoutResult,
+                    topLeft = Offset(
+                        (placement.x - placement.layoutResult.size.width / 2f) * scaleX,
+                        (placement.y - placement.layoutResult.size.height / 2f) * scaleY
+                    )
                 )
-            )
+            }
+        }
+
+        // Clickable overlay
+        if (onWordClick != null) {
+            placements.forEachIndexed { index, placement ->
+                if (index < words.size) {
+                    val word = words[index]
+                    Box(
+                        modifier = Modifier
+                            .offset(
+                                x = (placement.x - placement.layoutResult.size.width / 2f).dp,
+                                y = (placement.y - placement.layoutResult.size.height / 2f).dp
+                            )
+                            .clickable { onWordClick(word.word) }
+                    )
+                }
+            }
         }
     }
 }

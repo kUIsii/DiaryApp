@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.ViewList
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -52,9 +54,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.MapView
+import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
+import com.amap.api.maps.model.PolylineOptions
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -91,11 +95,13 @@ fun DiaryMapScreen(
                 locationCount = locations.size,
                 entryCount = state.markers.size,
                 showMap = showMap,
+                isRouteMode = state.isRouteMode,
                 onNavigateBack = onNavigateBack,
                 onSwitchToList = {
                     showMap = false
                     selectedLocation = null
-                }
+                },
+                onToggleRouteMode = { viewModel.toggleRouteMode() }
             )
 
             when {
@@ -115,22 +121,37 @@ fun DiaryMapScreen(
                 }
 
                 showMap -> {
-                    MapViewWithLocation(
-                        location = selectedLocation,
-                        markers = if (selectedLocation != null) {
-                            locations.find { it.name == selectedLocation }?.markers ?: emptyList()
-                        } else {
-                            state.markers
-                        },
-                        onMarkerClick = { markerId ->
-                            onNavigateToDetail(markerId)
-                        },
-                        onBack = {
-                            showMap = false
-                            selectedLocation = null
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        MapViewWithLocation(
+                            location = selectedLocation,
+                            markers = if (selectedLocation != null) {
+                                locations.find { it.name == selectedLocation }?.markers ?: emptyList()
+                            } else {
+                                state.markers
+                            },
+                            isRouteMode = state.isRouteMode,
+                            routePoints = state.routeStats?.routePoints ?: emptyList(),
+                            onMarkerClick = { markerId ->
+                                onNavigateToDetail(markerId)
+                            },
+                            onBack = {
+                                showMap = false
+                                selectedLocation = null
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // Route stats card at bottom
+                        val routeStats = state.routeStats
+                        if (state.isRouteMode && routeStats != null && selectedLocation == null) {
+                            RouteStatsCard(
+                                routeStats = routeStats,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(16.dp)
+                            )
+                        }
+                    }
                 }
 
                 else -> {
@@ -164,8 +185,10 @@ private fun DiaryMapHeader(
     locationCount: Int,
     entryCount: Int,
     showMap: Boolean,
+    isRouteMode: Boolean,
     onNavigateBack: () -> Unit,
-    onSwitchToList: () -> Unit
+    onSwitchToList: () -> Unit,
+    onToggleRouteMode: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -205,6 +228,25 @@ private fun DiaryMapHeader(
         }
 
         if (showMap) {
+            IconButton(
+                onClick = onToggleRouteMode,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isRouteMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+            ) {
+                Icon(
+                    Icons.Default.DirectionsWalk,
+                    contentDescription = "路线模式",
+                    tint = if (isRouteMode) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
             IconButton(
                 onClick = onSwitchToList,
                 modifier = Modifier
@@ -396,6 +438,8 @@ private fun LocationItem(
 private fun MapViewWithLocation(
     location: String?,
     markers: List<MapMarker>,
+    isRouteMode: Boolean,
+    routePoints: List<MapMarker>,
     onMarkerClick: (Long) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -435,18 +479,43 @@ private fun MapViewWithLocation(
                     val aMap = mv.map ?: return@AndroidView
                     aMap.clear()
 
-                    if (markers.isNotEmpty()) {
+                    val displayMarkers = if (isRouteMode && routePoints.isNotEmpty()) {
+                        routePoints
+                    } else {
+                        markers
+                    }
+
+                    if (displayMarkers.isNotEmpty()) {
                         val boundsBuilder = LatLngBounds.Builder()
 
-                        markers.forEach { marker ->
+                        displayMarkers.forEachIndexed { index, marker ->
                             val position = LatLng(marker.latitude, marker.longitude)
                             val markerOptions = MarkerOptions()
                                 .position(position)
                                 .title(marker.title)
                                 .snippet(marker.location.ifBlank { null })
 
+                            // In route mode, add numbered markers
+                            if (isRouteMode) {
+                                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                            }
+
                             aMap.addMarker(markerOptions)
                             boundsBuilder.include(position)
+                        }
+
+                        // Draw polyline in route mode
+                        if (isRouteMode && routePoints.size >= 2) {
+                            val polylinePoints = routePoints.map {
+                                LatLng(it.latitude, it.longitude)
+                            }
+                            aMap.addPolyline(
+                                PolylineOptions()
+                                    .addAll(polylinePoints)
+                                    .width(6f)
+                                    .color(android.graphics.Color.parseColor("#4A90E2"))
+                                    .geodesic(true)
+                            )
                         }
 
                         try {
@@ -455,7 +524,7 @@ private fun MapViewWithLocation(
                                 CameraUpdateFactory.newLatLngBounds(bounds, 100)
                             )
                         } catch (_: Exception) {
-                            val first = markers.first()
+                            val first = displayMarkers.first()
                             aMap.moveCamera(
                                 CameraUpdateFactory.newLatLngZoom(
                                     LatLng(first.latitude, first.longitude),
@@ -465,7 +534,7 @@ private fun MapViewWithLocation(
                         }
 
                         aMap.setOnMarkerClickListener { amapMarker ->
-                            val clickedMarker = markers.find {
+                            val clickedMarker = displayMarkers.find {
                                 it.latitude == amapMarker.position.latitude &&
                                     it.longitude == amapMarker.position.longitude
                             }
@@ -529,6 +598,84 @@ private fun MapViewWithLocation(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RouteStatsCard(
+    routeStats: RouteStats,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier,
+        cornerRadius = 18.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = "旅行轨迹",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                RouteStatItem(
+                    value = "%.1f".format(routeStats.totalDistanceKm),
+                    unit = "km",
+                    label = "总距离"
+                )
+                RouteStatItem(
+                    value = "${routeStats.uniqueCities}",
+                    unit = "",
+                    label = "城市"
+                )
+                RouteStatItem(
+                    value = "${routeStats.uniqueLocations}",
+                    unit = "",
+                    label = "地点"
+                )
+                RouteStatItem(
+                    value = "${routeStats.daySpan}",
+                    unit = "天",
+                    label = "跨度"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RouteStatItem(
+    value: String,
+    unit: String,
+    label: String
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (unit.isNotEmpty()) {
+                Text(
+                    text = unit,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
+                )
+            }
+        }
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

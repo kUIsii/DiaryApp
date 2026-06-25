@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.CapsuleTheme
 import com.diary.app.data.DiaryMediaManager
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TimeCapsule
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -64,6 +66,14 @@ class TimeCapsuleViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     suspend fun getCapsuleById(id: Long): TimeCapsule? = dao.getCapsuleById(id)
+
+    suspend fun getDiaryNearCreation(capsuleCreatedAt: Long): DiaryPreview? {
+        val oneDayMs = 24 * 60 * 60 * 1000L
+        val start = capsuleCreatedAt - oneDayMs
+        val end = capsuleCreatedAt + oneDayMs
+        val entries = dao.getPreviewsByDateRange(start, end)
+        return entries.minByOrNull { kotlin.math.abs(it.createdAt - capsuleCreatedAt) }
+    }
 
     fun importImage(uri: Uri): String? {
         val media = DiaryMediaManager.importImage(app, uri)

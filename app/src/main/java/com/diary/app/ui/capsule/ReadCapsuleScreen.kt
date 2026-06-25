@@ -68,9 +68,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.diary.app.data.CapsuleTheme
+import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TimeCapsule
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.moodIconForLevel
+import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.rememberHapticFeedback
 import java.time.Instant
 import java.time.ZoneId
@@ -87,6 +90,7 @@ fun ReadCapsuleScreen(
     val context = LocalContext.current
 
     var capsule by remember { mutableStateOf<TimeCapsule?>(null) }
+    var memoryEntry by remember { mutableStateOf<DiaryPreview?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Opening ceremony state
@@ -126,7 +130,10 @@ fun ReadCapsuleScreen(
     // Load capsule
     LaunchedEffect(capsuleId) {
         capsule = viewModel.getCapsuleById(capsuleId)
-        capsule?.let { isOpened = it.isOpened }
+        capsule?.let { c ->
+            isOpened = c.isOpened
+            memoryEntry = viewModel.getDiaryNearCreation(c.createdAt)
+        }
     }
 
     // Delete dialog
@@ -353,6 +360,12 @@ fun ReadCapsuleScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
+                            // Memory card from diary near creation date
+                            memoryEntry?.let { entry ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                MemoryCard(entry = entry)
+                            }
+
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
@@ -366,4 +379,79 @@ private fun formatTimestamp(timestamp: Long): String {
     val instant = Instant.ofEpochMilli(timestamp)
     val dateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
     return dateTime.format(DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm"))
+}
+
+@Composable
+private fun MemoryCard(entry: DiaryPreview) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "当时的记忆",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Date
+                Text(
+                    text = formatTimestamp(entry.createdAt).take(10),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Weather
+                entry.weather?.takeIf { it.isNotBlank() }?.let { weather ->
+                    val (icon, tint) = weatherIconFor(weather)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = tint,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = weather,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Mood
+                entry.moodLevel?.let { level ->
+                    val (icon, tint) = moodIconForLevel(level)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            // Location
+            entry.location?.takeIf { it.isNotBlank() }?.let { location ->
+                Text(
+                    text = location,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
 }

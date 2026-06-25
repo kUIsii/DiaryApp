@@ -25,7 +25,9 @@ enum class NotificationCategory(val label: String) {
     ANNUAL_REPORT("年报"),
     TIME_CAPSULE("胶囊"),
     MILESTONE("里程碑"),
-    ON_THIS_DAY("今日回顾")
+    ON_THIS_DAY("今日回顾"),
+    INACTIVITY("写作提醒"),
+    WEEKLY_SUMMARY("周报")
 }
 
 // endregion
@@ -86,6 +88,20 @@ data class WeatherAlertNotification(
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
 
+data class InactivityNotification(
+    val daysSinceLastEntry: Int,
+    override val id: String = "inactivity_${System.currentTimeMillis() / (24*60*60*1000)}",
+    override val timestamp: Long = System.currentTimeMillis()
+) : NotificationItem()
+
+data class WeeklySummaryNotification(
+    val entryCount: Int,
+    val wordCount: Int,
+    val topWeather: String?,
+    override val id: String = "weekly_summary_${System.currentTimeMillis() / (24*60*60*1000)}",
+    override val timestamp: Long = System.currentTimeMillis()
+) : NotificationItem()
+
 // endregion
 
 // region 分类映射
@@ -99,6 +115,8 @@ val NotificationItem.category: NotificationCategory
         is AnnualReportNotification -> NotificationCategory.ANNUAL_REPORT
         is MonthlyReportNotification -> NotificationCategory.MONTHLY_REPORT
         is WeatherAlertNotification -> NotificationCategory.WEATHER_ALERT
+        is InactivityNotification -> NotificationCategory.INACTIVITY
+        is WeeklySummaryNotification -> NotificationCategory.WEEKLY_SUMMARY
     }
 
 // endregion
@@ -306,7 +324,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             items.add(CapsuleUnlockNotification(capsule))
         }
 
-        // 3. 今日回顾
+        // 3. 今日回顾（包含位置信息）
         val onThisDayEntries = dao.getPreviewsByMonthDay(now.monthValue, now.dayOfMonth)
         onThisDayEntries.forEach { entry ->
             val entryDate = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
@@ -359,6 +377,44 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                     timestamp = todayMillis
                 )
             )
+        }
+
+        // 7. 写作提醒（3天未写日记）
+        val sortedDates = entryDates.sortedDescending()
+        if (sortedDates.isNotEmpty()) {
+            val lastEntryDate = sortedDates.first()
+            val daysSinceLastEntry = java.time.temporal.ChronoUnit.DAYS.between(lastEntryDate, now).toInt()
+            if (daysSinceLastEntry >= 3) {
+                items.add(
+                    InactivityNotification(
+                        daysSinceLastEntry = daysSinceLastEntry,
+                        id = "inactivity_${now}",
+                        timestamp = todayMillis
+                    )
+                )
+            }
+        }
+
+        // 8. 周报（每周一）
+        if (now.dayOfWeek.value == 1) {
+            val weekAgo = now.minusDays(7)
+            val weekStart = weekAgo.atStartOfDay(zone).toInstant().toEpochMilli()
+            val weekEntries = dao.getPreviewsByDateRange(weekStart, tomorrowMillis)
+            if (weekEntries.isNotEmpty()) {
+                val wordCount = weekEntries.sumOf { it.plainText.length }
+                val weatherCounts = weekEntries.mapNotNull { it.weather?.takeIf { w -> w.isNotBlank() } }
+                    .groupingBy { it }.eachCount()
+                val topWeather = weatherCounts.maxByOrNull { it.value }?.key
+                items.add(
+                    WeeklySummaryNotification(
+                        entryCount = weekEntries.size,
+                        wordCount = wordCount,
+                        topWeather = topWeather,
+                        id = "weekly_summary_${now}",
+                        timestamp = todayMillis
+                    )
+                )
+            }
         }
 
         return items
@@ -437,6 +493,23 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 subtitle = "$weatherDesc $temperature°C",
                 iconType = "thunderstorm",
                 colorHex = 0xFFE53935,
+                relatedId = null
+            )
+            is InactivityNotification -> NotificationMeta(
+                type = "inactivity",
+                title = "你好久没写日记了",
+                subtitle = "已经 ${daysSinceLastEntry} 天没记录了，写点什么吧",
+                iconType = "edit_note",
+                colorHex = 0xFF7B61FF,
+                relatedId = null
+            )
+            is WeeklySummaryNotification -> NotificationMeta(
+                type = "weekly_summary",
+                title = "本周写作回顾",
+                subtitle = "本周写了 ${entryCount} 篇日记，共 ${wordCount} 字" +
+                    (topWeather?.let { "，最常在${it}时记录" } ?: ""),
+                iconType = "date_range",
+                colorHex = 0xFF4CAF50,
                 relatedId = null
             )
         }
@@ -533,6 +606,30 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                     weatherCity = city,
                     weatherDesc = desc,
                     temperature = temp,
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            "inactivity" -> {
+                val days = Regex("(\\d+) 天").find(subtitle)?.groupValues?.get(1)?.toIntOrNull() ?: 3
+                InactivityNotification(
+                    daysSinceLastEntry = days,
+                    id = id,
+                    timestamp = createdAt
+                )
+            }
+            "weekly_summary" -> {
+                val countRegex = Regex("本周写了 (\\d+) 篇日记，共 (\\d+) 字")
+                val countMatch = countRegex.find(subtitle)
+                val entryCount = countMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val wordCount = countMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
+                val weather = if (subtitle.contains("最常在")) {
+                    subtitle.substringAfter("最常在").removeSuffix("时记录")
+                } else null
+                WeeklySummaryNotification(
+                    entryCount = entryCount,
+                    wordCount = wordCount,
+                    topWeather = weather,
                     id = id,
                     timestamp = createdAt
                 )

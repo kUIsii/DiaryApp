@@ -73,6 +73,12 @@ data class MoodTrend(
 data class MoodWeatherInsight(
     val text: String,
     val moodLevel: Float,
+    val bestWeather: String = "",
+    val worstWeather: String = "",
+    val bestAvgMood: Float = 0f,
+    val worstAvgMood: Float = 0f,
+    val overallAvgMood: Float = 0f,
+    val perWeatherAverages: Map<String, Float> = emptyMap(),
 )
 
 data class WordStats(
@@ -104,6 +110,9 @@ data class StatsState(
     val heatmapData: List<HeatmapDay> = emptyList(),
     val heatmapRange: HeatmapRange = HeatmapRange.ONE_MONTH,
     val moodWeatherInsight: MoodWeatherInsight? = null,
+    val analysisQuery: String = "",
+    val analysisResult: String? = null,
+    val isAnalyzing: Boolean = false,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -120,6 +129,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _wordCloudPeriod = MutableStateFlow(WordCloudPeriod.MONTH)
     private val _aiWords = MutableStateFlow<List<WordFrequency>>(emptyList())
     private val _isWordCloudLoading = MutableStateFlow(false)
+    private val _analysisQuery = MutableStateFlow("")
+    private val _analysisResult = MutableStateFlow<String?>(null)
+    private val _isAnalyzing = MutableStateFlow(false)
     private val prefs = application.getSharedPreferences("word_cloud_cache", android.content.Context.MODE_PRIVATE)
 
     fun setHeatmapRange(range: HeatmapRange) {
@@ -203,12 +215,18 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     val state: StateFlow<StatsState> = combine(
         entryStatsFlow,
-        wordCloudFlow
-    ) { stats, wc ->
+        wordCloudFlow,
+        _analysisQuery,
+        _analysisResult,
+        _isAnalyzing
+    ) { stats, wc, query, result, analyzing ->
         stats.copy(
             topWords = wc.words,
             wordCloudPeriod = wc.period,
             isWordCloudLoading = wc.isLoading,
+            analysisQuery = query,
+            analysisResult = result,
+            isAnalyzing = analyzing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
@@ -247,6 +265,54 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
         return dao.getPreviewsByDateRange(startOfDay, endOfDay)
+    }
+
+    suspend fun getEntriesContainingWord(word: String): List<DiaryPreview> {
+        return dao.searchPreviewsOnce(word)
+    }
+
+    fun analyzeContent(query: String) {
+        if (_isAnalyzing.value) return
+        _analysisQuery.value = query
+        _analysisResult.value = null
+        _isAnalyzing.value = true
+        viewModelScope.launch {
+            try {
+                val entries = dao.searchPreviewsOnce(query)
+                if (entries.isEmpty()) {
+                    _analysisResult.value = "没有找到与「$query」相关的日记"
+                    return@launch
+                }
+                val top10 = entries.take(10)
+                val contextText = top10.joinToString("\n---\n") { entry ->
+                    val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                        .format(java.util.Date(entry.createdAt))
+                    val mood = entry.moodLevel?.let { "心情:$it" } ?: ""
+                    val weather = entry.weather?.let { "天气:$it" } ?: ""
+                    val meta = listOfNotNull(mood.takeIf { it.isNotEmpty() }, weather.takeIf { it.isNotEmpty() })
+                        .joinToString(" ")
+                    "[$date $meta]\n${entry.plainText.take(500)}"
+                }
+                val systemPrompt = "你是一个日记分析助手。用户会给你一些日记片段，请分析这些内容，给出简短的洞察（2-3句话），" +
+                    "包括：用户在什么主题上记录最多、情绪倾向如何、有什么有趣的模式。用轻松亲切的语气。"
+                val userMessage = "请分析以下关于「$query」的日记（共${entries.size}篇，展示前${top10.size}篇）：\n\n$contextText"
+                val request = aiRequest(userMessage = userMessage, systemPrompt = systemPrompt, maxTokens = 300)
+                val result = aiService.chat(request, useCache = false)
+                result.fold(
+                    onSuccess = { response -> _analysisResult.value = response.content },
+                    onFailure = { _analysisResult.value = "分析失败: ${it.message}" }
+                )
+            } catch (e: Exception) {
+                _analysisResult.value = "分析失败: ${e.message}"
+            } finally {
+                _isAnalyzing.value = false
+            }
+        }
+    }
+
+    fun dismissAnalysis() {
+        _analysisQuery.value = ""
+        _analysisResult.value = null
     }
 
 
@@ -373,20 +439,35 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val bestDiff = best.value - overallAvg
         val worstDiff = overallAvg - worst.value
 
+        val perWeatherAverages = avgByWeather.mapValues { it.value.toFloat() }
+
         // Show the more notable correlation
-        return if (bestDiff >= worstDiff && bestDiff >= 0.3) {
-            MoodWeatherInsight(
-                text = "${best.key}时心情最好，平均 ${"%.1f".format(best.value)} 分",
-                moodLevel = best.value.toFloat(),
-            )
+        val text = if (bestDiff >= worstDiff && bestDiff >= 0.3) {
+            "${best.key}时心情最好，平均 ${"%.1f".format(best.value)} 分"
         } else if (worstDiff >= 0.3) {
-            MoodWeatherInsight(
-                text = "${worst.key}时心情较低，平均 ${"%.1f".format(worst.value)} 分",
-                moodLevel = worst.value.toFloat(),
-            )
+            "${worst.key}时心情较低，平均 ${"%.1f".format(worst.value)} 分"
         } else {
-            null // No notable correlation
+            "不同天气下心情基本一致"
         }
+
+        val moodLevel = if (bestDiff >= worstDiff && bestDiff >= 0.3) {
+            best.value.toFloat()
+        } else if (worstDiff >= 0.3) {
+            worst.value.toFloat()
+        } else {
+            overallAvg.toFloat()
+        }
+
+        return MoodWeatherInsight(
+            text = text,
+            moodLevel = moodLevel,
+            bestWeather = best.key,
+            worstWeather = worst.key,
+            bestAvgMood = best.value.toFloat(),
+            worstAvgMood = worst.value.toFloat(),
+            overallAvgMood = overallAvg.toFloat(),
+            perWeatherAverages = perWeatherAverages,
+        )
     }
 
     private fun computeWordStats(entries: List<DiaryPreview>): WordStats? {
