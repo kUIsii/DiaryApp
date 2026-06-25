@@ -1,21 +1,31 @@
 package com.diary.app.ui.achievement
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.diary.app.data.AchievementCategory
 import com.diary.app.data.AchievementTier
+import kotlin.math.absoluteValue
 
-// Category colors
 private val WritingColor = Color(0xFF5C6BC0)
 private val HabitColor = Color(0xFFFF7043)
 private val TimeColor = Color(0xFF42A5F5)
@@ -24,6 +34,14 @@ private val WeatherColor = Color(0xFF26A69A)
 private val ExplorerColor = Color(0xFF66BB6A)
 private val CollectorColor = Color(0xFFEC407A)
 private val LegendaryColor = Color(0xFFFFC107)
+
+data class AchievementArtworkPalette(
+    val start: Color,
+    val end: Color,
+    val detail: Color,
+    val border: Color,
+    val glow: Color
+)
 
 fun categoryColor(category: AchievementCategory): Color = when (category) {
     AchievementCategory.WRITING -> WritingColor
@@ -37,30 +55,208 @@ fun categoryColor(category: AchievementCategory): Color = when (category) {
 }
 
 @Composable
+fun AchievementArtwork(
+    achievementKey: String,
+    category: AchievementCategory,
+    tier: AchievementTier,
+    isUnlocked: Boolean,
+    modifier: Modifier = Modifier,
+    cornerRadius: Int = 24
+) {
+    val palette = achievementPalette(category = category, tier = tier, isUnlocked = isUnlocked)
+    val shape = RoundedCornerShape(cornerRadius.dp)
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(palette.start, palette.end)), shape)
+            .border(1.dp, palette.border, shape)
+            .padding(10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val seed = achievementKey.hashCode().absoluteValue
+            drawArtworkBackground(seed = seed, palette = palette, isUnlocked = isUnlocked)
+        }
+
+        if (isUnlocked) {
+            AchievementIcon(
+                achievementKey = achievementKey,
+                category = category,
+                tier = tier,
+                isUnlocked = true,
+                modifier = Modifier.fillMaxSize(0.46f)
+            )
+        } else {
+            LockIcon(modifier = Modifier.fillMaxSize(0.42f))
+        }
+    }
+}
+
+private fun DrawScope.drawArtworkBackground(
+    seed: Int,
+    palette: AchievementArtworkPalette,
+    isUnlocked: Boolean
+) {
+    val width = size.width
+    val height = size.height
+
+    if (isUnlocked) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(palette.glow, Color.Transparent),
+                center = Offset(width * 0.5f, height * 0.45f),
+                radius = width * 0.62f
+            ),
+            radius = width * 0.62f,
+            center = Offset(width * 0.5f, height * 0.45f)
+        )
+    }
+
+    drawRoundRect(
+        color = Color.White.copy(alpha = if (isUnlocked) 0.12f else 0.08f),
+        topLeft = Offset(width * 0.08f, height * 0.1f),
+        size = Size(width * 0.84f, height * 0.28f),
+        cornerRadius = CornerRadius(width * 0.22f)
+    )
+
+    val orbitVariant = seed % 4
+    when (orbitVariant) {
+        0 -> {
+            drawCircle(
+                color = palette.detail.copy(alpha = 0.22f),
+                radius = width * 0.26f,
+                center = Offset(width * 0.76f, height * 0.28f),
+                style = Stroke(width = width * 0.04f)
+            )
+            drawCircle(
+                color = palette.detail.copy(alpha = 0.3f),
+                radius = width * 0.05f,
+                center = Offset(width * 0.76f, height * 0.28f)
+            )
+        }
+        1 -> {
+            repeat(3) { index ->
+                drawLine(
+                    color = palette.detail.copy(alpha = 0.3f - index * 0.06f),
+                    start = Offset(width * (0.2f + index * 0.14f), height * 0.2f),
+                    end = Offset(width * (0.55f + index * 0.1f), height * 0.82f),
+                    strokeWidth = width * 0.03f,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+        2 -> {
+            val path = Path().apply {
+                moveTo(width * 0.16f, height * 0.78f)
+                cubicTo(width * 0.28f, height * 0.44f, width * 0.64f, height * 0.62f, width * 0.84f, height * 0.62f)
+            }
+            drawPath(
+                path = path,
+                color = palette.detail.copy(alpha = 0.28f),
+                style = Stroke(width = width * 0.05f, cap = StrokeCap.Round)
+            )
+        }
+        else -> {
+            repeat(5) { index ->
+                val x = width * (0.2f + index * 0.15f)
+                val y = if (index % 2 == 0) height * 0.25f else height * 0.72f
+                drawCircle(
+                    color = palette.detail.copy(alpha = 0.25f + index * 0.03f),
+                    radius = width * (0.025f + (index % 2) * 0.008f),
+                    center = Offset(x, y)
+                )
+            }
+        }
+    }
+
+    val sparkleCount = 3 + seed % 3
+    repeat(sparkleCount) { index ->
+        val x = width * (0.18f + ((seed shr index) and 0x7) * 0.09f).coerceAtMost(0.86f)
+        val y = height * (0.18f + ((seed shr (index + 3)) and 0x7) * 0.08f).coerceAtMost(0.84f)
+        drawSparkle(
+            center = Offset(x, y),
+            radius = width * (0.028f + (index % 2) * 0.01f),
+            color = palette.detail.copy(alpha = 0.35f)
+        )
+    }
+}
+
+private fun DrawScope.drawSparkle(center: Offset, radius: Float, color: Color) {
+    drawLine(
+        color = color,
+        start = Offset(center.x - radius, center.y),
+        end = Offset(center.x + radius, center.y),
+        strokeWidth = radius * 0.45f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = color,
+        start = Offset(center.x, center.y - radius),
+        end = Offset(center.x, center.y + radius),
+        strokeWidth = radius * 0.45f,
+        cap = StrokeCap.Round
+    )
+}
+
+private fun achievementPalette(
+    category: AchievementCategory,
+    tier: AchievementTier,
+    isUnlocked: Boolean
+): AchievementArtworkPalette {
+    val base = categoryColor(category)
+    val tierTint = when (tier) {
+        AchievementTier.COMMON -> Color(0xFFECE8E2)
+        AchievementTier.RARE -> Color(0xFFD8E8FF)
+        AchievementTier.EPIC -> Color(0xFFE7DAFF)
+        AchievementTier.LEGENDARY -> Color(0xFFFFE7B8)
+    }
+
+    return if (isUnlocked) {
+        AchievementArtworkPalette(
+            start = tierTint.copy(alpha = 0.92f),
+            end = base.copy(alpha = 0.78f),
+            detail = Color.White,
+            border = Color.White.copy(alpha = 0.42f),
+            glow = base.copy(alpha = 0.3f)
+        )
+    } else {
+        AchievementArtworkPalette(
+            start = Color(0xFFF1EEE8),
+            end = Color(0xFFE3DDD4),
+            detail = Color(0xFF8C867D),
+            border = Color.White.copy(alpha = 0.28f),
+            glow = Color.Transparent
+        )
+    }
+}
+
+@Composable
 fun AchievementIcon(
+    achievementKey: String,
     category: AchievementCategory,
     tier: AchievementTier,
     isUnlocked: Boolean,
     modifier: Modifier = Modifier
 ) {
     val size = 28.dp
-    val color = if (isUnlocked) categoryColor(category) else Color.Gray.copy(alpha = 0.4f)
-    val glowColor = if (isUnlocked) categoryColor(category).copy(alpha = 0.3f) else Color.Transparent
+    val color = if (isUnlocked) categoryColor(category) else Color.Gray.copy(alpha = 0.42f)
+    val accentColor = if (isUnlocked) tierAccentColor(tier) else Color(0xFFA59F96)
+    val glowColor = if (isUnlocked) color.copy(alpha = 0.26f) else Color.Transparent
+    val seed = achievementKey.hashCode().absoluteValue
 
     Canvas(modifier = modifier.size(size)) {
-        // Draw glow effect for unlocked achievements
         if (isUnlocked) {
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(glowColor, Color.Transparent),
                     center = center,
-                    radius = this.size.width * 0.6f
+                    radius = this.size.width * 0.58f
                 ),
-                radius = this.size.width * 0.6f
+                radius = this.size.width * 0.58f
             )
         }
 
-        // Draw the icon based on category
         when (category) {
             AchievementCategory.WRITING -> drawQuillIcon(color)
             AchievementCategory.HABIT -> drawFlameIcon(color)
@@ -71,81 +267,118 @@ fun AchievementIcon(
             AchievementCategory.COLLECTOR -> drawGemIcon(color)
             AchievementCategory.LEGENDARY -> drawCrownIcon(color)
         }
+
+        drawKeyAccent(seed = seed, color = accentColor)
     }
 }
 
-// Quill pen icon for WRITING
-private fun DrawScope.drawQuillIcon(color: Color) {
-    val w = size.width
-    val h = size.height
-    val strokeWidth = w * 0.08f
+private fun DrawScope.drawKeyAccent(seed: Int, color: Color) {
+    val width = size.width
+    val height = size.height
 
-    // Feather body
+    when (seed % 3) {
+        0 -> {
+            drawLine(
+                color = color.copy(alpha = 0.75f),
+                start = Offset(width * 0.18f, height * 0.82f),
+                end = Offset(width * 0.82f, height * 0.18f),
+                strokeWidth = width * 0.06f,
+                cap = StrokeCap.Round
+            )
+        }
+        1 -> {
+            drawCircle(
+                color = color.copy(alpha = 0.18f),
+                radius = width * 0.18f,
+                center = Offset(width * 0.75f, height * 0.28f),
+                style = Stroke(width = width * 0.05f)
+            )
+        }
+        else -> {
+            drawCircle(
+                color = color.copy(alpha = 0.75f),
+                radius = width * 0.07f,
+                center = Offset(width * 0.24f, height * 0.26f)
+            )
+            drawCircle(
+                color = color.copy(alpha = 0.55f),
+                radius = width * 0.05f,
+                center = Offset(width * 0.76f, height * 0.76f)
+            )
+        }
+    }
+}
+
+private fun tierAccentColor(tier: AchievementTier): Color = when (tier) {
+    AchievementTier.COMMON -> Color(0xFF8A7966)
+    AchievementTier.RARE -> Color(0xFF2F6DBA)
+    AchievementTier.EPIC -> Color(0xFF7B46B8)
+    AchievementTier.LEGENDARY -> Color(0xFFD98F00)
+}
+
+private fun DrawScope.drawQuillIcon(color: Color) {
+    val width = size.width
+    val height = size.height
+    val strokeWidth = width * 0.08f
+
     val featherPath = Path().apply {
-        moveTo(w * 0.7f, h * 0.1f)
-        cubicTo(w * 0.8f, h * 0.15f, w * 0.85f, h * 0.3f, w * 0.6f, h * 0.6f)
-        lineTo(w * 0.55f, h * 0.65f)
-        cubicTo(w * 0.5f, h * 0.55f, w * 0.4f, h * 0.4f, w * 0.3f, h * 0.2f)
-        cubicTo(w * 0.35f, h * 0.12f, w * 0.5f, h * 0.08f, w * 0.7f, h * 0.1f)
+        moveTo(width * 0.7f, height * 0.1f)
+        cubicTo(width * 0.8f, height * 0.15f, width * 0.85f, height * 0.3f, width * 0.6f, height * 0.6f)
+        lineTo(width * 0.55f, height * 0.65f)
+        cubicTo(width * 0.5f, height * 0.55f, width * 0.4f, height * 0.4f, width * 0.3f, height * 0.2f)
+        cubicTo(width * 0.35f, height * 0.12f, width * 0.5f, height * 0.08f, width * 0.7f, height * 0.1f)
         close()
     }
     drawPath(featherPath, color)
 
-    // Quill tip
     val tipPath = Path().apply {
-        moveTo(w * 0.55f, h * 0.65f)
-        lineTo(w * 0.35f, h * 0.9f)
-        lineTo(w * 0.45f, h * 0.7f)
+        moveTo(width * 0.55f, height * 0.65f)
+        lineTo(width * 0.35f, height * 0.9f)
+        lineTo(width * 0.45f, height * 0.7f)
         close()
     }
-    drawPath(tipPath, color.copy(alpha = 0.8f))
+    drawPath(tipPath, color.copy(alpha = 0.84f))
 
-    // Center line
     drawLine(
         color = color.copy(alpha = 0.5f),
-        start = Offset(w * 0.5f, h * 0.15f),
-        end = Offset(w * 0.45f, h * 0.7f),
+        start = Offset(width * 0.5f, height * 0.15f),
+        end = Offset(width * 0.45f, height * 0.7f),
         strokeWidth = strokeWidth * 0.5f
     )
 }
 
-// Flame icon for HABIT
 private fun DrawScope.drawFlameIcon(color: Color) {
-    val w = size.width
-    val h = size.height
+    val width = size.width
+    val height = size.height
 
-    // Outer flame
     val outerFlame = Path().apply {
-        moveTo(w * 0.5f, h * 0.1f)
-        cubicTo(w * 0.65f, h * 0.25f, w * 0.8f, h * 0.45f, w * 0.7f, h * 0.65f)
-        cubicTo(w * 0.65f, h * 0.75f, w * 0.55f, h * 0.85f, w * 0.5f, h * 0.9f)
-        cubicTo(w * 0.45f, h * 0.85f, w * 0.35f, h * 0.75f, w * 0.3f, h * 0.65f)
-        cubicTo(w * 0.2f, h * 0.45f, w * 0.35f, h * 0.25f, w * 0.5f, h * 0.1f)
+        moveTo(width * 0.5f, height * 0.1f)
+        cubicTo(width * 0.65f, height * 0.25f, width * 0.8f, height * 0.45f, width * 0.7f, height * 0.65f)
+        cubicTo(width * 0.65f, height * 0.75f, width * 0.55f, height * 0.85f, width * 0.5f, height * 0.9f)
+        cubicTo(width * 0.45f, height * 0.85f, width * 0.35f, height * 0.75f, width * 0.3f, height * 0.65f)
+        cubicTo(width * 0.2f, height * 0.45f, width * 0.35f, height * 0.25f, width * 0.5f, height * 0.1f)
         close()
     }
     drawPath(outerFlame, color)
 
-    // Inner flame (lighter)
     val innerFlame = Path().apply {
-        moveTo(w * 0.5f, h * 0.35f)
-        cubicTo(w * 0.58f, h * 0.42f, w * 0.62f, h * 0.52f, w * 0.58f, h * 0.62f)
-        cubicTo(w * 0.55f, h * 0.7f, w * 0.52f, h * 0.78f, w * 0.5f, h * 0.82f)
-        cubicTo(w * 0.48f, h * 0.78f, w * 0.45f, h * 0.7f, w * 0.42f, h * 0.62f)
-        cubicTo(w * 0.38f, h * 0.52f, w * 0.42f, h * 0.42f, w * 0.5f, h * 0.35f)
+        moveTo(width * 0.5f, height * 0.35f)
+        cubicTo(width * 0.58f, height * 0.42f, width * 0.62f, height * 0.52f, width * 0.58f, height * 0.62f)
+        cubicTo(width * 0.55f, height * 0.7f, width * 0.52f, height * 0.78f, width * 0.5f, height * 0.82f)
+        cubicTo(width * 0.48f, height * 0.78f, width * 0.45f, height * 0.7f, width * 0.42f, height * 0.62f)
+        cubicTo(width * 0.38f, height * 0.52f, width * 0.42f, height * 0.42f, width * 0.5f, height * 0.35f)
         close()
     }
-    drawPath(innerFlame, color.copy(alpha = 0.6f))
+    drawPath(innerFlame, color.copy(alpha = 0.62f))
 }
 
-// Clock icon for TIME
 private fun DrawScope.drawClockIcon(color: Color) {
-    val w = size.width
-    val h = size.height
-    val centerX = w * 0.5f
-    val centerY = h * 0.5f
-    val radius = w * 0.4f
+    val width = size.width
+    val height = size.height
+    val centerX = width * 0.5f
+    val centerY = height * 0.5f
+    val radius = width * 0.4f
 
-    // Clock face
     drawCircle(
         color = color.copy(alpha = 0.15f),
         radius = radius,
@@ -155,119 +388,101 @@ private fun DrawScope.drawClockIcon(color: Color) {
         color = color,
         radius = radius,
         center = Offset(centerX, centerY),
-        style = Stroke(width = w * 0.06f)
+        style = Stroke(width = width * 0.06f)
     )
 
-    // Hour hand
     drawLine(
         color = color,
         start = Offset(centerX, centerY),
         end = Offset(centerX, centerY - radius * 0.5f),
-        strokeWidth = w * 0.08f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
+        strokeWidth = width * 0.08f,
+        cap = StrokeCap.Round
     )
 
-    // Minute hand
     drawLine(
         color = color,
         start = Offset(centerX, centerY),
         end = Offset(centerX + radius * 0.6f, centerY),
-        strokeWidth = w * 0.05f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
+        strokeWidth = width * 0.05f,
+        cap = StrokeCap.Round
     )
 
-    // Center dot
     drawCircle(
         color = color,
-        radius = w * 0.05f,
+        radius = width * 0.05f,
         center = Offset(centerX, centerY)
     )
 }
 
-// Palette icon for MOOD
 private fun DrawScope.drawPaletteIcon(color: Color) {
-    val w = size.width
-    val h = size.height
+    val width = size.width
+    val height = size.height
 
-    // Palette shape
     val palettePath = Path().apply {
-        moveTo(w * 0.5f, h * 0.15f)
-        cubicTo(w * 0.75f, h * 0.1f, w * 0.9f, h * 0.3f, w * 0.85f, h * 0.55f)
-        cubicTo(w * 0.8f, h * 0.75f, w * 0.6f, h * 0.9f, w * 0.4f, h * 0.85f)
-        cubicTo(w * 0.2f, h * 0.8f, w * 0.1f, h * 0.6f, w * 0.15f, h * 0.4f)
-        cubicTo(w * 0.2f, h * 0.2f, w * 0.35f, h * 0.12f, w * 0.5f, h * 0.15f)
+        moveTo(width * 0.5f, height * 0.15f)
+        cubicTo(width * 0.75f, height * 0.1f, width * 0.9f, height * 0.3f, width * 0.85f, height * 0.55f)
+        cubicTo(width * 0.8f, height * 0.75f, width * 0.6f, height * 0.9f, width * 0.4f, height * 0.85f)
+        cubicTo(width * 0.2f, height * 0.8f, width * 0.1f, height * 0.6f, width * 0.15f, height * 0.4f)
+        cubicTo(width * 0.2f, height * 0.2f, width * 0.35f, height * 0.12f, width * 0.5f, height * 0.15f)
         close()
     }
     drawPath(palettePath, color.copy(alpha = 0.2f))
-    drawPath(palettePath, color, style = Stroke(width = w * 0.04f))
+    drawPath(palettePath, color, style = Stroke(width = width * 0.04f))
 
-    // Paint dots
-    val dotRadius = w * 0.08f
-    drawCircle(color = Color(0xFFEF5350), radius = dotRadius, center = Offset(w * 0.35f, h * 0.35f))
-    drawCircle(color = Color(0xFF42A5F5), radius = dotRadius, center = Offset(w * 0.55f, h * 0.3f))
-    drawCircle(color = Color(0xFF66BB6A), radius = dotRadius, center = Offset(w * 0.65f, h * 0.45f))
-    drawCircle(color = Color(0xFFFFC107), radius = dotRadius, center = Offset(w * 0.6f, h * 0.6f))
-
-    // Thumb hole
-    drawCircle(
-        color = Color.Transparent,
-        radius = w * 0.12f,
-        center = Offset(w * 0.3f, h * 0.55f)
-    )
+    val dotRadius = width * 0.08f
+    drawCircle(color = Color(0xFFEF5350), radius = dotRadius, center = Offset(width * 0.35f, height * 0.35f))
+    drawCircle(color = Color(0xFF42A5F5), radius = dotRadius, center = Offset(width * 0.55f, height * 0.3f))
+    drawCircle(color = Color(0xFF66BB6A), radius = dotRadius, center = Offset(width * 0.65f, height * 0.45f))
+    drawCircle(color = Color(0xFFFFC107), radius = dotRadius, center = Offset(width * 0.6f, height * 0.6f))
 }
 
-// Cloud icon for WEATHER
 private fun DrawScope.drawCloudIcon(color: Color) {
-    val w = size.width
-    val h = size.height
+    val width = size.width
+    val height = size.height
 
-    // Main cloud
     val cloudPath = Path().apply {
-        moveTo(w * 0.25f, h * 0.55f)
-        cubicTo(w * 0.15f, h * 0.55f, w * 0.1f, h * 0.45f, w * 0.2f, h * 0.4f)
-        cubicTo(w * 0.15f, h * 0.3f, w * 0.25f, h * 0.2f, w * 0.35f, h * 0.25f)
-        cubicTo(w * 0.4f, h * 0.15f, w * 0.6f, h * 0.15f, w * 0.65f, h * 0.25f)
-        cubicTo(w * 0.75f, h * 0.2f, w * 0.85f, h * 0.3f, w * 0.8f, h * 0.4f)
-        cubicTo(w * 0.9f, h * 0.45f, w * 0.85f, h * 0.55f, w * 0.75f, h * 0.55f)
+        moveTo(width * 0.25f, height * 0.55f)
+        cubicTo(width * 0.15f, height * 0.55f, width * 0.1f, height * 0.45f, width * 0.2f, height * 0.4f)
+        cubicTo(width * 0.15f, height * 0.3f, width * 0.25f, height * 0.2f, width * 0.35f, height * 0.25f)
+        cubicTo(width * 0.4f, height * 0.15f, width * 0.6f, height * 0.15f, width * 0.65f, height * 0.25f)
+        cubicTo(width * 0.75f, height * 0.2f, width * 0.85f, height * 0.3f, width * 0.8f, height * 0.4f)
+        cubicTo(width * 0.9f, height * 0.45f, width * 0.85f, height * 0.55f, width * 0.75f, height * 0.55f)
         close()
     }
     drawPath(cloudPath, color.copy(alpha = 0.3f))
-    drawPath(cloudPath, color, style = Stroke(width = w * 0.04f))
+    drawPath(cloudPath, color, style = Stroke(width = width * 0.04f))
 
-    // Rain drops
-    val dropColor = color.copy(alpha = 0.6f)
+    val dropColor = color.copy(alpha = 0.62f)
     drawLine(
         color = dropColor,
-        start = Offset(w * 0.35f, h * 0.65f),
-        end = Offset(w * 0.35f, h * 0.8f),
-        strokeWidth = w * 0.04f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
+        start = Offset(width * 0.35f, height * 0.65f),
+        end = Offset(width * 0.35f, height * 0.8f),
+        strokeWidth = width * 0.04f,
+        cap = StrokeCap.Round
     )
     drawLine(
         color = dropColor,
-        start = Offset(w * 0.5f, h * 0.7f),
-        end = Offset(w * 0.5f, h * 0.85f),
-        strokeWidth = w * 0.04f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
+        start = Offset(width * 0.5f, height * 0.7f),
+        end = Offset(width * 0.5f, height * 0.85f),
+        strokeWidth = width * 0.04f,
+        cap = StrokeCap.Round
     )
     drawLine(
         color = dropColor,
-        start = Offset(w * 0.65f, h * 0.65f),
-        end = Offset(w * 0.65f, h * 0.8f),
-        strokeWidth = w * 0.04f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
+        start = Offset(width * 0.65f, height * 0.65f),
+        end = Offset(width * 0.65f, height * 0.8f),
+        strokeWidth = width * 0.04f,
+        cap = StrokeCap.Round
     )
 }
 
-// Compass icon for EXPLORER
 private fun DrawScope.drawCompassIcon(color: Color) {
-    val w = size.width
-    val h = size.height
-    val centerX = w * 0.5f
-    val centerY = h * 0.5f
-    val radius = w * 0.4f
+    val width = size.width
+    val height = size.height
+    val centerX = width * 0.5f
+    val centerY = height * 0.5f
+    val radius = width * 0.4f
 
-    // Outer circle
     drawCircle(
         color = color.copy(alpha = 0.15f),
         radius = radius,
@@ -277,10 +492,9 @@ private fun DrawScope.drawCompassIcon(color: Color) {
         color = color,
         radius = radius,
         center = Offset(centerX, centerY),
-        style = Stroke(width = w * 0.04f)
+        style = Stroke(width = width * 0.04f)
     )
 
-    // North pointer (red)
     val northPath = Path().apply {
         moveTo(centerX, centerY - radius * 0.7f)
         lineTo(centerX - radius * 0.15f, centerY)
@@ -289,156 +503,117 @@ private fun DrawScope.drawCompassIcon(color: Color) {
     }
     drawPath(northPath, Color(0xFFEF5350))
 
-    // South pointer (blue)
     val southPath = Path().apply {
         moveTo(centerX, centerY + radius * 0.7f)
         lineTo(centerX + radius * 0.15f, centerY)
         lineTo(centerX, centerY + radius * 0.2f)
         close()
     }
-    drawPath(southPath, color.copy(alpha = 0.5f))
+    drawPath(southPath, color.copy(alpha = 0.52f))
 
-    // Center dot
     drawCircle(
         color = color,
-        radius = w * 0.04f,
+        radius = width * 0.04f,
         center = Offset(centerX, centerY)
     )
-
-    // Cardinal points
-    drawCircle(color = color, radius = w * 0.03f, center = Offset(centerX, centerY - radius * 0.85f))
-    drawCircle(color = color, radius = w * 0.03f, center = Offset(centerX, centerY + radius * 0.85f))
-    drawCircle(color = color, radius = w * 0.03f, center = Offset(centerX - radius * 0.85f, centerY))
-    drawCircle(color = color, radius = w * 0.03f, center = Offset(centerX + radius * 0.85f, centerY))
 }
 
-// Gem icon for COLLECTOR
 private fun DrawScope.drawGemIcon(color: Color) {
-    val w = size.width
-    val h = size.height
+    val width = size.width
+    val height = size.height
 
-    // Gem top facets
     val topPath = Path().apply {
-        moveTo(w * 0.5f, h * 0.1f)
-        lineTo(w * 0.25f, h * 0.35f)
-        lineTo(w * 0.5f, h * 0.45f)
-        lineTo(w * 0.75f, h * 0.35f)
+        moveTo(width * 0.5f, height * 0.1f)
+        lineTo(width * 0.25f, height * 0.35f)
+        lineTo(width * 0.5f, height * 0.45f)
+        lineTo(width * 0.75f, height * 0.35f)
         close()
     }
     drawPath(topPath, color.copy(alpha = 0.4f))
 
-    // Gem bottom facets
     val bottomPath = Path().apply {
-        moveTo(w * 0.25f, h * 0.35f)
-        lineTo(w * 0.5f, h * 0.9f)
-        lineTo(w * 0.75f, h * 0.35f)
-        lineTo(w * 0.5f, h * 0.45f)
+        moveTo(width * 0.25f, height * 0.35f)
+        lineTo(width * 0.5f, height * 0.9f)
+        lineTo(width * 0.75f, height * 0.35f)
+        lineTo(width * 0.5f, height * 0.45f)
         close()
     }
-    drawPath(bottomPath, color.copy(alpha = 0.6f))
+    drawPath(bottomPath, color.copy(alpha = 0.62f))
 
-    // Outline
     val outlinePath = Path().apply {
-        moveTo(w * 0.5f, h * 0.1f)
-        lineTo(w * 0.25f, h * 0.35f)
-        lineTo(w * 0.5f, h * 0.9f)
-        lineTo(w * 0.75f, h * 0.35f)
+        moveTo(width * 0.5f, height * 0.1f)
+        lineTo(width * 0.25f, height * 0.35f)
+        lineTo(width * 0.5f, height * 0.9f)
+        lineTo(width * 0.75f, height * 0.35f)
         close()
     }
-    drawPath(outlinePath, color, style = Stroke(width = w * 0.04f))
-
-    // Highlight
-    drawLine(
-        color = Color.White.copy(alpha = 0.5f),
-        start = Offset(w * 0.35f, h * 0.25f),
-        end = Offset(w * 0.45f, h * 0.35f),
-        strokeWidth = w * 0.04f,
-        cap = androidx.compose.ui.graphics.StrokeCap.Round
-    )
+    drawPath(outlinePath, color, style = Stroke(width = width * 0.04f))
 }
 
-// Crown icon for LEGENDARY
 private fun DrawScope.drawCrownIcon(color: Color) {
-    val w = size.width
-    val h = size.height
+    val width = size.width
+    val height = size.height
 
-    // Crown body
     val crownPath = Path().apply {
-        moveTo(w * 0.1f, h * 0.65f)
-        lineTo(w * 0.2f, h * 0.3f)
-        lineTo(w * 0.35f, h * 0.5f)
-        lineTo(w * 0.5f, h * 0.2f)
-        lineTo(w * 0.65f, h * 0.5f)
-        lineTo(w * 0.8f, h * 0.3f)
-        lineTo(w * 0.9f, h * 0.65f)
+        moveTo(width * 0.1f, height * 0.65f)
+        lineTo(width * 0.2f, height * 0.3f)
+        lineTo(width * 0.35f, height * 0.5f)
+        lineTo(width * 0.5f, height * 0.2f)
+        lineTo(width * 0.65f, height * 0.5f)
+        lineTo(width * 0.8f, height * 0.3f)
+        lineTo(width * 0.9f, height * 0.65f)
         close()
     }
     drawPath(crownPath, color.copy(alpha = 0.3f))
-    drawPath(crownPath, color, style = Stroke(width = w * 0.04f))
+    drawPath(crownPath, color, style = Stroke(width = width * 0.04f))
 
-    // Crown base
-    drawRect(
-        color = color.copy(alpha = 0.4f),
-        topLeft = Offset(w * 0.1f, h * 0.65f),
-        size = Size(w * 0.8f, h * 0.15f)
+    drawRoundRect(
+        color = color.copy(alpha = 0.42f),
+        topLeft = Offset(width * 0.1f, height * 0.65f),
+        size = Size(width * 0.8f, height * 0.15f),
+        cornerRadius = CornerRadius(width * 0.06f)
     )
-    drawRect(
-        color = color,
-        topLeft = Offset(w * 0.1f, h * 0.65f),
-        size = Size(w * 0.8f, h * 0.15f),
-        style = Stroke(width = w * 0.04f)
-    )
-
-    // Jewels
-    drawCircle(color = Color(0xFFEF5350), radius = w * 0.06f, center = Offset(w * 0.5f, h * 0.45f))
-    drawCircle(color = Color(0xFF42A5F5), radius = w * 0.05f, center = Offset(w * 0.3f, h * 0.55f))
-    drawCircle(color = Color(0xFF66BB6A), radius = w * 0.05f, center = Offset(w * 0.7f, h * 0.55f))
-
-    // Crown tips
-    drawCircle(color = color, radius = w * 0.05f, center = Offset(w * 0.2f, h * 0.28f))
-    drawCircle(color = color, radius = w * 0.05f, center = Offset(w * 0.5f, h * 0.18f))
-    drawCircle(color = color, radius = w * 0.05f, center = Offset(w * 0.8f, h * 0.28f))
 }
 
-// Lock icon for locked achievements
 @Composable
 fun LockIcon(modifier: Modifier = Modifier) {
     val size = 28.dp
-    val color = Color.Gray.copy(alpha = 0.4f)
+    val color = Color(0xFF9A9389)
 
     Canvas(modifier = modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
+        val width = this.size.width
+        val height = this.size.height
 
-        // Lock body
         drawRoundRect(
-            color = color.copy(alpha = 0.3f),
-            topLeft = Offset(w * 0.2f, h * 0.45f),
-            size = Size(w * 0.6f, h * 0.45f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f)
+            color = color.copy(alpha = 0.22f),
+            topLeft = Offset(width * 0.2f, height * 0.45f),
+            size = Size(width * 0.6f, height * 0.45f),
+            cornerRadius = CornerRadius(width * 0.08f)
         )
         drawRoundRect(
             color = color,
-            topLeft = Offset(w * 0.2f, h * 0.45f),
-            size = Size(w * 0.6f, h * 0.45f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f),
-            style = Stroke(width = w * 0.04f)
+            topLeft = Offset(width * 0.2f, height * 0.45f),
+            size = Size(width * 0.6f, height * 0.45f),
+            cornerRadius = CornerRadius(width * 0.08f),
+            style = Stroke(width = width * 0.04f)
         )
 
-        // Lock shackle
         val shacklePath = Path().apply {
-            moveTo(w * 0.35f, h * 0.45f)
-            lineTo(w * 0.35f, h * 0.3f)
-            cubicTo(w * 0.35f, h * 0.15f, w * 0.65f, h * 0.15f, w * 0.65f, h * 0.3f)
-            lineTo(w * 0.65f, h * 0.45f)
+            moveTo(width * 0.35f, height * 0.45f)
+            lineTo(width * 0.35f, height * 0.3f)
+            cubicTo(width * 0.35f, height * 0.15f, width * 0.65f, height * 0.15f, width * 0.65f, height * 0.3f)
+            lineTo(width * 0.65f, height * 0.45f)
         }
-        drawPath(shacklePath, color, style = Stroke(width = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        drawPath(
+            shacklePath,
+            color,
+            style = Stroke(width = width * 0.06f, cap = StrokeCap.Round)
+        )
 
-        // Keyhole
         drawCircle(
-            color = color.copy(alpha = 0.5f),
-            radius = w * 0.06f,
-            center = Offset(w * 0.5f, h * 0.6f)
+            color = color.copy(alpha = 0.55f),
+            radius = width * 0.06f,
+            center = Offset(width * 0.5f, height * 0.6f)
         )
     }
 }

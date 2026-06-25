@@ -80,7 +80,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            AchievementBadgeLarge(category = item.def.category, tier = item.def.tier, isUnlocked = item.isUnlocked)
+            AchievementBadgeLarge(achievementKey = item.def.key, category = item.def.category, tier = item.def.tier, isUnlocked = item.isUnlocked)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -143,7 +143,7 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun AchievementBadgeLarge(category: AchievementCategory, tier: AchievementTier, isUnlocked: Boolean) {
+private fun AchievementBadgeLarge(achievementKey: String, category: AchievementCategory, tier: AchievementTier, isUnlocked: Boolean) {
     val backgroundBrush = if (isUnlocked) {
         when (tier) {
             AchievementTier.COMMON -> Brush.linearGradient(listOf(Color(0xFF90A4AE), Color(0xFF78909C)))
@@ -161,6 +161,7 @@ private fun AchievementBadgeLarge(category: AchievementCategory, tier: Achieveme
     ) {
         if (isUnlocked) {
             AchievementIcon(
+                achievementKey = achievementKey,
                 category = category,
                 tier = tier,
                 isUnlocked = true,

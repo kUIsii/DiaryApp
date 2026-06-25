@@ -23,7 +23,8 @@ data class AchievementGalleryCardState(
     val item: AchievementItem,
     val title: String,
     val description: String,
-    val isConcealed: Boolean
+    val isConcealed: Boolean,
+    val statusLabel: String
 )
 
 data class AchievementGalleryState(
@@ -161,7 +162,8 @@ private fun toGalleryCardState(item: AchievementItem): AchievementGalleryCardSta
             item = item,
             title = "未公开藏品",
             description = "完成特定条件后，这条生活线索会显露完整内容。",
-            isConcealed = true
+            isConcealed = true,
+            statusLabel = buildAchievementStatusLabel(item)
         )
     }
 
@@ -169,8 +171,17 @@ private fun toGalleryCardState(item: AchievementItem): AchievementGalleryCardSta
         item = item,
         title = item.def.name,
         description = item.def.description,
-        isConcealed = false
+        isConcealed = false,
+        statusLabel = buildAchievementStatusLabel(item)
     )
+}
+
+fun buildAchievementStatusLabel(item: AchievementItem): String {
+    return when {
+        item.isUnlocked -> "已达成"
+        item.isHiddenLocked -> "隐藏线索"
+        else -> "${(item.progressFraction * 100).toInt()}%"
+    }
 }
 
 private fun defaultGallerySort(): Comparator<AchievementItem> {
