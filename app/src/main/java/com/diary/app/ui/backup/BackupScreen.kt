@@ -99,7 +99,7 @@ fun BackupScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? DiaryApplication ?: return
-    val dao = app.database.diaryDao()
+    val database = app.database
     val scope = rememberCoroutineScope()
 
     var autoBackupEnabled by remember { mutableStateOf(BackupManager.isAutoBackupEnabled(context)) }
@@ -521,7 +521,7 @@ fun BackupScreen(
                                             scope.launch {
                                                 val record = withContext(Dispatchers.IO) {
                                                     if (BackupManager.shouldAutoBackup(context)) {
-                                                        BackupManager.performAutoBackup(context, dao)
+                                                        BackupManager.performAutoBackup(context, database)
                                                     } else {
                                                         null
                                                     }
@@ -629,7 +629,7 @@ fun BackupScreen(
                                                         backupProgress += 0.05f
                                                     }
                                                 }
-                                                val record = BackupManager.createBackup(context, dao)
+                                                val record = BackupManager.createBackup(context, database)
                                                 backupHistory = BackupManager.getBackupHistory(context)
                                                 backupProgress = 1f
                                                 delay(250)

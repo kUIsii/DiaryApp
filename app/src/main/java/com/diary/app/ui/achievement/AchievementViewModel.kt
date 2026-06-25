@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 class AchievementViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as DiaryApplication).database
-    private val repository = AchievementRepository(db.achievementDao(), db.diaryDao())
+    private val repository = AchievementRepository(db.achievementDao(), db.diaryDao(), db.tagDao(), db.mediaDao())
 
     val allItems: StateFlow<List<AchievementItem>> = repository.getAllItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

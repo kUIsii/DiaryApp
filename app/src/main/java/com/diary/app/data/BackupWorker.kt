@@ -16,7 +16,7 @@ class BackupWorker(
                 return Result.success()
             }
             val db = DiaryDatabase.getDatabase(applicationContext)
-            BackupManager.performAutoBackup(applicationContext, db.diaryDao())
+            BackupManager.performAutoBackup(applicationContext, db)
             Result.success()
         } catch (e: Exception) {
             Log.w("BackupWorker", "Auto backup failed", e)

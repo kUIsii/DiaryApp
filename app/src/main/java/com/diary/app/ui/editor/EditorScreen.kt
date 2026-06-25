@@ -180,7 +180,6 @@ fun EditorScreen(
     var locationLat by remember { mutableStateOf<Double?>(null) }
     var locationLng by remember { mutableStateOf<Double?>(null) }
     var showTagDialog by remember { mutableStateOf(false) }
-    var showTemplateDialog by remember { mutableStateOf(false) }
     var showLinkDialog by remember { mutableStateOf(false) }
     var showDraftsDialog by remember { mutableStateOf(false) }
     var draftVersion by remember { mutableIntStateOf(0) }
@@ -856,17 +855,6 @@ fun EditorScreen(
                     currentDraftId = null
                     showDraftDialog = false
                 }) { Text(stringResource(R.string.discard)) }
-            }
-        )
-    }
-
-    // Template selection dialog
-    if (showTemplateDialog) {
-        TemplateDialog(
-            onDismiss = { showTemplateDialog = false },
-            onTemplateSelected = { template ->
-                webView?.evaluateJavascript("setTemplate('${escapeForJs(template.content)}')", null)
-                showTemplateDialog = false
             }
         )
     }

@@ -1,0 +1,536 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiaryApp 统计与回顾预�?/title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .stats-hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .headline-card {
+      padding: 17px;
+      min-height: 148px;
+    }
+
+    .headline-card strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--text);
+      font-size: 34px;
+      line-height: 1;
+      font-family: var(--serif);
+    }
+
+    .headline-card span,
+    .small-note {
+      color: var(--faint);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .ring-card {
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      min-height: 148px;
+      text-align: center;
+    }
+
+    .ring {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle, var(--card) 0 56%, transparent 57%),
+        conic-gradient(var(--accent) 0 72%, color-mix(in srgb, var(--muted) 18%, transparent) 72% 100%);
+    }
+
+    .ring b {
+      color: var(--text);
+      font-size: 21px;
+    }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .tag-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag-chip.hot {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    .bar-chart {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      align-items: end;
+      gap: 8px;
+      height: 118px;
+      padding: 15px 13px 10px;
+    }
+
+    .bar {
+      display: grid;
+      align-items: end;
+      gap: 6px;
+      color: var(--faint);
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .bar i {
+      display: block;
+      height: var(--h);
+      min-height: 16px;
+      border-radius: 999px 999px 6px 6px;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      opacity: 0.92;
+    }
+
+    .trend-card {
+      padding: 14px 12px 12px;
+    }
+
+    .trend-line {
+      width: 100%;
+      height: 94px;
+      color: var(--accent);
+    }
+
+    .trend-line .soft {
+      color: var(--accent2);
+    }
+
+    .keyword-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      padding: 14px;
+    }
+
+    .keyword {
+      min-height: 58px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface-soft);
+      padding: 11px;
+    }
+
+    .keyword b {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .keyword span {
+      color: var(--faint);
+      font-size: 10px;
+    }
+
+    .quote-card {
+      padding: 15px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .quote-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 4px;
+      padding: 14px;
+    }
+
+    .heat {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--muted) 11%, transparent);
+    }
+
+    .heat.l1 { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+    .heat.l2 { background: color-mix(in srgb, var(--accent) 42%, transparent); }
+    .heat.l3 { background: color-mix(in srgb, var(--accent) 68%, transparent); }
+    .heat.l4 { background: color-mix(in srgb, var(--accent2) 78%, transparent); }
+
+    .month-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+      padding: 14px;
+    }
+
+    .month {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .month.active {
+      background: color-mix(in srgb, var(--accent) 16%, var(--surface-soft));
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+    }
+
+    .highlight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      padding: 14px;
+    }
+
+    .highlight {
+      min-height: 74px;
+      border-radius: 17px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      padding: 11px;
+    }
+
+    .highlight b {
+      display: block;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    .highlight span {
+      display: block;
+      margin-top: 5px;
+      color: var(--faint);
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .month-toggle {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+    }
+
+    .month-toggle button {
+      min-height: 28px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--faint);
+      padding: 0 10px;
+      font: 800 11px var(--font);
+      cursor: pointer;
+    }
+
+    .month-toggle button.active {
+      background: var(--card);
+      color: var(--accent);
+      box-shadow: var(--card-shadow);
+    }
+
+    .theme-note {
+      color: var(--page-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .screen.compact .app-content {
+      padding-bottom: 84px;
+    }
+
+    @media (max-width: 980px) {
+      .preview-head {
+        align-items: flex-start;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">DiaryApp stats review suite</p>
+        <h1 class="preview-title">统计、月报与年度回顾</h1>
+        <p class="preview-desc">面向真实日记应用的手机内功能页预览：聚合写作行为、情绪变化、关键词和年度热力图，语气克制，避免把私人记录做成过度游戏化的数据榜单�?/p>
+      </div>
+      <div class="preview-controls" aria-label="主题切换">
+        <button class="control-btn active" type="button" data-mode="light">浅色</button>
+        <button class="control-btn" type="button" data-mode="dark">深色</button>
+        <button class="control-btn active" type="button" data-theme="fog"><span class="theme-swatch" style="--sw:#6c8fb4"></span>雾蓝</button>
+        <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
+        <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
+        <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>沙金</button>
+        <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
+        <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
+      </div>
+    </header>
+
+    <section class="phone-grid" aria-label="统计回顾功能手机预览">
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>数据统计首页</strong>
+          <span>fog-light</span>
+        </div>
+        <div class="phone">
+          <div class="screen fog-light" data-role="screen" data-light="fog-light" data-dark="fog-dark">
+            <div class="statusbar"><span>9:41</span><span>100%</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>统计</h1>
+                  <p>把最近的记录节奏整理成可回看的线�?/p>
+                </div>
+                <button class="icon-btn" aria-label="筛选统计范�?>
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                </button>
+              </div>
+
+              <div class="stats-hero">
+                <div class="card headline-card">
+                  <span>本月写作</span>
+                  <strong>18</strong>
+                  <span>篇日记，比上月多 5 �?/span>
+                </div>
+                <div class="card ring-card">
+                  <div class="ring"><b>12�?/b></div>
+                  <span class="small-note">当前连续记录</span>
+                </div>
+              </div>
+
+              <div class="mini-grid">
+                <div class="mini-card">
+                  <strong>24,680</strong>
+                  <span>累计字数<br>平均每篇 823 �?/span>
+                </div>
+                <div class="mini-card">
+                  <strong>36</strong>
+                  <span>使用标签<br>本周新增 4 �?/span>
+                </div>
+              </div>
+
+              <div class="section-title">近七天记�?<span>次数</span></div>
+              <div class="card bar-chart" aria-label="近七天写作次数柱状图">
+                <div class="bar"><i style="--h:44px"></i><span>一</span></div>
+                <div class="bar"><i style="--h:78px"></i><span>�?/span></div>
+                <div class="bar"><i style="--h:34px"></i><span>�?/span></div>
+                <div class="bar"><i style="--h:92px"></i><span>�?/span></div>
+                <div class="bar"><i style="--h:58px"></i><span>�?/span></div>
+                <div class="bar"><i style="--h:66px"></i><span>�?/span></div>
+                <div class="bar"><i style="--h:84px"></i><span>�?/span></div>
+              </div>
+
+              <div class="section-title">常用标签 <span>按出现频�?/span></div>
+              <div class="card tag-cloud">
+                <span class="tag-chip hot">工作 26</span>
+                <span class="tag-chip hot">睡眠 18</span>
+                <span class="tag-chip">家庭 14</span>
+                <span class="tag-chip">散步 12</span>
+                <span class="tag-chip">读书 9</span>
+                <span class="tag-chip">计划 8</span>
+              </div>
+
+              <div class="bottom-nav">
+                <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H5V11"/></svg><span>首页</span></div>
+                <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12H4V7a2 2 0 0 1 2-2Z"/></svg><span>日历</span></div>
+                <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V5M8 17V9M12 17V7M16 17v-4M20 17V11"/></svg><span>统计</span></div>
+                <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v18M5 8h14M7 14h10"/></svg><span>工具</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>月度回顾</strong>
+          <span>moss-light</span>
+        </div>
+        <div class="phone">
+          <div class="screen moss-light" data-role="screen" data-light="moss-light" data-dark="moss-dark">
+            <div class="statusbar"><span>9:41</span><span>100%</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" aria-label="返回统计�?>
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div class="month-toggle" aria-label="月份切换">
+                  <button class="active" data-month="5">五月</button>
+                  <button data-month="6">六月</button>
+                </div>
+              </div>
+
+              <div class="title-block">
+                <h1>六月回顾</h1>
+                <p id="monthSummary">这个月记录更稳定，工作、睡眠和家庭是最常出现的主题�?/p>
+              </div>
+
+              <div class="section-title">本月摘要 <span>18 �?/span></div>
+              <div class="card card-pad">
+                <div class="row">
+                  <div class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h11v18H6a2 2 0 0 1-2-1.5Z"/><path d="M8 7h5M8 11h6M8 15h4"/></svg></div>
+                  <div class="row-text">
+                    <div class="row-title">写作最密集的一�?/div>
+                    <div class="row-sub">6 �?10 日至 16 日，�?7 篇，平均 910 �?/div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-bg: color-mix(in srgb, var(--accent2) 14%, transparent); --tile-text: var(--accent2);"><svg class="icon" viewBox="0 0 24 24"><path d="M12 21s-7-4.35-7-10a7 7 0 0 1 14 0c0 5.65-7 10-7 10Z"/><path d="M9 11h6"/></svg></div>
+                  <div class="row-text">
+                    <div class="row-title">主要情绪</div>
+                    <div class="row-sub">平稳占比 46%，疲惫在月底下降</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section-title">心情趋势 <span>平稳上扬</span></div>
+              <div class="card trend-card">
+                <svg class="trend-line" viewBox="0 0 320 100" role="img" aria-label="本月心情趋势折线�?>
+                  <path d="M12 78 C44 62, 56 68, 82 50 S130 33, 158 45 202 70, 234 52 258 36 292 41, 308 30" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                  <path class="soft" d="M12 82 C50 82, 70 74, 102 68 S170 66, 206 58 248 46, 308 50" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+                  <g fill="currentColor">
+                    <circle cx="82" cy="50" r="4"/><circle cx="158" cy="45" r="4"/><circle cx="258" cy="36" r="4"/><circle cx="308" cy="30" r="4"/>
+                  </g>
+                </svg>
+              </div>
+
+              <div class="section-title">关键�?<span>自动提取</span></div>
+              <div class="card keyword-list">
+                <div class="keyword"><b>复盘</b><span>出现 12 �?/span></div>
+                <div class="keyword"><b>早睡</b><span>出现 9 �?/span></div>
+                <div class="keyword"><b>家人</b><span>出现 8 �?/span></div>
+                <div class="keyword"><b>项目</b><span>出现 7 �?/span></div>
+              </div>
+
+              <div class="section-title">代表日记 <span>继续阅读</span></div>
+              <div class="card quote-card">
+                <p>六月十六日，晚饭后散步。今天没有急着总结结果，只把下一步写清楚，反而轻松很多�?/p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>年度热力图与报告</strong>
+          <span>fog-dark</span>
+        </div>
+        <div class="phone">
+          <div class="screen fog-dark compact" data-role="screen" data-light="fog-light" data-dark="fog-dark">
+            <div class="statusbar"><span>9:41</span><span>100%</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>2026 年报</h1>
+                  <p>从一年记录里提炼频率、主题和阶段变化</p>
+                </div>
+                <button class="icon-btn" aria-label="分享年度报告">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 16V3M7 8l5-5 5 5"/></svg>
+                </button>
+              </div>
+
+              <div class="mini-grid">
+                <div class="mini-card">
+                  <strong>126</strong>
+                  <span>全年记录天数<br>最长连�?23 �?/span>
+                </div>
+                <div class="mini-card">
+                  <strong>18.4�?/strong>
+                  <span>全年字数<br>相当于一本短�?/span>
+                </div>
+              </div>
+
+              <div class="section-title">年度热力�?<span>每格约一�?/span></div>
+              <div class="card heatmap" aria-label="年度写作热力�?>
+                <span class="heat l1"></span><span class="heat l2"></span><span class="heat"></span><span class="heat l3"></span><span class="heat l2"></span><span class="heat l1"></span><span class="heat l4"></span><span class="heat l3"></span><span class="heat l2"></span><span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l3"></span>
+                <span class="heat"></span><span class="heat l1"></span><span class="heat l2"></span><span class="heat l2"></span><span class="heat l4"></span><span class="heat l3"></span><span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l3"></span><span class="heat l4"></span><span class="heat l1"></span><span class="heat"></span>
+                <span class="heat l2"></span><span class="heat l4"></span><span class="heat l3"></span><span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l2"></span><span class="heat l3"></span><span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l4"></span><span class="heat l3"></span>
+                <span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l3"></span><span class="heat l3"></span><span class="heat l4"></span><span class="heat l2"></span><span class="heat l1"></span><span class="heat"></span><span class="heat l2"></span><span class="heat l1"></span><span class="heat l3"></span><span class="heat l2"></span>
+              </div>
+
+              <div class="section-title">月份摘要 <span>高峰在春�?/span></div>
+              <div class="card month-strip">
+                <div class="month">1�?/div><div class="month active">2�?/div><div class="month">3�?/div><div class="month active">4�?/div><div class="month active">5�?/div><div class="month">6�?/div>
+                <div class="month">7�?/div><div class="month">8�?/div><div class="month active">9�?/div><div class="month">10�?/div><div class="month">11�?/div><div class="month active">12�?/div>
+              </div>
+
+              <div class="section-title">年度亮点 <span>自动整理</span></div>
+              <div class="card highlight-grid">
+                <div class="highlight"><b>42</b><span>次提到散步，成为最稳定的放松方�?/span></div>
+                <div class="highlight"><b>5�?/b><span>写作最密集，留�?21 篇记�?/span></div>
+                <div class="highlight"><b>9�?/b><span>长期主题贯穿全年，适合生成专题�?/span></div>
+              </div>
+
+              <div class="section-title">报告入口 <span>可导�?/span></div>
+              <div class="card card-pad">
+                <div class="row">
+                  <div class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 13h6M9 17h4"/></svg></div>
+                  <div class="row-text">
+                    <div class="row-title">生成年度长图</div>
+                    <div class="row-sub">隐藏具体正文，只保留统计摘要和精选标�?/div>
+                  </div>
+                  <svg class="icon chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p class="theme-note">璁捐瑕嗙洊 fog-light銆乵oss-light銆乫og-dark銆乊lay-light銆乻lay-dark銆乿nk-dark；鎸夐挳鐢ㄤ簬妫€鏌ュ悓涓€缁勪欢鍦ㄦ祬鑹层€佹繁鑹蹭笌娣峰悎涓婚涓嬬殑绋冲畾鎬с€?/p>
+  </main>
+
+  <script src="preview-controls.js"></script>
+  <script>
+    document.querySelectorAll(".month-toggle button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".month-toggle button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        const summary = document.getElementById("monthSummary");
+        summary.textContent = button.dataset.month === "5"
+          ? "五月记录最密集，项目推进、通勤和睡眠是主要线索。"
+          : "六月记录更稳定，工作、睡眠和家庭是最常出现的主题。";
+      });
+    });
+  </script>
+</body>
+</html>

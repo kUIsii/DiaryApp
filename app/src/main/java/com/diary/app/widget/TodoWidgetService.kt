@@ -37,7 +37,7 @@ class TodoRemoteViewsFactory(
         runBlocking {
             try {
                 val db = DiaryDatabase.getDatabase(context)
-                todos = db.diaryDao().getTopPendingTodos(20)
+                todos = db.todoDao().getTopPendingTodos(20)
             } catch (e: Exception) {
                 todos = emptyList()
             }

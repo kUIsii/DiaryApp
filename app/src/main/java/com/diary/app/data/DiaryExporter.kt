@@ -50,7 +50,7 @@ object DiaryExporter {
         val tags: List<ExportTag>
     )
 
-    suspend fun export(context: Context, dao: DiaryDao): String {
+    suspend fun export(context: Context, dao: DiaryDao, tagDao: TagDao): String {
         // 分批查询避免 CursorWindow 溢出
         val entries = mutableListOf<DiaryEntry>()
         var offset = 0
@@ -62,8 +62,8 @@ object DiaryExporter {
             offset += batchSize
         }
 
-        val tags = dao.getAllTagsOnce()
-        val allDiaryTags = dao.getAllDiaryTags()
+        val tags = tagDao.getAllTagsOnce()
+        val allDiaryTags = tagDao.getAllDiaryTags()
 
         // Build diaryId -> tag names map
         val tagMap = tags.associateBy { it.id }
@@ -109,7 +109,7 @@ object DiaryExporter {
         return saveToFile(context, fileName, json)
     }
 
-    suspend fun exportAsMarkdown(context: Context, dao: DiaryDao): String {
+    suspend fun exportAsMarkdown(context: Context, dao: DiaryDao, tagDao: TagDao): String {
         val entries = mutableListOf<DiaryEntry>()
         var offset = 0
         val batchSize = 50
@@ -119,8 +119,8 @@ object DiaryExporter {
             entries.addAll(batch)
             offset += batchSize
         }
-        val tags = dao.getAllTagsOnce()
-        val allDiaryTags = dao.getAllDiaryTags()
+        val tags = tagDao.getAllTagsOnce()
+        val allDiaryTags = tagDao.getAllDiaryTags()
 
         val tagMap = tags.associateBy { it.id }
         val diaryTagMap = allDiaryTags.groupBy({ it.diaryId }, { tagMap[it.tagId]?.name ?: "" })

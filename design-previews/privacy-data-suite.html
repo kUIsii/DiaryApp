@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据与隐私功能页预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .suite-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--page-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .theme-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #7ba06e;
+      box-shadow: 0 0 0 4px rgba(123, 160, 110, 0.12);
+    }
+
+    .hero-card {
+      margin-bottom: 14px;
+      padding: 16px;
+    }
+
+    .hero-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero-number {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .hero-caption {
+      margin: 8px 0 0;
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .backup-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .backup-item {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 56px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface-soft);
+    }
+
+    .status-chip,
+    .format-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: color-mix(in srgb, var(--card) 80%, transparent);
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-chip.good {
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    .status-chip.waiting {
+      color: var(--accent2);
+      border-color: color-mix(in srgb, var(--accent2) 36%, transparent);
+      background: color-mix(in srgb, var(--accent2) 12%, transparent);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      padding: 14px 2px 2px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 12px 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .timeline-dot {
+      width: 8px;
+      height: 8px;
+      margin-top: 5px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+    }
+
+    .timeline-title {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .timeline-sub {
+      margin-top: 3px;
+      color: var(--faint);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .format-card {
+      min-height: 92px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface-soft);
+    }
+
+    .format-card .icon {
+      color: var(--accent);
+    }
+
+    .format-card strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .format-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--faint);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .preserve-box {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--accent2) 30%, transparent);
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--accent2) 12%, var(--surface-soft));
+    }
+
+    .export-progress {
+      display: grid;
+      gap: 10px;
+    }
+
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .key {
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .lock-visual {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      padding: 18px 0 4px;
+    }
+
+    .lock-ring {
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 30px;
+      color: var(--accent);
+      background:
+        radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 68%),
+        var(--surface-soft);
+    }
+
+    .pin-dots {
+      display: flex;
+      gap: 9px;
+    }
+
+    .pin-dots i {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .check-list {
+      display: grid;
+      gap: 8px;
+      padding: 2px 0 0;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .check-item span {
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .switch {
+      width: 42px;
+      height: 24px;
+      padding: 3px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 18px;
+      margin-left: 18px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .screen.theme-previewing {
+      animation: themePulse 260ms ease;
+    }
+
+    @keyframes themePulse {
+      from { opacity: 0.72; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 760px) {
+      .phone-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">DiaryApp privacy data suite</p>
+        <h1 class="preview-title">数据与隐私功能页</h1>
+        <p class="preview-desc">三个手机内页面分别呈现备份管理、导出迁移、应用锁与安全，强调日记数据可控、可迁移、可恢复，适合从工具页进入的二级功能预览。</p>
+      </div>
+      <div class="preview-controls" aria-label="主题切换">
+        <button class="control-btn active" data-theme-choice="fog-light">Fog Light</button>
+        <button class="control-btn" data-theme-choice="moss-dark">Moss Dark</button>
+        <button class="control-btn" data-theme-choice="clay-light">Clay Light</button>
+        <button class="control-btn" data-theme-choice="ink-dark">Ink Dark</button>
+      </div>
+    </header>
+
+    <section class="phone-grid" aria-label="数据与隐私手机预览">
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>备份管理</strong>
+          <span class="suite-note"><i class="theme-dot"></i>本地优先</span>
+        </div>
+        <div class="phone">
+          <div class="screen fog-light" data-theme-sync>
+            <div class="statusbar">
+              <span>09:41</span>
+              <span>100%</span>
+            </div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" aria-label="返回">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <span class="pill">数据与隐私</span>
+              </div>
+
+              <div class="title-block">
+                <h1>备份管理</h1>
+                <p>把日记正文、附件索引和设置打包为加密备份，恢复时保留时间线与标签。</p>
+              </div>
+
+              <section class="card hero-card">
+                <div class="hero-meta">
+                  <span>本地备份</span>
+                  <span class="status-chip good">已加密</span>
+                </div>
+                <p class="hero-number">2.8 GB</p>
+                <p class="hero-caption">包含 1,248 篇日记、3,920 张图片索引、主题和提醒设置。</p>
+                <div class="backup-stack">
+                  <div class="backup-item">
+                    <div class="icon-tile">
+                      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    </div>
+                    <div class="row-text">
+                      <div class="row-title">立即创建本地备份</div>
+                      <div class="row-sub">保存到手机存储，可手动复制到电脑</div>
+                    </div>
+                    <span class="chev">›</span>
+                  </div>
+                  <div class="backup-item">
+                    <div class="icon-tile" style="--tile-text: var(--accent2); --tile-bg: color-mix(in srgb, var(--accent2) 14%, transparent);">
+                      <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div class="row-text">
+                      <div class="row-title">端到端加密</div>
+                      <div class="row-sub">备份文件需恢复码或设备密钥解锁</div>
+                    </div>
+                    <span class="status-chip good">开启</span>
+                  </div>
+                  <div class="backup-item">
+                    <div class="icon-tile" style="--tile-text: var(--accent3); --tile-bg: color-mix(in srgb, var(--accent3) 14%, transparent);">
+                      <svg class="icon" viewBox="0 0 24 24"><path d="M18 10h1a4 4 0 0 1 0 8H7a5 5 0 1 1 1-9.9"/><path d="M12 13v8"/><path d="M8 17l4-4 4 4"/></svg>
+                    </div>
+                    <div class="row-text">
+                      <div class="row-title">云备份</div>
+                      <div class="row-sub">待接入 iCloud / WebDAV</div>
+                    </div>
+                    <span class="status-chip waiting">待接入</span>
+                  </div>
+                </div>
+              </section>
+
+              <div class="section-title">最近备份记录 <span>3 次</span></div>
+              <section class="card card-pad">
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <i class="timeline-dot"></i>
+                    <div>
+                      <div class="timeline-title">今天 08:20</div>
+                      <div class="timeline-sub">backup-2026-06-18.diaryvault</div>
+                    </div>
+                    <span class="status-chip good">完成</span>
+                  </div>
+                  <div class="timeline-item">
+                    <i class="timeline-dot"></i>
+                    <div>
+                      <div class="timeline-title">昨天 22:14</div>
+                      <div class="timeline-sub">新增 42 张图片资源索引</div>
+                    </div>
+                    <span class="status-chip">2.7 GB</span>
+                  </div>
+                  <div class="timeline-item">
+                    <i class="timeline-dot"></i>
+                    <div>
+                      <div class="timeline-title">6 月 12 日</div>
+                      <div class="timeline-sub">首次启用加密备份</div>
+                    </div>
+                    <span class="status-chip">归档</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"/><path d="M9 21V9h6v12"/></svg><span>首页</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>日记</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>隐私</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>导出与迁移</strong>
+          <span class="suite-note"><i class="theme-dot"></i>格式保留</span>
+        </div>
+        <div class="phone">
+          <div class="screen moss-dark" data-theme-sync>
+            <div class="statusbar">
+              <span>09:41</span>
+              <span>82%</span>
+            </div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" aria-label="返回">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button class="icon-btn" aria-label="导出设置">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                </button>
+              </div>
+
+              <div class="title-block">
+                <h1>导出与迁移</h1>
+                <p>选择单篇、月份或全部日记，导出为可长期保存的开放格式。</p>
+              </div>
+
+              <div class="section-title">导出格式 <span>4 种</span></div>
+              <section class="format-grid">
+                <div class="format-card">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/></svg>
+                  <strong>PDF</strong>
+                  <span>适合打印归档，保留封面与分页</span>
+                </div>
+                <div class="format-card">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+                  <strong>HTML</strong>
+                  <span>本地网页包，图片相对路径引用</span>
+                </div>
+                <div class="format-card">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 16V8l4 5 4-5v8"/></svg>
+                  <strong>Markdown</strong>
+                  <span>纯文本迁移，保留标题层级</span>
+                </div>
+                <div class="format-card">
+                  <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                  <strong>图片资源</strong>
+                  <span>原图、缩略图、音频附件单独打包</span>
+                </div>
+              </section>
+
+              <div class="section-title">迁移提示 <span>可预览</span></div>
+              <section class="preserve-box">
+                <div class="icon-tile" style="--tile-text: var(--accent2); --tile-bg: color-mix(in srgb, var(--accent2) 16%, transparent);">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div class="row-text">
+                  <div class="row-title">保留排版、心情、天气与标签</div>
+                  <div class="row-sub">导出前显示差异预览，标记不支持的组件和缺失资源。</div>
+                </div>
+              </section>
+
+              <div class="section-title">正在导出 <span>今天 09:40</span></div>
+              <section class="card card-pad export-progress">
+                <div class="progress-head">
+                  <span>2026 上半年日记包</span>
+                  <span>68%</span>
+                </div>
+                <div class="progress" aria-label="导出进度 68%">
+                  <i style="--value: 68%;"></i>
+                </div>
+                <div class="row">
+                  <div class="icon-tile">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M20 16.7A4.5 4.5 0 0 0 17 8h-1.3A6 6 0 1 0 5 14.5"/><path d="M12 12v9"/><path d="M8 17l4 4 4-4"/></svg>
+                  </div>
+                  <div class="row-text">
+                    <div class="row-title">正在压缩图片资源</div>
+                    <div class="row-sub">已处理 1,204 / 1,760 个文件，完成后自动校验清单。</div>
+                  </div>
+                </div>
+                <div>
+                  <span class="format-chip">PDF</span>
+                  <span class="format-chip">HTML</span>
+                  <span class="format-chip">Markdown</span>
+                </div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>写作</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span>导出</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>设置</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>应用锁与安全</strong>
+          <span class="suite-note"><i class="theme-dot"></i>快速检查</span>
+        </div>
+        <div class="phone">
+          <div class="screen clay-light" data-theme-sync>
+            <div class="statusbar">
+              <span>09:41</span>
+              <span>76%</span>
+            </div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" aria-label="返回">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <span class="pill">安全等级 高</span>
+              </div>
+
+              <div class="title-block">
+                <h1>应用锁与安全</h1>
+                <p>进入 DiaryApp 前验证身份，防止临时借用手机时误看私密日记。</p>
+              </div>
+
+              <section class="card hero-card">
+                <div class="lock-visual">
+                  <div class="lock-ring">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:42px;height:42px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div class="pin-dots" aria-label="PIN 已输入 4 位">
+                    <i></i><i></i><i></i><i></i>
+                  </div>
+                  <p class="hero-caption">PIN 和生物识别同时开启，连续失败 5 次后需要恢复码。</p>
+                </div>
+                <div class="keypad" aria-label="PIN 键盘预览">
+                  <div class="key">1</div>
+                  <div class="key">2</div>
+                  <div class="key">3</div>
+                  <div class="key">4</div>
+                  <div class="key">5</div>
+                  <div class="key">6</div>
+                </div>
+              </section>
+
+              <div class="section-title">锁定方式 <span>已启用</span></div>
+              <section class="card card-pad">
+                <div class="row">
+                  <div class="icon-tile">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div class="row-text">
+                    <div class="row-title">PIN 码</div>
+                    <div class="row-sub">6 位数字，修改时需验证旧 PIN</div>
+                  </div>
+                  <div class="switch" aria-hidden="true"></div>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-text: var(--accent2); --tile-bg: color-mix(in srgb, var(--accent2) 14%, transparent);">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 11c1.7 0 3-1.3 3-3V5a3 3 0 0 0-6 0v3c0 1.7 1.3 3 3 3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
+                  </div>
+                  <div class="row-text">
+                    <div class="row-title">生物识别</div>
+                    <div class="row-sub">支持指纹或面容，失败后回退到 PIN</div>
+                  </div>
+                  <div class="switch" aria-hidden="true"></div>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-text: var(--accent3); --tile-bg: color-mix(in srgb, var(--accent3) 14%, transparent);">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  </div>
+                  <div class="row-text">
+                    <div class="row-title">自动锁定</div>
+                    <div class="row-sub">离开应用 30 秒后自动锁定</div>
+                  </div>
+                  <span class="chev">›</span>
+                </div>
+              </section>
+
+              <div class="section-title">安全检查 <span>4 / 4</span></div>
+              <section class="check-list">
+                <div class="check-item">恢复码已保存 <span>8 组单词</span></div>
+                <div class="check-item">屏幕截图保护 <span>私密页开启</span></div>
+                <div class="check-item">备份加密状态 <span>正常</span></div>
+                <div class="check-item">异常登录提醒 <span>本机可用</span></div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg><span>工具</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>安全</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6M7 12H1"/></svg><span>更多</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll("[data-theme-choice]");
+    const screens = document.querySelectorAll("[data-theme-sync]");
+    const themeOrder = ["fog-light", "moss-dark", "clay-light", "ink-dark"];
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const selected = button.dataset.themeChoice;
+        const selectedIndex = themeOrder.indexOf(selected);
+
+        buttons.forEach((item) => {
+          item.classList.toggle("active", item === button);
+        });
+
+        screens.forEach((screen, index) => {
+          screen.classList.remove(...themeOrder, "theme-previewing");
+          const nextTheme = themeOrder[(selectedIndex + index) % themeOrder.length];
+          screen.classList.add(nextTheme, "theme-previewing");
+          window.setTimeout(() => screen.classList.remove("theme-previewing"), 280);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工具 — 禅意极简 A</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;600&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #F8F7F4;
+      --card-bg: rgba(255,255,255,0.72);
+      --text-primary: #2A2520;
+      --text-secondary: #8A8075;
+      --accent: #7A8B7A;
+      --divider: rgba(42,37,32,0.07);
+      --shadow: 0 1px 3px rgba(42,37,32,0.04);
+      --hover-bg: rgba(42,37,32,0.025);
+      --section-title-bg: rgba(42,37,32,0.03);
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1916;
+      --card-bg: rgba(36,34,32,0.8);
+      --text-primary: #E8E4DC;
+      --text-secondary: #7A7265;
+      --accent: #8BA08A;
+      --divider: rgba(255,255,255,0.06);
+      --shadow: 0 1px 3px rgba(0,0,0,0.18);
+      --hover-bg: rgba(255,255,255,0.025);
+      --section-title-bg: rgba(255,255,255,0.025);
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 300;
+      transition: background 0.4s ease, color 0.4s ease;
+      min-height: 100vh;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .device-frame {
+      width: 100%;
+      max-width: 420px;
+      min-height: 100vh;
+      background: var(--bg);
+      padding: 0 28px 100px 28px;
+      position: relative;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 56px 0 32px 0;
+    }
+
+    .page-title {
+      font-family: 'LXGW WenKai', serif;
+      font-size: 28px;
+      font-weight: 300;
+      letter-spacing: 3px;
+      color: var(--text-primary);
+    }
+
+    .theme-toggle {
+      width: 34px;
+      height: 34px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+      color: var(--text-secondary);
+    }
+
+    .theme-toggle:hover {
+      background: var(--hover-bg);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 4px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 2px;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .section-header:hover {
+      background: var(--hover-bg);
+    }
+
+    .section-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-icon-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      transition: opacity 0.3s;
+    }
+
+    .section-title {
+      font-family: 'LXGW WenKai', serif;
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .section-chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--text-secondary);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+      flex-shrink: 0;
+    }
+
+    .section.collapsed .section-chevron {
+      transform: rotate(-90deg);
+      opacity: 0.5;
+    }
+
+    .section.collapsed .section-icon-dot {
+      opacity: 0.4;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 0 2px;
+    }
+
+    /* ── Tool List ── */
+    .tool-list {
+      overflow: hidden;
+      max-height: 600px;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    .section.collapsed .tool-list {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .tool-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 2px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.2s;
+      gap: 14px;
+    }
+
+    .tool-item:hover {
+      background: var(--hover-bg);
+    }
+
+    .tool-item + .tool-item {
+      border-top: 1px solid var(--divider);
+    }
+
+    .tool-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--section-title-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    .tool-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .tool-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tool-name {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-primary);
+      letter-spacing: 0.3px;
+      margin-bottom: 2px;
+    }
+
+    .tool-desc {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      font-weight: 300;
+      letter-spacing: 0.2px;
+    }
+
+    .tool-arrow {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+      opacity: 0.45;
+      flex-shrink: 0;
+      transform: rotate(180deg);
+    }
+
+    /* ── Bottom padding ── */
+    .bottom-pad {
+      height: 80px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 0;
+    }
+  </style>
+</head>
+<body>
+<div class="device-frame">
+
+  <!-- Header -->
+  <header class="header">
+    <h1 class="page-title">工具</h1>
+    <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+      <!-- Sun icon (shown in dark mode → click to go light) -->
+      <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <!-- Moon icon (shown in light mode → click to go dark) -->
+      <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ── Section 1: 创作与记录 ── -->
+  <section class="section" id="section-1">
+    <div class="section-header" onclick="toggleSection(1)">
+      <div class="section-header-left">
+        <div class="section-icon-dot"></div>
+        <span class="section-title">创作与记录</span>
+      </div>
+      <svg class="section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </div>
+    <div class="section-divider"></div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">数据统计</div>
+          <div class="tool-desc">记录字数与频率分析</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">媒体库</div>
+          <div class="tool-desc">照片、视频与文件管理</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">标签管理</div>
+          <div class="tool-desc">整理与筛选日记标签</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section 2: 回忆与探索 ── -->
+  <section class="section" id="section-2">
+    <div class="section-header" onclick="toggleSection(2)">
+      <div class="section-header-left">
+        <div class="section-icon-dot"></div>
+        <span class="section-title">回忆与探索</span>
+      </div>
+      <svg class="section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </div>
+    <div class="section-divider"></div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">倒数日</div>
+          <div class="tool-desc">标记重要日期的倒数</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">时间胶囊</div>
+          <div class="tool-desc">封存内容在未来开启</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+            <line x1="9" y1="3" x2="9" y2="18"/>
+            <line x1="15" y1="6" x2="15" y2="21"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">日记地图</div>
+          <div class="tool-desc">按地理位置回顾日记</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">随机回顾</div>
+          <div class="tool-desc">偶然重读过去的日记</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section 3: AI 伙伴 ── -->
+  <section class="section collapsed" id="section-3">
+    <div class="section-header" onclick="toggleSection(3)">
+      <div class="section-header-left">
+        <div class="section-icon-dot"></div>
+        <span class="section-title">AI 伙伴</span>
+      </div>
+      <svg class="section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </div>
+    <div class="section-divider"></div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">AI 助手</div>
+          <div class="tool-desc">智能问答与写作辅助</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">AI 传记</div>
+          <div class="tool-desc">自动生成人生故事</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section 4: 其他 ── -->
+  <section class="section collapsed" id="section-4">
+    <div class="section-header" onclick="toggleSection(4)">
+      <div class="section-header-left">
+        <div class="section-icon-dot"></div>
+        <span class="section-title">其他</span>
+      </div>
+      <svg class="section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </div>
+    <div class="section-divider"></div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">消息通知</div>
+          <div class="tool-desc">提醒与推送设置</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="tool-item">
+        <div class="tool-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <div class="tool-text">
+          <div class="tool-name">实验性功能</div>
+          <div class="tool-desc">正在探索的新特性</div>
+        </div>
+        <svg class="tool-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <div class="bottom-pad"></div>
+</div>
+
+<script>
+  // Theme toggle
+  const html = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const iconSun = document.getElementById('icon-sun');
+  const iconMoon = document.getElementById('icon-moon');
+
+  function applyTheme(isDark) {
+    if (isDark) {
+      html.setAttribute('data-theme', 'dark');
+      iconSun.style.display = 'block';
+      iconMoon.style.display = 'none';
+    } else {
+      html.removeAttribute('data-theme');
+      iconSun.style.display = 'none';
+      iconMoon.style.display = 'block';
+    }
+  }
+
+  // Default: light. Check localStorage.
+  const savedTheme = localStorage.getItem('tools-theme-A');
+  applyTheme(savedTheme === 'dark');
+
+  themeToggle.addEventListener('click', () => {
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    applyTheme(!isDark);
+    localStorage.setItem('tools-theme-A', !isDark ? 'dark' : 'light');
+  });
+
+  // Section collapse/expand
+  function toggleSection(id) {
+    const section = document.getElementById('section-' + id);
+    if (section.classList.contains('collapsed')) {
+      section.classList.remove('collapsed');
+    } else {
+      section.classList.add('collapsed');
+    }
+  }
+</script>
+</body>
+</html>

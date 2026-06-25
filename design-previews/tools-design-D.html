@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具页 设计方案 D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-1: #F0EFF6;
+            --bg-2: #E8EDF8;
+            --bg-3: #F0F2F8;
+            --orb1: rgba(123, 143, 212, 0.3);
+            --orb2: rgba(180, 140, 220, 0.25);
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px rgba(100, 120, 160, 0.12);
+            --text-primary: #2C3040;
+            --text-secondary: #6E7A90;
+            --accent: #7B8FD4;
+            --accent2: #D4A878;
+            --accent3: #8ED4A8;
+            --divider: rgba(180, 195, 220, 0.35);
+            --icon-bg-1: rgba(123, 143, 212, 0.18);
+            --icon-bg-2: rgba(212, 168, 120, 0.18);
+            --icon-bg-3: rgba(142, 212, 168, 0.18);
+            --icon-bg-4: rgba(200, 140, 200, 0.18);
+        }
+
+        [data-theme="dark"] {
+            --bg-1: #1A1C28;
+            --bg-2: #1E2030;
+            --bg-3: #1A1C28;
+            --orb1: rgba(90, 110, 180, 0.18);
+            --orb2: rgba(100, 80, 160, 0.14);
+            --glass-bg: rgba(30, 32, 48, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            --text-primary: #D8E0F0;
+            --text-secondary: #8898B0;
+            --accent: #8898D4;
+            --accent2: #C09870;
+            --accent3: #70C490;
+            --divider: rgba(255, 255, 255, 0.07);
+            --icon-bg-1: rgba(136, 152, 212, 0.15);
+            --icon-bg-2: rgba(212, 168, 120, 0.15);
+            --icon-bg-3: rgba(142, 212, 168, 0.15);
+            --icon-bg-4: rgba(200, 140, 200, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 光圈装饰 */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(60px);
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 280px;
+            height: 280px;
+            background: var(--orb1);
+            top: -60px;
+            right: -60px;
+            transition: background 0.4s ease;
+        }
+
+        .orb-2 {
+            width: 240px;
+            height: 240px;
+            background: var(--orb2);
+            bottom: 100px;
+            left: -80px;
+            transition: background 0.4s ease;
+        }
+
+        .orb-3 {
+            width: 180px;
+            height: 180px;
+            background: rgba(142, 212, 168, 0.15);
+            top: 40%;
+            right: -60px;
+            transition: background 0.4s ease;
+        }
+
+        /* 页面容器 */
+        .page {
+            max-width: 400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+            padding-bottom: 100px;
+        }
+
+        /* 顶部栏 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 20px 12px;
+        }
+
+        .header-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        /* 主题切换 */
+        .theme-toggle {
+            width: 44px;
+            height: 26px;
+            border-radius: 13px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 0 3px;
+            transition: background 0.3s, border-color 0.3s;
+            position: relative;
+        }
+
+        .theme-toggle-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .theme-toggle-thumb {
+            transform: translateX(18px);
+        }
+
+        .theme-toggle-thumb svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* 玻璃卡片 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            margin: 0 16px 14px;
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.4s;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(100, 120, 160, 0.18);
+        }
+
+        /* 分组头部 */
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .group-icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+        .group-icon-wrap svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .group-icon-1 { background: var(--icon-bg-1); }
+        .group-icon-2 { background: var(--icon-bg-2); }
+        .group-icon-3 { background: var(--icon-bg-3); }
+        .group-icon-4 { background: var(--icon-bg-4); }
+
+        .group-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .group-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+            transition: color 0.3s;
+        }
+
+        .group-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 400;
+            transition: color 0.3s;
+        }
+
+        .group-chevron {
+            width: 20px;
+            height: 20px;
+            color: var(--text-secondary);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s;
+            flex-shrink: 0;
+            opacity: 0.6;
+        }
+
+        .group-header.open .group-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* 分组内容 */
+        .group-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .group-content.open {
+            max-height: 600px;
+        }
+
+        .tool-list {
+            padding: 4px 18px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* 分割线 */
+        .divider {
+            height: 1px;
+            background: var(--divider);
+            margin: 0 18px;
+        }
+
+        /* 工具行 */
+        .tool-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 0;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background 0.15s, transform 0.12s;
+            position: relative;
+        }
+
+        .tool-row:active {
+            transform: scale(0.97);
+            background: rgba(123, 143, 212, 0.06);
+        }
+
+        .tool-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .tool-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .ti-blue   { background: rgba(123, 143, 212, 0.18); }
+        .ti-gold   { background: rgba(212, 168, 120, 0.18); }
+        .ti-green  { background: rgba(142, 212, 168, 0.18); }
+        .ti-purple { background: rgba(200, 140, 200, 0.18); }
+        .ti-red    { background: rgba(212, 140, 140, 0.18); }
+        .ti-teal   { background: rgba(120, 190, 180, 0.18); }
+        .ti-orange { background: rgba(220, 160, 90, 0.18); }
+
+        [data-theme="dark"] .ti-blue   { background: rgba(136, 152, 212, 0.15); }
+        [data-theme="dark"] .ti-gold   { background: rgba(212, 168, 120, 0.15); }
+        [data-theme="dark"] .ti-green  { background: rgba(142, 212, 168, 0.15); }
+        [data-theme="dark"] .ti-purple { background: rgba(200, 140, 200, 0.15); }
+        [data-theme="dark"] .ti-red    { background: rgba(212, 140, 140, 0.15); }
+        [data-theme="dark"] .ti-teal   { background: rgba(120, 190, 180, 0.15); }
+        [data-theme="dark"] .ti-orange { background: rgba(220, 160, 90, 0.15); }
+
+        .tool-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tool-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.3;
+            transition: color 0.3s;
+        }
+
+        .tool-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 1px;
+            transition: color 0.3s;
+        }
+
+        .tool-arrow {
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+            opacity: 0.4;
+            flex-shrink: 0;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .tool-row:active .tool-arrow {
+            opacity: 0.7;
+            transform: translateX(2px);
+        }
+
+        /* 底部占位 */
+        .bottom-spacer {
+            height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="page">
+        <!-- 顶部标题栏 -->
+        <div class="header">
+            <div class="header-title">Tools</div>
+            <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+                <div class="theme-toggle-thumb">
+                    <!-- Sun icon (shown in dark mode to switch to light) -->
+                    <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <!-- Moon icon (shown in light mode to switch to dark) -->
+                    <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </div>
+            </button>
+        </div>
+
+        <!-- 分组一：创作工具 -->
+        <div class="glass-card" id="group1">
+            <div class="group-header open" onclick="toggleGroup(1)">
+                <div class="group-icon-wrap group-icon-1">
+                    <!-- Pen tool icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                        <path d="M2 2l7.586 7.586"/>
+                        <circle cx="11" cy="11" r="2"/>
+                    </svg>
+                </div>
+                <div class="group-info">
+                    <div class="group-title">创作工具</div>
+                    <div class="group-subtitle">记录与表达的入口</div>
+                </div>
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+            <div class="group-content open">
+                <div class="divider"></div>
+                <div class="tool-list">
+                    <div class="tool-row">
+                        <div class="tool-icon ti-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">日记编辑器</div>
+                            <div class="tool-subtitle">富文本编辑，支持多媒体</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-gold">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">相册</div>
+                            <div class="tool-subtitle">按时间线整理回忆</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">便签</div>
+                            <div class="tool-subtitle">随手记录碎片灵感</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#C088C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">习惯追踪</div>
+                            <div class="tool-subtitle">记录每日微小坚持</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分组二：效率工具 -->
+        <div class="glass-card" id="group2">
+            <div class="group-header" onclick="toggleGroup(2)">
+                <div class="group-icon-wrap group-icon-2">
+                    <!-- Zap / efficiency icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                </div>
+                <div class="group-info">
+                    <div class="group-title">效率工具</div>
+                    <div class="group-subtitle">日常管理，省心省力</div>
+                </div>
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+            <div class="group-content">
+                <div class="divider"></div>
+                <div class="tool-list">
+                    <div class="tool-row">
+                        <div class="tool-icon ti-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">待办清单</div>
+                            <div class="tool-subtitle">任务管理，井井有条</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#DC9E58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">日程表</div>
+                            <div class="tool-subtitle">日程规划，一目了然</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-red">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#D48C8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">闹钟</div>
+                            <div class="tool-subtitle">准时提醒，不误大事</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分组三：数据与隐私 -->
+        <div class="glass-card" id="group3">
+            <div class="group-header" onclick="toggleGroup(3)">
+                <div class="group-icon-wrap group-icon-3">
+                    <!-- Shield / data icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div class="group-info">
+                    <div class="group-title">数据与隐私</div>
+                    <div class="group-subtitle">安全备份，安心使用</div>
+                </div>
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+            <div class="group-content">
+                <div class="divider"></div>
+                <div class="tool-list">
+                    <div class="tool-row">
+                        <div class="tool-icon ti-teal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#78BEB4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">数据统计</div>
+                            <div class="tool-subtitle">记录分布，一目了然</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">导出数据</div>
+                            <div class="tool-subtitle">导出为 PDF / Markdown</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="M9 12l2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">隐私设置</div>
+                            <div class="tool-subtitle">密码锁定，生物认证</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分组四：关于 -->
+        <div class="glass-card" id="group4">
+            <div class="group-header" onclick="toggleGroup(4)">
+                <div class="group-icon-wrap group-icon-4">
+                    <!-- Info icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C088C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div class="group-info">
+                    <div class="group-title">关于</div>
+                    <div class="group-subtitle">版本信息与支持</div>
+                </div>
+                <svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+            <div class="group-content">
+                <div class="divider"></div>
+                <div class="tool-list">
+                    <div class="tool-row">
+                        <div class="tool-icon ti-purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#C088C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">更新日志</div>
+                            <div class="tool-subtitle">v2.64.51-experimental</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">联系开发者</div>
+                            <div class="tool-subtitle">反馈问题与建议</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="tool-row">
+                        <div class="tool-icon ti-gold">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="tool-text">
+                            <div class="tool-title">关于陪你办</div>
+                            <div class="tool-subtitle">一款温暖的个人日记</div>
+                        </div>
+                        <svg class="tool-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </div>
+
+    <script>
+        // 主题切换
+        const toggle = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('iconSun');
+        const moonIcon = document.getElementById('iconMoon');
+
+        // 读取保存的主题偏好
+        const savedTheme = localStorage.getItem('tools-theme-d');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            sunIcon.style.display = 'block';
+            moonIcon.style.display = 'none';
+        } else {
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'block';
+        }
+
+        toggle.addEventListener('click', function () {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('tools-theme-d', 'light');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('tools-theme-d', 'dark');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            }
+        });
+
+        // 分组展开/收起
+        function toggleGroup(id) {
+            const header = document.getElementById('group' + id).querySelector('.group-header');
+            const content = document.getElementById('group' + id).querySelector('.group-content');
+
+            const isOpen = header.classList.contains('open');
+
+            if (isOpen) {
+                header.classList.remove('open');
+                content.classList.remove('open');
+            } else {
+                header.classList.add('open');
+                content.classList.add('open');
+            }
+        }
+    </script>
+</body>
+</html>

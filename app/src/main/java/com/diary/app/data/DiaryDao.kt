@@ -163,7 +163,7 @@ interface DiaryDao {
     suspend fun getTagsForDiary(diaryId: Long): List<DiaryTag>
 
     @Query("""
-        SELECT t.id, t.name, t.color, t.isPreset
+        SELECT t.id, t.name, t.color, t.isPreset, t.parent_id, t.usage_count
         FROM tags t
         INNER JOIN diary_tag_cross_ref dt ON t.id = dt.tagId
         WHERE dt.diaryId = :diaryId
@@ -627,6 +627,71 @@ interface DiaryDao {
 
     @Query("SELECT SUM(writing_duration_seconds) FROM diary_entries WHERE createdAt >= :start AND createdAt < :end AND writing_duration_seconds IS NOT NULL")
     suspend fun getTotalWritingDurationSeconds(start: Long, end: Long): Int?
+
+    // ── Entry Comments (批注) ──
+    @Query("SELECT * FROM entry_comments WHERE entry_id = :entryId ORDER BY created_at ASC")
+    fun getCommentsForEntry(entryId: Long): Flow<List<EntryComment>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertComment(comment: EntryComment): Long
+
+    @Query("DELETE FROM entry_comments WHERE id = :id")
+    suspend fun deleteComment(id: Long)
+
+    // ── Writing Goals (写作目标) ──
+    @Query("SELECT * FROM writing_goals WHERE enabled = 1")
+    fun getActiveGoals(): Flow<List<WritingGoal>>
+
+    @Query("SELECT * FROM writing_goals WHERE enabled = 1")
+    suspend fun getActiveGoalsOnce(): List<WritingGoal>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGoal(goal: WritingGoal): Long
+
+    @Update
+    suspend fun updateGoal(goal: WritingGoal)
+
+    @Query("DELETE FROM writing_goals WHERE id = :id")
+    suspend fun deleteGoal(id: Long)
+
+    // ── Mood Checkins (心情签到) ──
+    @Query("SELECT * FROM mood_checkins ORDER BY created_at DESC")
+    fun getAllCheckins(): Flow<List<MoodCheckin>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCheckin(checkin: MoodCheckin): Long
+
+    @Query("DELETE FROM mood_checkins WHERE id = :id")
+    suspend fun deleteCheckin(id: Long)
+
+    // ── Streak Freezes (连续冻结) ──
+    @Query("SELECT * FROM streak_freezes ORDER BY used_at DESC")
+    fun getAllFreezes(): Flow<List<StreakFreeze>>
+
+    @Query("SELECT COUNT(*) FROM streak_freezes WHERE used_at >= :since")
+    suspend fun countFreezesSince(since: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFreeze(freeze: StreakFreeze): Long
+
+    // ── Tag Hierarchy (标签层级) ──
+    @Query("SELECT * FROM tags WHERE parent_id = :parentId")
+    fun getChildTags(parentId: Long): Flow<List<Tag>>
+
+    @Query("SELECT * FROM tags WHERE parent_id IS NULL ORDER BY isPreset DESC, name ASC")
+    fun getRootTags(): Flow<List<Tag>>
+
+    @Query("UPDATE tags SET parent_id = :parentId WHERE id = :tagId")
+    suspend fun setTagParent(tagId: Long, parentId: Long?)
+
+    @Query("UPDATE tags SET usage_count = (SELECT COUNT(*) FROM diary_tag_cross_ref WHERE tagId = :tagId) WHERE id = :tagId")
+    suspend fun updateTagUsageCount(tagId: Long)
+
+    @Query("SELECT * FROM tags WHERE name LIKE '%' || :query || '%' ORDER BY usage_count DESC")
+    suspend fun searchTags(query: String): List<Tag>
+
+    @Query("SELECT * FROM tags WHERE id IN (SELECT tagId FROM diary_tag_cross_ref WHERE diaryId IN (SELECT id FROM diary_entries WHERE createdAt >= :start AND createdAt < :end)) ORDER BY usage_count DESC")
+    suspend fun getTagsUsedInRange(start: Long, end: Long): List<Tag>
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM
@@ -663,4 +728,3 @@ data class RecentLocation(
     val latitude: Double?,
     val longitude: Double?
 )
-

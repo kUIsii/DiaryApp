@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Merge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,12 +82,13 @@ fun TagManagementScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? DiaryApplication ?: return
-    val dao = app.database.diaryDao()
+    val dao = app.database.tagDao()
     val scope = rememberCoroutineScope()
 
     val allTags by dao.getAllTags().collectAsStateWithLifecycle(initialValue = emptyList())
     var editingTag by remember { mutableStateOf<Tag?>(null) }
     var deletingTag by remember { mutableStateOf<Tag?>(null) }
+    var mergingTag by remember { mutableStateOf<Tag?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
     GradientBackground {

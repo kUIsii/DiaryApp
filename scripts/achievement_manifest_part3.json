@@ -1,0 +1,106 @@
+{
+  "jobs": [
+    {
+      "name": "achievement_collector",
+      "preset": "achievement_badge",
+      "prompt": "一枚稀有蓝色徽章，中央是书架上整齐排列的日记本，象征'收藏鉴赏家'——收藏了20篇以上自己的日记。优雅的深蓝色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_fifty_thousand_words",
+      "preset": "achievement_badge",
+      "prompt": "一枚史诗级紫色徽章，中央是一本厚重的手稿和羽毛笔，象征'万字耕耘者'——累计写作超过5万字。华丽的紫色光晕",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_favorite_1",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是一颗红色爱心和日记本，象征'收藏家'——收藏第一篇日记。温暖的粉红色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_favorites_10",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是十颗爱心组成的花环，象征'珍藏满满'——收藏10篇日记。温馨的粉红色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_returnee",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是回旋箭头和日记本，象征'回归者'——断写超过30天后重新开始写日记。温暖的欢迎色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_flash_writer",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是闪电和计时器的组合，象征'闪电记录'——在1分钟内完成一篇日记。充满能量的黄蓝色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_deep_writer",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是沙漏和专注的眼睛，象征'深度笔耕'——单次写作超过30分钟。沉稳的深棕色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_twin_stars",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是两颗并排的星星，象征'双子星'——同一天写了2篇以上日记。闪烁的蓝白色调",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_time_traveler",
+      "preset": "achievement_badge",
+      "prompt": "一枚稀有蓝色徽章，中央是新年烟花和日历翻页，象征'时间旅行者'——在新年第一天写日记。喜庆的红金色调，隐藏成就",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_new_year_eve",
+      "preset": "achievement_badge",
+      "prompt": "一枚稀有蓝色徽章，中央是倒计时钟和告别手势，象征'跨年守夜人'——在旧年最后一天写日记。深蓝夜色调，隐藏成就",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_midnight_bell",
+      "preset": "achievement_badge",
+      "prompt": "一枚史诗级紫色徽章，中央是午夜钟楼和敲响的钟，象征'午夜钟声'——在午夜零点整写日记。神秘的深紫色调，隐藏成就",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_full_moon",
+      "preset": "achievement_badge",
+      "prompt": "一枚稀有蓝色徽章，中央是满月和日记本的剪影，象征'满月记录'——在满月之夜写日记。梦幻的银蓝色调，隐藏成就",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_first_echo",
+      "preset": "achievement_badge",
+      "prompt": "一枚铜色徽章，中央是回声波纹和编辑笔，象征'首篇回响'——回顾并编辑第一篇日记。温暖的回声色调，隐藏成就",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_legendary_entries_500",
+      "preset": "achievement_badge",
+      "prompt": "一枚传说级金色徽章，中央是五百本日记组成的金字塔，象征'五百家书'——累计写下500篇日记。辉煌的金色光辉，传说品质",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_legendary_streak_365",
+      "preset": "achievement_badge",
+      "prompt": "一枚传说级金色徽章，中央是365颗星星组成的圆环，象征'一整年'——连续365天写日记。壮丽的金色光环，传说品质",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_legendary_words_million",
+      "preset": "achievement_badge",
+      "prompt": "一枚传说级金色徽章，中央是一百万字组成的巨大书籍，象征'百万字大师'——累计写作100万字。史诗般的金色光辉",
+      "size": "768*768"
+    },
+    {
+      "name": "achievement_legendary_all_categories",
+      "preset": "achievement_badge",
+      "prompt": "一枚传说级金色徽章，中央是八个不同颜色的宝石围绕皇冠，象征'全能记录者'——解锁所有分类的成就。华丽的多彩金色",
+      "size": "768*768"
+    }
+  ]
+}

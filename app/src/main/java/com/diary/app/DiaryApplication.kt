@@ -6,12 +6,13 @@ import android.app.NotificationManager
 import android.os.Build
 import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
-import com.diary.app.di.AppContainer
 import com.diary.app.reminder.AchievementNotificationManager
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
 import com.diary.app.data.AchievementRepository
+import com.diary.app.data.repository.DiaryEntryRepository
+import com.diary.app.data.repository.TodoRepository
 import com.diary.app.data.BackupManager
 import com.diary.app.data.TrashCleanupWorker
 import com.diary.app.weather.WeatherWorker
@@ -19,6 +20,7 @@ import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.ThemePreferences
+import com.diary.app.ui.settings.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,7 +31,15 @@ import kotlinx.coroutines.launch
 
 class DiaryApplication : Application() {
     val database by lazy { DiaryDatabase.getDatabase(this) }
-    val container by lazy { AppContainer(this) }
+    val diaryRepository by lazy {
+        DiaryEntryRepository(
+            dao = database.diaryDao(),
+            tagDao = database.tagDao(),
+            mediaDao = database.mediaDao(),
+            trashDao = database.trashDao()
+        )
+    }
+    val todoRepository by lazy { TodoRepository(database.todoDao()) }
     val aiService by lazy { AiServiceManager(this) }
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -41,6 +51,7 @@ class DiaryApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppPreferences.init(this)
         _themeMode.value = ThemePreferences.getThemeMode(this)
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
@@ -59,7 +70,7 @@ class DiaryApplication : Application() {
         try {
             val achievementDao = database.achievementDao()
             val diaryDao = database.diaryDao()
-            val repo = AchievementRepository(achievementDao, diaryDao)
+            val repo = AchievementRepository(achievementDao, diaryDao, database.tagDao(), database.mediaDao())
             appScope.launch {
                 runCatching {
                     repo.initialize()
@@ -76,7 +87,7 @@ class DiaryApplication : Application() {
         appScope.launch {
             runCatching {
                 if (BackupManager.shouldAutoBackup(this@DiaryApplication)) {
-                    BackupManager.performAutoBackup(this@DiaryApplication, database.diaryDao())
+                    BackupManager.performAutoBackup(this@DiaryApplication, database)
                 }
             }.onFailure {
                 android.util.Log.w("DiaryApplication", "Auto backup skipped", it)

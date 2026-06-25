@@ -140,7 +140,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             scope.launch {
                 try {
                     val db = DiaryDatabase.getDatabase(context)
-                    val todos = db.diaryDao().getTopPendingTodos(100)
+                    val todos = db.todoDao().getTopPendingTodos(100)
                     val pendingCount = todos.count { !it.isCompleted }
                     views.setTextViewText(
                         R.id.tv_pending_count,
@@ -157,9 +157,9 @@ class TodoWidgetProvider : AppWidgetProvider() {
         private suspend fun toggleTodo(context: Context, todoId: Long) {
             try {
                 val db = DiaryDatabase.getDatabase(context)
-                val todo = db.diaryDao().getTodoById(todoId) ?: return
+                val todo = db.todoDao().getTodoById(todoId) ?: return
                 val nowCompleted = !todo.isCompleted
-                db.diaryDao().toggleTodo(
+                db.todoDao().toggleTodo(
                     id = todoId,
                     completed = nowCompleted,
                     completedAt = if (nowCompleted) System.currentTimeMillis() else null

@@ -165,7 +165,7 @@ object TodoReminderManager {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         scope.launch {
             val db = DiaryDatabase.getDatabase(context)
-            val todos = db.diaryDao().getPendingReminderTodos()
+            val todos = db.todoDao().getPendingReminderTodos()
             todos.forEach { todo ->
                 todo.reminderTime?.let { time ->
                     if (time > System.currentTimeMillis()) {
@@ -185,7 +185,7 @@ object TodoReminderManager {
                 val dayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 val dayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-                val allPending = db.diaryDao().getTopPendingTodos(100)
+                val allPending = db.todoDao().getTopPendingTodos(100)
                 val todayTodos = allPending.filter { todo ->
                     todo.dueDate != null && todo.dueDate >= dayStart && todo.dueDate < dayEnd
                 }
@@ -341,7 +341,7 @@ class CompleteReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 val db = DiaryDatabase.getDatabase(context)
-                db.diaryDao().toggleTodo(
+                db.todoDao().toggleTodo(
                     id = todoId,
                     completed = true,
                     completedAt = System.currentTimeMillis()

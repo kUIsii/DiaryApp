@@ -365,7 +365,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val features = app.experimentalFeatures.value
         if (features.writingMilestonesEnabled) {
             try {
-                MilestoneChecker.checkAndNotify(app, dao)
+                MilestoneChecker.checkAndNotify(app, dao, database.notificationDao())
             } catch (e: Exception) { Log.w("EditorViewModel", "Failed to check writing milestones", e) }
         }
 

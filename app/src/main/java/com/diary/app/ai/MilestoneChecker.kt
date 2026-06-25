@@ -2,6 +2,7 @@ package com.diary.app.ai
 
 import android.content.Context
 import com.diary.app.data.DiaryDao
+import com.diary.app.data.NotificationDao
 import com.diary.app.data.NotificationEntity
 import com.diary.app.ui.components.formatWordCountWithUnit
 import java.time.Instant
@@ -17,7 +18,7 @@ object MilestoneChecker {
     private val STREAK_MILESTONES = listOf(3, 7, 14, 30, 50, 100, 200, 365)
     private val WORD_MILESTONES = listOf(1000, 5000, 10000, 30000, 50000, 100000, 200000, 500000)
 
-    suspend fun checkAndNotify(context: Context, dao: DiaryDao) {
+    suspend fun checkAndNotify(context: Context, dao: DiaryDao, notificationDao: NotificationDao) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         val timestamps = dao.getAllEntriesOnce().map { it.createdAt }
@@ -32,7 +33,7 @@ object MilestoneChecker {
         val newStreakMilestone = STREAK_MILESTONES.lastOrNull { it <= streak && it > lastStreakMilestone }
 
         if (newStreakMilestone != null) {
-            dao.insertNotification(
+            notificationDao.insertNotification(
                 NotificationEntity(
                     id = "streak_$newStreakMilestone",
                     type = "streak",
@@ -52,7 +53,7 @@ object MilestoneChecker {
         val newWordMilestone = WORD_MILESTONES.lastOrNull { it <= totalWords && it > lastWordMilestone }
 
         if (newWordMilestone != null) {
-            dao.insertNotification(
+            notificationDao.insertNotification(
                 NotificationEntity(
                     id = "words_$newWordMilestone",
                     type = "milestone",

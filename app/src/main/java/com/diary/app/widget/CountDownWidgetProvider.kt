@@ -109,7 +109,7 @@ class CountDownWidgetProvider : AppWidgetProvider() {
             scope.launch {
                 try {
                     val db = DiaryDatabase.getDatabase(context)
-                    val items = db.diaryDao().getAllCountDownItemsOnce()
+                    val items = db.countDownDao().getAllCountDownItemsOnce()
                     views.setTextViewText(
                         R.id.tv_count,
                         context.getString(R.string.countdown_widget_count, items.size)

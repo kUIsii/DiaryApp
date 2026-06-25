@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaryApp 周报 6.15-6.22</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 16px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+        .stat-item {
+            text-align: center;
+            color: white;
+        }
+        .stat-item .number {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .stat-item .label {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .section-title h2 {
+            font-size: 17px;
+            font-weight: 600;
+        }
+        .feature-list {
+            list-style: none;
+        }
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            gap: 12px;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .feature-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        .feature-content {
+            flex: 1;
+        }
+        .feature-title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .feature-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .tag-new { background: #e8f5e9; color: #2e7d32; }
+        .tag-fix { background: #fff3e0; color: #e65100; }
+        .tag-opt { background: #e3f2fd; color: #1565c0; }
+        .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: white;
+            margin-top: 8px;
+        }
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            margin-top: 24px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DiaryApp 周报</h1>
+        <div class="subtitle">2026.06.15 - 2026.06.22</div>
+        <div class="version-badge">v2.64.79-experimental</div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="number">5</div>
+            <div class="label">版本迭代</div>
+        </div>
+        <div class="stat-item">
+            <div class="number">30+</div>
+            <div class="label">功能优化</div>
+        </div>
+        <div class="stat-item">
+            <div class="number">15+</div>
+            <div class="label">Bug 修复</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <div class="section-icon" style="background: #e8f5e9;">🏠</div>
+            <h2>首页体验</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">日记卡片滑动切换 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">首页日记卡片支持左右滑动切换日期，操作更直觉</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">日历与卡片联动 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">滑动日记卡片时，日历自动跟随切换周/月；点击"今天"按钮直接回到今日日记</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #ff9800;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">周模式切换修复 <span class="tag tag-fix">修复</span></div>
+                    <div class="feature-desc">修复周模式下切换其他周后无法切回月模式的问题</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">搜索体验升级 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">搜索结果增加到 10 条，显示日期，支持"查看全部"跳转</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">底部导航动画 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">底部标签切换时添加方向性滑动过渡动画</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <div class="section-icon" style="background: #e3f2fd;">📊</div>
+            <h2>统计页面</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">热力图长周期优化 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">30 天保持日历样式；3/6/12 月改为 GitHub 风格紧凑格子，可横向滚动，不再占据大量空间</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">词云改为本地提取 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">去掉 AI 调用，秒加载，结果稳定；改进停用词过滤，关键词更准确</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">搜索支持标题和标签 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">搜索不仅匹配正文，还能搜到标题和标签内容</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <div class="section-icon" style="background: #fce4ec;">📅</div>
+            <h2>月度报告</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">月报全面重设计 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">心情趋势折线图支持点击查看详情；写作分布柱状图改用柔和配色；修复顶部空白问题</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">同比对比功能 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">月报新增与上月的对比数据，直观看到变化趋势</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <div class="section-icon" style="background: #fff3e0;">🔧</div>
+            <h2>其他功能</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">倒数日卡片重设计 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">大数字天数 + 彩色背景，更醒目直观</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">自动备份灵活设置 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">支持每天/3天/5天/每周/两周/每月多种备份频率；备份文件改为中文命名</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">写作时长持久化 <span class="tag tag-new">新功能</span></div>
+                    <div class="feature-desc">编辑器记录写作时长，统计页显示平均写作时间</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #4caf50;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">时间胶囊优化 <span class="tag tag-opt">优化</span></div>
+                    <div class="feature-desc">增强神秘感设计，创建流程更顺畅</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <div class="section-icon" style="background: #f3e5f5;">🐛</div>
+            <h2>Bug 修复</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-dot" style="background: #ff9800;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">全局代码审查修复</div>
+                    <div class="feature-desc">修复 8 个真实 Bug、7 个功能半成品、7 个 UX 问题，包括闰年倒数日崩溃、标签保存无事务保护、备份 OOM 风险等</div>
+                </div>
+            </li>
+            <li>
+                <div class="feature-dot" style="background: #ff9800;"></div>
+                <div class="feature-content">
+                    <div class="feature-title">天气与存储修复</div>
+                    <div class="feature-desc">修复天气不显示、存储计算错误（显示 40MB 实际 1.8GB）等问题</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        由 Claude Code 协助生成 · 2026.06.22
+    </div>
+</body>
+</html>

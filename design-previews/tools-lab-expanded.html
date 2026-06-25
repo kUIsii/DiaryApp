@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 宸ュ叿椤靛鐘舵€侀瑙?/title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .header-note {
+      max-width: 800px;
+    }
+
+    .rail-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .rail-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--page-line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 10px 26px rgba(40, 50, 64, 0.06);
+    }
+
+    .rail-group > span {
+      color: var(--page-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .rail-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .rail-controls .control-btn {
+      min-height: 36px;
+      padding-inline: 13px;
+    }
+
+    .tool-section {
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      cursor: pointer;
+    }
+
+    .section-head .row-text {
+      flex: 1;
+    }
+
+    .section-body {
+      padding: 0 12px 10px;
+    }
+
+    .section-body.collapsed {
+      display: none;
+    }
+
+    .section-head .chev {
+      transition: transform 180ms ease;
+    }
+
+    .tool-section.open .section-head .chev {
+      transform: rotate(90deg);
+    }
+
+    .search-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      color: var(--faint);
+    }
+
+    .quick-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+      margin-bottom: 16px;
+    }
+
+    .quick {
+      min-height: 72px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 6px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .quick .icon {
+      color: var(--accent);
+    }
+
+    .state-chip {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .feature-card {
+      min-height: 104px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .feature-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .feature-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--faint);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .progress {
+      height: 8px;
+      margin-top: 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--muted) 16%, transparent);
+      overflow: hidden;
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: inherit;
+    }
+
+    .mini-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-row {
+      padding: 12px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .mini-row + .mini-row {
+      border-top: 1px solid var(--line);
+    }
+
+    .tip-box {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    }
+
+    .tip-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.75;
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div class="header-note">
+        <p class="preview-kicker">Tools Screen Lab</p>
+        <h1 class="preview-title">宸ュ叿椤靛鐘舵€佹柟妗?/h1>
+        <p class="preview-desc">鍩轰簬褰撳墠 `ToolsScreen` 鐨勭湡瀹炶矾鐢卞拰鍥涗釜鎶樺彔鍒嗙粍锛氬垱浣滀笌璁板綍銆佸洖蹇嗕笌鎺㈢储銆丄I 浼欎即銆佸叾浠栥€傞噸鐐瑰睍绀烘墜鏈哄唴鍙敤鍐呭銆佸簳閮ㄥ鑸€佹祬娣辫壊鍜屽垎缁勫睍寮€鐘舵€併€?/p>
+      </div>
+    </header>
+
+    <section class="rail-toolbar" aria-label="Shared theme controls">
+      <div class="rail-group">
+        <span>Mode</span>
+        <div class="rail-controls">
+          <button class="control-btn active" type="button" data-mode="light">娴呰壊</button>
+          <button class="control-btn" type="button" data-mode="dark">娣辫壊</button>
+        </div>
+      </div>
+      <div class="rail-group">
+        <span>Theme</span>
+        <div class="rail-controls">
+          <button class="control-btn active" type="button" data-theme="fog"><span class="theme-swatch" style="--sw:#6c8fb4"></span>闆捐摑</button>
+          <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>鑻旂豢</button>
+          <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>婀栭潚</button>
+          <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>闄剁矇</button>
+          <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>闄跺湡</button>
+          <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>澧ㄨ摑</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="comparison-rail">
+      <article class="phone-column">
+        <div class="phone-label"><strong>闆捐摑鐏版祬鑹?/strong><span>鍒涗綔涓庤褰曞睍寮€</span></div>
+        <div class="phone">
+          <div class="screen fog-light">
+            <div class="statusbar"><span>9:41</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block"><h1>宸ュ叿</h1><p>甯哥敤鍏ュ彛浼樺厛锛屽叾浠栧姛鑳芥姌鍙犳敹绾с€?/p></div>
+                <span class="pill state-chip">闆捐摑鐏?/span>
+              </div>
+              <div class="card search-card">
+                <svg class="icon"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+                <span>鎼滅储宸ュ叿銆佽缃垨鏈€杩戜娇鐢?/span>
+              </div>
+              <div class="quick-strip">
+                <div class="quick"><svg class="icon"><path d="M4 19V5"/><path d="M8 19V9"/><path d="M12 19V3"/><path d="M16 19v-7"/><path d="M20 19V7"/></svg>缁熻</div>
+                <div class="quick"><svg class="icon"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 9h.01M12 9h.01M16 9h.01"/></svg>濯掍綋</div>
+                <div class="quick"><svg class="icon"><path d="M20 10v8a2 2 0 0 1-2 2h-8l-6-6V6a2 2 0 0 1 2-2h8"/><path d="M14 4h6v6"/></svg>鏍囩</div>
+                <div class="quick"><svg class="icon"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>鍊掓暟</div>
+              </div>
+              <div class="card tool-section open">
+                <div class="section-head">
+                  <span class="icon-tile"><svg class="icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+                  <div class="row-text"><div class="row-title">鍒涗綔涓庤褰?/div><div class="row-sub">鏁版嵁缁熻銆佸獟浣撳簱銆佹爣绛剧鐞?/div></div>
+                  <span class="chev">鈥?/span>
+                </div>
+                <div class="section-body">
+                  <div class="mini-stack">
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M4 19V5"/><path d="M9 19v-8"/><path d="M14 19V7"/><path d="M19 19v-4"/></svg></span><div class="row-text"><div class="row-title">鏁版嵁缁熻</div><div class="row-sub">鏌ョ湅鍐欎綔杞ㄨ抗銆佸績鎯呰秼鍔垮拰鐑姏鍥?/div></div><span class="chev">鈥?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3-3 3 3 2-2 3 3"/></svg></span><div class="row-text"><div class="row-title">濯掍綋搴?/div><div class="row-sub">娴忚鎵€鏈夊浘鐗囥€佽棰戝拰鏃ヨ闄勪欢</div></div><span class="chev">鈥?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M20 10v8a2 2 0 0 1-2 2H8l-4-4V6a2 2 0 0 1 2-2h8"/><path d="M14 4h6v6"/></svg></span><div class="row-text"><div class="row-title">鏍囩绠＄悊</div><div class="row-sub">鏁寸悊鏃ヨ鍒嗙被锛屽悎骞堕噸澶嶆爣绛?/div></div><span class="chev">鈥?/span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card tool-section">
+                <div class="section-head">
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg></span>
+                  <div class="row-text"><div class="row-title">鍥炲繂涓庢帰绱?/div><div class="row-sub">鍊掓暟鏃ャ€佹椂闂磋兌鍥娿€佸湴鍥俱€侀殢鏈哄洖椤?/div></div>
+                  <span class="chev">鈥?/span>
+                </div>
+              </div>
+              <div class="card tool-section">
+                <div class="section-head">
+                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 14%,transparent)"><svg class="icon"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/></svg></span>
+                  <div class="row-text"><div class="row-title">AI 浼欎即</div><div class="row-sub">AI 鍔╂墜銆丄I 浼犺</div></div>
+                  <span class="chev">鈥?/span>
+                </div>
+              </div>
+            </div>
+            <nav class="bottom-nav">
+              <div class="nav-item"><svg class="icon"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>棣栭〉</div>
+              <div class="nav-item"><svg class="icon"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>鏃堕棿绾?/div>
+              <div class="nav-item active"><svg class="icon"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>宸ュ叿</div>
+              <div class="nav-item"><svg class="icon"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/></svg>寰呭姙</div>
+              <div class="nav-item"><svg class="icon"><circle cx="12" cy="8" r="4"/><path d="M4 21c2-4 14-4 16 0"/></svg>鎴戠殑</div>
+            </nav>
+          </div></div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>鑻旇棑缁挎繁鑹?/strong><span>鍥炲繂涓庢帰绱㈠睍寮€</span></div>
+        <div class="phone">
+          <div class="screen moss-dark">
+            <div class="statusbar"><span>21:36</span><span>浣庡厜妯″紡</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block"><h1>宸ュ叿</h1><p>澶滈棿鏌ョ湅鏃堕檷浣庤儗鏅寒搴︼紝鍙繚鐣欏繀瑕佸眰绾с€?/p></div>
+                <span class="pill">娣辫壊</span>
+              </div>
+              <div class="card tool-section">
+                <div class="section-head">
+                  <span class="icon-tile"><svg class="icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+                  <div class="row-text"><div class="row-title">鍒涗綔涓庤褰?/div><div class="row-sub">鏁版嵁缁熻銆佸獟浣撳簱銆佹爣绛剧鐞?/div></div>
+                  <span class="chev">鈥?/span>
+                </div>
+              </div>
+              <div class="card tool-section open">
+                <div class="section-head">
+                  <span class="icon-tile" style="--tile-text:var(--accent2);--tile-bg:color-mix(in srgb,var(--accent2) 14%,transparent)"><svg class="icon"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg></span>
+                  <div class="row-text"><div class="row-title">鍥炲繂涓庢帰绱?/div><div class="row-sub">鍊掓暟鏃ャ€佹椂闂磋兌鍥娿€佹棩璁板湴鍥俱€侀殢鏈哄洖椤?/div></div><span class="chev">鈥?/span>
+                </div>
+                <div class="section-body">
+                  <div class="mini-stack">
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="row-text"><div class="row-title">鍊掓暟鏃?/div><div class="row-sub">閲嶈鏃ユ湡鍊掕鏃讹紝鏀寔妗岄潰灏忕粍浠?/div></div><span class="pill">3 椤?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M4 7h16v13H4z"/><path d="m4 7 8 6 8-6"/><path d="M8 7V4h8v3"/></svg></span><div class="row-text"><div class="row-title">鏃堕棿鑳跺泭</div><div class="row-sub">缁欐湭鏉ョ殑鑷繁鍐欎俊锛屽埌鏈熷悗鎻愰啋</div></div><span class="chev">鈥?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span><div class="row-text"><div class="row-title">鏃ヨ鍦板浘</div><div class="row-sub">鍦ㄥ湴鍥句笂鍥炲繂瓒宠抗鍜屽湴鐐规棩璁?/div></div><span class="chev">鈥?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></span><div class="row-text"><div class="row-title">闅忔満鍥炲繂</div><div class="row-sub">鎵撳紑涓€绡囨棫鏃ヨ锛岄€傚悎纰庣墖鏃堕棿</div></div><span class="chev">鈥?/span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="mini-grid">
+                <div class="mini-card"><strong>18</strong><span>鏈变綅缃殑鏃ヨ</span></div>
+                <div class="mini-card"><strong>5</strong><span>鏈潵寰呭紑鍚兌鍥?/span></div>
+              </div>
+            </div>
+            <nav class="bottom-nav"><div class="nav-item">棣栭〉</div><div class="nav-item">鏃堕棿绾?/div><div class="nav-item active">宸ュ叿</div><div class="nav-item">寰呭姙</div><div class="nav-item">鎴戠殑</div></nav>
+          </div></div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>闆捐摑鐏版繁鑹?/strong><span>AI 浼欎即灞曞紑</span></div>
+        <div class="phone">
+          <div class="screen fog-dark">
+            <div class="statusbar"><span>22:18</span><span>AI 鍙€夊叆鍙?/span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block"><h1>宸ュ叿</h1><p>AI 鍔熻兘鑱氬悎鍦ㄤ竴涓垎缁勯噷锛屼笉鎶㈠崰涓诲啓浣滄祦绋嬨€?/p></div>
+                <span class="pill">AI 浼欎即</span>
+              </div>
+              <section class="card card-pad" style="margin-bottom:14px">
+                <div class="row" style="justify-content:space-between; padding:0; margin-bottom:10px">
+                  <span class="row-title">浠婃棩鍐欎綔杈呭姪</span>
+                  <span class="pill">鎵嬪姩璋冪敤</span>
+                </div>
+                <div class="progress"><i style="--value:42%"></i></div>
+                <p class="row-sub" style="margin:10px 0 0">浠呭湪鐢ㄦ埛鎵撳紑鍏ュ彛鏃跺垎鏋愶紝涓嶈嚜鍔ㄨ鍙栨湭閫夋嫨鐨勫唴瀹广€?/p>
+              </section>
+              <div class="card tool-section open">
+                <div class="section-head">
+                  <span class="icon-tile" style="--tile-text:var(--accent3);--tile-bg:color-mix(in srgb,var(--accent3) 15%,transparent)"><svg class="icon"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/></svg></span>
+                  <div class="row-text"><div class="row-title">AI 浼欎即</div><div class="row-sub">AI 鍔╂墜銆丄I 浼犺</div></div><span class="chev">鈥?/span>
+                </div>
+                <div class="section-body">
+                  <div class="mini-stack">
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span><div class="row-text"><div class="row-title">AI 鍔╂墜</div><div class="row-sub">鍥寸粫宸查€夋棩璁版彁闂€佹€荤粨鍜屾敼鍐?/div></div><span class="chev">鈥?/span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a3 3 0 0 1 3 3v13.5"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg></span><div class="row-text"><div class="row-title">AI 浼犺</div><div class="row-sub">鎸夊勾浠藉拰涓婚鐢熸垚涓汉浼犺鑽夌</div></div><span class="chev">鈥?/span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-title">寤鸿淇濈暀 <span>浣庨浣嗘槑纭?/span></div>
+              <div class="tip-box"><p>AI 鍏ュ彛涓嶆斁鍒版瘡涓伐鍏烽鏃佽竟锛屽彧鍦ㄧ紪杈戝櫒搴曟爮鍜屽伐鍏烽〉鍒嗙粍涓嚭鐜帮紝閬垮厤鎶婃棩璁?App 鍙樻垚鑱婂ぉ App銆?/p></div>
+            </div>
+            <nav class="bottom-nav"><div class="nav-item">棣栭〉</div><div class="nav-item">鏃堕棿绾?/div><div class="nav-item active">宸ュ叿</div><div class="nav-item">寰呭姙</div><div class="nav-item">鎴戠殑</div></nav>
+          </div></div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>鑻旇棑缁挎祬鑹?/strong><span>鍏朵粬涓庨€氱煡灞曞紑</span></div>
+        <div class="phone">
+          <div class="screen moss-light">
+            <div class="statusbar"><span>10:22</span><span>閫氱煡涓庡疄楠?/span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="title-block"><h1>宸ュ叿</h1><p>浣庨鍔熻兘鏀惧湪灏鹃儴锛屼繚鐣欐竻鏅拌鏄?/p></div>
+                <span class="pill">鑻旇棑缁?/span>
+              </div>
+              <div class="card tool-section open">
+                <div class="section-head">
+                  <span class="icon-tile"><svg class="icon"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                  <div class="row-text"><div class="row-title">鍏朵粬</div><div class="row-sub">娑堟伅閫氱煡銆佸疄楠屾€у姛鑳?/div></div><span class="chev">鈥?/span>
+                </div>
+                <div class="section-body">
+                  <div class="mini-stack">
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M18 8a6 6 0 0 0-12 0v5l-2 4h16l-2-4Z"/><path d="M10 21h4"/></svg></span><div class="row-text"><div class="row-title">娑堟伅閫氱煡</div><div class="row-sub">鏌ョ湅绯荤粺閫氱煡銆佸緟鍔炴彁閱掑拰鑳跺泭鎻愰啋</div></div><span class="pill">2 鏈</span></div>
+                    <div class="mini-row"><span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M7 9h10l3 10a2 2 0 0 1-2 3H6a2 2 0 0 1-2-3Z"/></svg></span><div class="row-text"><div class="row-title">瀹為獙鎬у姛鑳?/div><div class="row-sub">Beta 鍔熻兘闆嗕腑绠＄悊锛屽甫椋庨櫓璇存槑</div></div><span class="chev">鈥?/span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-title">瀹為獙鍔熻兘鍘熷垯 <span>榛樿鍏抽棴</span></div>
+              <div class="tip-box">
+                <div class="mini-stack">
+                  <div class="mini-row" style="padding-top:0"><span class="icon-tile"><svg class="icon"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span><div class="row-text"><div class="row-title">鍔熻兘璇存槑鍏堜簬寮€鍏?/div><div class="row-sub">閬垮厤鐢ㄦ埛璇紑鏈ǔ瀹氳兘鍔?/div></div></div>
+                  <div class="mini-row"><span class="icon-tile"><svg class="icon"><path d="M20 6 9 17l-5-5"/></svg></span><div class="row-text"><div class="row-title">鍙洖閫€</div><div class="row-sub">璇曢獙澶辫触鍚庝笉褰卞搷宸叉湁鏃ヨ鏁版嵁</div></div></div>
+                </div>
+              </div>
+            </div>
+            <nav class="bottom-nav"><div class="nav-item">棣栭〉</div><div class="nav-item">鏃堕棿绾?/div><div class="nav-item active">宸ュ叿</div><div class="nav-item">寰呭姙</div><div class="nav-item">鎴戠殑</div></nav>
+          </div></div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

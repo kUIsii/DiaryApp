@@ -8,16 +8,21 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class, Achievement::class, TitleDefinition::class, UserTitle::class, TitleProfile::class, PetPersonality::class, PetStateRecord::class, PetProfile::class, IslandEnvironment::class, IslandProfile::class, IslandDecoration::class, IslandUpdate::class, IslandDiscovery::class, IslandCombo::class, PetMemory::class, PetHiddenState::class, IslandTimelineEvent::class],
-    version = 32,
+    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class, Achievement::class, EntryComment::class, WritingGoal::class, MoodCheckin::class, StreakFreeze::class],
+    version = 34,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
     abstract fun diaryDao(): DiaryDao
     abstract fun achievementDao(): AchievementDao
-    abstract fun titleDao(): TitleDao
-    abstract fun petDao(): PetDao
-    abstract fun islandDao(): IslandDao
+    abstract fun tagDao(): TagDao
+    abstract fun todoDao(): TodoDao
+    abstract fun notificationDao(): NotificationDao
+    abstract fun chatDao(): ChatDao
+    abstract fun mediaDao(): MediaDao
+    abstract fun trashDao(): TrashDao
+    abstract fun countDownDao(): CountDownDao
+    abstract fun capsuleDao(): CapsuleDao
 
     companion object {
         @Volatile
@@ -374,14 +379,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                     )
                 """)
 
-                val titles = com.diary.app.data.TitleSeedData.allTitles
-                for (title in titles) {
-                    db.execSQL(
-                        """INSERT OR IGNORE INTO title_definitions (key, name, description, category, iconName, tier, isHidden, flavorText)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                        arrayOf(title.key, title.name, title.description, title.category, title.iconName, title.tier, if (title.isHidden) 1 else 0, title.flavorText)
-                    )
-                }
+                // Title seed data removed — tables are dropped in MIGRATION_32_33
             }
         }
 
@@ -706,6 +704,67 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Drop removed systems: Title, Pet, Island
+                db.execSQL("DROP TABLE IF EXISTS title_definitions")
+                db.execSQL("DROP TABLE IF EXISTS user_titles")
+                db.execSQL("DROP TABLE IF EXISTS title_profile")
+                db.execSQL("DROP TABLE IF EXISTS pet_personality")
+                db.execSQL("DROP TABLE IF EXISTS pet_states")
+                db.execSQL("DROP TABLE IF EXISTS pet_profile")
+                db.execSQL("DROP TABLE IF EXISTS pet_memory")
+                db.execSQL("DROP TABLE IF EXISTS pet_hidden_states")
+                db.execSQL("DROP TABLE IF EXISTS island_environment")
+                db.execSQL("DROP TABLE IF EXISTS island_profile")
+                db.execSQL("DROP TABLE IF EXISTS island_decorations")
+                db.execSQL("DROP TABLE IF EXISTS island_updates")
+                db.execSQL("DROP TABLE IF EXISTS island_discoveries")
+                db.execSQL("DROP TABLE IF EXISTS island_combos")
+                db.execSQL("DROP TABLE IF EXISTS island_timeline_events")
+            }
+        }
+
+        val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add new tables for features
+                db.execSQL("""CREATE TABLE IF NOT EXISTS entry_comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    entry_id INTEGER NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    created_at INTEGER NOT NULL DEFAULT 0
+                )""")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_entry_comments_entry_id ON entry_comments (entry_id)")
+
+                db.execSQL("""CREATE TABLE IF NOT EXISTS writing_goals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'weekly_entries',
+                    target_value INTEGER NOT NULL DEFAULT 5,
+                    current_value INTEGER NOT NULL DEFAULT 0,
+                    period_start INTEGER NOT NULL DEFAULT 0,
+                    enabled INTEGER NOT NULL DEFAULT 1
+                )""")
+
+                db.execSQL("""CREATE TABLE IF NOT EXISTS mood_checkins (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    mood_level INTEGER NOT NULL,
+                    note TEXT NOT NULL DEFAULT '',
+                    created_at INTEGER NOT NULL DEFAULT 0
+                )""")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_mood_checkins_created_at ON mood_checkins (created_at)")
+
+                db.execSQL("""CREATE TABLE IF NOT EXISTS streak_freezes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    used_at INTEGER NOT NULL DEFAULT 0,
+                    streak_at_use INTEGER NOT NULL DEFAULT 0
+                )""")
+
+                // Add parentId and usageCount to tags
+                db.execSQL("ALTER TABLE tags ADD COLUMN parent_id INTEGER")
+                db.execSQL("ALTER TABLE tags ADD COLUMN usage_count INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val allMigrations = arrayOf(
@@ -716,7 +775,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                     MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                     MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
-                    MIGRATION_30_31, MIGRATION_31_32
+                    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34
                 )
                 val callback = object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {
@@ -724,7 +783,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                         try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) {
                             android.util.Log.w("DiaryDatabase", "Failed to drop index", e)
                         }
-                        try { backfillDiaryImages(db, context) } catch (e: Exception) {
+                    try { backfillDiaryImages(db, context) } catch (e: Exception) {
                             android.util.Log.w("DiaryDatabase", "Failed to backfill diary images", e)
                         }
                     }
@@ -774,6 +833,8 @@ abstract class DiaryDatabase : RoomDatabase() {
         }
 
         private fun backfillDiaryImages(db: SupportSQLiteDatabase, context: Context) {
+            val prefs = context.getSharedPreferences("diary_db_prefs", android.content.Context.MODE_PRIVATE)
+            if (prefs.getBoolean("backfill_done", false)) return
             val countCursor = db.query("SELECT COUNT(*) FROM diary_images")
             val imageCount = if (countCursor.moveToFirst()) countCursor.getInt(0) else 0
             countCursor.close()
@@ -826,6 +887,7 @@ abstract class DiaryDatabase : RoomDatabase() {
             if (backfillCount > 0) {
                 android.util.Log.d("DiaryDatabase", "Backfilled $backfillCount diary_images for existing entries")
             }
+            prefs.edit().putBoolean("backfill_done", true).apply()
         }
     }
 }

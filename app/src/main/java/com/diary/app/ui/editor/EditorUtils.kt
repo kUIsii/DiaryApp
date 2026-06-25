@@ -9,7 +9,6 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.diary.app.data.TemplateCategory
 
 /**
  * Properly unescape a JSON-encoded string returned by WebView.evaluateJavascript().
@@ -199,29 +198,6 @@ internal fun isEditorDirty(
         initial.location?.trim().orEmpty() != current.location?.trim().orEmpty()
 }
 
-internal fun iconForTemplate(iconName: String): ImageVector {
-    return when (iconName) {
-        "today" -> Icons.Default.Today
-        "favorite" -> Icons.Default.Favorite
-        "mood" -> Icons.Default.Favorite
-        "psychology" -> Icons.Default.Favorite
-        "edit" -> Icons.Default.FormatSize
-        "menu_book" -> Icons.Default.MenuBook
-        "flight" -> Icons.Default.Flight
-        "work" -> Icons.Default.Work
-        else -> Icons.Default.Today
-    }
-}
-
-internal fun templateCategoryLabel(category: TemplateCategory): String {
-    return when (category) {
-        TemplateCategory.DAILY -> "日常"
-        TemplateCategory.EMOTIONAL -> "情感"
-        TemplateCategory.CREATIVE -> "创意"
-        TemplateCategory.TRAVEL -> "旅行"
-        TemplateCategory.WORK -> "工作"
-    }
-}
 
 internal fun getTimeAgo(timestamp: Long): String {
     val now = System.currentTimeMillis()

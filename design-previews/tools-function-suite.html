@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 工具功能页预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .header-note { max-width: 840px; }
+    .suite-grid { grid-template-columns: repeat(auto-fit, minmax(314px, 1fr)); }
+    .heat-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .heat-cell {
+      aspect-ratio: 1;
+      border-radius: 9px;
+      border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+      background: var(--shade, color-mix(in srgb, var(--muted) 12%, transparent));
+    }
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .media-thumb {
+      height: 102px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 56%),
+        linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--card) 66%, transparent));
+      position: relative;
+      overflow: hidden;
+    }
+    .media-thumb::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 12px;
+      border: 1px dashed color-mix(in srgb, var(--line) 92%, transparent);
+    }
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ring-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .ring {
+      width: 86px;
+      height: 86px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) var(--ring), color-mix(in srgb, var(--muted) 14%, transparent) 0);
+      position: relative;
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .ring::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 1px solid var(--line);
+      z-index: 0;
+    }
+    .ring span {
+      position: relative;
+      z-index: 1;
+    }
+    .map-box {
+      height: 182px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 24% 72%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 26%),
+        radial-gradient(circle at 72% 28%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 24%),
+        linear-gradient(35deg, transparent 47%, color-mix(in srgb, var(--line) 88%, transparent) 48%, transparent 50%),
+        linear-gradient(105deg, transparent 42%, color-mix(in srgb, var(--line) 78%, transparent) 43%, transparent 45%),
+        var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .map-box i {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 3px solid var(--card);
+      background: var(--accent);
+    }
+    .map-box i:nth-child(1) { left: 54px; top: 116px; }
+    .map-box i:nth-child(2) { left: 130px; top: 68px; background: var(--accent2); }
+    .map-box i:nth-child(3) { right: 56px; top: 94px; background: var(--accent3); }
+    .bubble {
+      max-width: 88%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .bubble.user {
+      margin-left: auto;
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div class="header-note">
+        <p class="preview-kicker">Tool Function Suite</p>
+        <h1 class="preview-title">工具功能页对比</h1>
+        <p class="preview-desc">这一页不再用花哨主题掩盖结构问题，而是直接比较功能本身的布局：统计、媒体库、标签管理、倒数日、地图回顾、AI 助手。所有页面都放在同一套主题系统下，方便你判断哪些页面结构最像真实可用的 App。</p>
+        <div class="direction-row">
+          <span class="direction-pill">方向一：贴近当前产品</span>
+          <span class="direction-pill">方向二：信息表达更强</span>
+          <span class="direction-pill">重点看页面结构，不是看包装皮肤</span>
+        </div>
+      </div>
+      <div class="preview-controls">
+        <button class="control-btn active" type="button" data-mode="light">浅色</button>
+        <button class="control-btn" type="button" data-mode="dark">深色</button>
+        <button class="control-btn active" type="button" data-theme="fog"><span class="theme-swatch" style="--sw:#6c8fb4"></span>雾蓝</button>
+        <button class="control-btn" type="button" data-theme="moss"><span class="theme-swatch" style="--sw:#789c6d"></span>苔绿</button>
+        <button class="control-btn" type="button" data-theme="ocean"><span class="theme-swatch" style="--sw:#4f89a7"></span>海潮</button>
+        <button class="control-btn" type="button" data-theme="petal"><span class="theme-swatch" style="--sw:#c46f62"></span>陶粉</button>
+        <button class="control-btn" type="button" data-theme="sand"><span class="theme-swatch" style="--sw:#c58a32"></span>沙金</button>
+        <button class="control-btn" type="button" data-theme="clay"><span class="theme-swatch" style="--sw:#c4775f"></span>陶土</button>
+        <button class="control-btn" type="button" data-theme="ink"><span class="theme-swatch" style="--sw:#4d6aa8"></span>墨蓝</button>
+      </div>
+    </header>
+
+    <section class="comparison-rail">
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>统计</strong>
+          <span data-direction>方向一</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>9:41</span><span>统计</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>统计</h1><p>热力图、月报入口和轻摘要放在同一逻辑层里</p></div>
+              </div>
+              <section class="stats-grid">
+                <div class="mini-card"><strong>18</strong><span>本月有记录的天数</span></div>
+                <div class="mini-card"><strong>24.6k</strong><span>本月累计字数</span></div>
+              </section>
+              <div class="section-title">年度热力图 <span>先扫一眼，再进月报</span></div>
+              <section class="card card-pad">
+                <div class="heat-grid">
+                  <i class="heat-cell" style="--shade:rgba(108,143,180,.14)"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.22)"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.34)"></i><i class="heat-cell"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.24)"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.38)"></i><i class="heat-cell"></i>
+                  <i class="heat-cell"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.27)"></i><i class="heat-cell"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.42)"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.18)"></i><i class="heat-cell"></i><i class="heat-cell" style="--shade:rgba(108,143,180,.3)"></i>
+                </div>
+                <div class="row-sub" style="margin-top:10px;">这版把统计页做得更像“先概览，再深入”的结构，不把所有数字一次性塞满。</div>
+              </section>
+              <div class="section-title">月报入口 <span>最近总结</span></div>
+              <section class="card card-pad">
+                <div class="row" style="padding:0;">
+                  <span class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M9 19v-8"/><path d="M14 19V7"/><path d="M19 19v-4"/></svg></span>
+                  <div class="row-text">
+                    <div class="row-title">2026 年 6 月总结</div>
+                    <div class="row-sub">情绪更稳定，内容从推进转向整理，适合往年度热力图继续回看。</div>
+                  </div>
+                  <span class="chev">›</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>媒体库</strong>
+          <span data-direction>方向一</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>9:41</span><span>媒体库</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>媒体库</h1><p>集中整理图片、视频和附件，同时保留回到日记的路径</p></div>
+              </div>
+              <div class="section-title">最近内容 <span>按月份筛看</span></div>
+              <section class="media-grid">
+                <div class="media-thumb"></div>
+                <div class="media-thumb"></div>
+                <div class="media-thumb"></div>
+                <div class="media-thumb"></div>
+              </section>
+              <div class="section-title">整理动作 <span>少而有力</span></div>
+              <section class="feature-stack">
+                <div class="feature-block">
+                  <strong>批量归档</strong>
+                  <span>把散落在不同日记里的媒体重新整理到同一批内容里。</span>
+                </div>
+                <div class="feature-block">
+                  <strong>查看关联日记</strong>
+                  <span>从一张图片直接回到那篇记录，而不是困在媒体墙里。</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>标签管理</strong>
+          <span data-direction>方向一</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>9:41</span><span>标签管理</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>标签管理</h1><p>这页更像维护页，不需要太花，但要足够清楚</p></div>
+              </div>
+              <div class="section-title">常用标签 <span>按频率</span></div>
+              <section class="card card-pad">
+                <div class="tag-cloud">
+                  <span class="pill">工具重做</span>
+                  <span class="pill">散步</span>
+                  <span class="pill">回顾</span>
+                  <span class="pill">照片</span>
+                  <span class="pill">工作整理</span>
+                  <span class="pill">UI</span>
+                </div>
+              </section>
+              <div class="section-title">维护动作 <span>真正高频的是这些</span></div>
+              <section class="feature-stack">
+                <div class="feature-block">
+                  <strong>合并重复标签</strong>
+                  <span>避免“工具设计 / 工具页 / 工具重做”继续分散在多个近义标签里。</span>
+                </div>
+                <div class="feature-block">
+                  <strong>调整颜色</strong>
+                  <span>让标签在首页、时间线和统计页里的识别度更高。</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>倒数日</strong>
+          <span data-direction>方向二</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>21:06</span><span>倒数日</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>倒数日</h1><p>更像可执行的事件页，而不是装饰型纪念卡片</p></div>
+              </div>
+              <section class="card card-pad">
+                <div class="ring-wrap">
+                  <div class="ring" style="--ring:72%"><span>23</span></div>
+                  <div class="row-text">
+                    <div class="row-title">距离年中整理完成还剩 23 天</div>
+                    <div class="row-sub">这一版把倒数日和后续行动绑在一起，而不是只显示一个数字。</div>
+                  </div>
+                </div>
+              </section>
+              <div class="section-title">事件列表 <span>更像计划，不像壁纸</span></div>
+              <section class="feature-stack">
+                <div class="feature-block">
+                  <strong>相识五周年</strong>
+                  <span>41 天后 · 关联一组照片和两篇旧日记，方便提前准备纪念内容。</span>
+                </div>
+                <div class="feature-block">
+                  <strong>年度日记书截稿</strong>
+                  <span>89 天后 · 可以直接联动统计页和媒体库，减少来回切换。</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>日记地图</strong>
+          <span data-direction>方向二</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>21:06</span><span>日记地图</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>日记地图</h1><p>从地点回到记忆，而不是单纯看地图皮肤</p></div>
+              </div>
+              <section class="map-box"><i></i><i></i><i></i></section>
+              <div class="section-title">最近地点 <span>按记录密度</span></div>
+              <section class="feature-stack">
+                <div class="feature-block">
+                  <strong>武康路梧桐树下</strong>
+                  <span>3 篇日记 · 最近更新在 06-14，适合作为“这段时间的散步线”回顾入口。</span>
+                </div>
+                <div class="feature-block">
+                  <strong>随机回顾入口</strong>
+                  <span>从地点直接打开一篇旧记录，这样地图页就不只是静态浏览器。</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label">
+          <strong>AI 助手</strong>
+          <span data-direction>方向二</span>
+        </div>
+        <div class="phone">
+          <div class="screen function-screen">
+            <div class="statusbar"><span>21:06</span><span>AI 助手</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <button class="back-btn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="title-block"><h1>AI 助手</h1><p>保持辅助角色，不抢走记录本身的主体地位</p></div>
+              </div>
+              <section class="card card-pad">
+                <div class="bubble user">帮我总结这周的写作情绪，但不要改写原文。</div>
+                <div style="height:8px;"></div>
+                <div class="bubble">这周的记录更像在整理边界。前几天反复提到“赶进度”，后两天开始出现“收回来”和“慢一点也可以”。</div>
+              </section>
+              <div class="section-title">快捷动作 <span>手动触发更安全</span></div>
+              <section class="feature-stack">
+                <div class="feature-block">
+                  <strong>总结</strong>
+                  <span>生成一段回顾草稿，适合月报、年报或日常整理时使用。</span>
+                </div>
+                <div class="feature-block">
+                  <strong>整理语序</strong>
+                  <span>只作用于你已经明确选中的内容，不自动吞掉整个日记。</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script src="preview-controls.js"></script>
+</body>
+</html>

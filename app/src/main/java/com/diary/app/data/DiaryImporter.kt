@@ -168,6 +168,14 @@ object DiaryImporter {
 
     suspend fun importOverwrite(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
         val dao = database.diaryDao()
+        val tagDao = database.tagDao()
+        val todoDao = database.todoDao()
+        val notificationDao = database.notificationDao()
+        val chatDao = database.chatDao()
+        val mediaDao = database.mediaDao()
+        val trashDao = database.trashDao()
+        val countDownDao = database.countDownDao()
+        val capsuleDao = database.capsuleDao()
         val now = System.currentTimeMillis()
         val tagEntries = buildTagsForRestore(backup.tags.orEmpty())
         val diaryEntries = filterBackupEntriesForImport(
@@ -176,30 +184,30 @@ object DiaryImporter {
         )
 
         return database.withTransaction {
-            dao.deleteAllNotifications()
-            dao.deleteAllChatMessages()
-            dao.deleteAllConversations()
-            dao.deleteAllHabitRecords()
-            dao.deleteAllCapsules()
-            dao.deleteAllCountDownItems()
-            dao.deleteAllTodos()
-            dao.deleteAllTrashEntries()
-            dao.deleteAllImages()
-            dao.deleteAllDiaryTags()
+            notificationDao.deleteAllNotifications()
+            chatDao.deleteAllChatMessages()
+            chatDao.deleteAllConversations()
+            todoDao.deleteAllHabitRecords()
+            capsuleDao.deleteAllCapsules()
+            countDownDao.deleteAllCountDownItems()
+            todoDao.deleteAllTodos()
+            trashDao.deleteAllTrashEntries()
+            mediaDao.deleteAllImages()
+            tagDao.deleteAllDiaryTags()
             dao.deleteAllEntries()
-            dao.deleteAllTags()
+            tagDao.deleteAllTags()
 
-            val importedTagCount = insertBackupTags(dao, tagEntries)
-            val importedTags = dao.getAllTagsOnce()
-            val importedEntryCount = insertEntries(dao, importedTags, diaryEntries, now)
+            val importedTagCount = insertBackupTags(tagDao, tagEntries)
+            val importedTags = tagDao.getAllTagsOnce()
+            val importedEntryCount = insertEntries(dao, tagDao, importedTags, diaryEntries, now)
 
-            val todoIdMap = insertTodos(dao, backup.todos.orEmpty(), now)
-            insertCountdowns(dao, backup.countdowns.orEmpty(), now)
-            val capsuleIdMap = insertCapsules(dao, backup.capsules.orEmpty(), now)
-            insertTrash(dao, backup.trash.orEmpty(), now)
-            insertHabitRecords(dao, backup.habitRecords.orEmpty(), todoIdMap, now)
-            insertNotifications(dao, backup.notifications.orEmpty(), capsuleIdMap, now)
-            restoreChatData(dao, backup, now)
+            val todoIdMap = insertTodos(todoDao, backup.todos.orEmpty(), now)
+            insertCountdowns(countDownDao, backup.countdowns.orEmpty(), now)
+            val capsuleIdMap = insertCapsules(capsuleDao, backup.capsules.orEmpty(), now)
+            insertTrash(trashDao, backup.trash.orEmpty(), now)
+            insertHabitRecords(todoDao, backup.habitRecords.orEmpty(), todoIdMap, now)
+            insertNotifications(notificationDao, backup.notifications.orEmpty(), capsuleIdMap, now)
+            restoreChatData(chatDao, backup, now)
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
@@ -207,24 +215,31 @@ object DiaryImporter {
 
     suspend fun import(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
         val dao = database.diaryDao()
+        val tagDao = database.tagDao()
+        val todoDao = database.todoDao()
+        val notificationDao = database.notificationDao()
+        val chatDao = database.chatDao()
+        val countDownDao = database.countDownDao()
+        val capsuleDao = database.capsuleDao()
+        val trashDao = database.trashDao()
         val now = System.currentTimeMillis()
 
         return database.withTransaction {
-            val existingTags = dao.getAllTagsOnce()
+            val existingTags = tagDao.getAllTagsOnce()
             val existingEntries = dao.getAllEntriesOnce()
             val tagEntries = buildTagsForImport(existingTags, backup.tags.orEmpty())
             val diaryEntries = filterBackupEntriesForImport(existingEntries, backup.entries.orEmpty())
-            val importedTagCount = insertTags(dao, tagEntries)
-            val importedTags = dao.getAllTagsOnce()
-            val importedEntryCount = insertEntries(dao, importedTags, diaryEntries, now)
+            val importedTagCount = insertTags(tagDao, tagEntries)
+            val importedTags = tagDao.getAllTagsOnce()
+            val importedEntryCount = insertEntries(dao, tagDao, importedTags, diaryEntries, now)
 
-            val todoIdMap = insertTodos(dao, backup.todos.orEmpty(), now)
-            insertCountdowns(dao, backup.countdowns.orEmpty(), now)
-            val capsuleIdMap = insertCapsules(dao, backup.capsules.orEmpty(), now)
-            insertTrash(dao, backup.trash.orEmpty(), now)
-            insertHabitRecords(dao, backup.habitRecords.orEmpty(), todoIdMap, now)
-            insertNotifications(dao, backup.notifications.orEmpty(), capsuleIdMap, now)
-            restoreChatData(dao, backup, now)
+            val todoIdMap = insertTodos(todoDao, backup.todos.orEmpty(), now)
+            insertCountdowns(countDownDao, backup.countdowns.orEmpty(), now)
+            val capsuleIdMap = insertCapsules(capsuleDao, backup.capsules.orEmpty(), now)
+            insertTrash(trashDao, backup.trash.orEmpty(), now)
+            insertHabitRecords(todoDao, backup.habitRecords.orEmpty(), todoIdMap, now)
+            insertNotifications(notificationDao, backup.notifications.orEmpty(), capsuleIdMap, now)
+            restoreChatData(chatDao, backup, now)
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
@@ -391,7 +406,7 @@ internal fun remapBackupChatMessages(
     }
 }
 
-private suspend fun insertBackupTags(dao: DiaryDao, tags: List<BackupTag>): Int {
+private suspend fun insertBackupTags(dao: TagDao, tags: List<BackupTag>): Int {
     var count = 0
     for (backupTag in tags) {
         val name = backupTag.name?.trim().orEmpty()
@@ -408,7 +423,7 @@ private suspend fun insertBackupTags(dao: DiaryDao, tags: List<BackupTag>): Int 
     return count
 }
 
-private suspend fun insertTags(dao: DiaryDao, tags: List<Tag>): Int {
+private suspend fun insertTags(dao: TagDao, tags: List<Tag>): Int {
     var count = 0
     for (tag in tags) {
         if (tag.name.isBlank()) continue
@@ -420,6 +435,7 @@ private suspend fun insertTags(dao: DiaryDao, tags: List<Tag>): Int {
 
 private suspend fun insertEntries(
     dao: DiaryDao,
+    tagDao: TagDao,
     importedTags: List<Tag>,
     entries: List<BackupEntry>,
     now: Long
@@ -442,7 +458,7 @@ private suspend fun insertEntries(
         )
         entry.tags.orEmpty().forEach { tagName ->
             findImportedTag(importedTags, tagName)?.let { tag ->
-                dao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
+                tagDao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))
             }
         }
         count++
@@ -456,7 +472,7 @@ private data class ImportedTodo(
 )
 
 private suspend fun insertTodos(
-    dao: DiaryDao,
+    dao: TodoDao,
     todos: List<BackupTodo>,
     now: Long
 ): Map<Long, Long> {
@@ -481,7 +497,7 @@ private suspend fun insertTodos(
     return todoIdMap
 }
 
-private suspend fun insertCountdowns(dao: DiaryDao, countdowns: List<BackupCountDown>, now: Long) {
+private suspend fun insertCountdowns(dao: CountDownDao, countdowns: List<BackupCountDown>, now: Long) {
     countdowns.forEach { item ->
         dao.insertCountDownItem(
             CountDownItem(
@@ -498,7 +514,7 @@ private suspend fun insertCountdowns(dao: DiaryDao, countdowns: List<BackupCount
 }
 
 private suspend fun insertCapsules(
-    dao: DiaryDao,
+    dao: CapsuleDao,
     capsules: List<BackupCapsule>,
     now: Long
 ): Map<Long, Long> {
@@ -525,7 +541,7 @@ private suspend fun insertCapsules(
     return capsuleIdMap
 }
 
-private suspend fun insertTrash(dao: DiaryDao, trashEntries: List<BackupTrashEntry>, now: Long) {
+private suspend fun insertTrash(dao: TrashDao, trashEntries: List<BackupTrashEntry>, now: Long) {
     trashEntries.forEach { entry ->
         dao.insertTrashEntry(
             TrashEntry(
@@ -548,7 +564,7 @@ private suspend fun insertTrash(dao: DiaryDao, trashEntries: List<BackupTrashEnt
 }
 
 private suspend fun insertHabitRecords(
-    dao: DiaryDao,
+    dao: TodoDao,
     records: List<BackupHabitRecord>,
     todoIdMap: Map<Long, Long>,
     now: Long
@@ -570,7 +586,7 @@ private suspend fun insertHabitRecords(
 }
 
 private suspend fun insertNotifications(
-    dao: DiaryDao,
+    dao: NotificationDao,
     notifications: List<BackupNotification>,
     capsuleIdMap: Map<Long, Long>,
     now: Long
@@ -599,7 +615,7 @@ private suspend fun insertNotifications(
     }
 }
 
-private suspend fun restoreChatData(dao: DiaryDao, backup: DiaryBackup, now: Long) {
+private suspend fun restoreChatData(dao: ChatDao, backup: DiaryBackup, now: Long) {
     val conversationIdMap = linkedMapOf<Long, Long>()
     backup.chatConversations.orEmpty().forEach { conversation ->
         val originalId = conversation.id ?: return@forEach

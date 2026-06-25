@@ -51,7 +51,11 @@ abstract class BaseHttpProvider(
     }
 
     protected open fun cleanEndpoint(endpoint: String): String {
-        return endpoint.removeSuffix("/").removeSuffix("chat/completions").trimEnd('/') + "/"
+        var url = endpoint.trim()
+        if (url.endsWith("/")) url = url.dropLast(1)
+        if (url.endsWith("/chat/completions")) url = url.removeSuffix("/chat/completions")
+        if (url.endsWith("/v1")) url = url.removeSuffix("/v1")
+        return "$url/"
     }
 
     private fun makeRequest(

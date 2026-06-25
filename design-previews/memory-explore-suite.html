@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>回忆与探索功能页预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .route-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .hero-stat {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .ring {
+      width: 86px;
+      height: 86px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--accent) var(--ring), color-mix(in srgb, var(--muted) 14%, transparent) 0),
+        radial-gradient(circle, var(--card) 58%, transparent 59%);
+      box-shadow: inset 0 0 0 1px var(--line);
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 25px;
+      font-weight: 800;
+    }
+
+    .ring small {
+      margin-left: 1px;
+      color: var(--faint);
+      font: 800 10px var(--font);
+    }
+
+    .big-number {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .big-number span {
+      color: var(--muted);
+      font: 800 13px var(--font);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding: 4px 0 2px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 18px;
+      top: 11px;
+      bottom: 11px;
+      width: 1px;
+      background: var(--line);
+    }
+
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 44px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      margin: 0 auto;
+      border: 2px solid var(--card);
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+      z-index: 1;
+    }
+
+    .dot.alt {
+      background: var(--accent2);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent2) 18%, transparent);
+    }
+
+    .date-badge,
+    .state-badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      padding: 5px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .letter-paper {
+      position: relative;
+      min-height: 184px;
+      overflow: hidden;
+      padding: 18px;
+      border-radius: 20px;
+      background:
+        linear-gradient(color-mix(in srgb, var(--line) 72%, transparent) 1px, transparent 1px) 0 50px / 100% 28px,
+        var(--surface-soft);
+    }
+
+    .letter-paper::after {
+      content: "";
+      position: absolute;
+      right: 18px;
+      bottom: 16px;
+      width: 68px;
+      height: 68px;
+      border: 1px solid color-mix(in srgb, var(--accent2) 48%, transparent);
+      border-radius: 50%;
+      opacity: 0.62;
+    }
+
+    .letter-paper h2 {
+      margin: 0 0 16px;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .letter-paper p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 2.08;
+    }
+
+    .map-card {
+      position: relative;
+      height: 238px;
+      overflow: hidden;
+      border-radius: 24px;
+      background:
+        linear-gradient(37deg, transparent 48%, color-mix(in srgb, var(--line) 74%, transparent) 49%, transparent 51%),
+        linear-gradient(102deg, transparent 43%, color-mix(in srgb, var(--line) 68%, transparent) 44%, transparent 46%),
+        radial-gradient(circle at 24% 70%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 24%),
+        radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--accent2) 18%, transparent), transparent 22%),
+        var(--surface-soft);
+      border: 1px solid var(--line);
+    }
+
+    .route-line {
+      position: absolute;
+      inset: 35px 37px 48px 40px;
+      border-left: 2px solid color-mix(in srgb, var(--accent) 64%, transparent);
+      border-bottom: 2px solid color-mix(in srgb, var(--accent) 64%, transparent);
+      border-radius: 38% 0 0 28%;
+      transform: rotate(-14deg);
+    }
+
+    .pin {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 3px solid var(--card);
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 32%, transparent);
+    }
+
+    .pin.one { left: 58px; top: 142px; }
+    .pin.two { left: 136px; top: 82px; background: var(--accent2); }
+    .pin.three { right: 66px; top: 124px; background: var(--accent3); }
+
+    .map-label {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      max-width: 190px;
+    }
+
+    .memory-card {
+      min-height: 282px;
+      padding: 18px;
+      display: grid;
+      align-content: space-between;
+      background:
+        radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 31%),
+        radial-gradient(circle at 92% 18%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 26%),
+        var(--card);
+    }
+
+    .memory-date {
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .memory-title {
+      margin: 38px 0 10px;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 27px;
+      line-height: 1.24;
+      letter-spacing: 0;
+    }
+
+    .memory-body {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .primary-action {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--bg1);
+      font: 900 13px var(--font);
+    }
+
+    .ghost-action {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--muted);
+    }
+
+    .compact-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .compact-tabs span {
+      min-height: 32px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .compact-tabs .active {
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">DiaryApp Tools Preview</p>
+        <h1 class="preview-title">回忆与探索功能页</h1>
+        <p class="preview-desc">四个真实工具路由的手机内预览：倒数日、时间胶囊、日记地图、随机回顾。重点展示可用状态，而不是空白入口。</p>
+      </div>
+      <div class="preview-controls" aria-label="预览说明">
+        <button class="control-btn active" type="button">浅色 moss-light</button>
+        <button class="control-btn" type="button">深色 fog-dark</button>
+        <button class="control-btn" type="button">深色 ink-dark</button>
+        <button class="control-btn" type="button">浅色 fog-light</button>
+      </div>
+    </header>
+
+    <section class="phone-grid" aria-label="回忆与探索手机预览">
+      <article class="phone-column">
+        <div class="phone-label"><strong>倒数日</strong><span>/tools/countdown</span></div>
+        <div class="phone">
+          <div class="screen moss-light">
+            <div class="statusbar"><span>09:41</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="back-btn" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </div>
+                <span class="route-chip">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="3"/></svg>
+                  /tools/countdown
+                </span>
+              </div>
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>倒数日</h1>
+                  <p>重要事件、纪念日和长期目标都在这里追踪。</p>
+                </div>
+                <button class="icon-btn" type="button" aria-label="新增倒数日">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+
+              <section class="card card-pad">
+                <div class="hero-stat">
+                  <div class="ring" style="--ring: 68%">68<small>%</small></div>
+                  <div>
+                    <p class="big-number">23<span> 天</span></p>
+                    <div class="row-sub">距离「带妈妈去杭州」</div>
+                    <div class="progress" style="margin-top:12px"><i style="--value:68%"></i></div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="section-title">事件列表 <span>进行中 4</span></div>
+              <section class="card card-pad">
+                <div class="row">
+                  <div class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12"/><path d="M8 11h8M8 15h5"/></svg></div>
+                  <div class="row-text"><div class="row-title">毕业旅行照片整理</div><div class="row-sub">还剩 6 天，已完成 3 个小任务</div></div>
+                  <span class="date-badge">6 天</span>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-bg:color-mix(in srgb, var(--accent2) 15%, transparent);--tile-text:var(--accent2)"><svg class="icon" viewBox="0 0 24 24"><path d="M20 12v8H4v-8M22 7H2v5h20z"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 1 1 2-4c1.1 1 2.5 4 2.5 4zM12 7h4.5a2.5 2.5 0 1 0-2-4c-1.1 1-2.5 4-2.5 4z"/></svg></div>
+                  <div class="row-text"><div class="row-title">相识五周年</div><div class="row-sub">每周写一段纪念片段</div></div>
+                  <span class="date-badge">41 天</span>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-bg:color-mix(in srgb, var(--accent3) 15%, transparent);--tile-text:var(--accent3)"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+                  <div class="row-text"><div class="row-title">年度日记书截稿</div><div class="row-sub">118 篇已归档，待补封面</div></div>
+                  <span class="date-badge">89 天</span>
+                </div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg><span>首页</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>工具</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>记录</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22c1.5-4 14.5-4 16 0"/></svg><span>我的</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>时间胶囊</strong><span>/tools/time-capsule</span></div>
+        <div class="phone">
+          <div class="screen fog-dark">
+            <div class="statusbar"><span>21:08</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="back-btn" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </div>
+                <span class="route-chip">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+                  /tools/time-capsule
+                </span>
+              </div>
+              <div class="title-block">
+                <h1>时间胶囊</h1>
+                <p>把此刻封存，在未来某一天重新交给自己。</p>
+              </div>
+
+              <div class="section-title">写给未来自己的信 <span>草稿已保存</span></div>
+              <section class="letter-paper">
+                <h2>给 2027 年春天的我</h2>
+                <p>希望你已经记得，那段每天散步半小时的日子不是为了变得更好看，而是为了重新听见自己的心跳。</p>
+              </section>
+
+              <div class="action-row">
+                <button class="primary-action" type="button">封存到 2027-03-21</button>
+                <button class="ghost-action" type="button" aria-label="设置提醒">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                </button>
+              </div>
+
+              <div class="section-title">开启时间线 <span>3 个胶囊</span></div>
+              <section class="card card-pad">
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="row-text"><div class="row-title">生日后的第一封信</div><div class="row-sub">2026-08-12 自动开启</div></div>
+                    <span class="state-badge">待开启</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="dot alt"></span>
+                    <div class="row-text"><div class="row-title">搬家前夜</div><div class="row-sub">包含 2 张照片说明</div></div>
+                    <span class="state-badge">已封存</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="dot"></span>
+                    <div class="row-text"><div class="row-title">给三十岁的提醒</div><div class="row-sub">2030-01-01 开启</div></div>
+                    <span class="state-badge">长期</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg><span>首页</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>工具</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>记录</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22c1.5-4 14.5-4 16 0"/></svg><span>我的</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>日记地图</strong><span>/tools/diary-map</span></div>
+        <div class="phone">
+          <div class="screen ink-dark">
+            <div class="statusbar"><span>17:32</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="back-btn" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </div>
+                <span class="route-chip">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
+                  /tools/diary-map
+                </span>
+              </div>
+              <div class="top-row">
+                <div class="title-block">
+                  <h1>日记地图</h1>
+                  <p>按地点回看生活轨迹，把城市变成索引。</p>
+                </div>
+                <button class="icon-btn" type="button" aria-label="筛选地点">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M2 14h4M10 8h4M18 16h4"/></svg>
+                </button>
+              </div>
+
+              <section class="map-card">
+                <div class="route-line"></div>
+                <span class="pin one"></span>
+                <span class="pin two"></span>
+                <span class="pin three"></span>
+                <div class="map-label">
+                  <span class="pill">本月 12 个足迹</span>
+                  <div class="row-sub" style="margin-top:9px">上海、杭州、苏州被日记重新连成一条线。</div>
+                </div>
+              </section>
+
+              <div class="section-title">地图足迹列表 <span>最近记录</span></div>
+              <section class="card card-pad">
+                <div class="row">
+                  <div class="icon-tile"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                  <div class="row-text"><div class="row-title">武康路梧桐树下</div><div class="row-sub">3 篇日记，最近更新 06-14</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-bg:color-mix(in srgb, var(--accent2) 15%, transparent);--tile-text:var(--accent2)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg></div>
+                  <div class="row-text"><div class="row-title">运河边的旧书店</div><div class="row-sub">2 篇日记，标记为安静</div></div>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row">
+                  <div class="icon-tile" style="--tile-bg:color-mix(in srgb, var(--accent3) 15%, transparent);--tile-text:var(--accent3)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M4 15c4-4 6-4 8 0s4 4 8 0"/><path d="M6 11c3-3 5-3 6 0s3 3 6 0"/></svg></div>
+                  <div class="row-text"><div class="row-title">太湖边的傍晚</div><div class="row-sub">1 篇日记，含天气和步数</div></div>
+                  <span class="chev">›</span>
+                </div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg><span>首页</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>工具</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>记录</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22c1.5-4 14.5-4 16 0"/></svg><span>我的</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="phone-column">
+        <div class="phone-label"><strong>随机回顾</strong><span>/tools/random-review</span></div>
+        <div class="phone">
+          <div class="screen fog-light">
+            <div class="statusbar"><span>08:16</span><span>DiaryApp</span></div>
+            <div class="app-content">
+              <div class="top-row">
+                <div class="back-btn" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </div>
+                <span class="route-chip">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                  /tools/random-review
+                </span>
+              </div>
+              <div class="title-block">
+                <h1>随机回顾</h1>
+                <p>从旧日记里随机打开一页，重新遇见某个自己。</p>
+              </div>
+
+              <div class="compact-tabs" aria-label="回顾范围">
+                <span class="active">全部</span>
+                <span>去年今日</span>
+                <span>收藏</span>
+              </div>
+
+              <section class="card memory-card">
+                <div>
+                  <div class="memory-date">2024-11-03  星期日  杭州</div>
+                  <h2 class="memory-title">随机打开的一篇日记</h2>
+                  <p class="memory-body">今天在雨停后的湖边坐了很久。没有特别想明白什么，只是忽然觉得，慢一点也可以继续往前。</p>
+                </div>
+                <div class="action-row">
+                  <button class="primary-action" type="button">再抽一篇</button>
+                  <button class="ghost-action" type="button" aria-label="收藏这篇日记">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  </button>
+                </div>
+              </section>
+
+              <div class="section-title">回顾线索 <span>可继续探索</span></div>
+              <section class="mini-grid">
+                <div class="mini-card"><strong>18</strong><span>篇包含「雨后」的日记</span></div>
+                <div class="mini-card"><strong>6</strong><span>次在杭州写下的夜晚</span></div>
+                <div class="mini-card"><strong>42%</strong><span>当日心情标记为平静</span></div>
+                <div class="mini-card"><strong>12</strong><span>个可重访的地点标签</span></div>
+              </section>
+            </div>
+            <nav class="bottom-nav" aria-label="底部导航">
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg><span>首页</span></div>
+              <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>工具</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>记录</span></div>
+              <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22c1.5-4 14.5-4 16 0"/></svg><span>我的</span></div>
+            </nav>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -11,7 +11,9 @@ import java.time.ZoneId
 
 class AchievementRepository(
     private val achievementDao: AchievementDao,
-    private val diaryDao: DiaryDao
+    private val diaryDao: DiaryDao,
+    private val tagDao: TagDao,
+    private val mediaDao: MediaDao
 ) {
     fun getAllItems(): Flow<List<AchievementItem>> {
         return achievementDao.getAllUnified().map { achievements ->
@@ -72,8 +74,8 @@ class AchievementRepository(
         val uniqueMoods = allEntries.mapNotNull { it.moodLevel }.distinct().size
         val uniqueWeathers = allEntries.mapNotNull { it.weather }.distinct().size
         val favoriteCount = allEntries.count { it.isFavorite }
-        val imageCount = diaryDao.getAllImages().size
-        val tagCount = diaryDao.getAllTagsOnce().size
+        val imageCount = mediaDao.getAllImages().size
+        val tagCount = tagDao.getAllTagsOnce().size
         val zone = ZoneId.systemDefault()
         val nightEntries = allEntries.count { Instant.ofEpochMilli(it.createdAt).atZone(zone).hour in 0..4 }
         val earlyEntries = allEntries.count { Instant.ofEpochMilli(it.createdAt).atZone(zone).hour in 5..6 }
@@ -107,9 +109,9 @@ class AchievementRepository(
         )
 
         // Get or create milestone tag
-        val milestoneTag = diaryDao.getTagByName("\u91CC\u7A0B\u7891")
+        val milestoneTag = tagDao.getTagByName("\u91CC\u7A0B\u7891")
             ?: run {
-                val tagId = diaryDao.insertTag(Tag(name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50))
+                val tagId = tagDao.insertTag(Tag(name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50))
                 Tag(id = tagId, name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50)
             }
 
@@ -160,7 +162,7 @@ class AchievementRepository(
             writingDurationSeconds = 0
         )
         val entryId = diaryDao.insertEntry(entry)
-        diaryDao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tag.id))
+        tagDao.insertDiaryTag(DiaryTag(diaryId = entryId, tagId = tag.id))
     }
 
     private fun <T> countConsecutiveFromEnd(list: List<T>, predicate: (T) -> Boolean): Int {

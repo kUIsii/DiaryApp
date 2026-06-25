@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 写作与 AI 伙伴预览</title>
+  <link rel="stylesheet" href="ui-preview-system.css">
+  <style>
+    .paper { padding: 18px 17px; border-radius: 22px; background: color-mix(in srgb, var(--card) 84%, var(--bg1)); border: 1px solid var(--line); min-height: 372px; box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+    .paper h2 { margin: 0 0 14px; font-family: var(--serif); font-size: 24px; letter-spacing: 0; }
+    .paper p { margin: 0 0 13px; color: var(--text); font-family: var(--serif); font-size: 15px; line-height: 2; }
+    .meta-strip { display: flex; gap: 8px; overflow: hidden; margin-bottom: 12px; }
+    .editor-toolbar { position: absolute; left: 24px; right: 24px; bottom: 88px; display: flex; justify-content: space-around; min-height: 48px; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(18px); }
+    .tool { width: 42px; display: grid; place-items: center; color: var(--muted); }
+    .chat { display: grid; gap: 10px; }
+    .bubble { max-width: 86%; padding: 12px 14px; border-radius: 18px; font-size: 13px; line-height: 1.7; color: var(--text); border: 1px solid var(--line); background: var(--surface-soft); }
+    .bubble.user { justify-self: end; background: color-mix(in srgb, var(--accent) 18%, var(--surface-soft)); }
+    .prompt-grid { display: grid; gap: 10px; }
+    .prompt { padding: 13px; border-radius: 17px; background: var(--surface-soft); border: 1px solid var(--line); }
+    .prompt strong { display: block; color: var(--text); font-size: 13px; }
+    .prompt span { display: block; margin-top: 5px; color: var(--faint); font-size: 11px; line-height: 1.5; }
+    .timeline-dot { width: 9px; height: 9px; border-radius: 99px; background: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent); }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head">
+      <div>
+        <p class="preview-kicker">Writing & AI Suite</p>
+        <h1 class="preview-title">写作与 AI 伙伴</h1>
+        <p class="preview-desc">AI 只在用户需要时出现，主界面仍围绕日记写作、回顾和编辑。这里展示专注编辑、AI 助手、AI 传记、写作提示四个真实使用场景。</p>
+      </div>
+      <div class="preview-controls">
+        <button class="control-btn active" type="button">写作为主</button>
+        <button class="control-btn" type="button">AI 按需</button>
+        <button class="control-btn" type="button">深色适配</button>
+      </div>
+    </header>
+
+    <section class="phone-grid">
+      <div class="phone-column">
+        <div class="phone-label"><strong>编辑器专注模式</strong><span>工具可找到但不抢正文</span></div>
+        <div class="phone"><div class="screen fog-light">
+          <div class="statusbar"><span>9:41</span><span>已保存</span></div>
+          <div class="app-content">
+            <div class="top-row">
+              <span class="back-btn"><svg class="icon"><path d="m15 18-6-6 6-6"/></svg></span>
+              <span class="pill">专注</span>
+              <span class="icon-btn"><svg class="icon"><path d="M20 6 9 17l-5-5"/></svg></span>
+            </div>
+            <div class="meta-strip">
+              <span class="pill">6 月 18 日</span><span class="pill">平静</span><span class="pill">上海</span>
+            </div>
+            <article class="paper">
+              <h2>今天把工具页想清楚</h2>
+              <p>真正需要的不是更多入口，而是把常用功能放在可以马上找到的位置，把低频功能收起来。</p>
+              <p>编辑页也一样，正文应该始终是主角。格式、图片、AI 和标签都可以存在，但不能一直站在眼前。</p>
+              <p>如果需要辅助，就从底部工具栏轻轻打开。</p>
+            </article>
+          </div>
+          <div class="editor-toolbar">
+            <div class="tool"><svg class="icon"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></div>
+            <div class="tool"><svg class="icon"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m7 15 3-3 3 3 2-2 3 3"/></svg></div>
+            <div class="tool"><svg class="icon"><path d="M20 10v8a2 2 0 0 1-2 2H8l-4-4V6a2 2 0 0 1 2-2h8"/></svg></div>
+            <div class="tool"><svg class="icon"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93 7.76 7.76"/><path d="M2 12h4"/><path d="M18 12h4"/></svg></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>AI 助手</strong><span>围绕已选日记提问</span></div>
+        <div class="phone"><div class="screen moss-dark">
+          <div class="statusbar"><span>21:20</span><span>AI 助手</span></div>
+          <div class="app-content">
+            <div class="top-row">
+              <span class="back-btn"><svg class="icon"><path d="m15 18-6-6 6-6"/></svg></span>
+              <div class="title-block" style="flex:1"><h1>AI 助手</h1><p>仅分析你选择的日记，不默认扫描全部内容。</p></div>
+            </div>
+            <div class="card card-pad" style="margin-bottom:14px">
+              <div class="row" style="padding:0"><span class="icon-tile"><svg class="icon"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5Z"/></svg></span><div class="row-text"><div class="row-title">上下文：本周 5 篇日记</div><div class="row-sub">已手动选择，随时可清除</div></div><span class="pill">清除</span></div>
+            </div>
+            <div class="chat">
+              <div class="bubble user">帮我总结这周情绪变化，不要改写原文。</div>
+              <div class="bubble">这周整体从紧绷转向稳定。周一到周三反复提到“赶进度”，周四开始出现“整理”和“确定方向”。建议月报里保留这个转折。</div>
+              <div class="bubble user">给我 3 个可写的延伸问题。</div>
+              <div class="bubble">1. 哪件事真正让节奏稳定下来？<br>2. 这周哪些安排可以继续保留？<br>3. 下周应该减少哪类干扰？</div>
+            </div>
+            <div class="section-title">快捷操作 <span>不自动执行</span></div>
+            <div class="mini-grid"><div class="mini-card"><strong>总结</strong><span>生成摘要草稿</span></div><div class="mini-card"><strong>提问</strong><span>从日记中找线索</span></div></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>AI 传记</strong><span>生成草稿而非最终文本</span></div>
+        <div class="phone"><div class="screen clay-light">
+          <div class="statusbar"><span>16:05</span><span>AI 传记</span></div>
+          <div class="app-content">
+            <div class="top-row"><div class="title-block"><h1>AI 传记</h1><p>按时间、标签和重要节点生成可编辑草稿。</p></div><span class="pill">草稿</span></div>
+            <div class="card card-pad">
+              <div class="row" style="padding:0 0 12px"><span class="timeline-dot"></span><div class="row-text"><div class="row-title">2026 上半年</div><div class="row-sub">已选择 68 篇日记、12 个标签</div></div></div>
+              <div class="progress"><i style="--value:68%"></i></div>
+            </div>
+            <div class="section-title">章节结构 <span>可调整</span></div>
+            <div class="card">
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span><div class="row-text"><div class="row-title">第一章：重新整理生活</div><div class="row-sub">来自 1-2 月的日记和待办记录</div></div><span class="chev">›</span></div>
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span><div class="row-text"><div class="row-title">第二章：把工具做轻</div><div class="row-sub">来自 3-5 月的项目记录</div></div><span class="chev">›</span></div>
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span><div class="row-text"><div class="row-title">第三章：确定边界</div><div class="row-sub">来自 6 月的总结和复盘</div></div><span class="chev">›</span></div>
+            </div>
+            <div class="section-title">导出 <span>保留可编辑</span></div>
+            <div class="mini-grid"><div class="mini-card"><strong>HTML</strong><span>保留排版和图片</span></div><div class="mini-card"><strong>PDF</strong><span>适合归档分享</span></div></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="phone-column">
+        <div class="phone-label"><strong>写作辅助</strong><span>灵感提示与编辑动作</span></div>
+        <div class="phone"><div class="screen fog-dark">
+          <div class="statusbar"><span>23:12</span><span>写作辅助</span></div>
+          <div class="app-content">
+            <div class="top-row"><div class="title-block"><h1>写作辅助</h1><p>在用户卡住时提供提示，不替代个人表达。</p></div><span class="pill">按需打开</span></div>
+            <div class="prompt-grid">
+              <div class="prompt"><strong>从今天最小的一件事写起</strong><span>不用总结全部，只记录一个具体瞬间。</span></div>
+              <div class="prompt"><strong>把“我很累”拆成原因</strong><span>身体、任务、人际、环境，哪一项最明显？</span></div>
+              <div class="prompt"><strong>写给明天的自己</strong><span>留下一个提醒，而不是一份计划。</span></div>
+            </div>
+            <div class="section-title">编辑动作 <span>作用于选中文本</span></div>
+            <div class="card">
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h16"/></svg></span><div class="row-text"><div class="row-title">整理段落</div><div class="row-sub">只调整结构，不改变含义</div></div><span class="chev">›</span></div>
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span><div class="row-text"><div class="row-title">润色语气</div><div class="row-sub">保留个人口吻，避免变成模板文</div></div><span class="chev">›</span></div>
+              <div class="row"><span class="icon-tile"><svg class="icon"><path d="M3 6h18"/><path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><div class="row-text"><div class="row-title">清除 AI 草稿</div><div class="row-sub">任何生成内容都可以一键丢弃</div></div><span class="chev">›</span></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

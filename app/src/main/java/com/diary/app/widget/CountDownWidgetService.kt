@@ -30,7 +30,7 @@ class CountDownRemoteViewsFactory(
     override fun onDataSetChanged() = runBlocking {
         try {
             val db = DiaryDatabase.getDatabase(context)
-            items = db.diaryDao().getTopCountDownItems(10)
+            items = db.countDownDao().getTopCountDownItems(10)
         } catch (e: Exception) {
             items = emptyList()
         }

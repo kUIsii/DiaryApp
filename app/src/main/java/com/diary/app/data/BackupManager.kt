@@ -274,13 +274,13 @@ object BackupManager {
         }
     }
 
-    suspend fun createBackup(context: Context, dao: DiaryDao): BackupRecord {
+    suspend fun createBackup(context: Context, database: DiaryDatabase): BackupRecord {
         val now = LocalDateTime.now()
         val dateStr = now.format(DateTimeFormatter.ofPattern("yyyy年M月d日"))
         val timeStr = now.format(DateTimeFormatter.ofPattern("HHmmss"))
         val fileName = "日记备份_${dateStr}_${timeStr}$FULL_BACKUP_EXTENSION"
-        val json = buildBackupJson(dao)
-        val tempFile = buildFullBackupFile(context, dao, json)
+        val json = buildBackupJson(database)
+        val tempFile = buildFullBackupFile(context, database, json)
 
         try {
             val fileSize = tempFile.length()
@@ -315,7 +315,7 @@ object BackupManager {
                 fileName = fileName,
                 filePath = filePath,
                 timestamp = System.currentTimeMillis(),
-                entryCount = dao.getEntryCount(),
+                entryCount = database.diaryDao().getEntryCount(),
                 fileSize = fileSize
             )
             addBackupRecord(context, record)
@@ -360,7 +360,7 @@ object BackupManager {
      * avoiding OOM when media files are large.
      * Caller is responsible for deleting the returned temp file.
      */
-    private suspend fun buildFullBackupFile(context: Context, dao: DiaryDao, json: String): File {
+    private suspend fun buildFullBackupFile(context: Context, database: DiaryDatabase, json: String): File {
         val tempFile = File(context.cacheDir, "backup_temp_${System.currentTimeMillis()}.zip")
         try {
             java.io.FileOutputStream(tempFile).use { fos ->
@@ -369,7 +369,7 @@ object BackupManager {
                     zip.write(json.toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
 
-                    val mediaNames = referencedMediaNames(dao)
+                    val mediaNames = referencedMediaNames(database)
                     for (mediaName in mediaNames) {
                         val displayFile = File(DiaryMediaManager.mediaDir(context), mediaName)
                         if (displayFile.exists() && displayFile.isFile) {
@@ -393,13 +393,13 @@ object BackupManager {
         return tempFile
     }
 
-    private suspend fun referencedMediaNames(dao: DiaryDao): Set<String> {
+    private suspend fun referencedMediaNames(database: DiaryDatabase): Set<String> {
         val names = linkedSetOf<String>()
-        dao.getAllImages().mapNotNullTo(names) { it.mediaName.takeIf(String::isNotBlank) }
+        database.mediaDao().getAllImages().mapNotNullTo(names) { it.mediaName.takeIf(String::isNotBlank) }
         var offset = 0
         val batchSize = 50
         while (true) {
-            val batch = dao.getEntriesBatchForExport(offset, batchSize)
+            val batch = database.diaryDao().getEntriesBatchForExport(offset, batchSize)
             if (batch.isEmpty()) break
             batch.forEach { entry ->
                 names.addAll(DiaryMediaManager.extractMediaNames(entry.content))
@@ -409,8 +409,8 @@ object BackupManager {
         return names
     }
 
-    suspend fun performAutoBackup(context: Context, dao: DiaryDao): BackupRecord? {
-        return runCatching { createBackup(context, dao) }.getOrNull()
+    suspend fun performAutoBackup(context: Context, database: DiaryDatabase): BackupRecord? {
+        return runCatching { createBackup(context, database) }.getOrNull()
     }
 
     private const val WORK_NAME = "auto_backup_periodic"
@@ -453,7 +453,8 @@ object BackupManager {
         }
     }
 
-    private suspend fun buildBackupJson(dao: DiaryDao): String {
+    private suspend fun buildBackupJson(database: DiaryDatabase): String {
+        val dao = database.diaryDao()
         val entries = mutableListOf<DiaryEntry>()
         var offset = 0
         val batchSize = 50
@@ -464,19 +465,22 @@ object BackupManager {
             offset += batchSize
         }
 
-        val tags = dao.getAllTagsOnce()
-        val allDiaryTags = dao.getAllDiaryTags()
+        val tagDao = database.tagDao()
+        val tags = tagDao.getAllTagsOnce()
+        val allDiaryTags = tagDao.getAllDiaryTags()
         val tagMap = tags.associateBy { it.id }
         val diaryTagMap = allDiaryTags.groupBy({ it.diaryId }, { tagMap[it.tagId]?.name ?: "" })
 
-        val todos = dao.getAllTodosOnce()
-        val countdowns = dao.getAllCountDownItemsOnce()
-        val capsules = dao.getAllCapsulesOnce()
-        val trash = dao.getAllTrashEntriesOnce()
-        val habitRecords = dao.getAllHabitRecordsOnce()
-        val notifications = dao.getAllNotificationsOnce()
-        val conversations = dao.getAllConversationsOnce()
-        val chatMessages = dao.getAllChatMessagesOnce()
+        val todoDao = database.todoDao()
+        val todos = todoDao.getAllTodosOnce()
+        val habitRecords = todoDao.getAllHabitRecordsOnce()
+        val countdowns = database.countDownDao().getAllCountDownItemsOnce()
+        val capsules = database.capsuleDao().getAllCapsulesOnce()
+        val trash = database.trashDao().getAllTrashEntriesOnce()
+        val notifications = database.notificationDao().getAllNotificationsOnce()
+        val chatDao = database.chatDao()
+        val conversations = chatDao.getAllConversationsOnce()
+        val chatMessages = chatDao.getAllChatMessagesOnce()
 
         val payload = DiaryBackup(
             app = "DiaryApp",
