@@ -1,8 +1,12 @@
 package com.diary.app.ui.tools
 
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,20 +25,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,22 +42,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.ai.AiConfigStore
 import com.diary.app.ai.AiServiceManager
+import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.SectionHeader
+import com.diary.app.ui.components.SettingDivider
 
-private val ProviderColors = mapOf(
-    "agnes" to Color(0xFF7C4DFF),
-    "modelscope" to Color(0xFFFF6D00),
-    "deepseek" to Color(0xFF00BFA5)
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiManagementScreen(
     aiService: AiServiceManager,
@@ -69,133 +64,138 @@ fun AiManagementScreen(
     val activeProviderId = remember { mutableStateOf(AiConfigStore.getActiveProvider(context)) }
     var showConfigDialog by remember { mutableStateOf<String?>(null) }
 
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+
+    // Theme-aware provider colors
+    val providerColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary
+    )
+
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("AI 管理", fontSize = 20.sp, fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+            // Standard header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "返回",
+                        tint = textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "AI 管理",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
                 )
-            )
+            }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Text(
-                    text = "选择 AI 服务商",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Provider section
+                SectionHeader(
+                    title = "选择 AI 服务商",
+                    icon = Icons.Default.SmartToy,
+                    color = MaterialTheme.colorScheme.primary
                 )
 
-                providers.forEach { provider ->
-                    val isActive = activeProviderId.value == provider.id
-                    val color = ProviderColors[provider.id] ?: Color.Gray
-                    val configured = AiConfigStore.getApiKey(context, provider.id).isNotBlank()
-                    val selectedModel = AiConfigStore.getModel(context, provider.id).ifBlank { provider.defaultModel }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    providers.forEachIndexed { index, provider ->
+                        val isActive = activeProviderId.value == provider.id
+                        val color = providerColors[index % providerColors.size]
+                        val configured = AiConfigStore.getApiKey(context, provider.id).isNotBlank()
+                        val selectedModel = AiConfigStore.getModel(context, provider.id)
+                            .ifBlank { provider.defaultModel }
 
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isActive) color.copy(alpha = 0.08f)
-                        else MaterialTheme.colorScheme.surface,
-                        tonalElevation = if (isActive) 0.dp else 1.dp
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .clickable {
-                                    AiConfigStore.setActiveProvider(context, provider.id)
-                                    activeProviderId.value = provider.id
-                                }
-                                .padding(16.dp)
+                        // Per-model stats from usage tracker
+                        val detailedStats = remember { aiService.getDetailedUsageStats() }
+                        val modelRequests = detailedStats.modelRequests[provider.displayName] ?: 0
+                        val modelTokens = detailedStats.modelTokens[provider.displayName] ?: 0
+
+                        ProviderCard(
+                            name = provider.displayName,
+                            model = selectedModel,
+                            color = color,
+                            isActive = isActive,
+                            isConfigured = configured,
+                            requestCount = modelRequests,
+                            tokenCount = modelTokens,
+                            onClick = {
+                                AiConfigStore.setActiveProvider(context, provider.id)
+                                activeProviderId.value = provider.id
+                            },
+                            onConfigClick = { showConfigDialog = provider.id }
+                        )
+                    }
+                }
+
+                // Usage stats section
+                val rateStats = remember { aiService.getUsageStats() }
+                val detailedStats = remember { aiService.getDetailedUsageStats() }
+
+                SectionHeader(
+                    title = "今日用量",
+                    icon = Icons.Default.DateRange,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+
+                GlassCard(cornerRadius = 24.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Main stats row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(color.copy(alpha = 0.12f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.SmartToy,
-                                            contentDescription = null,
-                                            tint = color,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = provider.displayName,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Text(
-                                            text = selectedModel,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
+                            UsageStatItem(
+                                value = "${rateStats.dailyTotal}",
+                                label = "请求数",
+                                sublabel = "/ ${rateStats.dailyLimit}",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            UsageStatItem(
+                                value = formatTokens(detailedStats.tokens),
+                                label = "Token 消耗",
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
 
-                                if (isActive) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(color),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = "当前使用",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (configured) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    InfoChip(label = "API Key", icon = Icons.Default.Key, color = color)
-                                    InfoChip(label = "已配置", icon = Icons.Default.Check, color = Color(0xFF4CAF50))
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Surface(
-                                onClick = { showConfigDialog = provider.id },
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ) {
-                                Text(
-                                    text = if (configured) "修改配置" else "配置 API Key",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = color,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        // Per-model breakdown
+                        if (detailedStats.modelTokens.isNotEmpty()) {
+                            SettingDivider()
+                            Text(
+                                text = "模型明细",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textTertiary
+                            )
+                            detailedStats.modelTokens.forEach { (model, tokens) ->
+                                val requests = detailedStats.modelRequests[model] ?: 0
+                                ModelUsageRow(
+                                    model = model,
+                                    requests = requests,
+                                    tokens = tokens
                                 )
                             }
                         }
@@ -203,31 +203,6 @@ fun AiManagementScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Usage stats
-                val stats = remember { aiService.getUsageStats() }
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "今日用量",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            UsageStat(label = "今日请求数", value = "${stats.dailyTotal}")
-                            UsageStat(label = "每日限额", value = "${stats.dailyLimit}")
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -256,25 +231,211 @@ fun AiManagementScreen(
 }
 
 @Composable
-private fun InfoChip(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.08f))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun ProviderCard(
+    name: String,
+    model: String,
+    color: androidx.compose.ui.graphics.Color,
+    isActive: Boolean,
+    isConfigured: Boolean,
+    requestCount: Int,
+    tokenCount: Int,
+    onClick: () -> Unit,
+    onConfigClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "providerCard"
+    )
+
+    GlassCard(
+        cornerRadius = 18.dp,
+        innerPadding = 14.dp,
+        onClick = onClick,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text = label, fontSize = 10.sp, color = color, fontWeight = FontWeight.Medium)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Top row: icon + name + check
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(color.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.SmartToy,
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = name,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = model,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (isActive) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(color),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "当前使用",
+                            tint = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+            }
+
+            // Stats and config row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isConfigured && (requestCount > 0 || tokenCount > 0)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "${requestCount} 次",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = formatTokens(tokenCount),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                } else if (isConfigured) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "已配置",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                Text(
+                    text = if (isConfigured) "修改配置" else "配置 API Key",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = color,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onConfigClick() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun UsageStat(label: String, value: String) {
-    Column {
-        Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun UsageStatItem(
+    value: String,
+    label: String,
+    sublabel: String = "",
+    color: androidx.compose.ui.graphics.Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Row {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (sublabel.isNotEmpty()) {
+                Text(
+                    text = sublabel,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModelUsageRow(
+    model: String,
+    requests: Int,
+    tokens: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = model,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = "${requests} 次",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = formatTokens(tokens),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun formatTokens(tokens: Int): String {
+    return when {
+        tokens >= 1_000_000 -> "%.1fM".format(tokens / 1_000_000.0)
+        tokens >= 1_000 -> "%.1fK".format(tokens / 1_000.0)
+        else -> "$tokens"
     }
 }
 
@@ -325,7 +486,7 @@ private fun AiProviderConfigDialog(
                                 .clickable { selectedModel = model }
                                 .background(
                                     if (selectedModel == model) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                                    else Color.Transparent
+                                    else MaterialTheme.colorScheme.surface
                                 )
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -343,7 +504,7 @@ private fun AiProviderConfigDialog(
                                 if (selectedModel == model) {
                                     Icon(
                                         Icons.Default.Check, contentDescription = null,
-                                        tint = Color.White, modifier = Modifier.size(12.dp)
+                                        tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(12.dp)
                                     )
                                 }
                             }

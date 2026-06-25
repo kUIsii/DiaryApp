@@ -38,6 +38,8 @@ class AiServiceManager(private val context: Context) {
 
     fun getUsageStats(): RateLimiter.UsageStats = rateLimiter.getUsageStats()
 
+    fun getDetailedUsageStats(): AiUsageTracker.UsageStats = AiUsageTracker.getTodayStats(context)
+
     suspend fun chat(request: AiRequest, useCache: Boolean = true): Result<AiResponse> {
         val provider = getActiveProvider() ?: return Result.failure(AiError.NotConfigured)
 
@@ -50,7 +52,7 @@ class AiServiceManager(private val context: Context) {
         return try {
             val response = withContext(Dispatchers.IO) { provider.chat(request) }
             if (useCache) cacheResponse(request, response)
-            if (response.totalTokens > 0) AiUsageTracker.record(context, response.totalTokens)
+            if (response.totalTokens > 0) AiUsageTracker.record(context, response.totalTokens, response.model)
             Result.success(response)
         } catch (e: Exception) {
             Log.e("AiService", "Chat failed", e)
