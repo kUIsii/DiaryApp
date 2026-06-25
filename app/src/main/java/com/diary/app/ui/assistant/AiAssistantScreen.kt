@@ -84,6 +84,8 @@ fun AiAssistantScreen(
     val loading by viewModel.loading.collectAsState()
     val conversations by viewModel.conversations.collectAsState()
     val currentConversationId by viewModel.currentConversationId.collectAsState()
+    val lastTokens by viewModel.lastTokens.collectAsState()
+    val lastModel by viewModel.lastModel.collectAsState()
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -192,7 +194,14 @@ fun AiAssistantScreen(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = if (conversations.size > 1) "${conversations.size} 个对话" else "你的日记助手",
+                                text = when {
+                                    lastTokens > 0 -> {
+                                        val modelShort = lastModel.substringAfter("/", "").take(15)
+                                        "${conversations.size} 个对话 · $modelShort · $lastTokens tokens"
+                                    }
+                                    conversations.size > 1 -> "${conversations.size} 个对话"
+                                    else -> "你的日记助手"
+                                },
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

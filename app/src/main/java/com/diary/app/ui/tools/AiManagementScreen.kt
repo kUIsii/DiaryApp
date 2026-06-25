@@ -1,8 +1,11 @@
 package com.diary.app.ui.tools
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,8 +28,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +58,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
+import kotlinx.coroutines.delay
 
 @Composable
 fun AiManagementScreen(
@@ -63,21 +69,30 @@ fun AiManagementScreen(
     val providers = remember { aiService.getAllProviders() }
     val activeProviderId = remember { mutableStateOf(AiConfigStore.getActiveProvider(context)) }
     var showConfigDialog by remember { mutableStateOf<String?>(null) }
+    var showActivatedHint by remember { mutableStateOf(false) }
+    var activatedProviderName by remember { mutableStateOf("") }
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
 
-    // Theme-aware provider colors
     val providerColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary
     )
 
+    // Auto-hide activation hint
+    LaunchedEffect(showActivatedHint) {
+        if (showActivatedHint) {
+            delay(2000)
+            showActivatedHint = false
+        }
+    }
+
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Standard header
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,12 +129,45 @@ fun AiManagementScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // Activation hint
+                AnimatedVisibility(
+                    visible = showActivatedHint,
+                    enter = fadeIn() + slideInVertically()
+                ) {
+                    GlassCard(
+                        cornerRadius = 14.dp,
+                        innerPadding = 12.dp,
+                        gradientColors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
+                        )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "已切换到 $activatedProviderName",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
                 // Provider section
                 SectionHeader(
                     title = "选择 AI 服务商",
                     icon = Icons.Default.SmartToy,
                     color = MaterialTheme.colorScheme.primary
                 )
+
+                val detailedStats = remember { aiService.getDetailedUsageStats() }
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     providers.forEachIndexed { index, provider ->
@@ -129,10 +177,8 @@ fun AiManagementScreen(
                         val selectedModel = AiConfigStore.getModel(context, provider.id)
                             .ifBlank { provider.defaultModel }
 
-                        // Per-model stats from usage tracker
-                        val detailedStats = remember { aiService.getDetailedUsageStats() }
-                        val modelRequests = detailedStats.modelRequests[provider.displayName] ?: 0
-                        val modelTokens = detailedStats.modelTokens[provider.displayName] ?: 0
+                        val provRequests = detailedStats.providerRequests[provider.id] ?: 0
+                        val provTokens = detailedStats.providerTokens[provider.id] ?: 0
 
                         ProviderCard(
                             name = provider.displayName,
@@ -140,11 +186,13 @@ fun AiManagementScreen(
                             color = color,
                             isActive = isActive,
                             isConfigured = configured,
-                            requestCount = modelRequests,
-                            tokenCount = modelTokens,
+                            requestCount = provRequests,
+                            tokenCount = provTokens,
                             onClick = {
                                 AiConfigStore.setActiveProvider(context, provider.id)
                                 activeProviderId.value = provider.id
+                                activatedProviderName = provider.displayName
+                                showActivatedHint = true
                             },
                             onConfigClick = { showConfigDialog = provider.id }
                         )
@@ -153,7 +201,6 @@ fun AiManagementScreen(
 
                 // Usage stats section
                 val rateStats = remember { aiService.getUsageStats() }
-                val detailedStats = remember { aiService.getDetailedUsageStats() }
 
                 SectionHeader(
                     title = "今日用量",
@@ -274,7 +321,7 @@ private fun ProviderCard(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(color.copy(alpha = 0.1f)),
+                            .background(color.copy(alpha = if (isActive) 0.15f else 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -286,12 +333,27 @@ private fun ProviderCard(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(
-                            text = name,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = name,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            if (isActive) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "使用中",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = color,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(color.copy(alpha = 0.1f))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
                         Text(
                             text = model,
                             fontSize = 12.sp,
@@ -327,12 +389,12 @@ private fun ProviderCard(
                 if (isConfigured && (requestCount > 0 || tokenCount > 0)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            text = "${requestCount} 次",
+                            text = "${requestCount} 次请求",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                         Text(
-                            text = formatTokens(tokenCount),
+                            text = "${formatTokens(tokenCount)} tokens",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )

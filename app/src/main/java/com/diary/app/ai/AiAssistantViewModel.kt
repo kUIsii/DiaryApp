@@ -41,6 +41,12 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
+    private val _lastTokens = MutableStateFlow(0)
+    val lastTokens: StateFlow<Int> = _lastTokens.asStateFlow()
+
+    private val _lastModel = MutableStateFlow("")
+    val lastModel: StateFlow<String> = _lastModel.asStateFlow()
+
     private val _conversations = MutableStateFlow<List<ConversationInfo>>(emptyList())
     val conversations: StateFlow<List<ConversationInfo>> = _conversations.asStateFlow()
 
@@ -178,6 +184,11 @@ $context"""
 
                 val reply = result.getOrNull()?.content?.trim()
                 if (!reply.isNullOrBlank()) {
+                    // Track tokens for this conversation
+                    result.getOrNull()?.let { resp ->
+                        _lastTokens.value = resp.totalTokens
+                        _lastModel.value = resp.model
+                    }
                     val assistantEntity = ChatMessageEntity(conversationId = convId, role = "assistant", content = reply)
                     val assistantId = withContext(Dispatchers.IO) { dao.insertChatMessage(assistantEntity) }
                     _messages.value = _messages.value + AssistantMessage(assistantId, "assistant", reply, false)

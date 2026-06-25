@@ -13,6 +13,8 @@ object AiUsageTracker {
     private const val KEY_PREFIX_TOKENS = "tok_"
     private const val KEY_PREFIX_MODEL_TOKENS = "mtok_"
     private const val KEY_PREFIX_MODEL_REQUESTS = "mreq_"
+    private const val KEY_PREFIX_PROVIDER_TOKENS = "ptok_"
+    private const val KEY_PREFIX_PROVIDER_REQUESTS = "preq_"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -23,7 +25,7 @@ object AiUsageTracker {
     private val gson = Gson()
 
     @Synchronized
-    fun record(context: Context, tokens: Int, model: String? = null) {
+    fun record(context: Context, tokens: Int, model: String? = null, providerId: String? = null) {
         val key = todayKey()
         val p = prefs(context)
         val editor = p.edit()
@@ -31,17 +33,27 @@ object AiUsageTracker {
         editor.putInt(KEY_PREFIX_TOKENS + key, p.getInt(KEY_PREFIX_TOKENS + key, 0) + tokens)
 
         if (model != null) {
-            // Per-model request count
             val modelReqKey = KEY_PREFIX_MODEL_REQUESTS + key
             val modelReqMap = parseMap(p.getString(modelReqKey, "{}") ?: "{}")
             modelReqMap[model] = (modelReqMap[model] ?: 0) + 1
             editor.putString(modelReqKey, gson.toJson(modelReqMap))
 
-            // Per-model token count
             val modelTokKey = KEY_PREFIX_MODEL_TOKENS + key
             val modelTokMap = parseMap(p.getString(modelTokKey, "{}") ?: "{}")
             modelTokMap[model] = (modelTokMap[model] ?: 0) + tokens
             editor.putString(modelTokKey, gson.toJson(modelTokMap))
+        }
+
+        if (providerId != null) {
+            val providerReqKey = KEY_PREFIX_PROVIDER_REQUESTS + key
+            val providerReqMap = parseMap(p.getString(providerReqKey, "{}") ?: "{}")
+            providerReqMap[providerId] = (providerReqMap[providerId] ?: 0) + 1
+            editor.putString(providerReqKey, gson.toJson(providerReqMap))
+
+            val providerTokKey = KEY_PREFIX_PROVIDER_TOKENS + key
+            val providerTokMap = parseMap(p.getString(providerTokKey, "{}") ?: "{}")
+            providerTokMap[providerId] = (providerTokMap[providerId] ?: 0) + tokens
+            editor.putString(providerTokKey, gson.toJson(providerTokMap))
         }
 
         editor.apply()
@@ -54,7 +66,9 @@ object AiUsageTracker {
             requests = p.getInt(KEY_PREFIX_REQUESTS + key, 0),
             tokens = p.getInt(KEY_PREFIX_TOKENS + key, 0),
             modelRequests = parseMap(p.getString(KEY_PREFIX_MODEL_REQUESTS + key, "{}") ?: "{}"),
-            modelTokens = parseMap(p.getString(KEY_PREFIX_MODEL_TOKENS + key, "{}") ?: "{}")
+            modelTokens = parseMap(p.getString(KEY_PREFIX_MODEL_TOKENS + key, "{}") ?: "{}"),
+            providerRequests = parseMap(p.getString(KEY_PREFIX_PROVIDER_REQUESTS + key, "{}") ?: "{}"),
+            providerTokens = parseMap(p.getString(KEY_PREFIX_PROVIDER_TOKENS + key, "{}") ?: "{}")
         )
     }
 
@@ -74,6 +88,8 @@ object AiUsageTracker {
         val requests: Int,
         val tokens: Int,
         val modelRequests: Map<String, Int> = emptyMap(),
-        val modelTokens: Map<String, Int> = emptyMap()
+        val modelTokens: Map<String, Int> = emptyMap(),
+        val providerRequests: Map<String, Int> = emptyMap(),
+        val providerTokens: Map<String, Int> = emptyMap()
     )
 }

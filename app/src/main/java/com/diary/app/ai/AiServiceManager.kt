@@ -52,7 +52,7 @@ class AiServiceManager(private val context: Context) {
         return try {
             val response = withContext(Dispatchers.IO) { provider.chat(request) }
             if (useCache) cacheResponse(request, response)
-            if (response.totalTokens > 0) AiUsageTracker.record(context, response.totalTokens, response.model)
+            if (response.totalTokens > 0) AiUsageTracker.record(context, response.totalTokens, response.model, response.providerId)
             Result.success(response)
         } catch (e: Exception) {
             Log.e("AiService", "Chat failed", e)
