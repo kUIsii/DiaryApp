@@ -7,12 +7,10 @@ import android.location.Geocoder
 import android.location.LocationManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.diary.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
-import java.net.URLEncoder
 import java.net.URL
 import java.util.Locale
 
@@ -30,22 +28,12 @@ data class CurrentWeather(
 object WeatherManager {
     private const val TAG = "WeatherManager"
     private const val PREFS_NAME = "diary_weather_prefs"
-    private const val WEATHER_API_URL = "https://restapi.amap.com/v3/weather/weatherInfo"
     private const val CACHE_DURATION_MS = 3 * 60 * 60 * 1000L // 3 hours
 
     suspend fun fetchWeather(context: Context): CurrentWeather? = withContext(Dispatchers.IO) {
         try {
-            val apiKey = BuildConfig.AMAP_API_KEY
-            if (apiKey.isBlank()) {
-                Log.w(TAG, "AMAP_API_KEY is empty")
-                return@withContext null
-            }
-
-            // Get city name from location
-            val cityName = getCityName(context) ?: return@withContext null
-
-            // Call weather API
-            val weather = callWeatherApi(apiKey, cityName)
+            val location = getLocation(context) ?: return@withContext null
+            val weather = callOpenMeteoApi(location.first, location.second, location.third)
             if (weather != null) {
                 saveToCache(context, weather)
             }
@@ -87,7 +75,7 @@ object WeatherManager {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED
+                        PackageManager.PERMISSION_GRANTED
     }
 
     fun mapAmapWeatherToType(description: String): String {
@@ -105,9 +93,11 @@ object WeatherManager {
     }
 
     /**
-     * Get city name. Tries GPS first (if permission granted), then falls back to Amap IP geolocation.
+     * Get location coordinates and city name.
+     * Tries GPS first, then falls back to IP geolocation.
+     * Returns Triple(latitude, longitude, cityName) or null.
      */
-    private fun getCityName(context: Context): String? {
+    private fun getLocation(context: Context): Triple<Double, Double, String>? {
         // Try GPS-based location if permission is available
         if (hasLocationPermission(context)) {
             try {
@@ -122,8 +112,8 @@ object WeatherManager {
                         if (!addresses.isNullOrEmpty()) {
                             val city = addresses[0].locality ?: addresses[0].subAdminArea ?: addresses[0].adminArea
                             if (!city.isNullOrBlank()) {
-                                Log.d(TAG, "Resolved city via GPS: $city")
-                                return city
+                                Log.d(TAG, "Resolved location via GPS: $city (${location.latitude}, ${location.longitude})")
+                                return Triple(location.latitude, location.longitude, city)
                             }
                         }
                     } catch (e: Exception) {
@@ -135,46 +125,23 @@ object WeatherManager {
             }
         }
 
-        // Fallback: Amap IP geolocation (no permission needed)
-        return getCityByIp(context)
+        // Fallback: Use a default location (Beijing) if GPS fails
+        Log.w(TAG, "Using default location (Beijing)")
+        return Triple(39.9042, 116.4074, "北京")
     }
 
     /**
-     * Use Amap IP geolocation API to get city name. No GPS needed.
+     * Call Open-Meteo API for weather data.
+     * Free, no API key required.
      */
-    private fun getCityByIp(context: Context): String? {
+    private fun callOpenMeteoApi(latitude: Double, longitude: Double, city: String): CurrentWeather? {
         try {
-            val apiKey = BuildConfig.AMAP_API_KEY
-            if (apiKey.isBlank()) return null
-            val url = URL("https://restapi.amap.com/v3/ip?key=$apiKey")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 8000
-                readTimeout = 8000
-            }
-            try {
-                if (conn.responseCode != 200) return null
-                val body = conn.inputStream.bufferedReader().readText()
-                val json = JSONObject(body)
-                if (json.optString("status") != "1") return null
-                val city = json.optString("city", "")
-                if (city.isNotBlank()) {
-                    Log.d(TAG, "Resolved city via IP: $city")
-                    return city
-                }
-            } finally {
-                conn.disconnect()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "IP geolocation failed", e)
-        }
-        return null
-    }
-
-    private fun callWeatherApi(apiKey: String, city: String): CurrentWeather? {
-        try {
-            val encodedCity = URLEncoder.encode(city, "UTF-8")
-            val url = URL("$WEATHER_API_URL?key=$apiKey&city=$encodedCity&extensions=base&output=json")
+            val url = URL(
+                "https://api.open-meteo.com/v1/forecast?" +
+                        "latitude=$latitude&longitude=$longitude" +
+                        "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m" +
+                        "&timezone=auto"
+            )
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 10000
@@ -184,43 +151,88 @@ object WeatherManager {
             try {
                 val responseCode = conn.responseCode
                 if (responseCode != 200) {
-                    Log.w(TAG, "Weather API returned $responseCode")
+                    Log.w(TAG, "Open-Meteo API returned $responseCode")
                     return null
                 }
 
                 val body = conn.inputStream.bufferedReader().readText()
                 val json = JSONObject(body)
+                val current = json.optJSONObject("current") ?: return null
 
-                if (json.getString("status") != "1") {
-                    Log.w(TAG, "Weather API error: ${json.optString("info", "unknown")}")
-                    return null
-                }
+                val temp = current.optDouble("temperature_2m", 0.0)
+                val humidity = current.optInt("relative_humidity_2m", 0)
+                val weatherCode = current.optInt("weather_code", 0)
+                val windSpeed = current.optDouble("wind_speed_10m", 0.0)
+                val windDirection = current.optInt("wind_direction_10m", 0)
 
-                val lives = json.optJSONArray("lives")
-                if (lives == null || lives.length() == 0) {
-                    Log.w(TAG, "Weather API returned empty lives array")
-                    return null
-                }
-
-                val live = lives.getJSONObject(0)
+                val weatherDesc = weatherCodeToDescription(weatherCode)
+                val windDirStr = windDirectionToChinese(windDirection)
                 val now = System.currentTimeMillis()
 
+                Log.d(TAG, "Weather: $city, $weatherDesc, ${temp}°C")
+
                 return CurrentWeather(
-                    city = live.optString("city", city),
-                    weather = live.optString("weather", ""),
-                    temperature = live.optString("temperature", ""),
-                    windDirection = live.optString("winddirection", ""),
-                    windPower = live.optString("windpower", ""),
-                    humidity = live.optString("humidity", ""),
-                    reportTime = live.optString("reporttime", ""),
+                    city = city,
+                    weather = weatherDesc,
+                    temperature = temp.toInt().toString(),
+                    windDirection = windDirStr,
+                    windPower = "${windSpeed.toInt()}km/h",
+                    humidity = "$humidity%",
+                    reportTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA).format(java.util.Date(now)),
                     fetchedAt = now
                 )
             } finally {
                 conn.disconnect()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to call weather API", e)
+            Log.e(TAG, "Failed to call Open-Meteo API", e)
             return null
+        }
+    }
+
+    /**
+     * Convert WMO weather code to Chinese description.
+     */
+    private fun weatherCodeToDescription(code: Int): String {
+        return when (code) {
+            0 -> "晴"
+            1 -> "晴间多云"
+            2 -> "多云"
+            3 -> "阴"
+            45, 48 -> "雾"
+            51, 53, 55 -> "小雨"
+            56, 57 -> "冻雨"
+            61 -> "小雨"
+            63 -> "中雨"
+            65 -> "大雨"
+            66, 67 -> "冻雨"
+            71 -> "小雪"
+            73 -> "中雪"
+            75 -> "大雪"
+            77 -> "雪粒"
+            80 -> "阵雨"
+            81 -> "中雨"
+            82 -> "暴雨"
+            85, 86 -> "阵雪"
+            95 -> "雷暴"
+            96, 99 -> "雷暴冰雹"
+            else -> "晴"
+        }
+    }
+
+    /**
+     * Convert wind direction degrees to Chinese direction.
+     */
+    private fun windDirectionToChinese(degrees: Int): String {
+        return when {
+            degrees < 22.5 || degrees >= 337.5 -> "北风"
+            degrees < 67.5 -> "东北风"
+            degrees < 112.5 -> "东风"
+            degrees < 157.5 -> "东南风"
+            degrees < 202.5 -> "南风"
+            degrees < 247.5 -> "西南风"
+            degrees < 292.5 -> "西风"
+            else -> "西北风"
         }
     }
 
