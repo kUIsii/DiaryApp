@@ -101,6 +101,66 @@ class AchievementGalleryStateTest {
     }
 
     @Test
+    fun all_filter_prioritizes_unlocked_then_high_progress_visible_items() {
+        val hiddenLocked = achievementItem(
+            key = "hidden",
+            hidden = true,
+            progress = 0,
+            target = 1
+        )
+        val unlocked = achievementItem(
+            key = "unlocked",
+            unlocked = true,
+            unlockedAt = 4_000L,
+            progress = 10,
+            target = 10
+        )
+        val almostThere = achievementItem(
+            key = "almost",
+            progress = 8,
+            target = 10,
+            tier = AchievementTier.RARE
+        )
+        val early = achievementItem(
+            key = "early",
+            progress = 2,
+            target = 10,
+            tier = AchievementTier.LEGENDARY
+        )
+
+        val cards = filterAchievementGalleryCards(
+            items = listOf(early, hiddenLocked, almostThere, unlocked),
+            stateFilter = AchievementGalleryFilter.ALL
+        )
+
+        assertEquals(listOf("unlocked", "almost", "early"), cards.map { it.item.def.key })
+    }
+
+    @Test
+    fun card_status_label_matches_unlocked_hidden_and_progress_states() {
+        val unlocked = achievementItem(
+            key = "done",
+            unlocked = true,
+            unlockedAt = 2_000L
+        )
+        val hidden = achievementItem(
+            key = "hidden",
+            hidden = true,
+            progress = 0,
+            target = 1
+        )
+        val inProgress = achievementItem(
+            key = "progress",
+            progress = 9,
+            target = 10
+        )
+
+        assertEquals("已达成", buildAchievementStatusLabel(unlocked))
+        assertEquals("隐藏线索", buildAchievementStatusLabel(hidden))
+        assertEquals("90%", buildAchievementStatusLabel(inProgress))
+    }
+
+    @Test
     fun hero_summary_highlights_recent_unlock_and_next_near_completion() {
         val recent = achievementItem(
             key = "recent",

@@ -41,6 +41,9 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
     private val _selectedAchievement = MutableStateFlow<AchievementItem?>(null)
     val selectedAchievement: StateFlow<AchievementItem?> = _selectedAchievement
 
+    private val _isFilterExpanded = MutableStateFlow(false)
+    val isFilterExpanded: StateFlow<Boolean> = _isFilterExpanded
+
     val galleryState: StateFlow<AchievementGalleryState> = combine(
         allItems,
         stats,
@@ -118,6 +121,14 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
         _selectedAchievement.value = null
     }
 
+    fun toggleFilter() {
+        _isFilterExpanded.value = !_isFilterExpanded.value
+    }
+
+    fun collapseFilter() {
+        _isFilterExpanded.value = false
+    }
+
     fun refresh() {
         viewModelScope.launch {
             runCatching { repository.checkAndUnlock() }
@@ -136,5 +147,13 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
     fun getTierProgress(tier: AchievementTier): Pair<Int, Int> {
         val items = allItems.value.filter { it.def.tier == tier }
         return items.count { it.isUnlocked } to items.size
+    }
+
+    fun getActiveFilterCount(): Int {
+        var count = 0
+        if (_selectedStateFilter.value != AchievementGalleryFilter.ALL) count++
+        if (_selectedCategory.value != null) count++
+        if (_selectedTier.value != null) count++
+        return count
     }
 }

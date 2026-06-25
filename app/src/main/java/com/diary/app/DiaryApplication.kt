@@ -45,7 +45,6 @@ class DiaryApplication : Application() {
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
         TodoReminderManager.createNotificationChannel(this)
-        AchievementNotificationManager.ensureChannel(this)
         // Schedule periodic auto-backup via WorkManager
         if (BackupManager.isAutoBackupEnabled(this)) {
             BackupManager.scheduleAutoBackup(this)

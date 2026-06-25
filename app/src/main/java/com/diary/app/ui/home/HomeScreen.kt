@@ -1046,8 +1046,7 @@ private fun HomeEntryCard(
                             HorizontalPager(
                                 state = pagerState,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(160.dp)
+                                    .matchParentSize()
                                     .clip(RoundedCornerShape(18.dp))
                             ) { page ->
                                 AsyncImage(
@@ -1064,8 +1063,7 @@ private fun HomeEntryCard(
                             // Dark overlay
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(160.dp)
+                                    .matchParentSize()
                                     .background(
                                         Brush.verticalGradient(
                                             colors = listOf(
@@ -1105,15 +1103,13 @@ private fun HomeEntryCard(
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
+                                .matchParentSize()
                                 .clip(RoundedCornerShape(18.dp))
                         )
                         // Dark overlay for text readability
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
+                                .matchParentSize()
                                 .background(
                                     Brush.verticalGradient(
                                         colors = listOf(

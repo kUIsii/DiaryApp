@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -29,10 +31,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -77,6 +81,7 @@ fun AchievementScreen(
     val selectedTier by viewModel.selectedTier.collectAsState()
     val selectedStateFilter by viewModel.selectedStateFilter.collectAsState()
     val selectedAchievement by viewModel.selectedAchievement.collectAsState()
+    val isFilterExpanded by viewModel.isFilterExpanded.collectAsState()
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -134,30 +139,16 @@ fun AchievementScreen(
                 }
 
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    FilterTitle("筛选查看")
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    StateFilterRow(
-                        selected = selectedStateFilter,
-                        onSelected = viewModel::selectStateFilter
+                    CompactFilterBar(
+                        selectedStateFilter = selectedStateFilter,
+                        selectedCategory = selectedCategory,
+                        selectedTier = selectedTier,
+                        activeFilterCount = viewModel.getActiveFilterCount(),
+                        onFilterClick = { viewModel.toggleFilter() },
+                        onStateFilterClick = viewModel::selectStateFilter,
+                        onCategoryClick = viewModel::selectCategory,
+                        onTierClick = viewModel::selectTier
                     )
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    CategoryFilterRow(
-                        stats = stats,
-                        selected = selectedCategory,
-                        onSelected = viewModel::selectCategory
-                    )
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    TierFilterRow(
-                        selected = selectedTier,
-                        onSelected = viewModel::selectTier
-                    )
-                }
-
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    FilterTitle("全部藏品")
                 }
 
                 if (galleryState.filteredCards.isEmpty()) {
@@ -181,6 +172,241 @@ fun AchievementScreen(
             item = item,
             onDismiss = { viewModel.dismissAchievementDetail() }
         )
+    }
+
+    if (isFilterExpanded) {
+        FilterPanelBottomSheet(
+            selectedStateFilter = selectedStateFilter,
+            selectedCategory = selectedCategory,
+            selectedTier = selectedTier,
+            stats = stats,
+            onStateFilterClick = viewModel::selectStateFilter,
+            onCategoryClick = viewModel::selectCategory,
+            onTierClick = viewModel::selectTier,
+            onDismiss = { viewModel.collapseFilter() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CompactFilterBar(
+    selectedStateFilter: AchievementGalleryFilter,
+    selectedCategory: AchievementCategory?,
+    selectedTier: AchievementTier?,
+    activeFilterCount: Int,
+    onFilterClick: () -> Unit,
+    onStateFilterClick: (AchievementGalleryFilter) -> Unit,
+    onCategoryClick: (AchievementCategory?) -> Unit,
+    onTierClick: (AchievementTier?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Filter button row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "全部藏品",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Surface(
+                onClick = onFilterClick,
+                shape = RoundedCornerShape(999.dp),
+                color = if (activeFilterCount > 0) Color(0xFF6B5744).copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (activeFilterCount > 0) Color(0xFF6B5744)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (activeFilterCount > 0) "筛选 ($activeFilterCount)" else "筛选",
+                        fontSize = 12.sp,
+                        color = if (activeFilterCount > 0) Color(0xFF6B5744)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // Active filter chips (only show when filters are active)
+        if (activeFilterCount > 0) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (selectedStateFilter != AchievementGalleryFilter.ALL) {
+                    item {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onStateFilterClick(selectedStateFilter) },
+                            label = { Text(selectedStateFilter.label, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF6B5744),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+                if (selectedCategory != null) {
+                    item {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onCategoryClick(selectedCategory) },
+                            label = { Text(selectedCategory.displayName, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = categoryColor(selectedCategory).copy(alpha = 0.88f),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+                if (selectedTier != null) {
+                    item {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onTierClick(selectedTier) },
+                            label = { Text(selectedTier.displayName, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = tierColor(selectedTier).copy(alpha = 0.88f),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterPanelBottomSheet(
+    selectedStateFilter: AchievementGalleryFilter,
+    selectedCategory: AchievementCategory?,
+    selectedTier: AchievementTier?,
+    stats: AchievementStats,
+    onStateFilterClick: (AchievementGalleryFilter) -> Unit,
+    onCategoryClick: (AchievementCategory?) -> Unit,
+    onTierClick: (AchievementTier?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Drag handle
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                    .align(Alignment.CenterHorizontally)
+            )
+
+            Text(
+                text = "筛选藏品",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // State filter section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "状态",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(AchievementGalleryFilter.entries, key = { it.name }) { filter ->
+                        FilterChip(
+                            selected = selectedStateFilter == filter,
+                            onClick = { onStateFilterClick(filter) },
+                            label = { Text(filter.label, fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF6B5744),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Category filter section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "分类",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(AchievementCategory.entries, key = { it.name }) { category ->
+                        val categoryStats = stats.categoryCounts[category] ?: (0 to 0)
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { onCategoryClick(category) },
+                            label = {
+                                Text(
+                                    text = "${category.displayName} ${categoryStats.first}/${categoryStats.second}",
+                                    fontSize = 12.sp
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = categoryColor(category).copy(alpha = 0.88f),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Tier filter section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "稀有度",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(AchievementTier.entries, key = { it.name }) { tier ->
+                        FilterChip(
+                            selected = selectedTier == tier,
+                            onClick = { onTierClick(tier) },
+                            label = { Text(tier.displayName, fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = tierColor(tier).copy(alpha = 0.88f),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

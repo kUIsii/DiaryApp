@@ -2,18 +2,23 @@ package com.diary.app.ui.achievement
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,7 +77,11 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
@@ -80,7 +91,13 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            AchievementBadgeLarge(achievementKey = item.def.key, category = item.def.category, tier = item.def.tier, isUnlocked = item.isUnlocked)
+            AchievementBadgeLarge(
+                achievementKey = item.def.key,
+                category = item.def.category,
+                tier = item.def.tier,
+                isUnlocked = item.isUnlocked,
+                name = if (item.isHiddenLocked) "???" else item.def.name
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -143,7 +160,14 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun AchievementBadgeLarge(achievementKey: String, category: AchievementCategory, tier: AchievementTier, isUnlocked: Boolean) {
+private fun AchievementBadgeLarge(
+    achievementKey: String,
+    category: AchievementCategory,
+    tier: AchievementTier,
+    isUnlocked: Boolean,
+    name: String = ""
+) {
+    val imageRes = rememberAchievementImageRes(achievementKey)
     val backgroundBrush = if (isUnlocked) {
         when (tier) {
             AchievementTier.COMMON -> Brush.linearGradient(listOf(Color(0xFF90A4AE), Color(0xFF78909C)))
@@ -155,11 +179,21 @@ private fun AchievementBadgeLarge(achievementKey: String, category: AchievementC
         Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)))
     }
 
+    val badgeSize = if (isUnlocked && imageRes != null) 120.dp else 80.dp
+    val cornerRadiusValue = if (isUnlocked && imageRes != null) 24 else 20
+
     Box(
-        modifier = Modifier.size(80.dp).clip(RoundedCornerShape(20.dp)).background(backgroundBrush),
+        modifier = Modifier.size(badgeSize).clip(RoundedCornerShape(cornerRadiusValue.dp)).background(backgroundBrush),
         contentAlignment = Alignment.Center
     ) {
-        if (isUnlocked) {
+        if (isUnlocked && imageRes != null) {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadiusValue.dp))
+            )
+        } else if (isUnlocked) {
             AchievementIcon(
                 achievementKey = achievementKey,
                 category = category,

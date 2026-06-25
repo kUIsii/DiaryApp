@@ -57,7 +57,8 @@ data class AchievementDef(
     val iconEmoji: String,
     val flavorText: String,
     val target: Int = 1,
-    val isHidden: Boolean = false
+    val isHidden: Boolean = false,
+    val imageRes: Int? = null
 )
 
 // ── Runtime achievement state (from database) ──

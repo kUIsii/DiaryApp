@@ -20,7 +20,7 @@ data class StorageCategory(
     val description: String
 )
 
-enum class StorageIcon { DATABASE, IMAGE, THUMBNAIL, BACKUP, CACHE }
+enum class StorageIcon { DATABASE, IMAGE, THUMBNAIL, BACKUP, CACHE, STORAGE }
 
 data class StorageState(
     val isLoading: Boolean = true,
@@ -30,11 +30,13 @@ data class StorageState(
     val backupSize: Long = 0,
     val cacheSize: Long = 0,
     val totalSize: Long = 0,
+    val totalAppDataSize: Long = 0,
     val imageCount: Int = 0,
     val entryCount: Int = 0
 ) {
     val categories: List<StorageCategory>
         get() = listOf(
+            StorageCategory("应用数据总量", StorageIcon.STORAGE, totalAppDataSize, "包含数据库、媒体、缓存等所有应用数据的总和"),
             StorageCategory("数据库", StorageIcon.DATABASE, databaseSize, "${entryCount} 篇日记"),
             StorageCategory("媒体文件", StorageIcon.IMAGE, mediaSize, "图片、视频等 ${imageCount} 个文件"),
             StorageCategory("缩略图", StorageIcon.THUMBNAIL, imageThumbSize, "自动生成的预览图"),
@@ -86,7 +88,10 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 // Cache: app cacheDir + code_cache
                 val cacheSize = calculateCacheSize(context)
 
-                StorageResult(dbSize, mediaSize, thumbSize, backupSize, cacheSize, imageCount, entryCount)
+                // Total app data size (dataDir includes everything)
+                val totalAppDataSize = calculateDirectorySize(context.dataDir)
+
+                StorageResult(dbSize, mediaSize, thumbSize, backupSize, cacheSize, totalAppDataSize, imageCount, entryCount)
             }
 
             val total = result.dbSize + result.mediaSize + result.thumbSize + result.backupSize + result.cacheSize
@@ -99,6 +104,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 backupSize = result.backupSize,
                 cacheSize = result.cacheSize,
                 totalSize = total,
+                totalAppDataSize = result.totalAppDataSize,
                 imageCount = result.imageCount,
                 entryCount = result.entryCount
             )
@@ -155,8 +161,12 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun calculateCacheSize(context: android.content.Context): Long {
+        var size = 0L
         val cacheDir = context.cacheDir
-        return if (cacheDir.exists()) calculateDirectorySize(cacheDir) else 0L
+        if (cacheDir.exists()) size += calculateDirectorySize(cacheDir)
+        val codeCacheDir = context.codeCacheDir
+        if (codeCacheDir.exists()) size += calculateDirectorySize(codeCacheDir)
+        return size
     }
 
     private data class StorageResult(
@@ -165,6 +175,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         val thumbSize: Long,
         val backupSize: Long,
         val cacheSize: Long,
+        val totalAppDataSize: Long,
         val imageCount: Int,
         val entryCount: Int
     )

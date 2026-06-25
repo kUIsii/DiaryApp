@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.BurstMode
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -144,9 +145,9 @@ fun StorageScreen(
 
                             if (!state.isLoading && state.totalSize > 0) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                // Stacked bar
+                                // Stacked bar (exclude totalAppDataSize from bar segments)
                                 StorageBar(
-                                    categories = state.categories.filter { it.sizeBytes > 0 },
+                                    categories = state.categories.filter { it.sizeBytes > 0 && it.icon != StorageIcon.STORAGE },
                                     totalSize = state.totalSize
                                 )
                             }
@@ -295,6 +296,7 @@ private fun StorageCategoryCard(
         StorageIcon.THUMBNAIL -> Icons.Default.BurstMode
         StorageIcon.BACKUP -> Icons.Default.Backup
         StorageIcon.CACHE -> Icons.Default.Delete
+        StorageIcon.STORAGE -> Icons.Default.PhoneAndroid
     }
     val iconColors = listOf(
         Color(0xFF6366F1),
@@ -302,6 +304,7 @@ private fun StorageCategoryCard(
         Color(0xFFF59E0B),
         Color(0xFF3B82F6),
         Color(0xFF94A3B8),
+        Color(0xFF8B5CF6),
     )
     val iconColor = when (category.icon) {
         StorageIcon.DATABASE -> iconColors[0]
@@ -309,6 +312,7 @@ private fun StorageCategoryCard(
         StorageIcon.THUMBNAIL -> iconColors[2]
         StorageIcon.BACKUP -> iconColors[3]
         StorageIcon.CACHE -> iconColors[4]
+        StorageIcon.STORAGE -> iconColors[5]
     }
     val percentage = if (totalSize > 0) (category.sizeBytes * 100 / totalSize) else 0
 

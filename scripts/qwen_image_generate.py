@@ -98,8 +98,8 @@ PRESETS: dict[str, Preset] = {
 
 def sanitize_filename(value: str) -> str:
     value = value.strip().lower()
-    value = re.sub(r"[^\w\-]+", "-", value, flags=re.UNICODE)
-    value = re.sub(r"-{2,}", "-", value).strip("-")
+    value = re.sub(r"[^\w\-]+", "_", value, flags=re.UNICODE)
+    value = re.sub(r"_{2,}", "_", value).strip("_")
     return value or "image"
 
 

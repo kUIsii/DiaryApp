@@ -1,6 +1,7 @@
 package com.diary.app.ui.achievement
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +23,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.diary.app.data.AchievementCategory
 import com.diary.app.data.AchievementTier
@@ -54,6 +59,21 @@ fun categoryColor(category: AchievementCategory): Color = when (category) {
     AchievementCategory.LEGENDARY -> LegendaryColor
 }
 
+/**
+ * Resolve AI-generated achievement image resource by key.
+ * Returns null if no image resource exists for this achievement.
+ */
+@Composable
+fun rememberAchievementImageRes(achievementKey: String): Int? {
+    val context = LocalContext.current
+    return remember(achievementKey) {
+        val resId = context.resources.getIdentifier(
+            "achievement_$achievementKey", "drawable", context.packageName
+        )
+        if (resId != 0) resId else null
+    }
+}
+
 @Composable
 fun AchievementArtwork(
     achievementKey: String,
@@ -63,6 +83,7 @@ fun AchievementArtwork(
     modifier: Modifier = Modifier,
     cornerRadius: Int = 24
 ) {
+    val imageRes = rememberAchievementImageRes(achievementKey)
     val palette = achievementPalette(category = category, tier = tier, isUnlocked = isUnlocked)
     val shape = RoundedCornerShape(cornerRadius.dp)
 
@@ -70,25 +91,40 @@ fun AchievementArtwork(
         modifier = modifier
             .clip(shape)
             .background(Brush.linearGradient(listOf(palette.start, palette.end)), shape)
-            .border(1.dp, palette.border, shape)
-            .padding(10.dp),
+            .border(1.dp, palette.border, shape),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val seed = achievementKey.hashCode().absoluteValue
-            drawArtworkBackground(seed = seed, palette = palette, isUnlocked = isUnlocked)
-        }
-
-        if (isUnlocked) {
-            AchievementIcon(
-                achievementKey = achievementKey,
-                category = category,
-                tier = tier,
-                isUnlocked = true,
-                modifier = Modifier.fillMaxSize(0.46f)
+        if (isUnlocked && imageRes != null) {
+            // AI-generated image
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(shape)
             )
         } else {
-            LockIcon(modifier = Modifier.fillMaxSize(0.42f))
+            // Canvas fallback
+            Box(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val seed = achievementKey.hashCode().absoluteValue
+                    drawArtworkBackground(seed = seed, palette = palette, isUnlocked = isUnlocked)
+                }
+
+                if (isUnlocked) {
+                    AchievementIcon(
+                        achievementKey = achievementKey,
+                        category = category,
+                        tier = tier,
+                        isUnlocked = true,
+                        modifier = Modifier.fillMaxSize(0.46f)
+                    )
+                } else {
+                    LockIcon(modifier = Modifier.fillMaxSize(0.42f))
+                }
+            }
         }
     }
 }
