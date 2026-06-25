@@ -21,11 +21,11 @@ abstract class BaseHttpProvider(
     override suspend fun chat(request: AiRequest): AiResponse {
         if (!configStore.isConfigured(context)) throw AiError.NotConfigured
 
-        val model = request.model ?: defaultModel
+        val model = request.model ?: configStore.getModel(context, id).ifBlank { defaultModel }
         if (!rateLimiter.canMakeRequest(model)) throw AiError.RateLimited
 
-        val apiKey = configStore.getApiKey(context)
-        val endpoint = configStore.getEndpoint(context)
+        val apiKey = configStore.getApiKey(context, id)
+        val endpoint = configStore.getEndpoint(context, id).ifBlank { "https://apihub.agnes-ai.com/v1/" }
 
         return try {
             val response = makeRequest(endpoint, apiKey, request, model)

@@ -20,6 +20,7 @@ class AiServiceManager(private val context: Context) {
     init {
         providers["modelscope"] = ModelScopeProvider(context, configStore, rateLimiter)
         providers["agnes"] = AgnesProvider(context, configStore, rateLimiter)
+        providers["deepseek"] = DeepseekProvider(context, configStore, rateLimiter)
     }
 
     fun getActiveProvider(): AiServiceProvider? {

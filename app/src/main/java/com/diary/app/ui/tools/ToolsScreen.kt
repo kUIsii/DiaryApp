@@ -130,6 +130,7 @@ fun ToolsScreen(
     onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
+    onNavigateToAiManagement: () -> Unit = {},
     onSwipeToTimeline: (() -> Unit)? = null,
     onSwipeToTodo: (() -> Unit)? = null
 ) {
@@ -338,11 +339,11 @@ fun ToolsScreen(
                         icon = Icons.Default.Key,
                         iconBg = sectionIconBg(2),
                         iconTint = sectionIconTint(2),
-                        title = "API 配置",
+                        title = "AI 配置",
                         subtitle = if (isAiConfigured) "已配置" else "点击配置 AI 密钥",
                         textColor = textColor,
                         textTertiary = textTertiary,
-                        onClick = { showApiKeyDialog = true }
+                        onClick = onNavigateToAiManagement
                     )
                     SettingDivider()
                     ClickableToolRow(

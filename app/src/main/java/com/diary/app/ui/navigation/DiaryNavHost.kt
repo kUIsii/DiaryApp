@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Widgets
@@ -165,6 +166,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Notifications : Screen("notifications", "通知", Icons.Default.Notifications)
     object AiAssistant : Screen("ai_assistant", "AI 助手", Icons.Default.AutoAwesome)
+    object AiManagement : Screen("ai_management", "AI 管理", Icons.Default.SmartToy)
     object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.CalendarMonth) {
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
@@ -348,6 +350,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
+                    onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
                     onSwipeToTimeline = { navigateToBottomRoute(Screen.Timeline.route) },
                     onSwipeToTodo = { navigateToBottomRoute(Screen.Todo.route) }
                 )
@@ -493,6 +496,19 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     androidx.lifecycle.viewmodel.compose.viewModel()
                 com.diary.app.ui.assistant.AiAssistantScreen(
                     viewModel = assistantViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                Screen.AiManagement.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                val app = LocalContext.current.applicationContext as? com.diary.app.DiaryApplication
+                com.diary.app.ui.tools.AiManagementScreen(
+                    aiService = app!!.aiService,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

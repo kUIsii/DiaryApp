@@ -6,15 +6,16 @@ object AiConfigStore {
     private const val PREFS_NAME = "diary_prefs"
     private const val KEY_AI_ENABLED = "ai_enabled"
     private const val KEY_AI_PROVIDER = "ai_active_provider"
-    private const val KEY_AI_MODEL = "ai_model"
+
+    // Legacy single-provider keys (migrated to per-provider)
     private const val KEY_AI_API_KEY = "ai_api_key"
     private const val KEY_AI_ENDPOINT = "ai_endpoint"
-
-    private const val DEFAULT_ENDPOINT = "https://apihub.agnes-ai.com/v1/"
-    private const val DEFAULT_MODEL = "agnes-2.0-flash"
+    private const val KEY_AI_MODEL = "ai_model"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    // ── Global ──────────────────────────────────────────────
 
     fun isAiEnabled(context: Context): Boolean = prefs(context).getBoolean(KEY_AI_ENABLED, false)
 
@@ -29,28 +30,102 @@ object AiConfigStore {
         prefs(context).edit().putString(KEY_AI_PROVIDER, provider).apply()
     }
 
-    fun getApiKey(context: Context): String =
-        prefs(context).getString(KEY_AI_API_KEY, "") ?: ""
+    // ── Per-provider config ─────────────────────────────────
 
+    fun getApiKey(context: Context, providerId: String): String {
+        val perProvider = prefs(context).getString("ai_key_$providerId", null)
+        if (perProvider != null) return perProvider
+        // Migration: read legacy key for agnes
+        if (providerId == "agnes") {
+            val legacy = prefs(context).getString(KEY_AI_API_KEY, "") ?: ""
+            if (legacy.isNotBlank()) {
+                setApiKey(context, providerId, legacy)
+                return legacy
+            }
+        }
+        return ""
+    }
+
+    fun setApiKey(context: Context, providerId: String, key: String) {
+        prefs(context).edit().putString("ai_key_$providerId", key).apply()
+    }
+
+    fun getEndpoint(context: Context, providerId: String): String {
+        val perProvider = prefs(context).getString("ai_endpoint_$providerId", null)
+        if (perProvider != null) return perProvider
+        // Migration: read legacy endpoint for agnes
+        if (providerId == "agnes") {
+            val legacy = prefs(context).getString(KEY_AI_ENDPOINT, null)
+            if (legacy != null) {
+                setEndpoint(context, providerId, legacy)
+                return legacy
+            }
+        }
+        return ""
+    }
+
+    fun setEndpoint(context: Context, providerId: String, endpoint: String) {
+        prefs(context).edit().putString("ai_endpoint_$providerId", endpoint).apply()
+    }
+
+    fun getModel(context: Context, providerId: String): String {
+        val perProvider = prefs(context).getString("ai_model_$providerId", null)
+        if (perProvider != null) return perProvider
+        if (providerId == "agnes") {
+            val legacy = prefs(context).getString(KEY_AI_MODEL, null)
+            if (legacy != null) {
+                setModel(context, providerId, legacy)
+                return legacy
+            }
+        }
+        return ""
+    }
+
+    fun setModel(context: Context, providerId: String, model: String) {
+        prefs(context).edit().putString("ai_model_$providerId", model).apply()
+    }
+
+    // ── Legacy compat (used by BaseHttpProvider) ────────────
+
+    @Deprecated("Use getApiKey(context, providerId)")
+    fun getApiKey(context: Context): String {
+        val active = getActiveProvider(context)
+        return getApiKey(context, active)
+    }
+
+    @Deprecated("Use getEndpoint(context, providerId)")
+    fun getEndpoint(context: Context): String {
+        val active = getActiveProvider(context)
+        val ep = getEndpoint(context, active)
+        return ep.ifBlank { "https://apihub.agnes-ai.com/v1/" }
+    }
+
+    @Deprecated("Use getModel(context, providerId)")
+    fun getModel(context: Context): String {
+        val active = getActiveProvider(context)
+        return getModel(context, active)
+    }
+
+    @Deprecated("Use setApiKey(context, providerId, key)")
     fun setApiKey(context: Context, key: String) {
-        prefs(context).edit().putString(KEY_AI_API_KEY, key).apply()
+        val active = getActiveProvider(context)
+        setApiKey(context, active, key)
     }
 
-    fun getModel(context: Context): String =
-        prefs(context).getString(KEY_AI_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL
-
-    fun setModel(context: Context, model: String) {
-        prefs(context).edit().putString(KEY_AI_MODEL, model).apply()
-    }
-
-    fun getEndpoint(context: Context): String =
-        prefs(context).getString(KEY_AI_ENDPOINT, DEFAULT_ENDPOINT) ?: DEFAULT_ENDPOINT
-
+    @Deprecated("Use setEndpoint(context, providerId, endpoint)")
     fun setEndpoint(context: Context, endpoint: String) {
-        prefs(context).edit().putString(KEY_AI_ENDPOINT, endpoint).apply()
+        val active = getActiveProvider(context)
+        setEndpoint(context, active, endpoint)
+    }
+
+    @Deprecated("Use setModel(context, providerId, model)")
+    fun setModel(context: Context, model: String) {
+        val active = getActiveProvider(context)
+        setModel(context, active, model)
     }
 
     fun isConfigured(context: Context): Boolean {
-        return getApiKey(context).isNotBlank()
+        val active = getActiveProvider(context)
+        return getApiKey(context, active).isNotBlank()
     }
 }
