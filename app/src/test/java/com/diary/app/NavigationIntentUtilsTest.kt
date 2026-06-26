@@ -20,7 +20,7 @@ class NavigationIntentUtilsTest {
     @Test
     fun `quick todo shortcut resolves to todo`() {
         assertEquals(
-            "todo",
+            "todo_add",
             resolveExternalNavigation(
                 action = "com.diary.app.QUICK_TODO",
                 navigateTo = null,
