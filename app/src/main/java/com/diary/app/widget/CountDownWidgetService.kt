@@ -81,6 +81,9 @@ class CountDownRemoteViewsFactory(
         // Set color tint for days text (Long to Int ARGB)
         views.setTextColor(R.id.tv_days, item.color.toInt())
 
+        // Ensure collection item clicks are delivered to the provider template.
+        views.setOnClickFillInIntent(R.id.ll_item_root, Intent())
+
         return views
     }
 }

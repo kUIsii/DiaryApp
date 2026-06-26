@@ -314,6 +314,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEditor = { diaryId -> navController.navigate(Screen.Editor.createRoute(diaryId)) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
+                    onNavigateToTodo = { navigateToBottomRoute(Screen.Todo.route) },
                     onNavigateToTimeline = { query ->
                         if (!query.isNullOrBlank()) {
                             navController.currentBackStackEntry?.savedStateHandle?.set("timeline_query", query)

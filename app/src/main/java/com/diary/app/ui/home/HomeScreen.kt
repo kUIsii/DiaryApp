@@ -114,6 +114,7 @@ fun HomeScreen(
     onNavigateToEditor: (Long?) -> Unit,
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
+    onNavigateToTodo: () -> Unit = {},
     onNavigateToTimeline: (String?) -> Unit = { _ -> },
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
@@ -406,7 +407,7 @@ fun HomeScreen(
                 item {
                     QuickShortcutsSection(
                         onNavigate = { route ->
-                            when (route) {
+                            when (resolveQuickShortcutNavigation(route)) {
                                 "stats" -> onNavigateToStats()
                                 "countdown" -> onNavigateToCountDown()
                                 "ai_assistant" -> onNavigateToAiAssistant()
@@ -421,7 +422,7 @@ fun HomeScreen(
                                 "backup" -> onNavigateToBackup()
                                 "tag_management" -> onNavigateToTagManagement()
                                 "storage" -> onNavigateToStorage()
-                                "todo" -> onNavigateToTimeline(null)
+                                "todo" -> onNavigateToTodo()
                             }
                         }
                     )
