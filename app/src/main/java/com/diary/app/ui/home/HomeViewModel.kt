@@ -1,4 +1,4 @@
-﻿package com.diary.app.ui.home
+package com.diary.app.ui.home
 
 import android.app.Application
 import androidx.compose.ui.graphics.Color
@@ -28,6 +28,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.diary.app.util.computeStreak
+import com.diary.app.util.computeLongestStreak
+import com.diary.app.util.detectStreakMilestone
+import com.diary.app.util.streakTier
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

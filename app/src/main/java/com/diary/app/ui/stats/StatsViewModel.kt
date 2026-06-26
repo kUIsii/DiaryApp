@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.diary.app.data.WritingGoal
 import com.diary.app.util.computeStreak
+import com.diary.app.util.computeStreakWithTodayFreeze
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -91,6 +93,15 @@ data class HeatmapDay(
     val count: Int,
 )
 
+data class GoalProgress(
+    val goal: WritingGoal,
+    val progress: Float,       // 0f..1f
+    val currentDisplay: String,
+    val targetDisplay: String,
+    val isCompleted: Boolean,
+    val periodLabel: String,
+)
+
 data class StatsState(
     val isLoading: Boolean = true,
     val totalEntries: Int = 0,
@@ -113,6 +124,7 @@ data class StatsState(
     val analysisQuery: String = "",
     val analysisResult: String? = null,
     val isAnalyzing: Boolean = false,
+    val goalProgress: List<GoalProgress> = emptyList(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -159,7 +171,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         }
         val activeDates = entryDates.toSet()
 
-        val streak = computeStreak(activeDates)
+        val streak = computeStreakWithFreezes(activeDates, now)
 
         val thisMonth = entries.count {
             val date = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
@@ -185,6 +197,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
         val avgWritingMins = dao.getAverageWritingDurationSeconds()?.let { (it / 60).toInt() }
 
+        val goals = try { dao.getActiveGoalsOnce() } catch (_: Exception) { emptyList() }
+        val goalProgress = computeGoalProgress(goals, entries, zone, now)
+
         StatsState(
             isLoading = false,
             totalEntries = entries.size,
@@ -201,6 +216,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             heatmapData = buildHeatmapData(entryDates, now, heatmapRange.days),
             heatmapRange = heatmapRange,
             moodWeatherInsight = computeMoodWeatherCorrelation(entries),
+            goalProgress = goalProgress,
         )
     }
 
@@ -478,6 +494,93 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalWords = totalWords,
             avgWordsPerEntry = avgWords,
         )
+    }
+
+    private suspend fun computeStreakWithFreezes(activeDates: Set<LocalDate>, now: LocalDate): Int {
+        val freezes: List<com.diary.app.data.StreakFreeze> = try { dao.getAllFreezes().first() } catch (_: Exception) { emptyList() }
+        if (freezes.isEmpty()) return computeStreak(activeDates)
+        val freezeDates = freezes.map {
+            Instant.ofEpochMilli(it.usedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        }.toSet()
+        return computeStreakWithTodayFreeze(activeDates, freezeDates, false)
+    }
+
+    private fun computeGoalProgress(
+        goals: List<WritingGoal>,
+        entries: List<DiaryPreview>,
+        zone: ZoneId,
+        now: LocalDate
+    ): List<GoalProgress> {
+        return goals.map { goal ->
+            when (goal.type) {
+                "weekly_entries" -> {
+                    val weekStart = now.minusDays(now.dayOfWeek.value.toLong() - 1)
+                    val startMillis = weekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+                    val count = entries.count { it.createdAt >= startMillis }
+                    GoalProgress(
+                        goal = goal,
+                        progress = (count.toFloat() / goal.targetValue.coerceAtLeast(1)).coerceIn(0f, 1f),
+                        currentDisplay = "$count 篇",
+                        targetDisplay = "目标 ${goal.targetValue} 篇/周",
+                        isCompleted = count >= goal.targetValue,
+                        periodLabel = "本周"
+                    )
+                }
+                "monthly_entries" -> {
+                    val startMillis = now.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                    val count = entries.count { it.createdAt >= startMillis }
+                    GoalProgress(
+                        goal = goal,
+                        progress = (count.toFloat() / goal.targetValue.coerceAtLeast(1)).coerceIn(0f, 1f),
+                        currentDisplay = "$count 篇",
+                        targetDisplay = "目标 ${goal.targetValue} 篇/月",
+                        isCompleted = count >= goal.targetValue,
+                        periodLabel = "本月"
+                    )
+                }
+                "monthly_words" -> {
+                    val startMillis = now.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                    val totalChars = entries.filter { it.createdAt >= startMillis }.sumOf { it.plainText.length }
+                    GoalProgress(
+                        goal = goal,
+                        progress = (totalChars.toFloat() / goal.targetValue.coerceAtLeast(1)).coerceIn(0f, 1f),
+                        currentDisplay = formatCharCount(totalChars),
+                        targetDisplay = "目标 ${formatCharCount(goal.targetValue)}",
+                        isCompleted = totalChars >= goal.targetValue,
+                        periodLabel = "本月"
+                    )
+                }
+                else -> GoalProgress(goal, 0f, "0", "未知目标", false, "")
+            }
+        }
+    }
+
+    private fun formatCharCount(chars: Int): String {
+        return if (chars >= 10000) "${"%.1f".format(chars / 10000.0)}万字"
+        else if (chars >= 1000) "${"%.1f".format(chars / 1000.0)}k字"
+        else "${chars}字"
+    }
+
+    // Goal CRUD
+    fun addGoal(type: String, targetValue: Int) {
+        viewModelScope.launch {
+            val now = LocalDate.now()
+            val zone = ZoneId.systemDefault()
+            val periodStart = when (type) {
+                "weekly_entries" -> now.minusDays(now.dayOfWeek.value.toLong() - 1)
+                    .atStartOfDay(zone).toInstant().toEpochMilli()
+                else -> now.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            }
+            dao.insertGoal(WritingGoal(type = type, targetValue = targetValue, periodStart = periodStart))
+        }
+    }
+
+    fun updateGoal(goal: WritingGoal) {
+        viewModelScope.launch { dao.updateGoal(goal) }
+    }
+
+    fun deleteGoal(goalId: Long) {
+        viewModelScope.launch { dao.deleteGoal(goalId) }
     }
 
 }

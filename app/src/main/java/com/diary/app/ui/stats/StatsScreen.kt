@@ -37,6 +37,10 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +52,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -101,6 +109,8 @@ fun StatsScreen(
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
     var isLoadingEntries by remember { mutableStateOf(false) }
+    var showGoalDialog by remember { mutableStateOf(false) }
+    var editingGoal by remember { mutableStateOf<GoalProgress?>(null) }
 
     selectedDate?.let { date ->
         DayEntriesDialog(
@@ -147,6 +157,17 @@ fun StatsScreen(
 
                     item {
                         StatsHeroSection(state = state)
+                    }
+
+                    if (state.goalProgress.isNotEmpty() || state.totalEntries > 0) {
+                        item {
+                            WritingGoalSection(
+                                goals = state.goalProgress,
+                                onAddGoal = { showGoalDialog = true },
+                                onEditGoal = { editingGoal = it },
+                                onDeleteGoal = { viewModel.deleteGoal(it.goal.id) }
+                            )
+                        }
                     }
 
                     if (state.heatmapData.isNotEmpty()) {
@@ -339,6 +360,28 @@ fun StatsScreen(
             result = state.analysisResult,
             isAnalyzing = state.isAnalyzing,
             onDismiss = { viewModel.dismissAnalysis() }
+        )
+    }
+
+    // Goal Add/Edit Dialog
+    if (showGoalDialog) {
+        GoalDialog(
+            existing = null,
+            onDismiss = { showGoalDialog = false },
+            onSave = { type, target ->
+                viewModel.addGoal(type, target)
+                showGoalDialog = false
+            }
+        )
+    }
+    editingGoal?.let { gp ->
+        GoalDialog(
+            existing = gp,
+            onDismiss = { editingGoal = null },
+            onSave = { type, target ->
+                viewModel.updateGoal(gp.goal.copy(type = type, targetValue = target))
+                editingGoal = null
+            }
         )
     }
 }
@@ -1642,4 +1685,366 @@ private fun AnalysisBottomSheet(
             }
         }
     }
+}
+
+// ── Writing Goal Section ──
+
+private fun goalLabelForType(type: String): String = when (type) {
+    "weekly_entries" -> "每周日记数"
+    "monthly_entries" -> "每月日记数"
+    "monthly_words" -> "每月字数"
+    else -> type
+}
+
+private fun goalUnitForType(type: String): String = when (type) {
+    "weekly_entries" -> "篇"
+    "monthly_entries" -> "篇"
+    "monthly_words" -> "字"
+    else -> ""
+}
+
+private fun goalPeriodForType(type: String): String = when (type) {
+    "weekly_entries" -> "本周"
+    "monthly_entries" -> "本月"
+    "monthly_words" -> "本月"
+    else -> ""
+}
+
+@Composable
+private fun WritingGoalSection(
+    goals: List<GoalProgress>,
+    onAddGoal: () -> Unit,
+    onEditGoal: (GoalProgress) -> Unit,
+    onDeleteGoal: (GoalProgress) -> Unit
+) {
+    StatsSectionCard(
+        title = "写作目标",
+        subtitle = "设定目标，追踪你的写作进度"
+    ) {
+        if (goals.isEmpty()) {
+            InlineEmptyHint("还没有设定写作目标，试试添加一个吧")
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                goals.forEach { gp ->
+                    GoalProgressItem(
+                        gp = gp,
+                        onClick = { onEditGoal(gp) },
+                        onDelete = { onDeleteGoal(gp) }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onAddGoal)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "添加目标",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoalProgressItem(
+    gp: GoalProgress,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val progressColor = if (gp.isCompleted) {
+        Color(0xFF4CAF50)
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icon
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(progressColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (gp.isCompleted) Icons.Default.CheckCircle else Icons.Default.Flag,
+                contentDescription = null,
+                tint = progressColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Content
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = goalLabelForType(gp.goal.type),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "编辑",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("编辑") },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("删除") },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "${gp.periodLabel}  ${gp.currentDisplay} / ${gp.targetDisplay}",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(progressColor.copy(alpha = 0.12f))
+            ) {
+                val animatedProgress by animateFloatAsState(
+                    targetValue = gp.progress,
+                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                    label = "goalProgress"
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(animatedProgress)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(progressColor.copy(alpha = 0.6f), progressColor)
+                            )
+                        )
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (gp.isCompleted) "已完成" else "${(gp.progress * 100).toInt()}%",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = progressColor
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GoalDialog(
+    existing: GoalProgress?,
+    onDismiss: () -> Unit,
+    onSave: (type: String, targetValue: Int) -> Unit
+) {
+    val isEdit = existing != null
+    val typeOptions = listOf(
+        "weekly_entries" to "每周日记数",
+        "monthly_entries" to "每月日记数",
+        "monthly_words" to "每月字数"
+    )
+    var selectedType by remember { mutableStateOf(existing?.goal?.type ?: "weekly_entries") }
+    var targetText by remember { mutableStateOf(existing?.goal?.targetValue?.toString() ?: "5") }
+    var showTypeMenu by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = if (isEdit) "编辑目标" else "新建写作目标",
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Type selector
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "目标类型",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Box {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
+                                .clickable { showTypeMenu = true }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = goalLabelForType(selectedType),
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "▼",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showTypeMenu,
+                            onDismissRequest = { showTypeMenu = false }
+                        ) {
+                            typeOptions.forEach { (type, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (selectedType == type) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedType == type) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedType = type
+                                        showTypeMenu = false
+                                        // Set sensible default when switching type
+                                        targetText = when (type) {
+                                            "weekly_entries" -> "5"
+                                            "monthly_entries" -> "15"
+                                            "monthly_words" -> "10000"
+                                            else -> targetText
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Target value input
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = if (selectedType == "monthly_words") "目标字数" else "目标篇数",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = targetText,
+                        onValueChange = { value ->
+                            if (value.all { it.isDigit() } && value.length <= 7) {
+                                targetText = value
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        suffix = {
+                            Text(
+                                text = goalUnitForType(selectedType),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Text(
+                        text = when (selectedType) {
+                            "weekly_entries" -> "建议 3~7 篇，按自己节奏来"
+                            "monthly_entries" -> "建议 10~20 篇，保持稳定记录"
+                            "monthly_words" -> "建议 5000~30000 字，量力而行"
+                            else -> ""
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val target = targetText.toIntOrNull() ?: return@TextButton
+                    if (target > 0) onSave(selectedType, target)
+                }
+            ) {
+                Text(
+                    text = if (isEdit) "保存" else "创建",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "取消",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    )
 }

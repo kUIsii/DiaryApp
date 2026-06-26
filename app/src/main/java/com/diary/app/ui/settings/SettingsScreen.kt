@@ -1,4 +1,4 @@
-﻿package com.diary.app.ui.settings
+package com.diary.app.ui.settings
 
 import android.app.TimePickerDialog
 import android.widget.Toast
@@ -26,7 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -70,7 +70,8 @@ import com.diary.app.update.UpdateCheckResult
 import com.diary.app.update.UpdateDialog
 import com.diary.app.update.toUserMessage
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launchprivate object S {
+import kotlinx.coroutines.launch
+private object S {
     const val settings = "设置"
     const val writing = "写作"
     const val defaultMood = "默认心情"
@@ -213,14 +214,14 @@ fun SettingsScreen(
     if (showUpdateDialog) {
         UpdateDialog(versionName = updateVersion, releaseNotes = updateNotes, isDownloading = isDownloading, downloadProgress = downloadProgress, isForceUpdate = isForceUpdate, onConfirm = {
             isDownloading = true; downloadProgress = -1f; val fileName = "DiaryApp-v.apk"
-            scope.launch { try { ApkInstaller.downloadAndInstall(context, updateUrl, fileName).collect { state -> when (state) { is DownloadState.Progress -> downloadProgress = if (state.totalBytes > 0) state.bytesDownloaded.toFloat() / state.totalBytes else -1f; is DownloadState.Completed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false }; is DownloadState.Failed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show() } } } } catch (e: Exception) { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, "下载失败: ", Toast.LENGTH_SHORT).show() } } }
+            scope.launch { try { ApkInstaller.downloadAndInstall(context, updateUrl, fileName).collect { state -> when (state) { is DownloadState.Progress -> downloadProgress = if (state.totalBytes > 0) state.bytesDownloaded.toFloat() / state.totalBytes else -1f; is DownloadState.Completed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false }; is DownloadState.Failed -> { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show() } } } } catch (e: Exception) { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, "下载失败: ", Toast.LENGTH_SHORT).show() } }
         }, onDismiss = { showUpdateDialog = false })
     }
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onNavigateBack, modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = textSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.ArrowBack, contentDescription = "返回", tint = textSecondary, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(text = S.settings, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor)
@@ -266,7 +267,7 @@ fun SettingsScreen(
                     SettingDivider()
                     SwitchSettingItem(Icons.Default.CleaningServices, S.autoClean, S.autoCleanDesc, secondary.copy(0.1f), secondary, textColor, textTertiary, autoCleanOrphanMedia) { autoCleanOrphanMedia = it; AppPreferences.autoCleanOrphanMedia = it }
                     SettingDivider()
-                    SettingsNavigateItem(Icons.Default.Cache, S.clearCache, S.clearCacheDesc, secondary.copy(0.1f), secondary, textColor, textTertiary) { context.cacheDir?.deleteRecursively(); Toast.makeText(context, "缓存已清除", Toast.LENGTH_SHORT).show() }
+                    SettingsNavigateItem(Icons.Default.Cached, S.clearCache, S.clearCacheDesc, secondary.copy(0.1f), secondary, textColor, textTertiary) { context.cacheDir?.deleteRecursively(); Toast.makeText(context, "缓存已清除", Toast.LENGTH_SHORT).show() }
                 } } }
                 Spacer(modifier = Modifier.height(20.dp))
                 // ═══ 编辑器 ═══
@@ -338,7 +339,7 @@ private fun SettingsNavigateItem(icon: ImageVector, title: String, subtitle: Str
         Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(iconBg), contentAlignment = Alignment.Center) { Icon(icon, contentDescription = title, tint = iconTint, modifier = Modifier.size(18.dp)) }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) { Text(text = title, fontSize = 15.sp, color = textColor); Text(text = subtitle, fontSize = 12.sp, color = textTertiary, modifier = Modifier.padding(top = 2.dp)) }
-        if (trailing != null) trailing() else if (onClick != null) Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = textTertiary, modifier = Modifier.size(16.dp))
+        if (trailing != null) trailing() else if (onClick != null) Icon(Icons.Default.ArrowForward, contentDescription = null, tint = textTertiary, modifier = Modifier.size(16.dp))
     }
 }
 
