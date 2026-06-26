@@ -287,7 +287,7 @@ abstract class DiaryDatabase : RoomDatabase() {
 
         val MIGRATION_20_21 = object : Migration(20, 21) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE achievements RENAME COLUMN iconEmoji TO iconName")
+                buildAchievementRenameStatements(db.getColumnNames("achievements")).forEach(db::execSQL)
                 val iconMap = mapOf(
                     "first_entry" to "AutoFixHigh",
                     "entries_10" to "HistoryEdu",
@@ -609,11 +609,7 @@ abstract class DiaryDatabase : RoomDatabase() {
         val MIGRATION_31_32 = object : Migration(31, 32) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add unified achievement system columns
-                db.execSQL("ALTER TABLE achievements ADD COLUMN category TEXT NOT NULL DEFAULT 'writing'")
-                db.execSQL("ALTER TABLE achievements ADD COLUMN tier INTEGER NOT NULL DEFAULT 1")
-                db.execSQL("ALTER TABLE achievements ADD COLUMN iconEmoji TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE achievements ADD COLUMN flavorText TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE achievements ADD COLUMN isHidden INTEGER NOT NULL DEFAULT 0")
+                buildMissingAchievementColumnStatements(db.getColumnNames("achievements")).forEach(db::execSQL)
 
                 // Seed all unified achievement definitions
                 val seeds = listOf(

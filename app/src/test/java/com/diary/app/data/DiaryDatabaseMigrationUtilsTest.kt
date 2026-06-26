@@ -23,4 +23,41 @@ class DiaryDatabaseMigrationUtilsTest {
 
         assertEquals(emptyList<String>(), statements)
     }
+
+    @Test
+    fun `achievement rename only runs when source exists and target is missing`() {
+        val statements = buildAchievementRenameStatements(
+            setOf("id", "key", "name", "description", "iconEmoji")
+        )
+
+        assertEquals(
+            listOf("ALTER TABLE achievements RENAME COLUMN iconEmoji TO iconName"),
+            statements
+        )
+    }
+
+    @Test
+    fun `achievement rename becomes no-op after rename already happened`() {
+        val statements = buildAchievementRenameStatements(
+            setOf("id", "key", "name", "description", "iconName")
+        )
+
+        assertEquals(emptyList<String>(), statements)
+    }
+
+    @Test
+    fun `achievement migration only adds still-missing columns`() {
+        val statements = buildMissingAchievementColumnStatements(
+            setOf("id", "key", "name", "description", "iconName", "category", "tier")
+        )
+
+        assertEquals(
+            listOf(
+                "ALTER TABLE achievements ADD COLUMN iconEmoji TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE achievements ADD COLUMN flavorText TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE achievements ADD COLUMN isHidden INTEGER NOT NULL DEFAULT 0"
+            ),
+            statements
+        )
+    }
 }
