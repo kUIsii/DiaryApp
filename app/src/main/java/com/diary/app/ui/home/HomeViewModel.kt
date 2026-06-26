@@ -1,4 +1,4 @@
-package com.diary.app.ui.home
+﻿package com.diary.app.ui.home
 
 import android.app.Application
 import androidx.compose.ui.graphics.Color
@@ -207,6 +207,37 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         HomeStats(entries.size, streak, thisMonth)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
+
+    // Phase 4b: Greeting + Writing Prompt + Enhanced Streak Info
+    private val _homeNewState = MutableStateFlow(HomeNewState())
+    val homeNewState: StateFlow<HomeNewState> = _homeNewState
+    private val _writingPrompt = MutableStateFlow(WRITING_PROMPTS.random())
+
+    fun shuffleWritingPrompt() {
+        _writingPrompt.value = WRITING_PROMPTS.random()
+        _homeNewState.value = _homeNewState.value.copy(writingPrompt = _writingPrompt.value)
+    }
+
+    init {
+        viewModelScope.launch {
+            combine(entryDates, stats) { dates, s ->
+                HomeNewState(
+                    greeting = HomeGreeting.now(),
+                    writingPrompt = _writingPrompt.value,
+                    streakInfo = HomeStreakInfo(
+                        current = s.streak,
+                        longest = computeLongestStreak(dates).first,
+                        longestRange = computeLongestStreak(dates).second,
+                        availableFreezes = 0,
+                        milestone = detectStreakMilestone(s.streak),
+                        tier = streakTier(s.streak),
+                        monthlyBest = s.streak,
+                        yearlyBest = s.streak
+                    )
+                )
+            }.collect { _homeNewState.value = it }
+        }
+    }
 
     fun selectDate(date: LocalDate?) {
         _selectedDate.value = date
@@ -475,4 +506,81 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+}
+
+// ═══ Phase 4b: Writing prompt, greeting, streak enhancement ═══
+
+data class HomeGreeting(val text: String, val emoji: String) {
+    companion object {
+        fun now(): HomeGreeting {
+            val hour = java.time.LocalTime.now().hour
+            return when {
+                hour < 6 -> HomeGreeting("夜深了", "\uD83C\uDF19")
+                hour < 9 -> HomeGreeting("早上好", "\uD83C\uDF05")
+                hour < 12 -> HomeGreeting("上午好", "\u2600\uFE0F")
+                hour < 14 -> HomeGreeting("中午好", "\uD83C\uDF1E")
+                hour < 18 -> HomeGreeting("下午好", "\uD83C\uDF24\uFE0F")
+                hour < 22 -> HomeGreeting("晚上好", "\uD83C\uDF19")
+                else -> HomeGreeting("夜深了", "\uD83C\uDF03")
+            }
+        }
+    }
+}
+
+data class HomeStreakInfo(
+    val current: Int,
+    val longest: Int,
+    val longestRange: Pair<java.time.LocalDate, java.time.LocalDate>?,
+    val availableFreezes: Int,
+    val milestone: Int?,
+    val tier: com.diary.app.util.StreakTier,
+    val monthlyBest: Int,
+    val yearlyBest: Int
+)
+
+val WRITING_PROMPTS = listOf(
+    "\u4ECA\u5929\u4F60\u6700\u611F\u6FC0\u52A8\u7684\u4E00\u4EF6\u4E8B\u662F\u4EC0\u4E48\uFF1F",
+    "\u5982\u679C\u660E\u5929\u662F\u4F60\u7684\u6700\u540E\u4E00\u5929\uFF0C\u4F60\u60F3\u505A\u4EC0\u4E48\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u5728\u5B66\u4E60\u7684\u4E00\u4EF6\u4E8B\u3002",
+    "\u4ECA\u5929\u4F60\u7B11\u5F97\u6700\u5F00\u5FC3\u7684\u65F6\u523B\u662F\u4EC0\u4E48\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u5FC3\u91CC\u6700\u60F3\u611F\u8C22\u7684\u4E00\u4E2A\u4EBA\u3002",
+    "\u4ECA\u5929\u7684\u5929\u6C14\uFF0C\u8BA9\u4F60\u60F3\u5230\u4E86\u4EC0\u4E48\uFF1F",
+    "\u5982\u679C\u4F60\u53EF\u4EE5\u56DE\u5230\u8FC7\u53BB\u7684\u4E00\u5929\uFF0C\u4F60\u60F3\u56DE\u5230\u54EA\u4E00\u5929\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u4ECA\u5929\u7684\u4E00\u4E2A\u5C0F\u53D1\u73B0\u3002",
+    "\u4F60\u6700\u8FD1\u5728\u770B\u4EC0\u4E48\u4E66/\u7535\u5F71/\u5267\uFF1F\u5199\u4E00\u5199\u611F\u53D7\u3002",
+    "\u4ECA\u5929\u4F60\u505A\u4E86\u4EC0\u4E48\u8FD0\u52A8\uFF1F\u8BB0\u5F55\u4E00\u4E0B\u8EAB\u4F53\u7684\u611F\u53D7\u3002",
+    "\u4ECA\u5929\u7684\u996D\u83DC\u91CC\uFF0C\u6700\u8BA9\u4F60\u6EE1\u610F\u7684\u662F\u54EA\u4E00\u9053\uFF1F",
+    "\u63CF\u8FF0\u4E00\u4E2A\u4F60\u68A6\u60F3\u53BB\u7684\u5730\u65B9\u3002",
+    "\u4ECA\u5929\u6709\u4EC0\u4E48\u4E8B\u8BA9\u4F60\u611F\u5230\u5E73\u9759\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u7684\u4E00\u4E2A\u5C0F\u5C0F\u7684\u613F\u671B\u3002",
+    "\u4ECA\u5929\u4F60\u5BF9\u8C01\u8BF4\u4E86\u8C01\u4E5F\u6CA1\u8BF4\u7684\u8BDD\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u7684\u4E00\u4E2A\u5C0F\u76EE\u6807\uFF0C\u548C\u5982\u4F55\u5B9E\u73B0\u5B83\u3002",
+    "\u4F60\u7684\u684C\u9762/\u624B\u673A\u58C1\u7EB8\u662F\u4EC0\u4E48\uFF1F\u4E3A\u4EC0\u4E48\u9009\u8FD9\u5F20\uFF1F",
+    "\u4ECA\u5929\u6709\u4EC0\u4E48\u4E8B\u8BA9\u4F60\u611F\u5230\u5CF7\u5F02\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u5728\u505A\u7684\u4E00\u4E2A\u6539\u53D8\u3002",
+    "\u4ECA\u5929\u7684\u4E00\u4E2A\u5C0F\u7EC6\u8282\uFF0C\u5C06\u6765\u53EF\u80FD\u4F1A\u5FD8\u8BB0\u3002",
+    "\u5982\u679C\u4F60\u80FD\u4E0E\u53E4\u4EBA\u5BF9\u8BDD\uFF0C\u4F60\u60F3\u95EE\u4EC0\u4E48\uFF1F",
+    "\u4ECA\u5929\u7684\u4E8B\u60C5\uFF0C\u4E09\u5E74\u540E\u7684\u4F60\u4F1A\u600E\u4E48\u770B\uFF1F",
+    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u7684\u4E00\u4E2A\u68B3\u7406\uFF08\u5DE5\u4F5C/\u751F\u6D3B/\u601D\u60F3\uFF09\u3002",
+    "\u63CF\u8FF0\u4F60\u7406\u60F3\u4E2D\u7684\u4E00\u5929\u3002",
+    "\u4ECA\u5929\u6700\u5F00\u5FC3\u7684\u4E00\u53E5\u8BDD\u662F\u4EC0\u4E48\uFF1F"
+)
+
+data class HomeNewState(
+    val greeting: HomeGreeting = HomeGreeting.now(),
+    val writingPrompt: String = WRITING_PROMPTS.random(),
+    val streakInfo: HomeStreakInfo = HomeStreakInfo(0, 0, null, 0, null, com.diary.app.util.StreakTier.NONE, 0, 0)
+)
+
+private fun loadStreakInfo(
+    dao: com.diary.app.data.DiaryDao,
+    dates: Set<java.time.LocalDate>,
+    timestamps: List<Long>
+): HomeStreakInfo {
+    val current = com.diary.app.util.computeStreak(dates)
+    val (longest, range) = com.diary.app.util.computeLongestStreak(dates)
+    val milestone = com.diary.app.util.detectStreakMilestone(current)
+    val tier = com.diary.app.util.streakTier(current)
+    val monthlyBest = com.diary.app.util.computeYearlyBestStreak(timestamps, java.time.LocalDate.now().year)
+    return HomeStreakInfo(current, longest, range, 0, milestone, tier, monthlyBest, 0)
 }

@@ -146,6 +146,8 @@ fun HomeScreen(
     val searchResults by viewModel.searchResults.collectAsState()
     val entriesByDate by viewModel.entriesByDate.collectAsState()
 
+    val homeNewState by viewModel.homeNewState.collectAsState()
+
     // Random review state
     var randomEntry by remember { mutableStateOf<DiaryPreview?>(null) }
 
@@ -280,7 +282,17 @@ fun HomeScreen(
                     )
                 }
 
-                // Search bar
+                
+                // Writing Prompt + Greeting + Streak
+                item {
+                    WritingPromptCard(
+                        state = homeNewState,
+                        onShufflePrompt = { viewModel.shuffleWritingPrompt() },
+                        onCreateEntry = { onNavigateToEditor(null) }
+                    )
+                }
+
+// Search bar
                 item {
                     HomeSearchBar(
                         query = searchQuery,
