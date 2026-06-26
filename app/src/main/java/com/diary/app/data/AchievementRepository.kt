@@ -93,9 +93,10 @@ class AchievementRepository(
         val snowCount = diaryDao.getWeatherCount("\u96EA\u5929")
         val stormCount = diaryDao.getWeatherCount("\u5927\u98CE") + diaryDao.getWeatherCount("\u98CE\u66B4")
         val sunnyCount = diaryDao.getWeatherCount("\u6674\u5929")
+        val totalWordsInt = totalWords.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val updates = mapOf(
             "first_entry" to totalEntries, "entries_10" to totalEntries, "entries_50" to totalEntries, "entries_100" to totalEntries,
-            "words_10000" to totalWords, "words_100000" to totalWords, "tags_5" to tagCount, "images_10" to imageCount,
+            "words_10000" to totalWordsInt, "words_100000" to totalWordsInt, "tags_5" to tagCount, "images_10" to imageCount,
             "streak_7" to streak, "streak_30" to streak, "daily_writer" to streak, "hundred_days" to streak,
             "night_writer" to nightEntries, "early_bird" to earlyEntries, "night_poet" to nightEntries,
             "dawn_recorder" to dawnEntries, "morning_writer" to earlyEntries, "weekday_killer" to weekdays,
@@ -104,10 +105,10 @@ class AchievementRepository(
             "rain_collector" to rainCount, "snow_writer" to snowCount, "storm_writer" to stormCount, "sunny_recorder" to sunnyCount,
             "favorite_1" to favoriteCount, "favorites_10" to favoriteCount, "collector" to favoriteCount,
             "thousand_words" to if (maxWordsInEntry >= 1000) 1 else 0, "brief_master" to if (hasShortFavorite) 1 else 0,
-            "photo_diary" to if (imageCount >= 3) 1 else 0, "fifty_thousand_words" to totalWords,
+            "photo_diary" to if (imageCount >= 3) 1 else 0, "fifty_thousand_words" to totalWordsInt,
             "returnee" to if (streak > 0 && totalEntries > 1) 1 else 0,
             "flash_writer" to 0, "deep_writer" to 0, "twin_stars" to 0,
-            "legendary_entries_500" to totalEntries, "legendary_streak_365" to streak, "legendary_words_million" to totalWords
+            "legendary_entries_500" to totalEntries, "legendary_streak_365" to streak, "legendary_words_million" to totalWordsInt
         )
 
         // Get or create milestone tag

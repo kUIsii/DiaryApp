@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -90,6 +91,7 @@ private val presetColors = listOf(
 
 private enum class TagViewMode { FLAT, TREE }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagManagementScreen(
     onNavigateBack: () -> Unit
@@ -134,7 +136,7 @@ fun TagManagementScreen(
                 FilterChip(
                     selected = viewMode == TagViewMode.FLAT,
                     onClick = { viewMode = TagViewMode.FLAT },
-                    label = { Text(“列表”, fontSize = 13.sp) },
+                    label = { Text("列表", fontSize = 13.sp) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.ViewList,
@@ -149,7 +151,7 @@ fun TagManagementScreen(
                 FilterChip(
                     selected = viewMode == TagViewMode.TREE,
                     onClick = { viewMode = TagViewMode.TREE },
-                    label = { Text(“树形”, fontSize = 13.sp) },
+                    label = { Text("树形", fontSize = 13.sp) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.AccountTree,
@@ -219,7 +221,7 @@ fun TagManagementScreen(
                     }
                     // Orphan tags (no parent, not in rootTags due to query filter)
                     if (orphanTags.isNotEmpty()) {
-                        items(orphanTags, key = { “orphan_${it.id}” }) { tag ->
+                        items(orphanTags, key = { "orphan_${it.id}" }) { tag ->
                             TagRow(
                                 tag = tag,
                                 onEdit = { editingTag = tag },
@@ -247,8 +249,8 @@ fun TagManagementScreen(
 
     if (showCreateDialog) {
         TagEditDialog(
-            title = “新建标签”,
-            initialName = “”,
+            title = "新建标签",
+            initialName = "",
             initialColor = presetColors.random(),
             existingColors = existingColorSet,
             onDismiss = { showCreateDialog = false },
@@ -269,7 +271,7 @@ fun TagManagementScreen(
 
     editingTag?.let { tag ->
         TagEditDialog(
-            title = “编辑标签”,
+            title = "编辑标签",
             initialName = tag.name,
             initialColor = tag.color,
             existingColors = existingColorSet,
@@ -285,11 +287,11 @@ fun TagManagementScreen(
     deletingTag?.let { tag ->
         AlertDialog(
             onDismissRequest = { deletingTag = null },
-            title = { Text(“删除标签”) },
+            title = { Text("删除标签") },
             text = {
                 Text(
-                    if (tag.isPreset) “默认标签不能删除。”
-                    else “确定删除”${tag.name}”吗？标签本身会被移除，但已有关联内容不会被删除。”
+                    if (tag.isPreset) "默认标签不能删除。"
+                    else "确定删除「${tag.name}」吗？标签本身会被移除，但已有关联内容不会被删除。"
                 )
             },
             confirmButton = {
@@ -302,12 +304,12 @@ fun TagManagementScreen(
                     },
                     enabled = !tag.isPreset
                 ) {
-                    Text(“删除”, color = ErrorColor)
+                    Text("删除", color = ErrorColor)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deletingTag = null }) {
-                    Text(“取消”)
+                    Text("取消")
                 }
             }
         )
@@ -590,7 +592,7 @@ private fun TagParentSelectionDialog(
         text = {
             Column {
                 Text(
-                    text = "为"${currentTag.name}"选择父标签：",
+                    text = "为「${currentTag.name}」选择父标签：",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -954,7 +956,7 @@ private fun TagMergeDialog(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = ""${sourceTag!!.name}" -> "${targetTag!!.name}"",
+                                text = "「${sourceTag!!.name}」 -> 「${targetTag!!.name}」",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface

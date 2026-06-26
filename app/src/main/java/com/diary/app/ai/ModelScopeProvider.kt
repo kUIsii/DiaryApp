@@ -18,6 +18,6 @@ class ModelScopeProvider(
         "Qwen/Qwen3.5-35B-A3B"
     )
 
-    override val connectTimeout = 15000
-    override val readTimeout = 30000
+    override val connectTimeoutSeconds = 15L
+    override val readTimeoutSeconds = 30L
 }

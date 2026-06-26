@@ -136,14 +136,13 @@ fun ChallengeCard(
             // Progress bar
             Box(modifier = Modifier.fillMaxWidth()) {
                 LinearProgressIndicator(
-                    progress = { animatedProgress },
+                    progress = animatedProgress,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = if (isCompleted) Color(0xFF4CAF50) else categoryColor,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    strokeCap = StrokeCap.Round
                 )
             }
 

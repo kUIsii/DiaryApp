@@ -226,12 +226,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             combine(entryDates, stats) { dates, s ->
                 val weatherText = _currentWeather.value?.let { w ->
                     when {
-                        w.description.contains("雨") -> "外面在下雨"
-                        w.description.contains("雪") -> "外面在下雪"
-                        w.description.contains("晴") -> "今天阳光不错"
-                        w.description.contains("阴") -> "今天天色阴沉"
-                        w.description.contains("风") -> "外面风挺大"
-                        w.description.contains("雾") -> "外面有雾"
+                        w.weather.contains("雨") -> "外面在下雨"
+                        w.weather.contains("雪") -> "外面在下雪"
+                        w.weather.contains("晴") -> "今天阳光不错"
+                        w.weather.contains("阴") -> "今天天色阴沉"
+                        w.weather.contains("风") -> "外面风挺大"
+                        w.weather.contains("雾") -> "外面有雾"
                         else -> null
                     }
                 }
