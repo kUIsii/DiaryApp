@@ -64,6 +64,7 @@ data class MapUiState(
     val stats: MapStats = MapStats(),
     val error: String? = null,
     val isRouteMode: Boolean = false,
+    val isHeatmapMode: Boolean = false,
     val routeStats: RouteStats? = null,
     val clusters: List<LocationCluster> = emptyList(),
     val frequentLocations: List<FrequentLocation> = emptyList()
@@ -125,7 +126,12 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         val current = _uiState.value
         val newRouteMode = !current.isRouteMode
         val routeStats = if (newRouteMode) computeRouteStats(current.markers) else null
-        _uiState.value = current.copy(isRouteMode = newRouteMode, routeStats = routeStats)
+        _uiState.value = current.copy(isRouteMode = newRouteMode, routeStats = routeStats, isHeatmapMode = false)
+    }
+
+    fun toggleHeatmapMode() {
+        val current = _uiState.value
+        _uiState.value = current.copy(isHeatmapMode = !current.isHeatmapMode, isRouteMode = false, routeStats = null)
     }
 
     private fun computeRouteStats(markers: List<MapMarker>): RouteStats {

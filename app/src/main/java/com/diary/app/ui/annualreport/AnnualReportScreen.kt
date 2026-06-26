@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -80,15 +81,16 @@ import java.time.temporal.ChronoUnit
 private val moodLabels = listOf("", "很差", "不好", "一般", "不错", "很棒")
 private val monthLabels = listOf("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月")
 private val timeLabels = listOf("上午", "中午", "下午", "傍晚", "深夜", "凌晨")
-private val weatherEmoji = mapOf(
-    "晴" to "☀", "多云" to "☁", "阴" to "☁", "雨" to "🌧",
-    "雪" to "❄", "雾" to "🌫", "风" to "🌬"
+private val weatherShortLabel = mapOf(
+    "晴" to "晴", "多云" to "云", "阴" to "阴", "雨" to "雨",
+    "雪" to "雪", "雾" to "雾", "风" to "风"
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AnnualReportScreen(
     onNavigateBack: () -> Unit,
+    onShare: () -> Unit = {},
     viewModel: AnnualReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -107,6 +109,11 @@ fun AnnualReportScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onShare) {
+                            Icon(Icons.Default.Share, contentDescription = "分享")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -960,7 +967,7 @@ private fun WeatherMoodCard(report: AnnualReport) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = weatherEmoji[wm.weather] ?: "·",
+                        text = weatherShortLabel[wm.weather] ?: "·",
                         fontSize = 18.sp,
                         modifier = Modifier.width(32.dp)
                     )

@@ -1,7 +1,9 @@
 package com.diary.app.ui.editor
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
+import android.speech.RecognizerIntent
 import android.util.Log
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -96,6 +98,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
+import com.diary.app.ai.aiRequest
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.WebViewAssetHelper
 import com.diary.app.ui.components.moodIconForLevel
@@ -149,6 +152,7 @@ fun EditorScreen(
     val recentLocations by viewModel.recentLocations.collectAsState()
     val titleSuggestion by viewModel.titleSuggestion.collectAsState()
     val isGeneratingTitle by viewModel.isGeneratingTitle.collectAsState()
+    val suggestedTags by viewModel.suggestedTags.collectAsState()
 
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
 
@@ -157,6 +161,23 @@ fun EditorScreen(
     var selectedEditorText by remember { mutableStateOf<String?>(null) }
     var showPolishButton by remember { mutableStateOf(false) }
     val aiViewModel: com.diary.app.ai.AiAssistantViewModel = viewModel()
+
+    // Voice input
+    val speechLauncher = rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = matches?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                webView?.evaluateJavascript("insertTextAtCursor('${escapeForJs(spokenText)}')", null)
+            }
+        }
+    }
+
+    // AI Writing Guide
+    var showWritingGuide by remember { mutableStateOf(false) }
+    var isGeneratingGuide by remember { mutableStateOf(false) }
     val aiMessages by aiViewModel.messages.collectAsState()
     val aiLoading by aiViewModel.loading.collectAsState()
     val aiConversations by aiViewModel.conversations.collectAsState()
@@ -493,6 +514,10 @@ fun EditorScreen(
                 // Trigger title suggestion when content reaches 50 chars and title is blank
                 if (text.length >= 50 && entryTitle.isBlank()) {
                     viewModel.suggestTitle(text)
+                }
+                // Trigger tag suggestion when content reaches 200 chars
+                if (text.length == 200) {
+                    viewModel.suggestTags(text)
                 }
             }
         }
@@ -859,6 +884,52 @@ fun EditorScreen(
         )
     }
 
+    // AI Writing Guide dialog
+    if (showWritingGuide) {
+        AiWritingGuideDialog(
+            isGenerating = isGeneratingGuide,
+            onDismiss = { showWritingGuide = false },
+            onGenerate = { answers ->
+                isGeneratingGuide = true
+                scope.launch {
+                    try {
+                        val app = context.applicationContext as DiaryApplication
+                        val aiService = app.aiService
+                        val prompt = buildString {
+                            appendLine("用户回答了以下写作引导问题，请根据回答生成一篇日记框架。")
+                            appendLine("要求：生成标题（20字以内）+ 正文框架（3-5个段落，每段开头留空让用户填写）。")
+                            appendLine("直接输出标题和正文，不要解释。")
+                            appendLine()
+                            writingGuideQuestions.forEachIndexed { i, q ->
+                                val answer = answers.getOrNull(i) ?: ""
+                                if (answer.isNotBlank()) {
+                                    appendLine("${q.question} $answer")
+                                }
+                            }
+                        }
+                        val result = aiService.chat(aiRequest(prompt, maxTokens = 500))
+                        result.fold(
+                            onSuccess = { response ->
+                                val content = response.content.trim()
+                                val title = content.lines().firstOrNull()?.take(20) ?: ""
+                                val body = content.lines().drop(1).joinToString("\n").trim()
+                                if (title.isNotBlank()) {
+                                    webView?.evaluateJavascript("setTemplate(${org.json.JSONObject.quote(body.ifBlank { content })})", null)
+                                }
+                            },
+                            onFailure = { }
+                        )
+                    } catch (e: Exception) {
+                        Log.e("EditorScreen", "Writing guide failed", e)
+                    } finally {
+                        isGeneratingGuide = false
+                        showWritingGuide = false
+                    }
+                }
+            }
+        )
+    }
+
     // Link input dialog
     if (showLinkDialog) {
         var linkUrl by remember { mutableStateOf("https://") }
@@ -1049,6 +1120,11 @@ fun EditorScreen(
                     contentDescription = "草稿箱",
                     onClick = { showDraftsDialog = true }
                 )
+                EditorTopIconButton(
+                    icon = Icons.Default.AutoAwesome,
+                    contentDescription = "写作引导",
+                    onClick = { showWritingGuide = true }
+                )
                 if (experimentalFeatures.floatingBubbleEnabled) {
                     EditorTopIconButton(
                         icon = Icons.Default.ChatBubbleOutline,
@@ -1170,6 +1246,61 @@ fun EditorScreen(
                         modifier = Modifier
                             .size(16.dp)
                             .clickable { viewModel.dismissTitleSuggestion() }
+                    )
+                }
+            }
+
+            // Tag suggestion chips
+            if (suggestedTags.isNotEmpty()) {
+                val tagChipSurface = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        suggestedTags.forEach { tagName ->
+                            val matchedTag = allTags.find { it.name == tagName }
+                            val isSelected = matchedTag != null && matchedTag.id in selectedTagIds
+                            Text(
+                                text = tagName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary,
+                                modifier = Modifier
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else tagChipSurface,
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        if (matchedTag != null) {
+                                            viewModel.toggleTag(matchedTag.id)
+                                        } else {
+                                            viewModel.addTag(tagName, 0xFF6B7280)
+                                        }
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = textSecondary.copy(alpha = 0.3f),
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clickable { viewModel.dismissTagSuggestions() }
                     )
                 }
             }
@@ -1349,6 +1480,20 @@ fun EditorScreen(
                     },
                     onImageInsert = {
                         imageLauncher.launch("image/*")
+                    },
+                    onVoiceInput = {
+                        try {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "请说话...")
+                            }
+                            speechLauncher.launch(intent)
+                        } catch (e: Exception) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("语音输入不可用", duration = SnackbarDuration.Short)
+                            }
+                        }
                     },
                     onHideKeyboard = {
                         val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager

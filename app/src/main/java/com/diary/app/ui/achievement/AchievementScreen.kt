@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -393,9 +394,11 @@ private fun AchievementCompactCard(
                         .background(categoryColor(item.def.category).copy(alpha = if (isLocked) 0.06f else 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = item.def.iconEmoji,
-                        fontSize = 24.sp
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        tint = categoryColor(item.def.category).copy(alpha = if (isLocked) 0.4f else 0.8f),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }

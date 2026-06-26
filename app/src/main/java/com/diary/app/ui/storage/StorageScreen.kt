@@ -305,6 +305,116 @@ fun StorageScreen(
                     }
                 }
 
+                // Media cleanup section
+                item {
+                    Text(
+                        text = "媒体清理",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                // Orphan files cleanup
+                item {
+                    var showOrphanConfirm by remember { mutableStateOf(false) }
+                    if (showOrphanConfirm && state.orphanFiles.isNotEmpty()) {
+                        AlertDialog(
+                            onDismissRequest = { showOrphanConfirm = false },
+                            title = { Text("清理孤立文件") },
+                            text = { Text("将删除 ${state.orphanFiles.size} 个孤立文件，释放 ${formatFileSize(state.orphanSizeBytes)} 空间。这些文件在数据库中没有对应记录。") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    viewModel.cleanOrphanFiles()
+                                    showOrphanConfirm = false
+                                }) { Text("清理") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showOrphanConfirm = false }) { Text("取消") }
+                            }
+                        )
+                    }
+                    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(36.dp).clip(CircleShape)
+                                    .background(Color(0xFFEF4444).copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null,
+                                    tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("孤立文件清理", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
+                                Text(
+                                    text = if (state.isScanningOrphans) "正在扫描..."
+                                    else if (state.orphanFiles.isNotEmpty()) "发现 ${state.orphanFiles.size} 个孤立文件 (${formatFileSize(state.orphanSizeBytes)})"
+                                    else "扫描数据库中无记录的媒体文件",
+                                    fontSize = 12.sp, color = textTertiary
+                                )
+                            }
+                            if (state.orphanFiles.isNotEmpty()) {
+                                TextButton(onClick = { showOrphanConfirm = true }) {
+                                    Text("清理", color = Color(0xFFEF4444))
+                                }
+                            } else {
+                                TextButton(
+                                    onClick = { viewModel.scanOrphanFiles() },
+                                    enabled = !state.isScanningOrphans
+                                ) { Text("扫描", color = Color(0xFF6366F1)) }
+                            }
+                        }
+                    }
+                }
+
+                // Duplicate detection
+                item {
+                    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(36.dp).clip(CircleShape)
+                                    .background(Color(0xFFF59E0B).copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.BurstMode, contentDescription = null,
+                                    tint = Color(0xFFF59E0B), modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("重复文件检测", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
+                                Text(
+                                    text = if (state.isScanningDuplicates) "正在扫描..."
+                                    else if (state.duplicateGroups.isNotEmpty()) "发现 ${state.duplicateGroups.size} 组重复 (${formatFileSize(state.duplicateSizeBytes)})"
+                                    else "检测完全相同的媒体文件",
+                                    fontSize = 12.sp, color = textTertiary
+                                )
+                            }
+                            if (state.duplicateGroups.isNotEmpty()) {
+                                TextButton(onClick = {
+                                    state.duplicateGroups.forEach { group ->
+                                        val keep = group.first()
+                                        val remove = group.drop(1)
+                                        viewModel.cleanDuplicates(keep, remove)
+                                    }
+                                }) { Text("清理", color = Color(0xFFF59E0B)) }
+                            } else {
+                                TextButton(
+                                    onClick = { viewModel.scanDuplicates() },
+                                    enabled = !state.isScanningDuplicates
+                                ) { Text("扫描", color = Color(0xFF6366F1)) }
+                            }
+                        }
+                    }
+                }
+
                 // Integrity check button
                 item {
                     GlassCard(

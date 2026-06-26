@@ -36,7 +36,13 @@ data class StorageState(
     val entryCount: Int = 0,
     val isVacuuming: Boolean = false,
     val vacuumSavedBytes: Long = 0,
-    val isIntegrityOk: Boolean? = null
+    val isIntegrityOk: Boolean? = null,
+    val orphanFiles: List<File> = emptyList(),
+    val orphanSizeBytes: Long = 0,
+    val isScanningOrphans: Boolean = false,
+    val duplicateGroups: List<List<File>> = emptyList(),
+    val duplicateSizeBytes: Long = 0,
+    val isScanningDuplicates: Boolean = false
 ) {
     val categories: List<StorageCategory>
         get() = listOf(
@@ -143,6 +149,108 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             val context = getApplication<Application>()
             val isOk = DiaryDatabase.checkIntegrity(context)
             _state.value = _state.value.copy(isIntegrityOk = isOk)
+        }
+    }
+
+    fun scanOrphanFiles() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isScanningOrphans = true)
+            val context = getApplication<Application>()
+            val result = withContext(Dispatchers.IO) {
+                val mediaDir = DiaryMediaManager.mediaDir(context)
+                if (!mediaDir.exists()) return@withContext emptyList<File>() to 0L
+
+                val dbNames = dao.getAllMediaNames().toSet()
+                val thumbDir = DiaryMediaManager.thumbDir(context)
+                val thumbPath = thumbDir.canonicalPath
+
+                val orphans = mediaDir.listFiles()?.filter { file ->
+                    file.isFile &&
+                        !file.canonicalPath.startsWith(thumbPath) &&
+                        file.name !in dbNames
+                } ?: emptyList()
+
+                val totalSize = orphans.sumOf { it.length() }
+                orphans to totalSize
+            }
+            _state.value = _state.value.copy(
+                isScanningOrphans = false,
+                orphanFiles = result.first,
+                orphanSizeBytes = result.second
+            )
+        }
+    }
+
+    fun cleanOrphanFiles() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _state.value.orphanFiles.forEach { it.delete() }
+            }
+            _state.value = _state.value.copy(orphanFiles = emptyList(), orphanSizeBytes = 0)
+            calculateStorage()
+        }
+    }
+
+    fun scanDuplicates() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isScanningDuplicates = true)
+            val context = getApplication<Application>()
+            val result = withContext(Dispatchers.IO) {
+                val mediaDir = DiaryMediaManager.mediaDir(context)
+                if (!mediaDir.exists()) return@withContext emptyList<List<File>>() to 0L
+
+                val thumbDir = DiaryMediaManager.thumbDir(context)
+                val thumbPath = thumbDir.canonicalPath
+
+                val files = mediaDir.listFiles()?.filter { file ->
+                    file.isFile && !file.canonicalPath.startsWith(thumbPath)
+                } ?: emptyList()
+
+                // Group by file size first (fast filter), then by hash
+                val sizeGroups = files.groupBy { it.length() }
+                    .filter { it.value.size > 1 }
+
+                val duplicateGroups = mutableListOf<List<File>>()
+                var duplicateSize = 0L
+
+                for ((_, group) in sizeGroups) {
+                    val hashGroups = group.groupBy { file ->
+                        try {
+                            file.inputStream().use { stream ->
+                                val md = java.security.MessageDigest.getInstance("MD5")
+                                val buffer = ByteArray(8192)
+                                var read: Int
+                                while (stream.read(buffer).also { read = it } != -1) {
+                                    md.update(buffer, 0, read)
+                                }
+                                md.digest().joinToString("") { "%02x".format(it) }
+                            }
+                        } catch (_: Exception) { file.absolutePath }
+                    }.filter { it.value.size > 1 }
+
+                    for ((_, dupes) in hashGroups) {
+                        duplicateGroups.add(dupes)
+                        duplicateSize += dupes.drop(1).sumOf { it.length() }
+                    }
+                }
+
+                duplicateGroups to duplicateSize
+            }
+            _state.value = _state.value.copy(
+                isScanningDuplicates = false,
+                duplicateGroups = result.first,
+                duplicateSizeBytes = result.second
+            )
+        }
+    }
+
+    fun cleanDuplicates(keepFile: File, removeFiles: List<File>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                removeFiles.forEach { it.delete() }
+            }
+            scanDuplicates()
+            calculateStorage()
         }
     }
 

@@ -590,7 +590,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 MonthlyReportScreen(
                     year = year,
                     month = month,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onShare = {
+                        // TODO: Implement share functionality
+                    }
                 )
             }
             composable(
@@ -601,7 +604,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 AnnualReportScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onShare = {
+                        // TODO: Implement share functionality
+                    }
                 )
             }
             composable(

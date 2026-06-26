@@ -363,6 +363,37 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         _analysisResult.value = null
     }
 
+    // Writing style analysis
+    private val _writingStyleResult = MutableStateFlow<String?>(null)
+    val writingStyleResult: StateFlow<String?> = _writingStyleResult
+    private val _isAnalyzingStyle = MutableStateFlow(false)
+    val isAnalyzingStyle: StateFlow<Boolean> = _isAnalyzingStyle
+
+    fun analyzeWritingStyle() {
+        if (_isAnalyzingStyle.value) return
+        _isAnalyzingStyle.value = true
+        viewModelScope.launch {
+            try {
+                val entries = dao.getAllEntriesOnce()
+                val contents = entries.take(30).map { it.plainText.take(1000) }
+                if (contents.isEmpty()) {
+                    _writingStyleResult.value = "还没有足够的日记来分析写作风格"
+                    return@launch
+                }
+                val result = aiService.analyzeWritingStyle(contents)
+                _writingStyleResult.value = result ?: "暂时无法分析您的写作风格"
+            } catch (e: Exception) {
+                _writingStyleResult.value = "分析失败: ${e.message}"
+            } finally {
+                _isAnalyzingStyle.value = false
+            }
+        }
+    }
+
+    fun dismissWritingStyle() {
+        _writingStyleResult.value = null
+    }
+
 
     private fun computeMonthlyTrend(
         entries: List<DiaryPreview>,

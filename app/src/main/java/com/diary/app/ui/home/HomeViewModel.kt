@@ -367,6 +367,86 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _filterDateRange.value = null
     }
 
+    // AI-powered smart search: parse natural language query into filters
+    private val _smartSearchParsing = MutableStateFlow(false)
+    val smartSearchParsing: StateFlow<Boolean> = _smartSearchParsing
+    private val _smartSearchDescription = MutableStateFlow<String?>(null)
+    val smartSearchDescription: StateFlow<String?> = _smartSearchDescription
+
+    fun parseSmartSearch(query: String) {
+        if (query.length < 4 || _smartSearchParsing.value) return
+        _smartSearchParsing.value = true
+        viewModelScope.launch {
+            try {
+                val app = getApplication<DiaryApplication>()
+                val result = app.aiService.parseSearchQuery(query)
+                val moods = mutableSetOf<Int>()
+                val weathers = mutableSetOf<String>()
+                var favorites = false
+                var dateStart: Long? = null
+                var dateEnd: Long? = null
+                val descriptions = mutableListOf<String>()
+
+                result["mood"]?.let { moodStr ->
+                    val level = moodStr.toIntOrNull()
+                    if (level != null && level in 1..6) {
+                        moods.add(level)
+                        val moodName = when (level) {
+                            1 -> "很低落"
+                            2 -> "低落"
+                            3 -> "平静"
+                            4 -> "开心"
+                            5 -> "非常开心"
+                            6 -> "兴奋"
+                            else -> "心情等级$level"
+                        }
+                        descriptions.add("心情: $moodName")
+                    }
+                }
+                result["weather"]?.let { w ->
+                    if (w.isNotBlank()) {
+                        weathers.add(w)
+                        descriptions.add("天气: $w")
+                    }
+                }
+                result["favorite"]?.let { f ->
+                    if (f == "true") {
+                        favorites = true
+                        descriptions.add("仅收藏")
+                    }
+                }
+                result["dateStart"]?.let { start ->
+                    result["dateEnd"]?.let { end ->
+                        dateStart = start.toLongOrNull()
+                        dateEnd = end.toLongOrNull()
+                        if (dateStart != null && dateEnd != null) {
+                            descriptions.add("时间范围已筛选")
+                        }
+                    }
+                }
+
+                if (moods.isNotEmpty() || weathers.isNotEmpty() || favorites || dateStart != null) {
+                    _filterMoodLevels.value = moods
+                    _filterWeatherTypes.value = weathers
+                    _filterFavoritesOnly.value = favorites
+                    _filterDateRange.value = if (dateStart != null && dateEnd != null) Pair(dateStart!!, dateEnd!!) else null
+                    _smartSearchDescription.value = descriptions.joinToString(", ")
+                } else {
+                    _smartSearchDescription.value = null
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("HomeViewModel", "Smart search parse failed", e)
+                _smartSearchDescription.value = null
+            } finally {
+                _smartSearchParsing.value = false
+            }
+        }
+    }
+
+    fun clearSmartSearchDescription() {
+        _smartSearchDescription.value = null
+    }
+
     val hasActiveFilters: StateFlow<Boolean> = combine(
         _filterMoodLevels, _filterWeatherTypes, _filterFavoritesOnly, _filterDateRange
     ) { moods, weather, favs, dates ->
@@ -525,18 +605,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
 // ═══ Phase 4b: Writing prompt, greeting, streak enhancement ═══
 
-data class HomeGreeting(val text: String, val emoji: String) {
+data class HomeGreeting(val text: String) {
     companion object {
         fun now(): HomeGreeting {
             val hour = java.time.LocalTime.now().hour
             return when {
-                hour < 6 -> HomeGreeting("夜深了", "\uD83C\uDF19")
-                hour < 9 -> HomeGreeting("早上好", "\uD83C\uDF05")
-                hour < 12 -> HomeGreeting("上午好", "\u2600\uFE0F")
-                hour < 14 -> HomeGreeting("中午好", "\uD83C\uDF1E")
-                hour < 18 -> HomeGreeting("下午好", "\uD83C\uDF24\uFE0F")
-                hour < 22 -> HomeGreeting("晚上好", "\uD83C\uDF19")
-                else -> HomeGreeting("夜深了", "\uD83C\uDF03")
+                hour < 6 -> HomeGreeting("夜深了")
+                hour < 9 -> HomeGreeting("早上好")
+                hour < 12 -> HomeGreeting("上午好")
+                hour < 14 -> HomeGreeting("中午好")
+                hour < 18 -> HomeGreeting("下午好")
+                hour < 22 -> HomeGreeting("晚上好")
+                else -> HomeGreeting("夜深了")
             }
         }
 
@@ -546,7 +626,7 @@ data class HomeGreeting(val text: String, val emoji: String) {
             if (weatherHint != null) parts.add(weatherHint)
             if (streakHint != null) parts.add(streakHint)
             val suffix = if (parts.isNotEmpty()) "，${parts.joinToString("，")}" else ""
-            return HomeGreeting(base.text + suffix, base.emoji)
+            return HomeGreeting(base.text + suffix)
         }
     }
 }

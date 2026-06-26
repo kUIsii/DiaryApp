@@ -102,6 +102,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _isGeneratingTitle = MutableStateFlow(false)
     val isGeneratingTitle = _isGeneratingTitle.asStateFlow()
 
+    // Tag suggestions
+    private val _suggestedTags = MutableStateFlow<List<String>>(emptyList())
+    val suggestedTags = _suggestedTags.asStateFlow()
+
     fun suggestTitle(content: String) {
         if (content.length < 50 || _isGeneratingTitle.value) return
         _isGeneratingTitle.value = true
@@ -129,6 +133,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun dismissTitleSuggestion() {
         _titleSuggestion.value = null
+    }
+
+    fun suggestTags(content: String) {
+        if (content.length < 30) return
+        viewModelScope.launch {
+            try {
+                val app = getApplication<DiaryApplication>()
+                val aiService = app.aiService
+                val existingNames = _allTags.value.map { it.name }
+                val suggestions = aiService.suggestTags(content, existingNames)
+                if (suggestions.isNotEmpty()) {
+                    _suggestedTags.value = suggestions
+                }
+            } catch (e: Exception) { Log.w("EditorViewModel", "Tag suggestion failed", e) }
+        }
+    }
+
+    fun dismissTagSuggestions() {
+        _suggestedTags.value = emptyList()
     }
 
     fun markContentChanged() {

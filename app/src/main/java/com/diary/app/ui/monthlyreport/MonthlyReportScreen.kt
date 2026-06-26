@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CompareArrows
@@ -88,6 +89,7 @@ fun MonthlyReportScreen(
     year: Int,
     month: Int,
     onNavigateBack: () -> Unit,
+    onShare: () -> Unit = {},
     viewModel: MonthlyReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -109,6 +111,11 @@ fun MonthlyReportScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onShare) {
+                            Icon(Icons.Default.Share, contentDescription = "分享")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.ViewList
@@ -96,12 +97,14 @@ fun DiaryMapScreen(
                 entryCount = state.markers.size,
                 showMap = showMap,
                 isRouteMode = state.isRouteMode,
+                isHeatmapMode = state.isHeatmapMode,
                 onNavigateBack = onNavigateBack,
                 onSwitchToList = {
                     showMap = false
                     selectedLocation = null
                 },
-                onToggleRouteMode = { viewModel.toggleRouteMode() }
+                onToggleRouteMode = { viewModel.toggleRouteMode() },
+                onToggleHeatmapMode = { viewModel.toggleHeatmapMode() }
             )
 
             when {
@@ -131,6 +134,7 @@ fun DiaryMapScreen(
                             },
                             isRouteMode = state.isRouteMode,
                             routePoints = state.routeStats?.routePoints ?: emptyList(),
+                            isHeatmapMode = state.isHeatmapMode,
                             onMarkerClick = { markerId ->
                                 onNavigateToDetail(markerId)
                             },
@@ -186,9 +190,11 @@ private fun DiaryMapHeader(
     entryCount: Int,
     showMap: Boolean,
     isRouteMode: Boolean,
+    isHeatmapMode: Boolean = false,
     onNavigateBack: () -> Unit,
     onSwitchToList: () -> Unit,
-    onToggleRouteMode: () -> Unit
+    onToggleRouteMode: () -> Unit,
+    onToggleHeatmapMode: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -242,6 +248,25 @@ private fun DiaryMapHeader(
                     Icons.Default.DirectionsWalk,
                     contentDescription = "路线模式",
                     tint = if (isRouteMode) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            IconButton(
+                onClick = onToggleHeatmapMode,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isHeatmapMode) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+            ) {
+                Icon(
+                    Icons.Default.Layers,
+                    contentDescription = "热力图",
+                    tint = if (isHeatmapMode) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -440,6 +465,7 @@ private fun MapViewWithLocation(
     markers: List<MapMarker>,
     isRouteMode: Boolean,
     routePoints: List<MapMarker>,
+    isHeatmapMode: Boolean = false,
     onMarkerClick: (Long) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier

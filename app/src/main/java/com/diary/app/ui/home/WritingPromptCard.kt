@@ -43,7 +43,7 @@ fun WritingPromptCard(
     val greeting = state.greeting
     val streak = state.streakInfo
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(text = greeting.text + " " + greeting.emoji, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+        Text(text = greeting.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
         Text(text = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINESE)), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(12.dp))
         GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {

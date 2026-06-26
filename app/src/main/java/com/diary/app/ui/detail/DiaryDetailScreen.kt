@@ -497,6 +497,67 @@ fun DiaryDetailScreen(
                             plainText = currentEntry.plainText
                         )
 
+                        // Related entries
+                        if (relatedEntries.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            GlassCard(
+                                cornerRadius = 16.dp,
+                                innerPadding = 0.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Text(
+                                        text = "相关日记",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = textColor.copy(alpha = 0.7f)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    relatedEntries.take(3).forEach { related ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    contentReady = false
+                                                    webViewContentHeight = 0f
+                                                    viewModel.loadEntry(related.id)
+                                                }
+                                                .padding(vertical = 6.dp, horizontal = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            val relatedDate = Instant.ofEpochMilli(related.createdAt)
+                                                .atZone(ZoneId.systemDefault()).toLocalDate()
+                                            Text(
+                                                text = "${relatedDate.monthValue}/${relatedDate.dayOfMonth}",
+                                                fontSize = 12.sp,
+                                                color = textSecondary.copy(alpha = 0.6f),
+                                                modifier = Modifier.width(36.dp)
+                                            )
+                                            Text(
+                                                text = related.title.ifBlank { related.plainText.take(30) },
+                                                fontSize = 13.sp,
+                                                color = textColor.copy(alpha = 0.8f),
+                                                maxLines = 1,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            related.moodLevel?.let { level ->
+                                                val moodIcon = moodIconForLevel(level)
+                                                Icon(
+                                                    imageVector = moodIcon.icon,
+                                                    contentDescription = null,
+                                                    tint = moodIcon.tint.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // Random entry button
                         Spacer(modifier = Modifier.height(8.dp))
                         GlassCard(

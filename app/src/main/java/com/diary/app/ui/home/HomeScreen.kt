@@ -63,6 +63,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -144,6 +145,8 @@ fun HomeScreen(
     val stats by viewModel.stats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+    val smartSearchParsing by viewModel.smartSearchParsing.collectAsState()
+    val smartSearchDescription by viewModel.smartSearchDescription.collectAsState()
     val entriesByDate by viewModel.entriesByDate.collectAsState()
 
     val homeNewState by viewModel.homeNewState.collectAsState()
@@ -296,8 +299,48 @@ fun HomeScreen(
                 item {
                     HomeSearchBar(
                         query = searchQuery,
-                        onQueryChange = { viewModel.setSearchQuery(it) }
+                        onQueryChange = { viewModel.setSearchQuery(it) },
+                        onSmartSearch = { viewModel.parseSmartSearch(searchQuery) },
+                        isSmartSearching = smartSearchParsing,
+                        showSmartButton = searchQuery.length >= 4
                     )
+                }
+
+                // Smart search description
+                if (smartSearchDescription != null) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "AI筛选: $smartSearchDescription",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "清除",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clickable {
+                                        viewModel.clearSmartSearchDescription()
+                                        viewModel.clearAllFilters()
+                                    }
+                            )
+                        }
+                    }
                 }
 
                 // Search results (when query is active)
@@ -1341,7 +1384,10 @@ private fun HomeFab(onClick: () -> Unit) {
 @Composable
 private fun HomeSearchBar(
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onSmartSearch: () -> Unit = {},
+    isSmartSearching: Boolean = false,
+    showSmartButton: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -1379,6 +1425,27 @@ private fun HomeSearchBar(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
             )
             if (query.isNotBlank()) {
+                if (showSmartButton) {
+                    IconButton(
+                        onClick = onSmartSearch,
+                        modifier = Modifier.size(40.dp),
+                        enabled = !isSmartSearching
+                    ) {
+                        if (isSmartSearching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = "智能搜索",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
                 IconButton(
                     onClick = { onQueryChange("") },
                     modifier = Modifier.size(40.dp)

@@ -471,6 +471,9 @@ interface DiaryDao {
     @Query("DELETE FROM trash_entries WHERE deletedAt < :before")
     suspend fun deleteTrashEntriesBefore(before: Long)
 
+    @Query("SELECT mediaName FROM diary_images")
+    suspend fun getAllMediaNames(): List<String>
+
     @Query("SELECT * FROM trash_entries WHERE id = :id")
     suspend fun getTrashEntryById(id: Long): TrashEntry?
 

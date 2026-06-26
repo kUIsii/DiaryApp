@@ -43,7 +43,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -107,6 +109,8 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val writingStyleResult by viewModel.writingStyleResult.collectAsStateWithLifecycle()
+    val isAnalyzingStyle by viewModel.isAnalyzingStyle.collectAsStateWithLifecycle()
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
@@ -290,6 +294,60 @@ fun StatsScreen(
                                 viewModel.analyzeContent(word)
                             }
                         )
+                    }
+
+                    // Writing Style Analysis
+                    item {
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = 22.dp,
+                            innerPadding = 16.dp
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                SectionHeader(
+                                    title = "写作风格分析",
+                                    subtitle = "AI 分析你的写作习惯和风格特点"
+                                )
+                                if (writingStyleResult != null) {
+                                    Text(
+                                        text = writingStyleResult!!,
+                                        fontSize = 14.sp,
+                                        lineHeight = 22.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "关闭",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.clickable { viewModel.dismissWritingStyle() }
+                                    )
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.analyzeWritingStyle() },
+                                        enabled = !isAnalyzingStyle,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        if (isAnalyzingStyle) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("正在分析...")
+                                        } else {
+                                            Icon(
+                                                Icons.Default.AutoAwesome,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("分析我的写作风格")
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     if (state.weatherDistribution.isNotEmpty() || state.tagUsage.isNotEmpty()) {

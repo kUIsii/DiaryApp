@@ -66,18 +66,6 @@ fun moodLabelForLevel(level: Int): String {
     }
 }
 
-fun moodEmojiForLevel(level: Int): String {
-    return when (level.coerceIn(1, 6)) {
-        1 -> "😞"
-        2 -> "😔"
-        3 -> "😌"
-        4 -> "😊"
-        5 -> "😄"
-        6 -> "🤩"
-        else -> "😌"
-    }
-}
-
 fun weatherIconFor(weather: String?): IconWithTint {
     return when (weather) {
         "晴", "晴天" -> IconWithTint(Icons.Default.WbSunny, WeatherSunny)

@@ -64,12 +64,11 @@ object AchievementNotificationManager {
 
     private fun triggerInAppBanner(achievement: Achievement) {
         val state = inAppNotificationState ?: return
-        val emoji = achievement.iconEmoji.ifEmpty { "\u2B50" }
         state.show(
             InAppNotification(
                 id = "achievement_${achievement.key}",
                 title = "成就解锁",
-                subtitle = "$emoji ${achievement.name} - ${achievement.description}"
+                subtitle = "${achievement.name} - ${achievement.description}"
             )
         )
     }

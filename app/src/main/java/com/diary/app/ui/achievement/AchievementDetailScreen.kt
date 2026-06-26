@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -186,10 +187,11 @@ fun AchievementDetailScreen(
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Text(
-                            text = item.def.iconEmoji,
-                            fontSize = 56.sp,
-                            modifier = Modifier.padding(32.dp)
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            modifier = Modifier.size(64.dp).padding(32.dp)
                         )
                     }
 

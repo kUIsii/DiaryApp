@@ -39,7 +39,10 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,6 +80,7 @@ internal fun EditorToolbar(
     onHideKeyboard: () -> Unit = {},
     onShowKeyboard: () -> Unit = {},
     onHideToolbar: () -> Unit = {},
+    onVoiceInput: () -> Unit = {},
     fontSize: Int = 14,
     onFontSizeChange: (Int) -> Unit = {}
 ) {
@@ -249,6 +253,7 @@ internal fun EditorToolbar(
                         onFormat = onFormat,
                         onInsert = onInsert,
                         onImageInsert = onImageInsert,
+                        onVoiceInput = onVoiceInput,
                         textColor = textColor
                     )
 
@@ -536,6 +541,7 @@ private fun ListSubPanel(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val isCodeBlock = activeFormats["code-block"] == true
             SubFunctionButton(
                 label = "\u5f15\u7528",
                 icon = Icons.Default.FormatQuote,
@@ -546,7 +552,16 @@ private fun ListSubPanel(
                 isActive = isBlockquote,
                 activeColor = activeColor
             )
-            Spacer(modifier = Modifier.weight(1f))
+            SubFunctionButton(
+                label = "\u4ee3\u7801\u5757",
+                icon = Icons.Default.Code,
+                onClick = { onFormat("toggleCodeBlock()") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f),
+                isActive = isCodeBlock,
+                activeColor = activeColor
+            )
             Spacer(modifier = Modifier.weight(1f))
         }
     }
@@ -557,6 +572,7 @@ private fun InsertSubPanel(
     onFormat: (String) -> Unit,
     onInsert: (String) -> Unit,
     onImageInsert: () -> Unit,
+    onVoiceInput: () -> Unit = {},
     textColor: Color
 ) {
     val btnBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -592,6 +608,25 @@ private fun InsertSubPanel(
                 bg = btnBg,
                 modifier = Modifier.weight(1f)
             )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SubFunctionButton(
+                label = "\u8bed\u97f3\u8f93\u5165",
+                icon = Icons.Default.Mic,
+                onClick = onVoiceInput,
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            SubFunctionButton(
+                label = "\u8868\u683c",
+                icon = Icons.Default.GridOn,
+                onClick = { onFormat("insertTable(3,3)") },
+                textColor = textColor,
+                bg = btnBg,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
