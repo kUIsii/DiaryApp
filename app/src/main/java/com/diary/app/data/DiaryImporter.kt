@@ -153,8 +153,112 @@ data class ImportResult(
 
 data class PendingBackupImport(
     val backup: DiaryBackup,
-    val mediaFiles: Map<String, ByteArray> = emptyMap()
+    val mediaFiles: Map<String, ByteArray> = emptyMap(),
+    val sourceFileName: String? = null,
+    val isFullBackupPackage: Boolean = false
 )
+
+data class BackupImportPreview(
+    val sourceLabel: String,
+    val entryCount: Int,
+    val tagCount: Int,
+    val todoCount: Int,
+    val capsuleCount: Int,
+    val mediaFileCount: Int,
+    val referencedMediaCount: Int,
+    val missingMediaCount: Int,
+    val appName: String?,
+    val version: String?,
+    val exportDate: String?,
+    val warningMessage: String?
+)
+
+internal fun buildBackupImportPreview(pending: PendingBackupImport): BackupImportPreview {
+    val backup = pending.backup
+    val referencedMediaNames = backup.entries.orEmpty()
+        .flatMap { DiaryMediaManager.extractMediaNames(it.content.orEmpty()) }
+        .filter(String::isNotBlank)
+        .toSet()
+    val embeddedMediaNames = pending.mediaFiles.keys
+        .map { it.replace('\\', '/') }
+        .filter { it.startsWith("${DiaryMediaManager.MEDIA_DIR_NAME}/") }
+        .map { it.substringAfterLast('/') }
+        .filter(String::isNotBlank)
+        .toSet()
+    val missingMediaCount = (referencedMediaNames - embeddedMediaNames).size
+    val warningMessage = when {
+        !pending.isFullBackupPackage && referencedMediaNames.isNotEmpty() ->
+            "这是旧版 JSON 备份，检测到 $referencedMediaNames 张图片引用，但备份内不含图片文件，导入后图片无法恢复。"
+        !pending.isFullBackupPackage ->
+            "这是旧版 JSON 备份，不包含图片媒体，只能恢复文字和结构数据。"
+        missingMediaCount > 0 ->
+            "这个备份包检测到 $missingMediaCount 张图片缺失，导入后这些图片无法恢复。"
+        else -> null
+    }
+
+    return BackupImportPreview(
+        sourceLabel = if (pending.isFullBackupPackage) "完整备份包" else "旧版 JSON 备份",
+        entryCount = backup.entries?.size ?: 0,
+        tagCount = backup.tags?.size ?: 0,
+        todoCount = backup.todos?.size ?: 0,
+        capsuleCount = backup.capsules?.size ?: 0,
+        mediaFileCount = embeddedMediaNames.size,
+        referencedMediaCount = referencedMediaNames.size,
+        missingMediaCount = missingMediaCount,
+        appName = backup.app?.trim()?.takeIf(String::isNotBlank),
+        version = backup.version?.trim()?.takeIf(String::isNotBlank),
+        exportDate = backup.exportDate?.trim()?.takeIf(String::isNotBlank),
+        warningMessage = warningMessage
+    )
+}
+
+internal fun buildDiaryMediaIndexRows(
+    entry: DiaryEntry,
+    mediaDir: java.io.File,
+    thumbDir: java.io.File,
+    createdAt: Long = System.currentTimeMillis()
+): List<DiaryImage> {
+    return DiaryMediaManager.extractMediaNames(entry.content).mapIndexed { index, mediaName ->
+        val displayFile = java.io.File(mediaDir, mediaName)
+        val thumbFile = java.io.File(thumbDir, mediaName)
+        DiaryImage(
+            entryId = entry.id,
+            localPath = displayFile.absolutePath,
+            thumbPath = thumbFile.absolutePath.takeIf { thumbFile.exists() },
+            mediaName = mediaName,
+            mediaRef = DiaryMediaManager.toMediaRef(mediaName),
+            mimeType = when (mediaName.substringAfterLast('.', "").lowercase()) {
+                "png" -> "image/png"
+                "webp" -> "image/webp"
+                "gif" -> "image/gif"
+                else -> "image/jpeg"
+            },
+            fileSize = displayFile.takeIf { it.exists() }?.length() ?: 0L,
+            sortOrder = index,
+            createdAt = createdAt
+        )
+    }
+}
+
+private suspend fun rebuildDiaryMediaIndex(
+    database: DiaryDatabase,
+    entries: List<DiaryEntry>,
+    mediaDir: java.io.File,
+    thumbDir: java.io.File,
+    clearExisting: Boolean
+) {
+    val mediaDao = database.mediaDao()
+    if (clearExisting) {
+        mediaDao.deleteAllImages()
+    } else {
+        entries.forEach { mediaDao.deleteImagesForEntry(it.id) }
+    }
+
+    entries
+        .asSequence()
+        .flatMap { buildDiaryMediaIndexRows(it, mediaDir, thumbDir).asSequence() }
+        .forEach { mediaDao.insertImage(it) }
+}
 
 object DiaryImporter {
 
@@ -166,7 +270,12 @@ object DiaryImporter {
         return parseBackupJson(json)
     }
 
-    suspend fun importOverwrite(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
+    suspend fun importOverwrite(
+        database: DiaryDatabase,
+        backup: DiaryBackup,
+        mediaDir: java.io.File? = null,
+        thumbDir: java.io.File? = null
+    ): ImportResult {
         val dao = database.diaryDao()
         val tagDao = database.tagDao()
         val todoDao = database.todoDao()
@@ -183,7 +292,7 @@ object DiaryImporter {
             backupEntries = backup.entries.orEmpty()
         )
 
-        return database.withTransaction {
+        val result = database.withTransaction {
             notificationDao.deleteAllNotifications()
             chatDao.deleteAllChatMessages()
             chatDao.deleteAllConversations()
@@ -211,9 +320,26 @@ object DiaryImporter {
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
+
+        if (mediaDir != null && thumbDir != null) {
+            rebuildDiaryMediaIndex(
+                database = database,
+                entries = database.diaryDao().getAllEntriesOnce(),
+                mediaDir = mediaDir,
+                thumbDir = thumbDir,
+                clearExisting = true
+            )
+        }
+
+        return result
     }
 
-    suspend fun import(database: DiaryDatabase, backup: DiaryBackup): ImportResult {
+    suspend fun import(
+        database: DiaryDatabase,
+        backup: DiaryBackup,
+        mediaDir: java.io.File? = null,
+        thumbDir: java.io.File? = null
+    ): ImportResult {
         val dao = database.diaryDao()
         val tagDao = database.tagDao()
         val todoDao = database.todoDao()
@@ -223,15 +349,16 @@ object DiaryImporter {
         val capsuleDao = database.capsuleDao()
         val trashDao = database.trashDao()
         val now = System.currentTimeMillis()
+        val importedEntries = mutableListOf<DiaryEntry>()
 
-        return database.withTransaction {
+        val result = database.withTransaction {
             val existingTags = tagDao.getAllTagsOnce()
             val existingEntries = dao.getAllEntriesOnce()
             val tagEntries = buildTagsForImport(existingTags, backup.tags.orEmpty())
             val diaryEntries = filterBackupEntriesForImport(existingEntries, backup.entries.orEmpty())
             val importedTagCount = insertTags(tagDao, tagEntries)
             val importedTags = tagDao.getAllTagsOnce()
-            val importedEntryCount = insertEntries(dao, tagDao, importedTags, diaryEntries, now)
+            val importedEntryCount = insertEntries(dao, tagDao, importedTags, diaryEntries, now, importedEntries)
 
             val todoIdMap = insertTodos(todoDao, backup.todos.orEmpty(), now)
             insertCountdowns(countDownDao, backup.countdowns.orEmpty(), now)
@@ -243,6 +370,18 @@ object DiaryImporter {
 
             ImportResult(entryCount = importedEntryCount, tagCount = importedTagCount)
         }
+
+        if (mediaDir != null && thumbDir != null && importedEntries.isNotEmpty()) {
+            rebuildDiaryMediaIndex(
+                database = database,
+                entries = importedEntries.toList(),
+                mediaDir = mediaDir,
+                thumbDir = thumbDir,
+                clearExisting = false
+            )
+        }
+
+        return result
     }
 }
 
@@ -438,24 +577,25 @@ private suspend fun insertEntries(
     tagDao: TagDao,
     importedTags: List<Tag>,
     entries: List<BackupEntry>,
-    now: Long
+    now: Long,
+    importedEntries: MutableList<DiaryEntry>? = null
 ): Int {
     var count = 0
     for (entry in entries) {
-        val newId = dao.insertEntry(
-            DiaryEntry(
-                title = entry.title ?: "",
-                content = entry.content ?: "",
-                plainText = entry.plainText ?: "",
-                moodLevel = entry.moodLevel,
-                weather = entry.weather,
-                location = entry.location,
-                latitude = entry.latitude,
-                longitude = entry.longitude,
-                createdAt = entry.createdAt ?: now,
-                updatedAt = entry.updatedAt ?: now
-            )
+        val insertedEntry = DiaryEntry(
+            title = entry.title ?: "",
+            content = entry.content ?: "",
+            plainText = entry.plainText ?: "",
+            moodLevel = entry.moodLevel,
+            weather = entry.weather,
+            location = entry.location,
+            latitude = entry.latitude,
+            longitude = entry.longitude,
+            createdAt = entry.createdAt ?: now,
+            updatedAt = entry.updatedAt ?: now
         )
+        val newId = dao.insertEntry(insertedEntry)
+        importedEntries?.add(insertedEntry.copy(id = newId))
         entry.tags.orEmpty().forEach { tagName ->
             findImportedTag(importedTags, tagName)?.let { tag ->
                 tagDao.insertDiaryTag(DiaryTag(diaryId = newId, tagId = tag.id))

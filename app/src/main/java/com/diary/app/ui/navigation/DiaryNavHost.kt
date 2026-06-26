@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -113,7 +114,13 @@ import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.annualreport.buildAnnualReportShareText
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.monthlyreport.buildMonthlyReportShareText
+import com.diary.app.ui.report.buildAnnualReportShareCard
+import com.diary.app.ui.report.buildMonthlyReportShareCard
+import com.diary.app.ui.report.buildWeeklyReportShareCard
+import com.diary.app.ui.report.shareReportImage
 import com.diary.app.ui.tools.ToolsScreen
+import com.diary.app.ui.weeklyreport.WeeklyReportScreen
+import com.diary.app.ui.weeklyreport.buildWeeklyReportShareText
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
@@ -192,6 +199,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Notifications : Screen("notifications", "通知", Icons.Default.Notifications)
     object AiAssistant : Screen("ai_assistant", "AI 助手", Icons.Default.AutoAwesome)
     object AiManagement : Screen("ai_management", "AI 管理", Icons.Default.SmartToy)
+    object WeeklyReport : Screen("weekly_report", "周报", Icons.Default.Weekend)
     object MonthlyReport : Screen("monthly_report/{year}/{month}", "月度报告", Icons.Default.CalendarMonth) {
         fun createRoute(year: Int, month: Int): String = "monthly_report/$year/$month"
     }
@@ -415,10 +423,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.Stats.route) {
                 StatsScreen(
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToWeeklyReport = { navController.navigate(Screen.WeeklyReport.route) },
                     onNavigateToMonthlyReport = {
                         val now = java.time.LocalDate.now()
                         navController.navigate(Screen.MonthlyReport.createRoute(now.year, now.monthValue))
-                    }
+                    },
+                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
                 )
             }
             composable(Screen.Profile.route) {
@@ -525,7 +535,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToCapsule = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToMonthlyReport = { year, month -> navController.navigate(Screen.MonthlyReport.createRoute(year, month)) },
-                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
+                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) },
+                    onNavigateToWeeklyReport = { navController.navigate(Screen.WeeklyReport.route) }
                 )
             }
             composable(
@@ -612,6 +623,33 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 ExperimentalFeaturesScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(
+                Screen.WeeklyReport.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                WeeklyReportScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onShare = { report ->
+                        val shared = shareReportImage(
+                            context = context,
+                            card = report?.let { buildWeeklyReportShareCard(it) },
+                            chooserTitle = "分享周报",
+                            emptyMessage = "周报还没生成，暂时无法分享"
+                        )
+                        if (!shared) {
+                            shareReportText(
+                                context = context,
+                                text = report?.let(::buildWeeklyReportShareText),
+                                chooserTitle = "分享周报",
+                                emptyMessage = "周报还没生成，暂时无法分享"
+                            )
+                        }
+                    }
+                )
+            }
+            composable(
                 route = Screen.MonthlyReport.route,
                 arguments = listOf(
                     navArgument("year") { type = NavType.IntType },
@@ -629,12 +667,20 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     month = month,
                     onNavigateBack = { navController.popBackStack() },
                     onShare = { report ->
-                        shareReportText(
+                        val shared = shareReportImage(
                             context = context,
-                            text = report?.let(::buildMonthlyReportShareText),
+                            card = report?.let { buildMonthlyReportShareCard(it) },
                             chooserTitle = "分享月报",
                             emptyMessage = "月报还没生成，暂时无法分享"
                         )
+                        if (!shared) {
+                            shareReportText(
+                                context = context,
+                                text = report?.let(::buildMonthlyReportShareText),
+                                chooserTitle = "分享月报",
+                                emptyMessage = "月报还没生成，暂时无法分享"
+                            )
+                        }
                     }
                 )
             }
@@ -648,12 +694,20 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 AnnualReportScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onShare = { report ->
-                        shareReportText(
+                        val shared = shareReportImage(
                             context = context,
-                            text = report?.let(::buildAnnualReportShareText),
+                            card = report?.let { buildAnnualReportShareCard(it) },
                             chooserTitle = "分享年报",
                             emptyMessage = "年报还没生成，暂时无法分享"
                         )
+                        if (!shared) {
+                            shareReportText(
+                                context = context,
+                                text = report?.let(::buildAnnualReportShareText),
+                                chooserTitle = "分享年报",
+                                emptyMessage = "年报还没生成，暂时无法分享"
+                            )
+                        }
                     }
                 )
             }

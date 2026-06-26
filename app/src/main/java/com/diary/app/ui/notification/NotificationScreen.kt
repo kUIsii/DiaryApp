@@ -84,6 +84,7 @@ fun NotificationScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit = { _, _ -> },
     onNavigateToAnnualReport: () -> Unit = {},
+    onNavigateToWeeklyReport: () -> Unit = {},
     viewModel: NotificationViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -110,7 +111,8 @@ fun NotificationScreen(
                     onNavigateToCapsule = onNavigateToCapsule,
                     onNavigateToDetail = onNavigateToDetail,
                     onNavigateToMonthlyReport = onNavigateToMonthlyReport,
-                    onNavigateToAnnualReport = onNavigateToAnnualReport
+                    onNavigateToAnnualReport = onNavigateToAnnualReport,
+                    onNavigateToWeeklyReport = onNavigateToWeeklyReport
                 )
             } else {
                 // 主内容区，支持左右滑切换分类
@@ -162,7 +164,8 @@ fun NotificationScreen(
                         onNavigateToCapsule = onNavigateToCapsule,
                         onNavigateToDetail = onNavigateToDetail,
                         onNavigateToMonthlyReport = onNavigateToMonthlyReport,
-                        onNavigateToAnnualReport = onNavigateToAnnualReport
+                        onNavigateToAnnualReport = onNavigateToAnnualReport,
+                        onNavigateToWeeklyReport = onNavigateToWeeklyReport
                     )
                 }
                 } // end swipe Column
@@ -302,7 +305,8 @@ private fun NotificationList(
     onNavigateToCapsule: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit,
-    onNavigateToAnnualReport: () -> Unit
+    onNavigateToAnnualReport: () -> Unit,
+    onNavigateToWeeklyReport: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -334,6 +338,7 @@ private fun NotificationList(
                             is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
                             is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
                             is AnnualReportNotification -> onNavigateToAnnualReport()
+                            is WeeklySummaryNotification -> onNavigateToWeeklyReport()
                             else -> {}
                         }
                     }
@@ -423,7 +428,8 @@ private fun NotificationCardWithMenu(
     val clickable = item is CapsuleUnlockNotification ||
             item is OnThisDayNotification ||
             item is MonthlyReportNotification ||
-            item is AnnualReportNotification
+            item is AnnualReportNotification ||
+            item is WeeklySummaryNotification
 
     Box {
         NotificationCard(
@@ -551,7 +557,8 @@ private fun TrashView(
     onNavigateToCapsule: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit,
-    onNavigateToAnnualReport: () -> Unit
+    onNavigateToAnnualReport: () -> Unit,
+    onNavigateToWeeklyReport: () -> Unit
 ) {
     if (trashedItems.isEmpty()) {
         EmptyTrashView()
@@ -588,6 +595,7 @@ private fun TrashView(
                                     is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
                                     is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
                                     is AnnualReportNotification -> onNavigateToAnnualReport()
+                                    is WeeklySummaryNotification -> onNavigateToWeeklyReport()
                                     else -> {}
                                 }
                             }
@@ -639,7 +647,8 @@ private fun TrashedNotificationCard(
     val clickable = item is CapsuleUnlockNotification ||
             item is OnThisDayNotification ||
             item is MonthlyReportNotification ||
-            item is AnnualReportNotification
+            item is AnnualReportNotification ||
+            item is WeeklySummaryNotification
 
     Box {
         GlassCard(

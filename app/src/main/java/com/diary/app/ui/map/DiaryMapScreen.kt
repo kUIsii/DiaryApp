@@ -58,6 +58,7 @@ import com.amap.api.maps.MapView
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
+import com.amap.api.maps.model.CircleOptions
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.PolylineOptions
 import com.diary.app.ui.components.EmptyState
@@ -510,9 +511,32 @@ private fun MapViewWithLocation(
                     } else {
                         markers
                     }
+                    val heatmapSpots = if (isHeatmapMode) buildHeatmapSpots(displayMarkers) else emptyList()
 
                     if (displayMarkers.isNotEmpty()) {
                         val boundsBuilder = LatLngBounds.Builder()
+
+                        if (heatmapSpots.isNotEmpty()) {
+                            val maxCount = heatmapSpots.maxOf { it.count }
+                            heatmapSpots.forEach { spot ->
+                                val center = LatLng(spot.latitude, spot.longitude)
+                                aMap.addCircle(
+                                    CircleOptions()
+                                        .center(center)
+                                        .radius(spot.radiusMeters)
+                                        .fillColor(
+                                            android.graphics.Color.argb(
+                                                (spot.alpha * 255).toInt().coerceIn(0, 255),
+                                                android.graphics.Color.red(heatmapSpotColorArgb(spot.count, maxCount)),
+                                                android.graphics.Color.green(heatmapSpotColorArgb(spot.count, maxCount)),
+                                                android.graphics.Color.blue(heatmapSpotColorArgb(spot.count, maxCount))
+                                            )
+                                        )
+                                        .strokeWidth(0f)
+                                )
+                                boundsBuilder.include(center)
+                            }
+                        }
 
                         displayMarkers.forEachIndexed { index, marker ->
                             val position = LatLng(marker.latitude, marker.longitude)
@@ -521,9 +545,11 @@ private fun MapViewWithLocation(
                                 .title(marker.title)
                                 .snippet(marker.location.ifBlank { null })
 
-                            // In route mode, add numbered markers
+                            // In route mode, add themed markers. Heatmap keeps markers as anchors.
                             if (isRouteMode) {
                                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                            } else if (isHeatmapMode) {
+                                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE))
                             }
 
                             aMap.addMarker(markerOptions)

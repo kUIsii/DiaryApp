@@ -1,7 +1,12 @@
 package com.diary.app.ui.settings
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
@@ -59,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
+import com.diary.app.reminder.ReminderManager
+import com.diary.app.reminder.ReminderSettingsRepository
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
@@ -69,6 +76,7 @@ import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateCheckResult
 import com.diary.app.update.UpdateDialog
 import com.diary.app.update.toUserMessage
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 private object S {
@@ -210,6 +218,18 @@ fun SettingsScreen(
     var showTrashPicker by remember { mutableStateOf(false) }
     var showCalendarPicker by remember { mutableStateOf(false) }
     var showContent by remember { mutableStateOf(false) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            ReminderManager.scheduleReminder(context, writingReminderHour, writingReminderMinute)
+            writingReminderEnabled = true
+        } else {
+            ReminderSettingsRepository.setWritingReminderEnabled(context, false)
+            writingReminderEnabled = false
+            Toast.makeText(context, "需要通知权限才能发送写作提醒", Toast.LENGTH_SHORT).show()
+        }
+    }
     LaunchedEffect(Unit) { showContent = true }
     if (showUpdateDialog) {
         UpdateDialog(versionName = updateVersion, releaseNotes = updateNotes, isDownloading = isDownloading, downloadProgress = downloadProgress, isForceUpdate = isForceUpdate, onConfirm = {
@@ -247,16 +267,30 @@ fun SettingsScreen(
                 Staggered(2, showContent) { SectionHeader(title = S.notification, icon = Icons.Default.Notifications, color = error) }
                 Spacer(modifier = Modifier.height(8.dp))
                 Staggered(3, showContent) { GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) { Column {
-                    SwitchSettingItem(Icons.Default.Alarm, S.writingReminder, S.writingReminderDesc, error.copy(0.1f), error, textColor, textTertiary, writingReminderEnabled) { writingReminderEnabled = it; AppPreferences.writingReminderEnabled = it }
-                    if (writingReminderEnabled) { SettingDivider(); TimeSettingItem(Icons.Default.Schedule, S.reminderTime, writingReminderHour, writingReminderMinute, error.copy(0.1f), error, textColor, textTertiary, context) { h, m -> writingReminderHour = h; writingReminderMinute = m; AppPreferences.writingReminderHour = h; AppPreferences.writingReminderMinute = m } }
+                    SwitchSettingItem(Icons.Default.Alarm, S.writingReminder, S.writingReminderDesc, error.copy(0.1f), error, textColor, textTertiary, writingReminderEnabled) {
+                        if (it) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                ReminderManager.scheduleReminder(context, writingReminderHour, writingReminderMinute)
+                                writingReminderEnabled = true
+                            }
+                        } else {
+                            ReminderManager.cancelReminder(context)
+                            writingReminderEnabled = false
+                        }
+                    }
+                    if (writingReminderEnabled) { SettingDivider(); TimeSettingItem(Icons.Default.Schedule, S.reminderTime, writingReminderHour, writingReminderMinute, error.copy(0.1f), error, textColor, textTertiary, context) { h, m -> writingReminderHour = h; writingReminderMinute = m; ReminderSettingsRepository.setWritingReminderTime(context, h, m); ReminderManager.scheduleReminder(context, h, m) } }
                     SettingDivider()
                     SwitchSettingItem(Icons.Default.LocalFireDepartment, S.streakReminder, S.streakReminderDesc, Color(0xFFFF9800).copy(0.1f), Color(0xFFFF9800), textColor, textTertiary, streakBreakReminder) { streakBreakReminder = it; AppPreferences.streakBreakReminder = it }
                     SettingDivider()
-                    SwitchSettingItem(Icons.Default.Cloud, S.weatherNotify, S.weatherNotifyDesc, secondary.copy(0.1f), secondary, textColor, textTertiary, weatherReminder) { weatherReminder = it; AppPreferences.weatherReminder = it }
+                    SwitchSettingItem(Icons.Default.Cloud, S.weatherNotify, S.weatherNotifyDesc, secondary.copy(0.1f), secondary, textColor, textTertiary, weatherReminder) { weatherReminder = it; ReminderSettingsRepository.setWeatherReminderEnabled(context, it) }
                     SettingDivider()
-                    SwitchSettingItem(Icons.Default.Replay, S.dailyReview, S.dailyReviewDesc, primary.copy(0.1f), primary, textColor, textTertiary, dailyReviewPush) { dailyReviewPush = it; AppPreferences.dailyReviewPush = it }
+                    SwitchSettingItem(Icons.Default.Replay, S.dailyReview, S.dailyReviewDesc, primary.copy(0.1f), primary, textColor, textTertiary, dailyReviewPush) { dailyReviewPush = it; ReminderSettingsRepository.setDailyReviewEnabled(context, it) }
                     SettingDivider()
-                    TimeRangeItem(Icons.Default.DoNotDisturb, S.dnd, S.dndTime.format(doNotDisturbStart, doNotDisturbEnd), doNotDisturbStart, doNotDisturbEnd, Color(0xFF9C27B0).copy(0.1f), Color(0xFF9C27B0), textColor, textTertiary, context, { doNotDisturbStart = it; AppPreferences.doNotDisturbStart = it }, { doNotDisturbEnd = it; AppPreferences.doNotDisturbEnd = it })
+                    TimeRangeItem(Icons.Default.DoNotDisturb, S.dnd, S.dndTime.format(doNotDisturbStart, doNotDisturbEnd), doNotDisturbStart, doNotDisturbEnd, Color(0xFF9C27B0).copy(0.1f), Color(0xFF9C27B0), textColor, textTertiary, context, { doNotDisturbStart = it; ReminderSettingsRepository.setQuietHoursStart(context, it) }, { doNotDisturbEnd = it; ReminderSettingsRepository.setQuietHoursEnd(context, it) })
                 } } }
                 Spacer(modifier = Modifier.height(20.dp))
                 // ═══ 数据管理 ═══

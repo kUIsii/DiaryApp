@@ -14,6 +14,7 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TagDao
 import com.diary.app.data.TrashEntry
 import com.diary.app.data.normalizeContentForExport
+import com.diary.app.ui.profile.expandTagFilterNames
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,8 @@ import com.diary.app.util.computeStreak
 import com.diary.app.util.computeLongestStreak
 import com.diary.app.util.detectStreakMilestone
 import com.diary.app.util.streakTier
+import com.diary.app.ui.stats.GoalProgress
+import com.diary.app.ui.stats.computeGoalProgress
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -150,6 +153,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val filterFavoritesOnly: StateFlow<Boolean> = _filterFavoritesOnly
     private val _filterDateRange = MutableStateFlow<Pair<Long, Long>?>(null)
     val filterDateRange: StateFlow<Pair<Long, Long>?> = _filterDateRange
+    private val _filterTagNames = MutableStateFlow<Set<String>>(emptySet())
+    val filterTagNames: StateFlow<Set<String>> = _filterTagNames
+    private val _filterLocationQuery = MutableStateFlow<String?>(null)
+    val filterLocationQuery: StateFlow<String?> = _filterLocationQuery
+    private val _filterWordCountRange = MutableStateFlow<SearchWordCountRange?>(null)
+    val filterWordCountRange: StateFlow<SearchWordCountRange?> = _filterWordCountRange
     private val _showFilters = MutableStateFlow(false)
     val showFilters: StateFlow<Boolean> = _showFilters
 
@@ -160,6 +169,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val allEntries: StateFlow<List<DiaryPreview>> = dao.getAllPreviews()
         .onEach { _isLoading.value = false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val locationSuggestions: StateFlow<List<String>> = allEntries
+        .map { entries ->
+            entries.mapNotNull { entry -> entry.location?.trim()?.takeIf(String::isNotBlank) }
+                .distinct()
+                .sorted()
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val dayInfoMap: StateFlow<Map<LocalDate, DayInfo>> = allEntries
@@ -210,6 +227,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         HomeStats(entries.size, streak, thisMonth)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeStats(0, 0, 0))
+
+    val goalProgress: StateFlow<List<GoalProgress>> = allEntries
+        .map { entries ->
+            val zone = ZoneId.systemDefault()
+            val now = LocalDate.now()
+            val goals = try { dao.getActiveGoalsOnce() } catch (_: Exception) { emptyList() }
+            computeGoalProgress(goals, entries, zone, now)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Phase 4b: Greeting + Writing Prompt + Enhanced Streak Info
     private val _homeNewState = MutableStateFlow(HomeNewState())
@@ -262,46 +288,94 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _searchQuery.value = query
     }
 
+    private val activeSearchFilters: StateFlow<HomeSearchParams> = combine(
+        combine(
+            _filterMoodLevels,
+            _filterWeatherTypes,
+            _filterFavoritesOnly,
+            _filterDateRange
+        ) { moods, weather, favorites, dates ->
+            HomeSearchParams(
+                query = "",
+                moods = moods,
+                weather = weather,
+                favorites = favorites,
+                dates = dates
+            )
+        },
+        combine(
+            _filterTagNames,
+            _filterLocationQuery,
+            _filterWordCountRange,
+            allTags
+        ) { tagNames, locationQuery, wordCountRange, allTagsList ->
+            HomeSearchParams(
+                query = "",
+                moods = emptySet(),
+                weather = emptySet(),
+                favorites = false,
+                dates = null,
+                tagNames = expandTagFilterNames(tagNames, allTagsList),
+                locationQuery = locationQuery,
+                wordCountRange = wordCountRange
+            )
+        }
+    ) { base, extras ->
+        base.copy(
+            tagNames = extras.tagNames,
+            locationQuery = extras.locationQuery,
+            wordCountRange = extras.wordCountRange
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        HomeSearchParams(
+            query = "",
+            moods = emptySet(),
+            weather = emptySet(),
+            favorites = false,
+            dates = null
+        )
+    )
+
     // Search results across all dates (for homepage search bar) with advanced filters
     val searchResults: StateFlow<List<DiaryPreview>> = combine(
-        debouncedSearchQuery, _filterMoodLevels, _filterWeatherTypes, _filterFavoritesOnly, _filterDateRange
-    ) { query, moods, weather, favs, dates ->
-        SearchParams(query, moods, weather, favs, dates)
+        debouncedSearchQuery,
+        activeSearchFilters,
+        tagsMap
+    ) { query, activeFilters, entryTags ->
+        Pair(
+            activeFilters.copy(query = query),
+            entryTags.mapValues { (_, tags) -> tags.map { it.name }.toSet() }
+        )
     }.flatMapLatest { params ->
-        if (params.query.isBlank() && params.moods.isEmpty() && params.weather.isEmpty() && !params.favorites && params.dates == null) {
+        val searchParams = params.first
+        val entryTags = params.second
+        if (searchParams.query.isBlank() &&
+            searchParams.moods.isEmpty() &&
+            searchParams.weather.isEmpty() &&
+            !searchParams.favorites &&
+            searchParams.dates == null &&
+            searchParams.tagNames.isEmpty() &&
+            searchParams.locationQuery.isNullOrBlank() &&
+            searchParams.wordCountRange == null
+        ) {
             flowOf(emptyList())
-        } else if (params.query.isBlank()) {
+        } else if (searchParams.query.isBlank()) {
             // Filter-only mode: use all entries and filter in memory
             allEntries.map { entries ->
                 entries.filter { entry ->
-                    matchFilters(entry, params)
+                    matchesHomeSearchFilters(entry, searchParams, entryTags[entry.id].orEmpty())
                 }
             }
         } else {
-            dao.searchPreviews(params.query).map { results ->
-                results.filter { entry -> matchFilters(entry, params) }
+            dao.searchPreviews(searchParams.query).map { results ->
+                results.filter { entry ->
+                    matchesHomeSearchFilters(entry, searchParams, entryTags[entry.id].orEmpty())
+                }
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private fun matchFilters(entry: DiaryPreview, params: SearchParams): Boolean {
-        if (params.moods.isNotEmpty() && entry.moodLevel !in params.moods) return false
-        if (params.weather.isNotEmpty() && entry.weather !in params.weather) return false
-        if (params.favorites && !entry.isFavorite) return false
-        if (params.dates != null) {
-            val (start, end) = params.dates
-            if (entry.createdAt < start || entry.createdAt >= end) return false
-        }
-        return true
-    }
-
-    private data class SearchParams(
-        val query: String,
-        val moods: Set<Int>,
-        val weather: Set<String>,
-        val favorites: Boolean,
-        val dates: Pair<Long, Long>?
-    )
 
     fun commitSearch(query: String) {
         val trimmed = query.trim()
@@ -356,6 +430,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _filterDateRange.value = if (start != null && end != null) Pair(start, end) else null
     }
 
+    fun toggleFilterTag(tagName: String) {
+        val current = _filterTagNames.value.toMutableSet()
+        if (tagName in current) current.remove(tagName) else current.add(tagName)
+        _filterTagNames.value = current
+    }
+
+    fun setFilterLocation(location: String?) {
+        _filterLocationQuery.value = location?.trim()?.takeIf(String::isNotBlank)
+    }
+
+    fun setFilterWordCountRange(range: SearchWordCountRange?) {
+        _filterWordCountRange.value = if (_filterWordCountRange.value == range) null else range
+    }
+
     fun toggleShowFilters() {
         _showFilters.value = !_showFilters.value
     }
@@ -365,6 +453,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _filterWeatherTypes.value = emptySet()
         _filterFavoritesOnly.value = false
         _filterDateRange.value = null
+        _filterTagNames.value = emptySet()
+        _filterLocationQuery.value = null
+        _filterWordCountRange.value = null
     }
 
     // AI-powered smart search: parse natural language query into filters
@@ -427,6 +518,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (moods.isNotEmpty() || weathers.isNotEmpty() || favorites || dateStart != null) {
                     _searchQuery.value = parsedQuery
+                    commitSearch(parsedQuery)
                     _filterMoodLevels.value = moods
                     _filterWeatherTypes.value = weathers
                     _filterFavoritesOnly.value = favorites
@@ -448,10 +540,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _smartSearchDescription.value = null
     }
 
-    val hasActiveFilters: StateFlow<Boolean> = combine(
-        _filterMoodLevels, _filterWeatherTypes, _filterFavoritesOnly, _filterDateRange
-    ) { moods, weather, favs, dates ->
-        moods.isNotEmpty() || weather.isNotEmpty() || favs || dates != null
+    val hasActiveFilters: StateFlow<Boolean> = activeSearchFilters.map { filters ->
+        filters.moods.isNotEmpty() ||
+            filters.weather.isNotEmpty() ||
+            filters.favorites ||
+            filters.dates != null ||
+            filters.tagNames.isNotEmpty() ||
+            !filters.locationQuery.isNullOrBlank() ||
+            filters.wordCountRange != null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setTagFilter(tagId: Long?) {

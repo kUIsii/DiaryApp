@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 27000
-        versionName = "2.70.0-experimental"
+        versionCode = 27005
+        versionName = "2.70.5-experimental"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -67,8 +67,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 27004
-            versionName = "2.70.4-experimental"
+            versionCode = 27005
+            versionName = "2.70.5-experimental"
         }
     }
 
@@ -133,6 +133,7 @@ dependencies {
 
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Health Connect API
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")

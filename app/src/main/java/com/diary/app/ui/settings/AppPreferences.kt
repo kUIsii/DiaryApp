@@ -60,13 +60,29 @@ object AppPreferences {
         get() = prefs().getBoolean("daily_review_push", true)
         set(value) { prefs().edit().putBoolean("daily_review_push", value).apply() }
 
+    var achievementNotificationsEnabled: Boolean
+        get() = prefs().getBoolean("achievement_notifications_enabled", true)
+        set(value) { prefs().edit().putBoolean("achievement_notifications_enabled", value).apply() }
+
+    var quietHoursEnabled: Boolean
+        get() = prefs().getBoolean("quiet_hours_enabled", false)
+        set(value) { prefs().edit().putBoolean("quiet_hours_enabled", value).apply() }
+
     var doNotDisturbStart: Int
         get() = prefs().getInt("dnd_start_hour", 22)
         set(value) { prefs().edit().putInt("dnd_start_hour", value).apply() }
 
+    var doNotDisturbStartMinute: Int
+        get() = prefs().getInt("dnd_start_minute", 0)
+        set(value) { prefs().edit().putInt("dnd_start_minute", value).apply() }
+
     var doNotDisturbEnd: Int
         get() = prefs().getInt("dnd_end_hour", 8)
         set(value) { prefs().edit().putInt("dnd_end_hour", value).apply() }
+
+    var doNotDisturbEndMinute: Int
+        get() = prefs().getInt("dnd_end_minute", 0)
+        set(value) { prefs().edit().putInt("dnd_end_minute", value).apply() }
 
     // ── 数据管理 ──
     var trashRetentionDays: Int
@@ -102,6 +118,10 @@ object AppPreferences {
     var screenshotProtection: Boolean
         get() = prefs().getBoolean("screenshot_protection", false)
         set(value) { prefs().edit().putBoolean("screenshot_protection", value).apply() }
+
+    var reminderSettingsMigrated: Boolean
+        get() = prefs().getBoolean("reminder_settings_migrated", false)
+        set(value) { prefs().edit().putBoolean("reminder_settings_migrated", value).apply() }
 
     // ── Helper ──
     private var appContext: Context? = null

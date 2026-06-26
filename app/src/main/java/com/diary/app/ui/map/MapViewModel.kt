@@ -195,9 +195,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 }
 
 internal fun extractCityFromLocation(location: String): String {
-    val parts = location.split(",").map { it.trim() }
+    val parts = location.split(",").map { it.trim() }.filter { it.isNotBlank() }
     return when {
-        parts.size >= 2 -> parts[parts.size - 2]
+        parts.size >= 3 -> parts[parts.size - 2]
+        parts.size == 2 -> parts[1]
         parts.size == 1 -> parts[0]
         else -> ""
     }

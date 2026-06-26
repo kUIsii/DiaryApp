@@ -111,6 +111,7 @@ interface DiaryDao {
         SELECT * FROM diary_entries
         WHERE plainText LIKE '%' || :query || '%'
            OR title LIKE '%' || :query || '%'
+           OR location LIKE '%' || :query || '%'
            OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
         ORDER BY createdAt DESC
     """)
@@ -120,6 +121,7 @@ interface DiaryDao {
         SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
         WHERE plainText LIKE '%' || :query || '%'
            OR title LIKE '%' || :query || '%'
+           OR location LIKE '%' || :query || '%'
            OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
         ORDER BY createdAt DESC
     """)
@@ -129,6 +131,7 @@ interface DiaryDao {
         SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt FROM diary_entries
         WHERE plainText LIKE '%' || :query || '%'
            OR title LIKE '%' || :query || '%'
+           OR location LIKE '%' || :query || '%'
            OR id IN (SELECT dt.diaryId FROM diary_tag_cross_ref dt INNER JOIN tags t ON dt.tagId = t.id WHERE t.name LIKE '%' || :query || '%')
         ORDER BY createdAt DESC
     """)

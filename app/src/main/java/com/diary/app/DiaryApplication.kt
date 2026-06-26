@@ -19,6 +19,7 @@ import com.diary.app.data.repository.DiaryEntryRepository
 import com.diary.app.data.repository.TodoRepository
 import com.diary.app.data.BackupManager
 import com.diary.app.data.TrashCleanupWorker
+import com.diary.app.reminder.ReminderSettingsRepository
 import com.diary.app.weather.WeatherWorker
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
@@ -56,6 +57,7 @@ class DiaryApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         AppPreferences.init(this)
+        ReminderSettingsRepository.syncFromLegacy(this)
         _themeMode.value = ThemePreferences.getThemeMode(this)
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()

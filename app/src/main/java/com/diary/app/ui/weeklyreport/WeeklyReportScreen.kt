@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +49,7 @@ import com.diary.app.ui.storage.formatFileSize
 @Composable
 fun WeeklyReportScreen(
     onNavigateBack: () -> Unit,
+    onShare: (WeeklyReport?) -> Unit = {},
     viewModel: WeeklyReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -90,6 +92,21 @@ fun WeeklyReportScreen(
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = { onShare(report) },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = "分享",
+                        tint = textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             if (report == null) {

@@ -139,6 +139,7 @@ data class NotificationUiState(
 class NotificationViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
     private val prefs = application.getSharedPreferences("notification_cache", android.content.Context.MODE_PRIVATE)
+    private val LEGACY_NOTIFICATION_KEYWORDS = listOf("pet", "宠物", "小记", "island", "小岛")
 
     private val _uiState = MutableStateFlow(NotificationUiState())
     val uiState: StateFlow<NotificationUiState> = _uiState.asStateFlow()
@@ -193,8 +194,12 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             val trashedEntities = dao.getTrashedNotifications().first()
             val unreadCount = allEntities.count { !it.isRead }.coerceAtLeast(0)
 
-            val allItems = allEntities.mapNotNull { it.toNotificationItem() }
-            val trashedItems = trashedEntities.mapNotNull { it.toNotificationItem() }
+            val allItems = allEntities
+                .filterNot(::isDeprecatedLegacyNotification)
+                .mapNotNull { it.toNotificationItem() }
+            val trashedItems = trashedEntities
+                .filterNot(::isDeprecatedLegacyNotification)
+                .mapNotNull { it.toNotificationItem() }
 
             _uiState.value = _uiState.value.copy(
                 notifications = allItems.sortedByDescending { it.timestamp },
@@ -636,6 +641,11 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             }
             else -> null
         }
+    }
+
+    private fun isDeprecatedLegacyNotification(entity: NotificationEntity): Boolean {
+        val haystack = "${entity.type} ${entity.title} ${entity.subtitle} ${entity.iconType}".lowercase()
+        return LEGACY_NOTIFICATION_KEYWORDS.any { keyword -> haystack.contains(keyword.lowercase()) }
     }
 
     // endregion

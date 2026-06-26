@@ -190,7 +190,7 @@ fun TagManagementScreen(
                             onDelete = { deletingTag = tag },
                             onSetParent = { parentTag ->
                                 scope.launch {
-                                    dao.setTagParent(tag.id, parentTag.id)
+                                    dao.setTagParent(tag.id, parentTag?.id)
                                 }
                             },
                             allTags = allTags
@@ -216,6 +216,7 @@ fun TagManagementScreen(
                                 }
                             },
                             allTags = allTags,
+                            expandedTags = expandedTags,
                             depth = 0
                         )
                     }
@@ -229,7 +230,7 @@ fun TagManagementScreen(
                                 onDelete = { deletingTag = tag },
                                 onSetParent = { parentTag ->
                                     scope.launch {
-                                        dao.setTagParent(tag.id, parentTag.id)
+                                        dao.setTagParent(tag.id, parentTag?.id)
                                     }
                                 },
                                 allTags = allTags
@@ -447,7 +448,7 @@ private fun TagRow(
     onEdit: () -> Unit,
     canDelete: Boolean,
     onDelete: () -> Unit,
-    onSetParent: (Tag) -> Unit = {},
+    onSetParent: (Tag?) -> Unit = {},
     allTags: List<Tag> = emptyList(),
     showParentHint: Boolean = false
 ) {
@@ -569,7 +570,7 @@ private fun TagRow(
                 showParentMenu = false
             },
             onRemoveParent = {
-                // Remove parent by setting to null - handled in caller
+                onSetParent(null)
                 showParentMenu = false
             }
         )
@@ -584,7 +585,7 @@ private fun TagParentSelectionDialog(
     onSelect: (Tag) -> Unit,
     onRemoveParent: () -> Unit
 ) {
-    val availableParents = allTags.filter { it.id != currentTag.id }
+    val availableParents = filterAvailableParentTags(currentTag, allTags)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -657,6 +658,7 @@ private fun TagTreeNode(
     onDelete: (Tag) -> Unit,
     onSetParent: (Tag, Tag?) -> Unit,
     allTags: List<Tag>,
+    expandedTags: MutableMap<Long, Boolean>,
     depth: Int
 ) {
     Column {
@@ -709,12 +711,15 @@ private fun TagTreeNode(
                         tag = child,
                         children = grandChildren,
                         childrenMap = childrenMap,
-                        isExpanded = false, // Children start collapsed
-                        onToggleExpand = {},
+                        isExpanded = expandedTags[child.id] ?: false,
+                        onToggleExpand = {
+                            expandedTags[child.id] = !(expandedTags[child.id] ?: false)
+                        },
                         onEdit = onEdit,
                         onDelete = onDelete,
                         onSetParent = onSetParent,
                         allTags = allTags,
+                        expandedTags = expandedTags,
                         depth = depth + 1
                     )
                 }

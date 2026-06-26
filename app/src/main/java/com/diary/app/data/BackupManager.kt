@@ -369,7 +369,7 @@ object BackupManager {
                     zip.write(json.toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
 
-                    val mediaNames = referencedMediaNames(database)
+                    val mediaNames = collectBackupMediaNames(context, database)
                     for (mediaName in mediaNames) {
                         val displayFile = File(DiaryMediaManager.mediaDir(context), mediaName)
                         if (displayFile.exists() && displayFile.isFile) {
@@ -725,26 +725,75 @@ object BackupManager {
 
     fun readBackupForImport(context: Context, fileName: String): PendingBackupImport? {
         return try {
-            val file = File(getBackupDir(), fileName)
-            if (file.exists()) {
-                readPendingImportFromFile(file)
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val uri = findDownloadsUri(context, fileName) ?: return null
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
-                        readPendingImportFromZip(stream)
-                    } else {
-                        PendingBackupImport(Gson().fromJson(stream.bufferedReader().readText(), DiaryBackup::class.java))
+            val resolved = resolveReadableBackupFile(context, fileName) ?: return null
+            when (resolved) {
+                is ReadableBackupFile.Local -> readPendingImportFromFile(resolved.file)
+                is ReadableBackupFile.Content -> {
+                    context.contentResolver.openInputStream(resolved.uri)?.use { stream ->
+                        if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
+                            readPendingImportFromZip(stream)
+                        } else {
+                            PendingBackupImport(
+                                backup = Gson().fromJson(stream.bufferedReader().readText(), DiaryBackup::class.java),
+                                sourceFileName = fileName,
+                                isFullBackupPackage = false
+                            )
+                        }
                     }
                 }
-            } else {
-                @Suppress("DEPRECATION")
-                readPendingImportFromFile(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName))
             }
         } catch (_: Exception) {
             Log.w("BackupManager", "Failed to read backup for import: $fileName")
             null
         }
+    }
+
+    private sealed class ReadableBackupFile {
+        data class Local(val file: File) : ReadableBackupFile()
+        data class Content(val uri: android.net.Uri) : ReadableBackupFile()
+    }
+
+    private fun resolveReadableBackupFile(context: Context, fileName: String): ReadableBackupFile? {
+        val managedFile = File(BackupManager.getBackupDir(), fileName)
+        if (managedFile.exists()) {
+            return ReadableBackupFile.Local(managedFile)
+        }
+
+        val internalFile = File(getBackupDir(context), fileName)
+        if (internalFile.exists()) {
+            return ReadableBackupFile.Local(internalFile)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val downloadsUri = findDownloadsUri(context, fileName)
+            if (downloadsUri != null) {
+                return ReadableBackupFile.Content(downloadsUri)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val downloadsFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+            if (downloadsFile.exists()) {
+                return ReadableBackupFile.Local(downloadsFile)
+            }
+        }
+
+        return null
+    }
+
+    private suspend fun collectBackupMediaNames(context: Context, database: DiaryDatabase): Set<String> {
+        val names = linkedSetOf<String>()
+        names.addAll(referencedMediaNames(database))
+        DiaryMediaManager.mediaDir(context).listFiles()?.forEach { file ->
+            if (file.isFile && file.name.isNotBlank()) {
+                names.add(file.name)
+            }
+        }
+        DiaryMediaManager.thumbDir(context).listFiles()?.forEach { file ->
+            if (file.isFile && file.name.isNotBlank()) {
+                names.add(file.name)
+            }
+        }
+        return names
     }
 
     fun restorePendingMedia(context: Context, pending: PendingBackupImport) {
@@ -777,7 +826,6 @@ object BackupManager {
         if (!hasStoragePermission()) return
         createBackupDir()
 
-        // 扫描备份目录中已有文件，恢复历史记录
         val existingFiles = scanBackupDir()
         if (existingFiles.isNotEmpty()) {
             val history = getBackupHistory(context)
@@ -791,35 +839,32 @@ object BackupManager {
                     Log.w("BackupManager", "Failed to count entries in backup file: ${file.name}")
                     0
                 }
-                addBackupRecord(context, BackupRecord(
-                    fileName = file.name,
-                    filePath = file.absolutePath,
-                    timestamp = file.lastModified(),
-                    entryCount = entryCount,
-                    fileSize = file.length()
-                ))
+                addBackupRecord(
+                    context,
+                    BackupRecord(
+                        fileName = file.name,
+                        filePath = file.absolutePath,
+                        timestamp = file.lastModified(),
+                        entryCount = entryCount,
+                        fileSize = file.length()
+                    )
+                )
             }
         }
 
-        // 迁移旧版 Downloads 中的备份到新目录
         migrateFromDownloads(context)
     }
 
-    /**
-     * 扫描 Documents/DiaryApp/ 目录中的备份文件
-     */
     private fun scanBackupDir(): Array<File> {
         val dir = getBackupDir()
         if (!dir.exists()) return emptyArray()
         return dir.listFiles { file ->
-            file.isFile && (file.name.startsWith("diary_backup_") || file.name.startsWith("日记备份_")) &&
+            file.isFile &&
+                (file.name.startsWith("diary_backup_") || file.name.startsWith("日记备份_")) &&
                 (file.name.endsWith(".json") || file.name.endsWith(FULL_BACKUP_EXTENSION))
         } ?: emptyArray()
     }
 
-    /**
-     * 从备份目录读取文件内容
-     */
     private fun readBackupJsonFromBackupDir(fileName: String): String? {
         return try {
             val file = File(getBackupDir(), fileName)
@@ -857,7 +902,11 @@ object BackupManager {
         return if (file.name.endsWith(FULL_BACKUP_EXTENSION)) {
             file.inputStream().use { readPendingImportFromZip(it) }
         } else {
-            PendingBackupImport(Gson().fromJson(file.readText(), DiaryBackup::class.java))
+            PendingBackupImport(
+                backup = Gson().fromJson(file.readText(), DiaryBackup::class.java),
+                sourceFileName = file.name,
+                isFullBackupPackage = false
+            )
         }
     }
 
@@ -880,7 +929,8 @@ object BackupManager {
         val json = backupJson ?: return null
         return PendingBackupImport(
             backup = Gson().fromJson(json, DiaryBackup::class.java),
-            mediaFiles = mediaFiles
+            mediaFiles = mediaFiles,
+            isFullBackupPackage = true
         )
     }
 

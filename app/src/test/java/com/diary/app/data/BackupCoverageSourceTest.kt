@@ -10,8 +10,14 @@ class BackupCoverageSourceTest {
     fun `backup payload includes ai assistant conversations and messages`() {
         val backupManagerSource = File("src/main/java/com/diary/app/data/BackupManager.kt").readText()
 
-        assertTrue(backupManagerSource.contains("val conversations = dao.getAllConversationsOnce()"))
-        assertTrue(backupManagerSource.contains("val chatMessages = dao.getAllChatMessagesOnce()"))
+        assertTrue(
+            backupManagerSource.contains("val conversations = chatDao.getAllConversationsOnce()") ||
+                backupManagerSource.contains("val conversations = dao.getAllConversationsOnce()")
+        )
+        assertTrue(
+            backupManagerSource.contains("val chatMessages = chatDao.getAllChatMessagesOnce()") ||
+                backupManagerSource.contains("val chatMessages = dao.getAllChatMessagesOnce()")
+        )
         assertTrue(backupManagerSource.contains("chatConversations = conversations.map"))
         assertTrue(backupManagerSource.contains("chatMessages = chatMessages.map"))
     }
@@ -21,8 +27,14 @@ class BackupCoverageSourceTest {
         val importerSource = File("src/main/java/com/diary/app/data/DiaryImporter.kt").readText()
         val tagScreenSource = File("src/main/java/com/diary/app/ui/profile/TagManagementScreen.kt").readText()
 
-        assertTrue(importerSource.contains("dao.deleteAllChatMessages()"))
-        assertTrue(importerSource.contains("dao.deleteAllConversations()"))
+        assertTrue(
+            importerSource.contains("chatDao.deleteAllChatMessages()") ||
+                importerSource.contains("dao.deleteAllChatMessages()")
+        )
+        assertTrue(
+            importerSource.contains("chatDao.deleteAllConversations()") ||
+                importerSource.contains("dao.deleteAllConversations()")
+        )
         assertTrue(importerSource.contains("backup.chatConversations.orEmpty()"))
         assertTrue(importerSource.contains("remapBackupChatMessages("))
         assertTrue(tagScreenSource.contains("TagHeader("))

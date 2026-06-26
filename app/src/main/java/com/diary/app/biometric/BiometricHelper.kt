@@ -5,6 +5,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import com.diary.app.security.SecureConfigStore
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -46,31 +47,31 @@ object BiometricHelper {
         val hash = hashPinWithSalt(pin, salt)
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY_PIN_HASH, hash)
-            .putString(KEY_PIN_SALT, salt)
             .putBoolean(KEY_PIN_LOCK, true)
-            .putString(KEY_PIN_HINT, hint)
             .putInt(KEY_FAILED_ATTEMPTS, 0)
             .remove(KEY_LOCKOUT_UNTIL)
             .apply()
+        SecureConfigStore.setString(context, KEY_PIN_HASH, hash)
+        SecureConfigStore.setString(context, KEY_PIN_SALT, salt)
+        SecureConfigStore.setString(context, KEY_PIN_HINT, hint)
     }
 
     fun removePin(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .remove(KEY_PIN_HASH)
-            .remove(KEY_PIN_SALT)
             .putBoolean(KEY_PIN_LOCK, false)
-            .remove(KEY_PIN_HINT)
             .putInt(KEY_FAILED_ATTEMPTS, 0)
             .remove(KEY_LOCKOUT_UNTIL)
             .apply()
+        SecureConfigStore.remove(context, KEY_PIN_HASH)
+        SecureConfigStore.remove(context, KEY_PIN_SALT)
+        SecureConfigStore.remove(context, KEY_PIN_HINT)
     }
 
     fun verifyPin(context: Context, pin: String): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val storedHash = prefs.getString(KEY_PIN_HASH, null) ?: return false
-        val salt = prefs.getString(KEY_PIN_SALT, null)
+        val storedHash = readSecurePinString(context, prefs, KEY_PIN_HASH) ?: return false
+        val salt = readSecurePinString(context, prefs, KEY_PIN_SALT)
 
         // Check lockout
         if (isLockedOut(context)) return false
@@ -86,10 +87,8 @@ object BiometricHelper {
             // Migrate to salted hash if needed
             if (salt == null) {
                 val newSalt = generateSalt()
-                prefs.edit()
-                    .putString(KEY_PIN_HASH, hashPinWithSalt(pin, newSalt))
-                    .putString(KEY_PIN_SALT, newSalt)
-                    .apply()
+                SecureConfigStore.setString(context, KEY_PIN_HASH, hashPinWithSalt(pin, newSalt))
+                SecureConfigStore.setString(context, KEY_PIN_SALT, newSalt)
             }
             true
         } else {
@@ -109,20 +108,18 @@ object BiometricHelper {
     }
 
     fun hasPinSet(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_PIN_HASH, null) != null
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (SecureConfigStore.getString(context, KEY_PIN_HASH) != null) return true
+        return readSecurePinString(context, prefs, KEY_PIN_HASH) != null
     }
 
     fun getPinHint(context: Context): String {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_PIN_HINT, "") ?: ""
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return readSecurePinString(context, prefs, KEY_PIN_HINT) ?: ""
     }
 
     fun setPinHint(context: Context, hint: String) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_PIN_HINT, hint)
-            .apply()
+        SecureConfigStore.setString(context, KEY_PIN_HINT, hint)
     }
 
     fun isLockedOut(context: Context): Boolean {
@@ -161,6 +158,19 @@ object BiometricHelper {
         val saltBytes = ByteArray(16)
         random.nextBytes(saltBytes)
         return saltBytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun readSecurePinString(
+        context: Context,
+        prefs: android.content.SharedPreferences,
+        key: String
+    ): String? {
+        val secureValue = SecureConfigStore.getString(context, key)
+        if (secureValue != null) return secureValue
+        val legacyValue = prefs.getString(key, null) ?: return null
+        SecureConfigStore.setString(context, key, legacyValue)
+        prefs.edit().remove(key).apply()
+        return legacyValue
     }
 
     fun canAuthenticate(context: Context): Boolean {

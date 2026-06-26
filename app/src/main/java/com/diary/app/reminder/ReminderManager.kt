@@ -5,18 +5,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Build
 import java.util.Calendar
 
 object ReminderManager {
 
     private const val PREFS_NAME = "diary_reminder_prefs"
-    private const val KEY_ENABLED = "reminder_enabled"
-    private const val KEY_HOUR = "reminder_hour"
-    private const val KEY_MINUTE = "reminder_minute"
     private const val KEY_MESSAGE = "reminder_message"
-    private const val DEFAULT_HOUR = 21
-    private const val DEFAULT_MINUTE = 0
     private const val REQUEST_CODE = 1001
 
     // Gentle reminder messages that rotate daily
@@ -48,24 +42,17 @@ object ReminderManager {
     }
 
     fun isReminderEnabled(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_ENABLED, false)
+        return ReminderSettingsRepository.getSettings(context).writingReminderEnabled
     }
 
     fun getReminderTime(context: Context): Pair<Int, Int> {
-        val prefs = getPrefs(context)
-        return Pair(
-            prefs.getInt(KEY_HOUR, DEFAULT_HOUR),
-            prefs.getInt(KEY_MINUTE, DEFAULT_MINUTE)
-        )
+        val settings = ReminderSettingsRepository.getSettings(context)
+        return Pair(settings.writingReminderHour, settings.writingReminderMinute)
     }
 
     fun scheduleReminder(context: Context, hour: Int, minute: Int) {
-        val prefs = getPrefs(context)
-        prefs.edit()
-            .putBoolean(KEY_ENABLED, true)
-            .putInt(KEY_HOUR, hour)
-            .putInt(KEY_MINUTE, minute)
-            .apply()
+        ReminderSettingsRepository.setWritingReminderTime(context, hour, minute)
+        ReminderSettingsRepository.setWritingReminderEnabled(context, true)
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = createPendingIntent(context)
@@ -98,8 +85,7 @@ object ReminderManager {
     }
 
     fun cancelReminder(context: Context) {
-        val prefs = getPrefs(context)
-        prefs.edit().putBoolean(KEY_ENABLED, false).apply()
+        ReminderSettingsRepository.setWritingReminderEnabled(context, false)
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = createPendingIntent(context)

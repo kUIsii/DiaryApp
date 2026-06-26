@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
@@ -51,6 +53,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.text.KeyboardOptions
@@ -83,6 +86,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,6 +106,8 @@ import com.diary.app.ui.components.moodLabelForLevel
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.components.weatherIconFor
 import com.diary.app.ui.components.weatherLabelFor
+import com.diary.app.ui.stats.GoalProgress
+import com.diary.app.ui.stats.latestGoalProgress
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -146,11 +152,34 @@ fun HomeScreen(
     val stats by viewModel.stats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+    val recentSearches by viewModel.recentSearches.collectAsState()
+    val searchSuggestions by viewModel.searchSuggestions.collectAsState()
+    val locationSuggestions by viewModel.locationSuggestions.collectAsState()
     val smartSearchParsing by viewModel.smartSearchParsing.collectAsState()
     val smartSearchDescription by viewModel.smartSearchDescription.collectAsState()
+    val filterMoodLevels by viewModel.filterMoodLevels.collectAsState()
+    val filterWeatherTypes by viewModel.filterWeatherTypes.collectAsState()
+    val filterFavoritesOnly by viewModel.filterFavoritesOnly.collectAsState()
+    val filterDateRange by viewModel.filterDateRange.collectAsState()
+    val filterTagNames by viewModel.filterTagNames.collectAsState()
+    val filterLocationQuery by viewModel.filterLocationQuery.collectAsState()
+    val filterWordCountRange by viewModel.filterWordCountRange.collectAsState()
+    val showFilters by viewModel.showFilters.collectAsState()
+    val hasActiveFilters by viewModel.hasActiveFilters.collectAsState()
     val entriesByDate by viewModel.entriesByDate.collectAsState()
+    val allTags by viewModel.allTags.collectAsState()
+    val goalProgress by viewModel.goalProgress.collectAsState()
 
     val homeNewState by viewModel.homeNewState.collectAsState()
+    var isSearchFocused by remember { mutableStateOf(false) }
+    val searchAssistItems = remember(searchQuery, recentSearches, searchSuggestions, locationSuggestions) {
+        buildHomeSearchSuggestions(
+            query = searchQuery,
+            recentSearches = recentSearches,
+            tagSuggestions = searchSuggestions,
+            locationSuggestions = locationSuggestions
+        )
+    }
 
     // Random review state
     var randomEntry by remember { mutableStateOf<DiaryPreview?>(null) }
@@ -296,15 +325,66 @@ fun HomeScreen(
                     )
                 }
 
+                latestGoalProgress(goalProgress)?.let { primaryGoal ->
+                    item {
+                        HomeWritingGoalCard(
+                            goal = primaryGoal,
+                            onClick = onNavigateToStats
+                        )
+                    }
+                }
+
 // Search bar
                 item {
                     HomeSearchBar(
                         query = searchQuery,
                         onQueryChange = { viewModel.setSearchQuery(it) },
+                        onFocusChanged = { isSearchFocused = it },
+                        onSearchSubmit = { viewModel.commitSearch(searchQuery) },
+                        onFilterToggle = { viewModel.toggleShowFilters() },
                         onSmartSearch = { viewModel.parseSmartSearch(searchQuery) },
                         isSmartSearching = smartSearchParsing,
-                        showSmartButton = searchQuery.length >= 4
+                        showSmartButton = searchQuery.length >= 4,
+                        hasActiveFilters = hasActiveFilters
                     )
+                }
+
+                if (showFilters) {
+                    item {
+                        HomeSearchFilters(
+                            moodFilters = filterMoodLevels,
+                            weatherFilters = filterWeatherTypes,
+                            favoritesOnly = filterFavoritesOnly,
+                            dateRange = filterDateRange,
+                            selectedTagNames = filterTagNames,
+                            selectedLocation = filterLocationQuery,
+                            wordCountRange = filterWordCountRange,
+                            availableTags = allTags.map { it.name }.take(8),
+                            availableLocations = locationSuggestions.take(6),
+                            onToggleMood = viewModel::toggleFilterMood,
+                            onToggleWeather = viewModel::toggleFilterWeather,
+                            onToggleFavorites = viewModel::toggleFilterFavorites,
+                            onToggleTag = viewModel::toggleFilterTag,
+                            onSelectLocation = viewModel::setFilterLocation,
+                            onSelectWordCountRange = viewModel::setFilterWordCountRange,
+                            onSetDateRange = viewModel::setFilterDateRange,
+                            onClearAll = viewModel::clearAllFilters
+                        )
+                    }
+                }
+
+                if ((isSearchFocused || searchQuery.isNotBlank()) && searchAssistItems.isNotEmpty()) {
+                    item {
+                        SearchAssistPanel(
+                            query = searchQuery,
+                            suggestions = searchAssistItems,
+                            onSuggestionClick = { suggestion ->
+                                viewModel.setSearchQuery(suggestion.value)
+                                viewModel.commitSearch(suggestion.value)
+                            },
+                            onClearHistory = viewModel::clearSearchHistory
+                        )
+                    }
                 }
 
                 // Smart search description
@@ -345,10 +425,10 @@ fun HomeScreen(
                 }
 
                 // Search results (when query is active)
-                if (searchQuery.isNotBlank() && searchResults.isNotEmpty()) {
+                if ((searchQuery.isNotBlank() || hasActiveFilters) && searchResults.isNotEmpty()) {
                     item {
                         Text(
-                            text = "找到 ${searchResults.size} 条结果",
+                            text = if (searchQuery.isBlank()) "筛选到 ${searchResults.size} 条结果" else "找到 ${searchResults.size} 条结果",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -390,6 +470,16 @@ fun HomeScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                if ((searchQuery.isNotBlank() || hasActiveFilters) && searchResults.isEmpty()) {
+                    item {
+                        EmptyState(
+                            icon = Icons.Default.Search,
+                            title = "没有找到匹配内容",
+                            subtitle = "试试更换关键词，或者放宽筛选条件。"
+                        )
                     }
                 }
 
@@ -1386,15 +1476,24 @@ private fun HomeFab(onClick: () -> Unit) {
 private fun HomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
+    onFocusChanged: (Boolean) -> Unit,
+    onSearchSubmit: () -> Unit,
+    onFilterToggle: () -> Unit,
     onSmartSearch: () -> Unit = {},
     isSmartSearching: Boolean = false,
-    showSmartButton: Boolean = false
+    showSmartButton: Boolean = false,
+    hasActiveFilters: Boolean = false
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(16.dp)
+            )
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1407,7 +1506,9 @@ private fun HomeSearchBar(
             TextField(
                 value = query,
                 onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { onFocusChanged(it.isFocused) },
                 placeholder = {
                     Text(
                         "搜索日记...",
@@ -1418,13 +1519,27 @@ private fun HomeSearchBar(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
                 ),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() })
             )
+            IconButton(
+                onClick = onFilterToggle,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.Tune,
+                    contentDescription = "筛选",
+                    tint = if (hasActiveFilters) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
             if (query.isNotBlank()) {
                 if (showSmartButton) {
                     IconButton(
@@ -1460,6 +1575,359 @@ private fun HomeSearchBar(
                 }
             }
         }
+}
+
+@Composable
+private fun HomeWritingGoalCard(
+    goal: GoalProgress,
+    onClick: () -> Unit
+) {
+    val accent = if (goal.isCompleted) Color(0xFF34A853) else MaterialTheme.colorScheme.primary
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        cornerRadius = 18.dp,
+        innerPadding = 16.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (goal.isCompleted) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "写作目标",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${goal.periodLabel} ${goal.currentDisplay} / ${goal.targetDisplay}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(accent.copy(alpha = 0.12f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(goal.progress.coerceIn(0f, 1f))
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(accent.copy(alpha = 0.65f), accent)
+                                )
+                            )
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = if (goal.isCompleted) "已完成" else "${(goal.progress * 100).toInt()}%",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent
+                )
+                Text(
+                    text = "去统计查看",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchAssistPanel(
+    query: String,
+    suggestions: List<HomeSearchSuggestion>,
+    onSuggestionClick: (HomeSearchSuggestion) -> Unit,
+    onClearHistory: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        innerPadding = 12.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (query.isBlank()) "最近搜索" else "搜索建议",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (query.isBlank()) {
+                    Text(
+                        text = "清空",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(onClick = onClearHistory)
+                    )
+                }
+            }
+            suggestions.forEach { suggestion ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSuggestionClick(suggestion) }
+                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = when (suggestion.type) {
+                            SearchSuggestionType.HISTORY -> Icons.Default.Refresh
+                            SearchSuggestionType.TAG -> Icons.Default.Edit
+                            SearchSuggestionType.LOCATION -> Icons.Default.LocationOn
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = suggestion.value,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = when (suggestion.type) {
+                            SearchSuggestionType.HISTORY -> "历史"
+                            SearchSuggestionType.TAG -> "标签"
+                            SearchSuggestionType.LOCATION -> "地点"
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchFilters(
+    moodFilters: Set<Int>,
+    weatherFilters: Set<String>,
+    favoritesOnly: Boolean,
+    dateRange: Pair<Long, Long>?,
+    selectedTagNames: Set<String>,
+    selectedLocation: String?,
+    wordCountRange: SearchWordCountRange?,
+    availableTags: List<String>,
+    availableLocations: List<String>,
+    onToggleMood: (Int) -> Unit,
+    onToggleWeather: (String) -> Unit,
+    onToggleFavorites: () -> Unit,
+    onToggleTag: (String) -> Unit,
+    onSelectLocation: (String?) -> Unit,
+    onSelectWordCountRange: (SearchWordCountRange?) -> Unit,
+    onSetDateRange: (Long?, Long?) -> Unit,
+    onClearAll: () -> Unit
+) {
+    val now = remember { LocalDate.now() }
+    val quickDateRanges = remember(now) {
+        listOf(
+            "近7天" to buildQuickDateRange(now, 7),
+            "近30天" to buildQuickDateRange(now, 30),
+            "近90天" to buildQuickDateRange(now, 90)
+        )
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        innerPadding = 12.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            FilterSectionTitle(title = "快捷筛选", actionText = "清除全部", onActionClick = onClearAll)
+            FilterChipRow {
+                FilterChipButton(
+                    label = "仅收藏",
+                    selected = favoritesOnly,
+                    onClick = onToggleFavorites
+                )
+                FilterChipButton(
+                    label = "短篇",
+                    selected = wordCountRange == SearchWordCountRange.SHORT,
+                    onClick = { onSelectWordCountRange(SearchWordCountRange.SHORT) }
+                )
+                FilterChipButton(
+                    label = "中篇",
+                    selected = wordCountRange == SearchWordCountRange.MEDIUM,
+                    onClick = { onSelectWordCountRange(SearchWordCountRange.MEDIUM) }
+                )
+                FilterChipButton(
+                    label = "长篇",
+                    selected = wordCountRange == SearchWordCountRange.LONG,
+                    onClick = { onSelectWordCountRange(SearchWordCountRange.LONG) }
+                )
+            }
+
+            FilterSectionTitle(title = "日期范围")
+            FilterChipRow {
+                quickDateRanges.forEach { (label, range) ->
+                    FilterChipButton(
+                        label = label,
+                        selected = dateRange == range,
+                        onClick = {
+                            if (dateRange == range) onSetDateRange(null, null) else onSetDateRange(range.first, range.second)
+                        }
+                    )
+                }
+            }
+
+            FilterSectionTitle(title = "心情")
+            FilterChipRow {
+                (1..6).forEach { level ->
+                    FilterChipButton(
+                        label = moodLabelForLevel(level),
+                        selected = level in moodFilters,
+                        onClick = { onToggleMood(level) }
+                    )
+                }
+            }
+
+            FilterSectionTitle(title = "天气")
+            FilterChipRow {
+                listOf("晴", "阴", "雨", "雪", "风", "雾").forEach { weather ->
+                    FilterChipButton(
+                        label = weather,
+                        selected = weather in weatherFilters,
+                        onClick = { onToggleWeather(weather) }
+                    )
+                }
+            }
+
+            if (availableTags.isNotEmpty()) {
+                FilterSectionTitle(title = "标签")
+                FilterChipRow {
+                    availableTags.forEach { tag ->
+                        FilterChipButton(
+                            label = tag,
+                            selected = tag in selectedTagNames,
+                            onClick = { onToggleTag(tag) }
+                        )
+                    }
+                }
+            }
+
+            if (availableLocations.isNotEmpty()) {
+                FilterSectionTitle(title = "地点")
+                FilterChipRow {
+                    availableLocations.forEach { location ->
+                        FilterChipButton(
+                            label = location,
+                            selected = selectedLocation == location,
+                            onClick = {
+                                if (selectedLocation == location) onSelectLocation(null) else onSelectLocation(location)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterSectionTitle(
+    title: String,
+    actionText: String? = null,
+    onActionClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (actionText != null && onActionClick != null) {
+            Text(
+                text = actionText,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = onActionClick)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterChipRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun FilterChipButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        )
+    }
+}
+
+private fun buildQuickDateRange(now: LocalDate, days: Long): Pair<Long, Long> {
+    val zone = java.time.ZoneId.systemDefault()
+    val start = now.minusDays(days - 1)
+        .atStartOfDay(zone)
+        .toInstant()
+        .toEpochMilli()
+    val end = now.plusDays(1)
+        .atStartOfDay(zone)
+        .toInstant()
+        .toEpochMilli()
+    return Pair(start, end)
 }
 
 @Composable

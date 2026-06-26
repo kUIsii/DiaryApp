@@ -76,10 +76,12 @@ import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
 import com.diary.app.R
 import com.diary.app.data.BackupFrequency
+import com.diary.app.data.BackupImportPreview
 import com.diary.app.data.BackupManager
 import com.diary.app.data.BackupRecord
 import com.diary.app.data.DiaryImporter
 import com.diary.app.data.PendingBackupImport
+import com.diary.app.data.buildBackupImportPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.SectionHeader
@@ -202,9 +204,7 @@ fun BackupScreen(
     }
 
     pendingImport?.let { pendingImportData ->
-        val backup = pendingImportData.backup
-        val entryCount = backup.entries?.size ?: 0
-        val tagCount = backup.tags?.size ?: 0
+        val preview = remember(pendingImportData) { buildBackupImportPreview(pendingImportData) }
         var overwriteMode by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -212,7 +212,9 @@ fun BackupScreen(
             title = { Text("确认导入") },
             text = {
                 Column {
-                    Text("将导入 $entryCount 篇日记和 $tagCount 个分类。")
+                    Text("请先确认这个备份包的内容，再决定是否导入。")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BackupImportSummaryCard(preview = preview, textColor = textColor, textTertiary = textTertiary)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -251,13 +253,17 @@ fun BackupScreen(
                     isImporting = true
                     scope.launch {
                         try {
-                            withContext(Dispatchers.IO) {
+                            val mediaDir = withContext(Dispatchers.IO) {
                                 BackupManager.restorePendingMedia(context, pending)
+                                com.diary.app.data.DiaryMediaManager.mediaDir(context)
+                            }
+                            val thumbDir = withContext(Dispatchers.IO) {
+                                com.diary.app.data.DiaryMediaManager.thumbDir(context)
                             }
                             val result = if (overwrite) {
-                                DiaryImporter.importOverwrite(app.database, pending.backup)
+                                DiaryImporter.importOverwrite(app.database, pending.backup, mediaDir, thumbDir)
                             } else {
-                                DiaryImporter.import(app.database, pending.backup)
+                                DiaryImporter.import(app.database, pending.backup, mediaDir, thumbDir)
                             }
                             Toast.makeText(
                                 context,
@@ -733,6 +739,52 @@ fun BackupScreen(
                 }
 
                 item { Spacer(modifier = Modifier.height(48.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackupImportSummaryCard(
+    preview: BackupImportPreview,
+    textColor: Color,
+    textTertiary: Color
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        innerPadding = 12.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = preview.sourceLabel,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor
+            )
+            preview.version?.let {
+                Text("版本：$it", fontSize = 12.sp, color = textTertiary)
+            }
+            preview.exportDate?.let {
+                Text("导出时间：$it", fontSize = 12.sp, color = textTertiary)
+            }
+            Text(
+                text = "日记 ${preview.entryCount} 篇  ·  标签 ${preview.tagCount} 个  ·  待办 ${preview.todoCount} 条  ·  时间胶囊 ${preview.capsuleCount} 个",
+                fontSize = 12.sp,
+                color = textTertiary
+            )
+            Text(
+                text = "图片文件 ${preview.mediaFileCount} 个  ·  图片引用 ${preview.referencedMediaCount} 个  ·  缺失 ${preview.missingMediaCount} 个",
+                fontSize = 12.sp,
+                color = if (preview.missingMediaCount > 0) MaterialTheme.colorScheme.error else textTertiary
+            )
+            preview.warningMessage?.let { warning ->
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = warning,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.diary.app.ai
 
 import android.content.Context
+import com.diary.app.security.SecureConfigStore
 
 object AiConfigStore {
     private const val PREFS_NAME = "diary_prefs"
@@ -32,14 +33,17 @@ object AiConfigStore {
 
     // ── Per-provider config ─────────────────────────────────
 
+    private fun secureApiKeyKey(providerId: String): String = "ai_key_$providerId"
+
     fun getApiKey(context: Context, providerId: String): String {
-        val perProvider = prefs(context).getString("ai_key_$providerId", null)
+        val perProvider = SecureConfigStore.getString(context, secureApiKeyKey(providerId))
         if (perProvider != null) return perProvider
         // Migration: read legacy key for agnes
         if (providerId == "agnes") {
             val legacy = prefs(context).getString(KEY_AI_API_KEY, "") ?: ""
             if (legacy.isNotBlank()) {
                 setApiKey(context, providerId, legacy)
+                prefs(context).edit().remove(KEY_AI_API_KEY).apply()
                 return legacy
             }
         }
@@ -47,7 +51,7 @@ object AiConfigStore {
     }
 
     fun setApiKey(context: Context, providerId: String, key: String) {
-        prefs(context).edit().putString("ai_key_$providerId", key).apply()
+        SecureConfigStore.setString(context, secureApiKeyKey(providerId), key)
     }
 
     fun getEndpoint(context: Context, providerId: String): String {

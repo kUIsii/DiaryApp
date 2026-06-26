@@ -105,6 +105,8 @@ import kotlinx.coroutines.launch
 fun StatsScreen(
     onNavigateToDetail: (Long) -> Unit = {},
     onNavigateToMonthlyReport: () -> Unit = {},
+    onNavigateToWeeklyReport: () -> Unit = {},
+    onNavigateToAnnualReport: () -> Unit = {},
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -158,7 +160,11 @@ fun StatsScreen(
                     }
 
                     item {
-                        MonthlyReportEntryCard(onClick = onNavigateToMonthlyReport)
+                        ReportEntrySection(
+                            onNavigateToWeeklyReport = onNavigateToWeeklyReport,
+                            onNavigateToMonthlyReport = onNavigateToMonthlyReport,
+                            onNavigateToAnnualReport = onNavigateToAnnualReport
+                        )
                     }
 
                     item {
@@ -617,7 +623,44 @@ private fun StatsPageHeader(totalEntries: Int) {
 }
 
 @Composable
-private fun MonthlyReportEntryCard(onClick: () -> Unit) {
+private fun ReportEntrySection(
+    onNavigateToWeeklyReport: () -> Unit,
+    onNavigateToMonthlyReport: () -> Unit,
+    onNavigateToAnnualReport: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ReportEntryCard(
+            title = "本周周报",
+            subtitle = "查看上周写了多少、心情走势和常用标签",
+            icon = Icons.Default.Weekend,
+            accent = Color(0xFF34A853),
+            onClick = onNavigateToWeeklyReport
+        )
+        ReportEntryCard(
+            title = "本月月报",
+            subtitle = "查看本月的写作统计、心情趋势和标签分析",
+            icon = Icons.Default.CalendarMonth,
+            accent = MaterialTheme.colorScheme.primary,
+            onClick = onNavigateToMonthlyReport
+        )
+        ReportEntryCard(
+            title = "年度报告",
+            subtitle = "回看全年记录密度、连续天数和写作习惯",
+            icon = Icons.Default.Analytics,
+            accent = Color(0xFFF59E0B),
+            onClick = onNavigateToAnnualReport
+        )
+    }
+}
+
+@Composable
+private fun ReportEntryCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accent: Color,
+    onClick: () -> Unit
+) {
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -634,25 +677,25 @@ private fun MonthlyReportEntryCard(onClick: () -> Unit) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    .background(accent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.CalendarMonth,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = accent,
                     modifier = Modifier.size(18.dp)
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "月度报告",
+                    text = title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "查看本月的写作统计、心情趋势和标签分析",
+                    text = subtitle,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
