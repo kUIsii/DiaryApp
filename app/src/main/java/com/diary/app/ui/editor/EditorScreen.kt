@@ -259,6 +259,7 @@ fun EditorScreen(
     var showDraftDialog by remember { mutableStateOf(false) }
     var pendingDraft by remember { mutableStateOf<DraftData?>(null) }
     var isApplyingProgrammaticContent by remember { mutableStateOf(false) }
+    var lastTagSuggestionLength by remember { mutableIntStateOf(0) }
     var metadataVersion by remember { mutableIntStateOf(0) }
     var isExitingEditor by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
@@ -516,9 +517,10 @@ fun EditorScreen(
                     viewModel.suggestTitle(text)
                 }
                 // Trigger tag suggestion when content reaches 200 chars
-                if (text.length == 200) {
+                if (shouldTriggerTagSuggestion(lastTagSuggestionLength, text.length)) {
                     viewModel.suggestTags(text)
                 }
+                lastTagSuggestionLength = text.length
             }
         }
     }
@@ -910,11 +912,14 @@ fun EditorScreen(
                         val result = aiService.chat(aiRequest(prompt, maxTokens = 500))
                         result.fold(
                             onSuccess = { response ->
-                                val content = response.content.trim()
-                                val title = content.lines().firstOrNull()?.take(20) ?: ""
-                                val body = content.lines().drop(1).joinToString("\n").trim()
-                                if (title.isNotBlank()) {
-                                    webView?.evaluateJavascript("setTemplate(${org.json.JSONObject.quote(body.ifBlank { content })})", null)
+                                val parsed = parseWritingGuideResult(response.content)
+                                if (parsed.title.isNotBlank()) {
+                                    entryTitle = parsed.title
+                                    viewModel.markContentChanged()
+                                    metadataVersion++
+                                }
+                                if (parsed.body.isNotBlank()) {
+                                    webView?.evaluateJavascript("setTemplate(${org.json.JSONObject.quote(parsed.body)})", null)
                                 }
                             },
                             onFailure = { }

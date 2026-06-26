@@ -90,7 +90,7 @@ private val weatherShortLabel = mapOf(
 @Composable
 fun AnnualReportScreen(
     onNavigateBack: () -> Unit,
-    onShare: () -> Unit = {},
+    onShare: (AnnualReport?) -> Unit = {},
     viewModel: AnnualReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -112,7 +112,7 @@ fun AnnualReportScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onShare) {
+                        IconButton(onClick = { onShare(report) }) {
                             Icon(Icons.Default.Share, contentDescription = "分享")
                         }
                     },

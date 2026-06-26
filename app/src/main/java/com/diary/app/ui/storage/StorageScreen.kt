@@ -399,11 +399,7 @@ fun StorageScreen(
                             }
                             if (state.duplicateGroups.isNotEmpty()) {
                                 TextButton(onClick = {
-                                    state.duplicateGroups.forEach { group ->
-                                        val keep = group.first()
-                                        val remove = group.drop(1)
-                                        viewModel.cleanDuplicates(keep, remove)
-                                    }
+                                    viewModel.cleanDuplicates(duplicateFilesToRemove(state.duplicateGroups))
                                 }) { Text("清理", color = Color(0xFFF59E0B)) }
                             } else {
                                 TextButton(

@@ -91,6 +91,29 @@ internal fun countWords(text: String): Int {
     return count
 }
 
+internal fun shouldTriggerTagSuggestion(
+    previousLength: Int,
+    currentLength: Int,
+    threshold: Int = 200
+): Boolean {
+    return previousLength < threshold && currentLength >= threshold
+}
+
+internal data class WritingGuideResult(
+    val title: String,
+    val body: String
+)
+
+internal fun parseWritingGuideResult(content: String): WritingGuideResult {
+    val trimmed = content.trim()
+    if (trimmed.isBlank()) return WritingGuideResult(title = "", body = "")
+
+    val lines = trimmed.lines()
+    val title = lines.firstOrNull()?.trim().orEmpty().take(20)
+    val body = lines.drop(1).joinToString("\n").trim().ifBlank { trimmed }
+    return WritingGuideResult(title = title, body = body)
+}
+
 internal fun summarizeSelectedNames(
     names: List<String>,
     emptyLabel: String,

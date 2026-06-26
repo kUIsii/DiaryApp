@@ -386,10 +386,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 var dateStart: Long? = null
                 var dateEnd: Long? = null
                 val descriptions = mutableListOf<String>()
+                val parsedQuery = resolveSmartSearchQuery(query, result["keywords"].orEmpty())
 
                 result["mood"]?.let { moodStr ->
-                    val level = moodStr.toIntOrNull()
-                    if (level != null && level in 1..6) {
+                    val level = parseSmartSearchMoodLevel(moodStr)
+                    if (level != null) {
                         moods.add(level)
                         val moodName = when (level) {
                             1 -> "很低落"
@@ -397,7 +398,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             3 -> "平静"
                             4 -> "开心"
                             5 -> "非常开心"
-                            6 -> "兴奋"
                             else -> "心情等级$level"
                         }
                         descriptions.add("心情: $moodName")
@@ -426,6 +426,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 if (moods.isNotEmpty() || weathers.isNotEmpty() || favorites || dateStart != null) {
+                    _searchQuery.value = parsedQuery
                     _filterMoodLevels.value = moods
                     _filterWeatherTypes.value = weathers
                     _filterFavoritesOnly.value = favorites
@@ -629,6 +630,16 @@ data class HomeGreeting(val text: String) {
             return HomeGreeting(base.text + suffix)
         }
     }
+}
+
+internal fun parseSmartSearchMoodLevel(raw: String): Int? {
+    val level = raw.toIntOrNull() ?: return null
+    return level.takeIf { it in 1..5 }
+}
+
+internal fun resolveSmartSearchQuery(originalQuery: String, parsedKeywords: String): String {
+    val normalized = parsedKeywords.trim()
+    return normalized.ifBlank { originalQuery }
 }
 
 data class HomeStreakInfo(

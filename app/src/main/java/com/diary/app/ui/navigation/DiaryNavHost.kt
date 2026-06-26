@@ -1,5 +1,8 @@
 ﻿package com.diary.app.ui.navigation
 
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -106,7 +109,9 @@ import com.diary.app.ui.map.DiaryMapScreen
 import com.diary.app.ui.achievement.AchievementScreen
 import com.diary.app.ui.achievement.AchievementDetailScreen
 import com.diary.app.ui.achievement.AchievementViewModel
+import com.diary.app.ui.annualreport.buildAnnualReportShareText
 import com.diary.app.ui.biography.BiographyScreen
+import com.diary.app.ui.monthlyreport.buildMonthlyReportShareText
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -131,6 +136,24 @@ private fun subPagePopExitTransition() = slideOutHorizontally(
     targetOffsetX = { it / 3 },
     animationSpec = tween(280)
 ) + fadeOut(animationSpec = tween(200))
+
+private fun shareReportText(
+    context: Context,
+    text: String?,
+    chooserTitle: String,
+    emptyMessage: String
+) {
+    if (text.isNullOrBlank()) {
+        Toast.makeText(context, emptyMessage, Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, chooserTitle))
+}
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -198,7 +221,8 @@ val bottomNavItems = listOf(
 
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
-    val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
+    val context = LocalContext.current
+    val app = context.applicationContext as? DiaryApplication ?: return
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -591,8 +615,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     year = year,
                     month = month,
                     onNavigateBack = { navController.popBackStack() },
-                    onShare = {
-                        // TODO: Implement share functionality
+                    onShare = { report ->
+                        shareReportText(
+                            context = context,
+                            text = report?.let(::buildMonthlyReportShareText),
+                            chooserTitle = "分享月报",
+                            emptyMessage = "月报还没生成，暂时无法分享"
+                        )
                     }
                 )
             }
@@ -605,8 +634,13 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 AnnualReportScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onShare = {
-                        // TODO: Implement share functionality
+                    onShare = { report ->
+                        shareReportText(
+                            context = context,
+                            text = report?.let(::buildAnnualReportShareText),
+                            chooserTitle = "分享年报",
+                            emptyMessage = "年报还没生成，暂时无法分享"
+                        )
                     }
                 )
             }

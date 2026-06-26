@@ -244,7 +244,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun cleanDuplicates(keepFile: File, removeFiles: List<File>) {
+    fun cleanDuplicates(removeFiles: List<File>) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 removeFiles.forEach { it.delete() }

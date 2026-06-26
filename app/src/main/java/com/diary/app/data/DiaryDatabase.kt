@@ -760,8 +760,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                 )""")
 
                 // Add parentId and usageCount to tags
-                db.execSQL("ALTER TABLE tags ADD COLUMN parent_id INTEGER")
-                db.execSQL("ALTER TABLE tags ADD COLUMN usage_count INTEGER NOT NULL DEFAULT 0")
+                buildMissingTagColumnStatements(db.getColumnNames("tags")).forEach(db::execSQL)
             }
         }
 

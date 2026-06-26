@@ -89,7 +89,7 @@ fun MonthlyReportScreen(
     year: Int,
     month: Int,
     onNavigateBack: () -> Unit,
-    onShare: () -> Unit = {},
+    onShare: (MonthlyReport?) -> Unit = {},
     viewModel: MonthlyReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -114,7 +114,7 @@ fun MonthlyReportScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onShare) {
+                        IconButton(onClick = { onShare(report) }) {
                             Icon(Icons.Default.Share, contentDescription = "分享")
                         }
                     },
