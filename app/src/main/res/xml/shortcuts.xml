@@ -8,7 +8,7 @@
         android:shortcutLongLabel="@string/shortcut_new_diary_long">
         <intent
             android:action="com.diary.app.NEW_DIARY"
-            android:targetPackage="com.diary.app"
+            android:targetPackage="${applicationId}"
             android:targetClass="com.diary.app.MainActivity" />
     </shortcut>
     <shortcut
@@ -19,7 +19,7 @@
         android:shortcutLongLabel="@string/shortcut_quick_todo_long">
         <intent
             android:action="com.diary.app.QUICK_TODO"
-            android:targetPackage="com.diary.app"
+            android:targetPackage="${applicationId}"
             android:targetClass="com.diary.app.MainActivity" />
     </shortcut>
 </shortcuts>

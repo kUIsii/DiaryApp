@@ -57,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -104,6 +105,7 @@ private enum class TodoTab(val label: String) { HABIT("打卡"), MEMO("备忘"),
 @Composable
 fun TodoScreen(
     viewModel: TodoViewModel = viewModel(),
+    openAddDialogOnLaunch: Boolean = false,
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
@@ -122,6 +124,13 @@ fun TodoScreen(
 
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(openAddDialogOnLaunch) {
+        if (openAddDialogOnLaunch) {
+            currentPageIndex = TodoTab.DEADLINE.ordinal
+            showAddDialog = true
+        }
+    }
 
     val currentTab = TodoTab.entries[currentPageIndex]
     val textColor = MaterialTheme.colorScheme.onBackground

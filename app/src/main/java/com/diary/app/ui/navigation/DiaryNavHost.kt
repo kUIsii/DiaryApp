@@ -83,6 +83,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diary.app.DiaryApplication
+import com.diary.app.resolveExternalNavigation
 import com.diary.app.ui.backup.BackupScreen
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.capsule.CreateCapsuleScreen
@@ -255,8 +256,15 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             if (navigateTo == "editor") {
                 navController.navigate(Screen.Editor.createRoute())
                 onNavigateHandled()
+            } else if (navigateTo == "todo_add") {
+                navigateToBottomRoute(Screen.Todo.route)
+                navController.currentBackStackEntry?.savedStateHandle?.set("todo_open_add", true)
+                onNavigateHandled()
             } else if (navigateTo == "todo") {
                 navigateToBottomRoute(Screen.Todo.route)
+                onNavigateHandled()
+            } else if (navigateTo == "countdown") {
+                navController.navigate(Screen.CountDown.route)
                 onNavigateHandled()
             }
         }
@@ -386,7 +394,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Todo.route) {
+                val openAddDialog = navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<Boolean>("todo_open_add") == true
                 TodoScreen(
+                    openAddDialogOnLaunch = openAddDialog,
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Todo.route,
