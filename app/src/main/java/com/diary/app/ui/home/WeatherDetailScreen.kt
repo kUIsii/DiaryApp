@@ -7,12 +7,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,19 +23,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -56,7 +55,6 @@ import com.diary.app.weather.CurrentWeather
 import com.diary.app.weather.WeatherManager
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherDetailScreen(
     onBack: () -> Unit
@@ -75,17 +73,7 @@ fun WeatherDetailScreen(
     if (currentWeather == null) {
         GradientBackground {
             Column(modifier = Modifier.fillMaxSize()) {
-                TopAppBar(
-                    title = { Text("天气详情") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    )
-                )
+                WeatherTopBar(onBack = onBack, onRefresh = null)
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -108,27 +96,15 @@ fun WeatherDetailScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("天气详情") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+            WeatherTopBar(
+                onBack = onBack,
+                onRefresh = {
+                    scope.launch {
+                        isLoading = true
+                        weather = WeatherManager.fetchWeather(context)
+                        isLoading = false
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            isLoading = true
-                            weather = WeatherManager.fetchWeather(context)
-                            isLoading = false
-                        }
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                }
             )
 
             Column(
@@ -138,8 +114,11 @@ fun WeatherDetailScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Current weather header
-                WeatherCurrentCard(currentWeather, weatherType)
+                // Current weather hero
+                WeatherHeroCard(currentWeather, weatherType)
+
+                // Core metrics row
+                WeatherMetricsRow(currentWeather)
 
                 // Hourly forecast
                 if (currentWeather.hourlyForecast.isNotEmpty()) {
@@ -151,10 +130,7 @@ fun WeatherDetailScreen(
                     WeatherDailyCard(currentWeather)
                 }
 
-                // Weather details
-                WeatherDetailsGrid(currentWeather)
-
-                // Weather alerts info
+                // Weather alert
                 WeatherAlertCard()
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -164,53 +140,85 @@ fun WeatherDetailScreen(
 }
 
 @Composable
-private fun WeatherCurrentCard(weather: CurrentWeather, weatherType: String) {
+private fun WeatherTopBar(
+    onBack: () -> Unit,
+    onRefresh: (() -> Unit)?
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+        }
+        Text(
+            text = "天气详情",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
+        if (onRefresh != null) {
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Default.Refresh, contentDescription = "刷新")
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherHeroCard(weather: CurrentWeather, weatherType: String) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 20.dp,
-        innerPadding = 20.dp
+        innerPadding = 24.dp
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Location
+            // City
             Text(
                 text = weather.city,
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Weather icon
-            Icon(
-                imageVector = weatherIconForType(weatherType),
-                contentDescription = weather.weather,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+            // Icon + Temperature in a row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = weatherIconForType(weatherType),
+                    contentDescription = weather.weather,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Temperature
-            Text(
-                text = "${weather.temperature}°C",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            // Weather description
-            Text(
-                text = weather.weather,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Column {
+                    Text(
+                        text = "${weather.temperature}°C",
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = weather.weather,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             // Feels like
             if (weather.feelsLike.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "体感 ${weather.feelsLike}°C",
                     fontSize = 13.sp,
@@ -219,10 +227,8 @@ private fun WeatherCurrentCard(weather: CurrentWeather, weatherType: String) {
             }
 
             // Update time
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = null,
@@ -236,6 +242,71 @@ private fun WeatherCurrentCard(weather: CurrentWeather, weatherType: String) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun WeatherMetricsRow(weather: CurrentWeather) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        WeatherMetricItem(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.WaterDrop,
+            label = "湿度",
+            value = weather.humidity
+        )
+        WeatherMetricItem(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.Air,
+            label = "风向",
+            value = weather.windDirection
+        )
+        WeatherMetricItem(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.Thermostat,
+            label = "风力",
+            value = weather.windPower
+        )
+    }
+}
+
+@Composable
+private fun WeatherMetricItem(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    value: String
+) {
+    GlassCard(
+        modifier = modifier,
+        cornerRadius = 14.dp,
+        innerPadding = 12.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -371,85 +442,6 @@ private fun WeatherDailyItem(forecast: com.diary.app.weather.DailyForecast) {
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground
         )
-    }
-}
-
-@Composable
-private fun WeatherDetailsGrid(weather: CurrentWeather) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        WeatherDetailItem(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Default.WaterDrop,
-            label = "湿度",
-            value = weather.humidity
-        )
-        WeatherDetailItem(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Default.Air,
-            label = "风向",
-            value = weather.windDirection
-        )
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        WeatherDetailItem(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Default.Thermostat,
-            label = "风力",
-            value = weather.windPower
-        )
-        WeatherDetailItem(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Default.WaterDrop,
-            label = "紫外线",
-            value = if (weather.uvIndex.isNotBlank()) "指数 ${weather.uvIndex}" else "-"
-        )
-    }
-}
-
-@Composable
-private fun WeatherDetailItem(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    label: String,
-    value: String
-) {
-    GlassCard(
-        modifier = modifier,
-        cornerRadius = 14.dp,
-        innerPadding = 12.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = value,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = label,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
 

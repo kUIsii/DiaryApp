@@ -8,17 +8,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,17 +38,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.diary.app.data.AchievementCategory
 import com.diary.app.data.AchievementItem
 import com.diary.app.data.AchievementTier
 import java.text.SimpleDateFormat
@@ -103,13 +96,36 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            AchievementBadgeLarge(
-                achievementKey = item.def.key,
-                category = item.def.category,
-                tier = item.def.tier,
-                isUnlocked = item.isUnlocked,
-                name = if (item.isHiddenLocked) "???" else item.def.name
-            )
+            // Badge - uses AchievementArtwork (gradient + vector icon)
+            Box(
+                modifier = Modifier.size(120.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Glow animation for unlocked
+                if (item.isUnlocked) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+                    val glowScale by infiniteTransition.animateFloat(
+                        initialValue = 1f, targetValue = 1.08f,
+                        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Reverse),
+                        label = "glowScale"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(144.dp * glowScale)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(tierColor.copy(alpha = 0.12f))
+                    )
+                }
+
+                AchievementArtwork(
+                    achievementKey = item.def.key,
+                    category = item.def.category,
+                    tier = item.def.tier,
+                    isUnlocked = item.isUnlocked,
+                    modifier = Modifier.size(120.dp),
+                    cornerRadius = 24
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -191,85 +207,6 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun AchievementBadgeLarge(
-    achievementKey: String,
-    category: AchievementCategory,
-    tier: AchievementTier,
-    isUnlocked: Boolean,
-    name: String = ""
-) {
-    val imageRes = rememberAchievementImageRes(achievementKey)
-    val backgroundBrush = if (isUnlocked) {
-        when (tier) {
-            AchievementTier.COMMON -> Brush.linearGradient(listOf(Color(0xFF90A4AE), Color(0xFF78909C)))
-            AchievementTier.RARE -> Brush.linearGradient(listOf(Color(0xFF82B1FF), Color(0xFF42A5F5)))
-            AchievementTier.EPIC -> Brush.linearGradient(listOf(Color(0xFFCE93D8), Color(0xFFAB47BC)))
-            AchievementTier.LEGENDARY -> Brush.linearGradient(listOf(Color(0xFFFFE082), Color(0xFFFFC107), Color(0xFFFFA000)))
-        }
-    } else {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)))
-    }
-
-    val badgeSize = if (isUnlocked && imageRes != null) 120.dp else 80.dp
-    val cornerRadiusValue = if (isUnlocked && imageRes != null) 24 else 20
-
-    // Celebration glow animation for unlocked achievements
-    val infiniteTransition = rememberInfiniteTransition(label = "glow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Reverse),
-        label = "glowAlpha"
-    )
-    val glowScale by infiniteTransition.animateFloat(
-        initialValue = 1f, targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Reverse),
-        label = "glowScale"
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        // Glow ring for unlocked achievements
-        if (isUnlocked) {
-            val glowColor = when (tier) {
-                AchievementTier.COMMON -> Color(0xFF90A4AE)
-                AchievementTier.RARE -> Color(0xFF42A5F5)
-                AchievementTier.EPIC -> Color(0xFFAB47BC)
-                AchievementTier.LEGENDARY -> Color(0xFFFFC107)
-            }
-            Box(
-                modifier = Modifier
-                    .size((badgeSize + 24.dp) * glowScale)
-                    .clip(RoundedCornerShape((cornerRadiusValue + 8).dp))
-                    .background(glowColor.copy(alpha = glowAlpha * 0.18f))
-            )
-        }
-
-        Box(
-            modifier = Modifier.size(badgeSize).clip(RoundedCornerShape(cornerRadiusValue.dp)).background(backgroundBrush),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isUnlocked && imageRes != null) {
-                Image(
-                    painter = painterResource(id = imageRes),
-                    contentDescription = name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadiusValue.dp))
-                )
-            } else if (isUnlocked) {
-                AchievementIcon(
-                    achievementKey = achievementKey,
-                    category = category,
-                    tier = tier,
-                    isUnlocked = true,
-                    modifier = Modifier.size(48.dp)
-                )
-            } else {
-                LockIcon(modifier = Modifier.size(48.dp))
-            }
         }
     }
 }

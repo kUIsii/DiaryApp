@@ -1,6 +1,5 @@
 package com.diary.app.ui.achievement
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,9 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,8 +59,6 @@ fun AchievementDetailScreen(
         return
     }
 
-    val context = LocalContext.current
-    val imageRes = context.resources.getIdentifier("achievement_${item.def.key}", "drawable", context.packageName)
     val isLocked = !item.isUnlocked
     val scrollState = rememberScrollState()
     val tierCol = tierColor(item.def.tier)
@@ -115,46 +109,17 @@ fun AchievementDetailScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Image
-                Box(
+                // Artwork - uses gradient background + vector icon
+                AchievementArtwork(
+                    achievementKey = item.def.key,
+                    category = item.def.category,
+                    tier = item.def.tier,
+                    isUnlocked = item.isUnlocked,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (imageRes != 0) {
-                        Image(
-                            painter = painterResource(id = imageRes),
-                            contentDescription = item.def.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = item.def.iconEmoji,
-                            fontSize = 56.sp
-                        )
-                    }
-
-                    if (isLocked) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color.Black.copy(alpha = 0.25f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = "未解锁",
-                                tint = Color.White.copy(alpha = 0.7f),
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    }
-                }
+                        .height(220.dp),
+                    cornerRadius = 16
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -321,19 +286,6 @@ fun AchievementDetailScreen(
             }
         }
     }
-}
-
-@Composable
-private fun Surface(
-    shape: RoundedCornerShape,
-    color: Color,
-    content: @Composable () -> Unit
-) {
-    androidx.compose.material3.Surface(
-        shape = shape,
-        color = color,
-        content = content
-    )
 }
 
 private fun isHiddenLocked(item: AchievementItem): Boolean {

@@ -1331,18 +1331,18 @@ private fun HomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    GlassCard(
+        cornerRadius = 12.dp,
+        innerPadding = 4.dp
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(start = 10.dp, end = 6.dp).size(18.dp)
             )
             TextField(
@@ -1353,7 +1353,7 @@ private fun HomeSearchBar(
                     Text(
                         "搜索日记...",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 },
                 colors = TextFieldDefaults.colors(
@@ -1380,6 +1380,7 @@ private fun HomeSearchBar(
                 }
             }
         }
+    }
 }
 
 @Composable
