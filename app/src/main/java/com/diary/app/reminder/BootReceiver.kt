@@ -7,11 +7,25 @@ import android.content.Intent
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            if (ReminderManager.isReminderEnabled(context)) {
-                val (hour, minute) = ReminderManager.getReminderTime(context)
-                ReminderManager.scheduleReminder(context, hour, minute)
-            }
+        val plan = resolveBootReminderPlan(intent.action)
+        if (!plan.shouldRestoreDiaryReminder &&
+            !plan.shouldRestoreTodoReminders &&
+            !plan.shouldRestoreTodoSummary
+        ) {
+            return
+        }
+
+        if (plan.shouldRestoreDiaryReminder && ReminderManager.isReminderEnabled(context)) {
+            val (hour, minute) = ReminderManager.getReminderTime(context)
+            ReminderManager.scheduleReminder(context, hour, minute)
+        }
+
+        if (plan.shouldRestoreTodoReminders) {
+            TodoReminderManager.rescheduleAllPendingReminders(context)
+        }
+
+        if (plan.shouldRestoreTodoSummary) {
+            TodoReminderManager.scheduleDailySummary(context)
         }
     }
 }
