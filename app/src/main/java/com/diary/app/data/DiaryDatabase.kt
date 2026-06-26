@@ -784,6 +784,32 @@ abstract class DiaryDatabase : RoomDatabase() {
                     }
                 }
 
+                fun backupDatabaseFiles() {
+                    try {
+                        val dbFile = context.getDatabasePath("diary_database")
+                        val backupDir = java.io.File(context.filesDir, "db_backup")
+                        if (!backupDir.exists()) backupDir.mkdirs()
+                        val timestamp = System.currentTimeMillis()
+                        for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+                            val src = java.io.File(dbFile.parentFile, "diary_database$suffix")
+                            if (src.exists()) {
+                                src.copyTo(java.io.File(backupDir, "diary_database${suffix}_$timestamp"), overwrite = true)
+                            }
+                        }
+                        android.util.Log.e("DiaryDatabase", "Database backed up to: ${backupDir.absolutePath}")
+                    } catch (backupError: Exception) {
+                        android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
+                    }
+                }
+
+                fun deleteAllDatabaseFiles() {
+                    try { INSTANCE?.close() } catch (_: Exception) {}
+                    val dbFile = context.getDatabasePath("diary_database")
+                    for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+                        java.io.File(dbFile.parentFile, "diary_database$suffix").delete()
+                    }
+                }
+
                 val instance = try {
                     Room.databaseBuilder(
                         context.applicationContext,
@@ -794,33 +820,33 @@ abstract class DiaryDatabase : RoomDatabase() {
                     .build()
                     .also { it.openHelper.writableDatabase }
                 } catch (e: Exception) {
-                    android.util.Log.e("DiaryDatabase", "Migration failed, backing up database before destructive migration", e)
+                    android.util.Log.e("DiaryDatabase", "Migration failed, attempting destructive recovery", e)
+                    backupDatabaseFiles()
+                    deleteAllDatabaseFiles()
                     try {
-                        val dbFile = context.getDatabasePath("diary_database")
-                        val backupDir = java.io.File(context.filesDir, "db_backup")
-                        if (!backupDir.exists()) backupDir.mkdirs()
-                        val timestamp = System.currentTimeMillis()
-                        val suffixes = listOf("", "-wal", "-shm", "-journal")
-                        for (suffix in suffixes) {
-                            val src = java.io.File(dbFile.parentFile, "diary_database$suffix")
-                            if (src.exists()) {
-                                val dst = java.io.File(backupDir, "diary_database${suffix}_$timestamp")
-                                src.copyTo(dst, overwrite = true)
-                            }
-                        }
-                        android.util.Log.e("DiaryDatabase", "Database backed up to: ${backupDir.absolutePath}/diary_database*_$timestamp")
-                    } catch (backupError: Exception) {
-                        android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
+                        Room.databaseBuilder(
+                            context.applicationContext,
+                            DiaryDatabase::class.java,
+                            "diary_database"
+                        ).addMigrations(*allMigrations)
+                        .fallbackToDestructiveMigration()
+                        .addCallback(callback)
+                        .build()
+                        .also { it.openHelper.writableDatabase }
+                    } catch (e2: Exception) {
+                        // Destructive migration also failed (e.g. corrupted files not fully cleaned)
+                        // Delete everything one more time and try fresh
+                        android.util.Log.e("DiaryDatabase", "Destructive migration also failed, full reset", e2)
+                        deleteAllDatabaseFiles()
+                        Room.databaseBuilder(
+                            context.applicationContext,
+                            DiaryDatabase::class.java,
+                            "diary_database"
+                        ).fallbackToDestructiveMigration()
+                        .addCallback(callback)
+                        .build()
+                        .also { it.openHelper.writableDatabase }
                     }
-                    Room.databaseBuilder(
-                        context.applicationContext,
-                        DiaryDatabase::class.java,
-                        "diary_database"
-                    ).addMigrations(*allMigrations)
-                    .fallbackToDestructiveMigration()
-                    .addCallback(callback)
-                    .build()
-                    .also { it.openHelper.writableDatabase }
                 }
                 INSTANCE = instance
                 instance
