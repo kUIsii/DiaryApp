@@ -35,6 +35,20 @@ data class MapStats(
     val lastEntryDate: Long? = null
 )
 
+data class LocationCluster(
+    val latitude: Double,
+    val longitude: Double,
+    val location: String,
+    val count: Int,
+    val entries: List<MapMarker>
+)
+
+data class FrequentLocation(
+    val location: String,
+    val count: Int,
+    val lastVisited: Long
+)
+
 data class RouteStats(
     val totalDistanceKm: Double = 0.0,
     val uniqueCities: Int = 0,
@@ -50,7 +64,9 @@ data class MapUiState(
     val stats: MapStats = MapStats(),
     val error: String? = null,
     val isRouteMode: Boolean = false,
-    val routeStats: RouteStats? = null
+    val routeStats: RouteStats? = null,
+    val clusters: List<LocationCluster> = emptyList(),
+    val frequentLocations: List<FrequentLocation> = emptyList()
 )
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
@@ -85,11 +101,15 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val stats = computeMapStats(markers)
+                val clusters = clusterLocations(markers)
+                val frequentLocations = computeFrequentLocations(markers)
 
                 _uiState.value = MapUiState(
                     isLoading = false,
                     markers = markers,
-                    stats = stats
+                    stats = stats,
+                    clusters = clusters,
+                    frequentLocations = frequentLocations
                 )
             } catch (e: Exception) {
                 _uiState.value = MapUiState(isLoading = false, error = e.message)
@@ -189,4 +209,81 @@ internal fun computeMapStats(markers: List<MapMarker>): MapStats {
         firstEntryDate = firstDate,
         lastEntryDate = lastDate
     )
+}
+
+/**
+ * Cluster nearby markers based on proximity (within ~100m).
+ */
+internal fun clusterLocations(markers: List<MapMarker>, thresholdMeters: Double = 100.0): List<LocationCluster> {
+    if (markers.isEmpty()) return emptyList()
+
+    val clusters = mutableListOf<LocationCluster>()
+    val used = mutableSetOf<Long>()
+
+    for (marker in markers) {
+        if (marker.id in used) continue
+
+        val clusterEntries = mutableListOf(marker)
+        used.add(marker.id)
+
+        for (other in markers) {
+            if (other.id in used) continue
+            val distance = haversineDistance(
+                marker.latitude, marker.longitude,
+                other.latitude, other.longitude
+            ) * 1000 // Convert km to meters
+            if (distance <= thresholdMeters) {
+                clusterEntries.add(other)
+                used.add(other.id)
+            }
+        }
+
+        val avgLat = clusterEntries.map { it.latitude }.average()
+        val avgLon = clusterEntries.map { it.longitude }.average()
+
+        clusters.add(
+            LocationCluster(
+                latitude = avgLat,
+                longitude = avgLon,
+                location = clusterEntries.first().location,
+                count = clusterEntries.size,
+                entries = clusterEntries
+            )
+        )
+    }
+
+    return clusters
+}
+
+/**
+ * Compute frequent locations ranked by visit count.
+ */
+internal fun computeFrequentLocations(markers: List<MapMarker>): List<FrequentLocation> {
+    return markers
+        .filter { it.location.isNotBlank() }
+        .groupBy { it.location }
+        .map { (location, entries) ->
+            FrequentLocation(
+                location = location,
+                count = entries.size,
+                lastVisited = entries.maxOf { it.createdAt }
+            )
+        }
+        .sortedByDescending { it.count }
+        .take(10) // Top 10
+}
+
+/**
+ * Calculate distance between two points using Haversine formula.
+ * Returns distance in kilometers.
+ */
+private fun haversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val r = 6371.0 // Earth radius in km
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+        sin(dLon / 2) * sin(dLon / 2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return r * c
 }

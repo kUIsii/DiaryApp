@@ -41,6 +41,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -157,6 +159,12 @@ fun StatsScreen(
 
                     item {
                         StatsHeroSection(state = state)
+                    }
+
+                    if (state.currentStreak > 0 || state.longestStreak > 0) {
+                        item {
+                            StreakDetailSection(state = state)
+                        }
                     }
 
                     if (state.goalProgress.isNotEmpty() || state.totalEntries > 0) {
@@ -680,6 +688,103 @@ private fun CompactStatChip(label: String, value: String) {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+@Composable
+private fun StreakDetailSection(state: StatsState) {
+    val tierColor = when (state.streakTier) {
+        com.diary.app.util.StreakTier.LEGENDARY -> Color(0xFFFFD700)
+        com.diary.app.util.StreakTier.DIAMOND -> Color(0xFF00BCD4)
+        com.diary.app.util.StreakTier.GOLD -> Color(0xFFFF9800)
+        com.diary.app.util.StreakTier.SILVER -> Color(0xFF90A4AE)
+        com.diary.app.util.StreakTier.BRONZE -> Color(0xFF795548)
+        com.diary.app.util.StreakTier.NONE -> MaterialTheme.colorScheme.primary
+    }
+    val tierLabel = when (state.streakTier) {
+        com.diary.app.util.StreakTier.LEGENDARY -> "传奇"
+        com.diary.app.util.StreakTier.DIAMOND -> "钻石"
+        com.diary.app.util.StreakTier.GOLD -> "黄金"
+        com.diary.app.util.StreakTier.SILVER -> "白银"
+        com.diary.app.util.StreakTier.BRONZE -> "青铜"
+        com.diary.app.util.StreakTier.NONE -> ""
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 20.dp,
+        innerPadding = 16.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = tierColor,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("连续记录", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                if (tierLabel.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(tierColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(tierLabel, fontSize = 11.sp, color = tierColor, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StreakStatItem("当前连续", "${state.currentStreak}天", tierColor)
+                StreakStatItem("最长连续", "${state.longestStreak}天", Color(0xFFFF9800))
+                StreakStatItem("本月最佳", "${state.monthlyBestStreak}天", MaterialTheme.colorScheme.secondary)
+                StreakStatItem("年度最佳", "${state.yearlyBestStreak}天", MaterialTheme.colorScheme.primary)
+            }
+
+            if (state.longestStreakRange != null) {
+                val (start, end) = state.longestStreakRange
+                val fmt = java.time.format.DateTimeFormatter.ofPattern("M.d")
+                Text(
+                    text = "最长纪录: ${start.format(fmt)} - ${end.format(fmt)}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            if (state.availableFreezes > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AcUnit,
+                        contentDescription = null,
+                        tint = Color(0xFF00BCD4),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("可用冻结 ${state.availableFreezes} 次", fontSize = 12.sp, color = Color(0xFF00BCD4))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreakStatItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -9,6 +9,8 @@ import com.diary.app.data.AchievementItem
 import com.diary.app.data.AchievementRepository
 import com.diary.app.data.AchievementStats
 import com.diary.app.data.AchievementTier
+import com.diary.app.data.ChallengeManager
+import com.diary.app.data.ChallengeProgress
 import com.diary.app.data.CrossSystemManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,6 +45,12 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _isFilterExpanded = MutableStateFlow(false)
     val isFilterExpanded: StateFlow<Boolean> = _isFilterExpanded
+
+    private val _weeklyChallenges = MutableStateFlow<List<ChallengeProgress>>(emptyList())
+    val weeklyChallenges: StateFlow<List<ChallengeProgress>> = _weeklyChallenges
+
+    private val _monthlyChallenges = MutableStateFlow<List<ChallengeProgress>>(emptyList())
+    val monthlyChallenges: StateFlow<List<ChallengeProgress>> = _monthlyChallenges
 
     val galleryState: StateFlow<AchievementGalleryState> = combine(
         allItems,
@@ -81,6 +89,7 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
             runCatching {
                 repository.initialize()
                 repository.checkAndUnlock()
+                loadChallenges()
             }
         }
         viewModelScope.launch {
@@ -95,6 +104,32 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
                 CrossSystemManager.updateNextAchievementMilestone(nextMilestone?.def?.name)
             }
         }
+    }
+
+    private suspend fun loadChallenges() {
+        val diaryDao = db.diaryDao()
+        val tagDao = db.tagDao()
+
+        val weekly = ChallengeManager.getWeeklyChallenges().map { challenge ->
+            val progress = ChallengeManager.calculateChallengeProgress(challenge, diaryDao, tagDao)
+            ChallengeProgress(
+                challenge = challenge,
+                progress = progress,
+                isCompleted = progress >= challenge.target
+            )
+        }
+
+        val monthly = ChallengeManager.getMonthlyChallenges().map { challenge ->
+            val progress = ChallengeManager.calculateChallengeProgress(challenge, diaryDao, tagDao)
+            ChallengeProgress(
+                challenge = challenge,
+                progress = progress,
+                isCompleted = progress >= challenge.target
+            )
+        }
+
+        _weeklyChallenges.value = weekly
+        _monthlyChallenges.value = monthly
     }
 
     fun selectCategory(category: AchievementCategory?) {
@@ -131,7 +166,10 @@ class AchievementViewModel(application: Application) : AndroidViewModel(applicat
 
     fun refresh() {
         viewModelScope.launch {
-            runCatching { repository.checkAndUnlock() }
+            runCatching {
+                repository.checkAndUnlock()
+                loadChallenges()
+            }
         }
     }
 

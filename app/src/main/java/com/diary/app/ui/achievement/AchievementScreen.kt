@@ -80,6 +80,8 @@ fun AchievementScreen(
     val selectedTier by viewModel.selectedTier.collectAsState()
     val selectedStateFilter by viewModel.selectedStateFilter.collectAsState()
     val isFilterExpanded by viewModel.isFilterExpanded.collectAsState()
+    val weeklyChallenges by viewModel.weeklyChallenges.collectAsState()
+    val monthlyChallenges by viewModel.monthlyChallenges.collectAsState()
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -126,6 +128,17 @@ fun AchievementScreen(
                 // Overview card
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     AchievementOverviewCard(stats = stats, galleryState = galleryState)
+                }
+
+                // Challenges section
+                if (weeklyChallenges.isNotEmpty() || monthlyChallenges.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        ChallengeSection(
+                            weeklyChallenges = weeklyChallenges,
+                            monthlyChallenges = monthlyChallenges,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
 
                 // Filter chips row

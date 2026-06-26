@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.BackupManager
+import com.diary.app.data.DiaryDatabase
 import com.diary.app.data.DiaryMediaManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,10 @@ data class StorageState(
     val totalSize: Long = 0,
     val totalAppDataSize: Long = 0,
     val imageCount: Int = 0,
-    val entryCount: Int = 0
+    val entryCount: Int = 0,
+    val isVacuuming: Boolean = false,
+    val vacuumSavedBytes: Long = 0,
+    val isIntegrityOk: Boolean? = null
 ) {
     val categories: List<StorageCategory>
         get() = listOf(
@@ -118,6 +122,27 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 context.cacheDir.deleteRecursively()
             }
             calculateStorage()
+        }
+    }
+
+    fun vacuumDatabase() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isVacuuming = true)
+            val context = getApplication<Application>()
+            val saved = DiaryDatabase.vacuum(context)
+            _state.value = _state.value.copy(
+                isVacuuming = false,
+                vacuumSavedBytes = saved
+            )
+            calculateStorage()
+        }
+    }
+
+    fun checkIntegrity() {
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val isOk = DiaryDatabase.checkIntegrity(context)
+            _state.value = _state.value.copy(isIntegrityOk = isOk)
         }
     }
 

@@ -218,6 +218,159 @@ fun StorageScreen(
                     }
                 }
 
+                // Database maintenance section
+                item {
+                    Text(
+                        text = "数据库维护",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                // VACUUM button
+                item {
+                    var showVacuumConfirm by remember { mutableStateOf(false) }
+
+                    if (showVacuumConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showVacuumConfirm = false },
+                            title = { Text("压缩数据库") },
+                            text = { Text("VACUUM 会重组数据库文件，释放未使用的空间。对于大型数据库可能需要几秒钟。") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    viewModel.vacuumDatabase()
+                                    showVacuumConfirm = false
+                                }) {
+                                    Text("执行")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showVacuumConfirm = false }) {
+                                    Text("取消")
+                                }
+                            }
+                        )
+                    }
+
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 18.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF6366F1).copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Storage,
+                                    contentDescription = null,
+                                    tint = Color(0xFF6366F1),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "压缩数据库",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = if (state.isVacuuming) "正在压缩..."
+                                    else if (state.vacuumSavedBytes > 0) "已释放 ${formatFileSize(state.vacuumSavedBytes)}"
+                                    else "当前 ${formatFileSize(state.databaseSize)}",
+                                    fontSize = 12.sp,
+                                    color = textTertiary
+                                )
+                            }
+                            TextButton(
+                                onClick = { showVacuumConfirm = true },
+                                enabled = !state.isVacuuming
+                            ) {
+                                Text("VACUUM", color = Color(0xFF6366F1))
+                            }
+                        }
+                    }
+                }
+
+                // Integrity check button
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 18.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        when (state.isIntegrityOk) {
+                                            true -> Color(0xFF10B981).copy(alpha = 0.12f)
+                                            false -> Color(0xFFEF4444).copy(alpha = 0.12f)
+                                            null -> Color(0xFF94A3B8).copy(alpha = 0.12f)
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Storage,
+                                    contentDescription = null,
+                                    tint = when (state.isIntegrityOk) {
+                                        true -> Color(0xFF10B981)
+                                        false -> Color(0xFFEF4444)
+                                        null -> Color(0xFF94A3B8)
+                                    },
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "完整性检查",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = when (state.isIntegrityOk) {
+                                        true -> "数据库完整"
+                                        false -> "发现问题，建议备份"
+                                        null -> "检查数据库结构完整性"
+                                    },
+                                    fontSize = 12.sp,
+                                    color = when (state.isIntegrityOk) {
+                                        true -> Color(0xFF10B981)
+                                        false -> Color(0xFFEF4444)
+                                        null -> textTertiary
+                                    }
+                                )
+                            }
+                            TextButton(onClick = { viewModel.checkIntegrity() }) {
+                                Text("检查", color = Color(0xFF6366F1))
+                            }
+                        }
+                    }
+                }
+
                 item { Spacer(modifier = Modifier.height(84.dp)) }
             }
         }

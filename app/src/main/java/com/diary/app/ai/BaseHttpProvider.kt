@@ -3,9 +3,11 @@ package com.diary.app.ai
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.JsonParser
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 abstract class BaseHttpProvider(
     protected val context: Context,
@@ -15,8 +17,17 @@ abstract class BaseHttpProvider(
 
     protected val gson = Gson()
 
-    protected open val connectTimeout = 10000
-    protected open val readTimeout = 20000
+    protected open val connectTimeoutSeconds = 10L
+    protected open val readTimeoutSeconds = 20L
+
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(connectTimeoutSeconds, TimeUnit.SECONDS)
+            .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
+    }
 
     override suspend fun chat(request: AiRequest): AiResponse {
         if (!configStore.isConfigured(context)) throw AiError.NotConfigured
@@ -64,15 +75,7 @@ abstract class BaseHttpProvider(
         request: AiRequest,
         model: String
     ): AiResponse {
-        val url = URL("${cleanEndpoint(endpoint)}chat/completions")
-        val conn = (url.openConnection() as? HttpURLConnection ?: throw IllegalArgumentException("Not HTTP")).apply {
-            requestMethod = "POST"
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Authorization", "Bearer $apiKey")
-            connectTimeout = this@BaseHttpProvider.connectTimeout
-            readTimeout = this@BaseHttpProvider.readTimeout
-            doOutput = true
-        }
+        val url = "${cleanEndpoint(endpoint)}chat/completions"
 
         val body = buildMap<String, Any> {
             put("model", model)
@@ -82,41 +85,46 @@ abstract class BaseHttpProvider(
             put("stream", false)
         }
 
-        try {
-            OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { writer ->
-                writer.write(gson.toJson(body))
+        val jsonBody = gson.toJson(body).toRequestBody("application/json".toMediaType())
+
+        val httpRequest = Request.Builder()
+            .url(url)
+            .post(jsonBody)
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Authorization", "Bearer $apiKey")
+            .build()
+
+        val response = client.newCall(httpRequest).execute()
+
+        if (!response.isSuccessful) {
+            val code = response.code
+            val errorBody = response.body?.string() ?: ""
+            when (code) {
+                429 -> throw AiError.RateLimited
+                401 -> throw AiError.ApiError(401, "API Key无效")
+                402 -> throw AiError.ApiError(402, "配额已用完")
+                else -> throw AiError.ApiError(code, "请求失败: $code $errorBody")
             }
-
-            val responseCode = conn.responseCode
-            if (responseCode == 429) throw AiError.RateLimited
-            if (responseCode == 401) throw AiError.ApiError(401, "API Key无效")
-            if (responseCode == 402) throw AiError.ApiError(402, "配额已用完")
-            if (responseCode != 200) {
-                val errorBody = conn.errorStream?.bufferedReader()?.readText() ?: ""
-                throw AiError.ApiError(responseCode, "请求失败: $responseCode $errorBody")
-            }
-
-            val responseBody = conn.inputStream.bufferedReader().readText()
-            val json = JsonParser.parseString(responseBody).asJsonObject
-
-            val choices = json.getAsJsonArray("choices")
-                ?: throw AiError.ParseError("API返回空的choices数组")
-            if (choices.size() == 0) throw AiError.ParseError("choices数组为空")
-            val content = choices.get(0).asJsonObject
-                .getAsJsonObject("message")
-                .get("content").asString
-
-            val totalTokens = json.getAsJsonObject("usage")
-                ?.get("total_tokens")?.asInt ?: 0
-
-            return AiResponse(
-                content = content,
-                model = json.get("model")?.asString ?: model,
-                providerId = id,
-                totalTokens = totalTokens
-            )
-        } finally {
-            conn.disconnect()
         }
+
+        val responseBody = response.body?.string() ?: throw AiError.ParseError("响应体为空")
+        val json = JsonParser.parseString(responseBody).asJsonObject
+
+        val choices = json.getAsJsonArray("choices")
+            ?: throw AiError.ParseError("API返回空的choices数组")
+        if (choices.size() == 0) throw AiError.ParseError("choices数组为空")
+        val content = choices.get(0).asJsonObject
+            .getAsJsonObject("message")
+            .get("content").asString
+
+        val totalTokens = json.getAsJsonObject("usage")
+            ?.get("total_tokens")?.asInt ?: 0
+
+        return AiResponse(
+            content = content,
+            model = json.get("model")?.asString ?: model,
+            providerId = id,
+            totalTokens = totalTokens
+        )
     }
 }

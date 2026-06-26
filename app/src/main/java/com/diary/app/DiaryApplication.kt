@@ -4,6 +4,10 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.reminder.AchievementNotificationManager
@@ -29,7 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class DiaryApplication : Application() {
+class DiaryApplication : Application(), ImageLoaderFactory {
     val database by lazy { DiaryDatabase.getDatabase(this) }
     val diaryRepository by lazy {
         DiaryEntryRepository(
@@ -115,6 +119,23 @@ class DiaryApplication : Application() {
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
         }
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizePercent(0.02)
+                    .build()
+            }
+            .crossfade(true)
+            .build()
     }
 
     fun setThemeMode(mode: ThemeMode) {

@@ -692,6 +692,62 @@ interface DiaryDao {
 
     @Query("SELECT * FROM tags WHERE id IN (SELECT tagId FROM diary_tag_cross_ref WHERE diaryId IN (SELECT id FROM diary_entries WHERE createdAt >= :start AND createdAt < :end)) ORDER BY usage_count DESC")
     suspend fun getTagsUsedInRange(start: Long, end: Long): List<Tag>
+
+    // ── Aggregate queries for achievement system (replaces full table scan) ──
+    @Query("SELECT COALESCE(SUM(LENGTH(plainText)), 0) FROM diary_entries")
+    suspend fun getTotalWordCount(): Long
+
+    @Query("SELECT COUNT(DISTINCT moodLevel) FROM diary_entries WHERE moodLevel IS NOT NULL")
+    suspend fun getDistinctMoodCount(): Int
+
+    @Query("SELECT COUNT(DISTINCT weather) FROM diary_entries WHERE weather IS NOT NULL AND weather != ''")
+    suspend fun getDistinctWeatherCount(): Int
+
+    @Query("SELECT COUNT(*) FROM diary_entries WHERE isFavorite = 1")
+    suspend fun getFavoriteCount(): Int
+
+    @Query("SELECT MAX(LENGTH(plainText)) FROM diary_entries")
+    suspend fun getMaxWordCount(): Int
+
+    @Query("SELECT COUNT(*) FROM diary_entries WHERE isFavorite = 1 AND LENGTH(plainText) < 50")
+    suspend fun getShortFavoriteCount(): Int
+
+    @Query("SELECT COUNT(*) FROM diary_entries WHERE weather = :weather")
+    suspend fun getWeatherCount(weather: String): Int
+
+    @Query("SELECT COUNT(*) FROM diary_entries WHERE CAST(strftime('%H', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER) BETWEEN :startHour AND :endHour")
+    suspend fun getEntryCountByHourRange(startHour: Int, endHour: Int): Int
+
+    @Query("SELECT COUNT(DISTINCT CAST(strftime('%w', createdAt / 1000, 'unixepoch', 'localtime') AS INTEGER)) FROM diary_entries")
+    suspend fun getDistinctWeekdayCount(): Int
+
+    @Query("SELECT moodLevel FROM diary_entries WHERE moodLevel IS NOT NULL ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun getRecentMoodLevels(limit: Int): List<Int>
+
+    @Query("SELECT createdAt FROM diary_entries ORDER BY createdAt DESC")
+    suspend fun getAllTimestampsOnce(): List<Long>
+
+    // Challenge-related queries (date range filtering)
+    @Query("SELECT COUNT(*) FROM diary_entries WHERE createdAt >= :startMillis AND createdAt < :endMillis")
+    suspend fun getEntryCountInRange(startMillis: Long, endMillis: Long): Int
+
+    @Query("SELECT COALESCE(SUM(LENGTH(plainText)), 0) FROM diary_entries WHERE createdAt >= :startMillis AND createdAt < :endMillis")
+    suspend fun getWordCountInRange(startMillis: Long, endMillis: Long): Long
+
+    @Query("SELECT COALESCE(MAX(LENGTH(plainText)), 0) FROM diary_entries WHERE createdAt >= :startMillis AND createdAt < :endMillis")
+    suspend fun getMaxWordCountInRange(startMillis: Long, endMillis: Long): Int
+
+    @Query("SELECT COUNT(DISTINCT weather) FROM diary_entries WHERE weather IS NOT NULL AND weather != '' AND createdAt >= :startMillis AND createdAt < :endMillis")
+    suspend fun getDistinctWeatherCountInRange(startMillis: Long, endMillis: Long): Int
+
+    @Query("SELECT COUNT(DISTINCT moodLevel) FROM diary_entries WHERE moodLevel IS NOT NULL AND createdAt >= :startMillis AND createdAt < :endMillis")
+    suspend fun getDistinctMoodCountInRange(startMillis: Long, endMillis: Long): Int
+
+    @Query("SELECT COUNT(DISTINCT dt.tagId) FROM diary_tag_cross_ref dt INNER JOIN diary_entries d ON dt.diaryId = d.id WHERE d.createdAt >= :startMillis AND d.createdAt < :endMillis")
+    suspend fun getDistinctTagCountInRange(startMillis: Long, endMillis: Long): Int
+
+    @Query("SELECT createdAt FROM diary_entries WHERE createdAt >= :startMillis AND createdAt < :endMillis ORDER BY createdAt")
+    suspend fun getTimestampsInRange(startMillis: Long, endMillis: Long): List<Long>
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

@@ -21,8 +21,15 @@ import kotlinx.coroutines.launch
 import com.diary.app.data.WritingGoal
 import com.diary.app.util.computeStreak
 import com.diary.app.util.computeStreakWithTodayFreeze
+import com.diary.app.util.computeLongestStreak
+import com.diary.app.util.detectStreakMilestone
+import com.diary.app.util.streakTier
+import com.diary.app.util.computeMonthlyLeaderboard
+import com.diary.app.util.computeYearlyBestStreak
+import com.diary.app.util.StreakTier
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
@@ -125,6 +132,14 @@ data class StatsState(
     val analysisResult: String? = null,
     val isAnalyzing: Boolean = false,
     val goalProgress: List<GoalProgress> = emptyList(),
+    // Streak system
+    val longestStreak: Int = 0,
+    val longestStreakRange: Pair<LocalDate, LocalDate>? = null,
+    val streakMilestone: Int? = null,
+    val streakTier: StreakTier = StreakTier.NONE,
+    val monthlyBestStreak: Int = 0,
+    val yearlyBestStreak: Int = 0,
+    val availableFreezes: Int = 0,
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -200,6 +215,16 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val goals = try { dao.getActiveGoalsOnce() } catch (_: Exception) { emptyList() }
         val goalProgress = computeGoalProgress(goals, entries, zone, now)
 
+        val timestamps = entries.map { it.createdAt }
+        val (longest, longestRange) = computeLongestStreak(activeDates)
+        val milestone = detectStreakMilestone(streak)
+        val tier = streakTier(streak)
+        val monthlyBoard = computeMonthlyLeaderboard(timestamps, zone)
+        val currentMonthKey = YearMonth.from(now)
+        val monthlyBest = monthlyBoard[currentMonthKey] ?: 0
+        val yearlyBest = computeYearlyBestStreak(timestamps, now.year, zone)
+        val freezeCount = try { dao.countFreezesSince(now.minusMonths(1).atStartOfDay(zone).toInstant().toEpochMilli()) } catch (_: Exception) { 0 }
+
         StatsState(
             isLoading = false,
             totalEntries = entries.size,
@@ -217,6 +242,13 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             heatmapRange = heatmapRange,
             moodWeatherInsight = computeMoodWeatherCorrelation(entries),
             goalProgress = goalProgress,
+            longestStreak = longest,
+            longestStreakRange = longestRange,
+            streakMilestone = milestone,
+            streakTier = tier,
+            monthlyBestStreak = monthlyBest,
+            yearlyBestStreak = yearlyBest,
+            availableFreezes = 1 - freezeCount,
         )
     }
 

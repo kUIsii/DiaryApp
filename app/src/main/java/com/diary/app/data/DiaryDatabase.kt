@@ -889,5 +889,51 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
             prefs.edit().putBoolean("backfill_done", true).apply()
         }
+
+        /**
+         * Perform VACUUM on the database to reclaim unused space.
+         * Returns the estimated space saved in bytes.
+         */
+        suspend fun vacuum(context: Context): Long = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val dbFile = context.getDatabasePath("diary_database")
+            val sizeBefore = if (dbFile.exists()) dbFile.length() else 0L
+
+            try {
+                val db = getDatabase(context)
+                db.openHelper.writableDatabase.execSQL("VACUUM")
+                val sizeAfter = if (dbFile.exists()) dbFile.length() else 0L
+                val saved = sizeBefore - sizeAfter
+                android.util.Log.d("DiaryDatabase", "VACUUM completed: saved ${saved / 1024}KB (${sizeBefore / 1024}KB -> ${sizeAfter / 1024}KB)")
+                saved
+            } catch (e: Exception) {
+                android.util.Log.e("DiaryDatabase", "VACUUM failed", e)
+                0L
+            }
+        }
+
+        /**
+         * Check database integrity.
+         * Returns true if database is healthy.
+         */
+        suspend fun checkIntegrity(context: Context): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val db = getDatabase(context)
+                val cursor = db.openHelper.writableDatabase.query("PRAGMA integrity_check")
+                val result = if (cursor.moveToFirst()) cursor.getString(0) else "error"
+                cursor.close()
+                result == "ok"
+            } catch (e: Exception) {
+                android.util.Log.e("DiaryDatabase", "Integrity check failed", e)
+                false
+            }
+        }
+
+        /**
+         * Get database file size in bytes.
+         */
+        fun getDatabaseSize(context: Context): Long {
+            val dbFile = context.getDatabasePath("diary_database")
+            return if (dbFile.exists()) dbFile.length() else 0L
+        }
     }
 }

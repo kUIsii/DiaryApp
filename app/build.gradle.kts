@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 26900
-        versionName = "2.69.0-experimental"
+        versionCode = 27000
+        versionName = "2.70.0-experimental"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -121,6 +121,9 @@ dependencies {
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // OkHttp for network requests
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")

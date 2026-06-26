@@ -214,18 +214,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // Phase 4b: Greeting + Writing Prompt + Enhanced Streak Info
     private val _homeNewState = MutableStateFlow(HomeNewState())
     val homeNewState: StateFlow<HomeNewState> = _homeNewState
-    private val _writingPrompt = MutableStateFlow(WRITING_PROMPTS.random())
+    private val _writingPrompt = MutableStateFlow(WRITING_PROMPT_STRINGS.random())
 
     fun shuffleWritingPrompt() {
-        _writingPrompt.value = WRITING_PROMPTS.random()
+        _writingPrompt.value = WRITING_PROMPT_STRINGS.random()
         _homeNewState.value = _homeNewState.value.copy(writingPrompt = _writingPrompt.value)
     }
 
     init {
         viewModelScope.launch {
             combine(entryDates, stats) { dates, s ->
+                val weatherText = _currentWeather.value?.let { w ->
+                    when {
+                        w.description.contains("雨") -> "外面在下雨"
+                        w.description.contains("雪") -> "外面在下雪"
+                        w.description.contains("晴") -> "今天阳光不错"
+                        w.description.contains("阴") -> "今天天色阴沉"
+                        w.description.contains("风") -> "外面风挺大"
+                        w.description.contains("雾") -> "外面有雾"
+                        else -> null
+                    }
+                }
+                val streakText = if (s.streak >= 3) "你已经连续写了${s.streak}天" else null
                 HomeNewState(
-                    greeting = HomeGreeting.now(),
+                    greeting = HomeGreeting.smart(weatherText, streakText),
                     writingPrompt = _writingPrompt.value,
                     streakInfo = HomeStreakInfo(
                         current = s.streak,
@@ -527,6 +539,15 @@ data class HomeGreeting(val text: String, val emoji: String) {
                 else -> HomeGreeting("夜深了", "\uD83C\uDF03")
             }
         }
+
+        fun smart(weatherHint: String?, streakHint: String?): HomeGreeting {
+            val base = now()
+            val parts = mutableListOf<String>()
+            if (weatherHint != null) parts.add(weatherHint)
+            if (streakHint != null) parts.add(streakHint)
+            val suffix = if (parts.isNotEmpty()) "，${parts.joinToString("，")}" else ""
+            return HomeGreeting(base.text + suffix, base.emoji)
+        }
     }
 }
 
@@ -541,37 +562,78 @@ data class HomeStreakInfo(
     val yearlyBest: Int
 )
 
+// Prompt categories for smarter selection
+enum class PromptType { REVIEW, GUIDE, SEASON, MOOD, CREATIVE, REFLECT }
+
+data class WritingPrompt(val text: String, val type: PromptType)
+
 val WRITING_PROMPTS = listOf(
-    "\u4ECA\u5929\u4F60\u6700\u611F\u6FC0\u52A8\u7684\u4E00\u4EF6\u4E8B\u662F\u4EC0\u4E48\uFF1F",
-    "\u5982\u679C\u660E\u5929\u662F\u4F60\u7684\u6700\u540E\u4E00\u5929\uFF0C\u4F60\u60F3\u505A\u4EC0\u4E48\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u5728\u5B66\u4E60\u7684\u4E00\u4EF6\u4E8B\u3002",
-    "\u4ECA\u5929\u4F60\u7B11\u5F97\u6700\u5F00\u5FC3\u7684\u65F6\u523B\u662F\u4EC0\u4E48\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u5FC3\u91CC\u6700\u60F3\u611F\u8C22\u7684\u4E00\u4E2A\u4EBA\u3002",
-    "\u4ECA\u5929\u7684\u5929\u6C14\uFF0C\u8BA9\u4F60\u60F3\u5230\u4E86\u4EC0\u4E48\uFF1F",
-    "\u5982\u679C\u4F60\u53EF\u4EE5\u56DE\u5230\u8FC7\u53BB\u7684\u4E00\u5929\uFF0C\u4F60\u60F3\u56DE\u5230\u54EA\u4E00\u5929\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u4ECA\u5929\u7684\u4E00\u4E2A\u5C0F\u53D1\u73B0\u3002",
-    "\u4F60\u6700\u8FD1\u5728\u770B\u4EC0\u4E48\u4E66/\u7535\u5F71/\u5267\uFF1F\u5199\u4E00\u5199\u611F\u53D7\u3002",
-    "\u4ECA\u5929\u4F60\u505A\u4E86\u4EC0\u4E48\u8FD0\u52A8\uFF1F\u8BB0\u5F55\u4E00\u4E0B\u8EAB\u4F53\u7684\u611F\u53D7\u3002",
-    "\u4ECA\u5929\u7684\u996D\u83DC\u91CC\uFF0C\u6700\u8BA9\u4F60\u6EE1\u610F\u7684\u662F\u54EA\u4E00\u9053\uFF1F",
-    "\u63CF\u8FF0\u4E00\u4E2A\u4F60\u68A6\u60F3\u53BB\u7684\u5730\u65B9\u3002",
-    "\u4ECA\u5929\u6709\u4EC0\u4E48\u4E8B\u8BA9\u4F60\u611F\u5230\u5E73\u9759\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u7684\u4E00\u4E2A\u5C0F\u5C0F\u7684\u613F\u671B\u3002",
-    "\u4ECA\u5929\u4F60\u5BF9\u8C01\u8BF4\u4E86\u8C01\u4E5F\u6CA1\u8BF4\u7684\u8BDD\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u7684\u4E00\u4E2A\u5C0F\u76EE\u6807\uFF0C\u548C\u5982\u4F55\u5B9E\u73B0\u5B83\u3002",
-    "\u4F60\u7684\u684C\u9762/\u624B\u673A\u58C1\u7EB8\u662F\u4EC0\u4E48\uFF1F\u4E3A\u4EC0\u4E48\u9009\u8FD9\u5F20\uFF1F",
-    "\u4ECA\u5929\u6709\u4EC0\u4E48\u4E8B\u8BA9\u4F60\u611F\u5230\u5CF7\u5F02\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u5728\u505A\u7684\u4E00\u4E2A\u6539\u53D8\u3002",
-    "\u4ECA\u5929\u7684\u4E00\u4E2A\u5C0F\u7EC6\u8282\uFF0C\u5C06\u6765\u53EF\u80FD\u4F1A\u5FD8\u8BB0\u3002",
-    "\u5982\u679C\u4F60\u80FD\u4E0E\u53E4\u4EBA\u5BF9\u8BDD\uFF0C\u4F60\u60F3\u95EE\u4EC0\u4E48\uFF1F",
-    "\u4ECA\u5929\u7684\u4E8B\u60C5\uFF0C\u4E09\u5E74\u540E\u7684\u4F60\u4F1A\u600E\u4E48\u770B\uFF1F",
-    "\u5199\u4E00\u5199\u4F60\u6700\u8FD1\u7684\u4E00\u4E2A\u68B3\u7406\uFF08\u5DE5\u4F5C/\u751F\u6D3B/\u601D\u60F3\uFF09\u3002",
-    "\u63CF\u8FF0\u4F60\u7406\u60F3\u4E2D\u7684\u4E00\u5929\u3002",
-    "\u4ECA\u5929\u6700\u5F00\u5FC3\u7684\u4E00\u53E5\u8BDD\u662F\u4EC0\u4E48\uFF1F"
+    // 回顾型
+    WritingPrompt("今天你最感动的一件事是什么？", PromptType.REVIEW),
+    WritingPrompt("今天你笑得最开心的时刻是什么？", PromptType.REVIEW),
+    WritingPrompt("写一写你今天的一个小发现。", PromptType.REVIEW),
+    WritingPrompt("今天的饭菜里，最让你满意的是哪一道？", PromptType.REVIEW),
+    WritingPrompt("今天有什么事让你感到平静？", PromptType.REVIEW),
+    WritingPrompt("今天最开心的一句话是什么？", PromptType.REVIEW),
+    WritingPrompt("今天的一个小细节，将来可能会忘记。", PromptType.REVIEW),
+    WritingPrompt("今天你对谁说了谁也没说的话？", PromptType.REVIEW),
+    WritingPrompt("今天有什么事让你感到惊喜？", PromptType.REVIEW),
+    WritingPrompt("记录一下今天的天气和你的心情。", PromptType.REVIEW),
+    // 引导型
+    WritingPrompt("如果明天是你的最后一天，你想做什么？", PromptType.GUIDE),
+    WritingPrompt("写一写你最近在学习的一件事。", PromptType.GUIDE),
+    WritingPrompt("写一写你心里最想感谢的一个人。", PromptType.GUIDE),
+    WritingPrompt("描述一个你梦想去的地方。", PromptType.GUIDE),
+    WritingPrompt("写一写你的一个小目标，和如何实现它。", PromptType.GUIDE),
+    WritingPrompt("你的桌面/手机壁纸是什么？为什么选这张？", PromptType.GUIDE),
+    WritingPrompt("写一写你最近在做的一个改变。", PromptType.GUIDE),
+    WritingPrompt("描述你理想中的一天。", PromptType.GUIDE),
+    WritingPrompt("如果你能与古人对话，你想问什么？", PromptType.GUIDE),
+    WritingPrompt("写一写你最近的一个梳理（工作/生活/思想）。", PromptType.GUIDE),
+    // 季节型
+    WritingPrompt("今天的天气，让你想到了什么？", PromptType.SEASON),
+    WritingPrompt("窗外的风景有什么变化？", PromptType.SEASON),
+    WritingPrompt("这个季节让你想起了什么回忆？", PromptType.SEASON),
+    WritingPrompt("今天的空气闻起来像什么？", PromptType.SEASON),
+    // 情绪型
+    WritingPrompt("如果你的心情是一种颜色，今天是什么颜色？", PromptType.MOOD),
+    WritingPrompt("今天有让你烦恼的事吗？写下来会好一些。", PromptType.MOOD),
+    WritingPrompt("你现在最想做的一件事是什么？", PromptType.MOOD),
+    WritingPrompt("今天什么事情让你感到满足？", PromptType.MOOD),
+    WritingPrompt("写一写你最近的一个小小愿望。", PromptType.MOOD),
+    // 创意型
+    WritingPrompt("用三句话描述今天的自己。", PromptType.CREATIVE),
+    WritingPrompt("给五年后的自己写一句话。", PromptType.CREATIVE),
+    WritingPrompt("如果你是一本书，今天是哪一章？", PromptType.CREATIVE),
+    WritingPrompt("今天的声音里，最特别的是什么？", PromptType.CREATIVE),
+    WritingPrompt("用一个词概括今天。", PromptType.CREATIVE),
+    // 反思型
+    WritingPrompt("今天的事情，三年后的你会怎么看？", PromptType.REFLECT),
+    WritingPrompt("如果回到过去的一天，你想回到哪一天？", PromptType.REFLECT),
+    WritingPrompt("你最近在看什么书/电影/剧？写一写感受。", PromptType.REFLECT),
+    WritingPrompt("今天你做了什么运动？记录一下身体的感受。", PromptType.REFLECT),
+    WritingPrompt("描述一个最近让你感到骄傲的小事。", PromptType.REFLECT),
+    WritingPrompt("写一写你最近的一个思考。", PromptType.REFLECT),
+    WritingPrompt("今天有谁让你感到温暖？", PromptType.REFLECT),
+    WritingPrompt("如果你能改变今天的一件事，会是什么？", PromptType.REFLECT),
+    WritingPrompt("写一写你最近学到的一个道理。", PromptType.REFLECT),
+    // 额外补充
+    WritingPrompt("今天你闻到了什么好闻的味道？", PromptType.REVIEW),
+    WritingPrompt("最近有没有什么歌一直循环播放？", PromptType.CREATIVE),
+    WritingPrompt("今天你帮助了谁？或者谁帮助了你？", PromptType.REVIEW),
+    WritingPrompt("如果今天是一种味道，会是什么？", PromptType.CREATIVE),
+    WritingPrompt("写一写你最近的一个小习惯。", PromptType.REFLECT),
+    WritingPrompt("今天你在手机上花了多少时间？值得吗？", PromptType.REFLECT),
+    WritingPrompt("描述一下你现在坐着的地方。", PromptType.REVIEW),
+    WritingPrompt("如果可以 teleport，你现在想去哪里？", PromptType.CREATIVE)
 )
+
+// Backward-compatible string list
+val WRITING_PROMPT_STRINGS = WRITING_PROMPTS.map { it.text }
 
 data class HomeNewState(
     val greeting: HomeGreeting = HomeGreeting.now(),
-    val writingPrompt: String = WRITING_PROMPTS.random(),
+    val writingPrompt: String = WRITING_PROMPT_STRINGS.random(),
     val streakInfo: HomeStreakInfo = HomeStreakInfo(0, 0, null, 0, null, com.diary.app.util.StreakTier.NONE, 0, 0)
 )
 

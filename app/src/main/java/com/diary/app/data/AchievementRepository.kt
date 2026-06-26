@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 class AchievementRepository(
@@ -66,31 +67,32 @@ class AchievementRepository(
     }
 
     suspend fun checkAndUnlock() = withContext(Dispatchers.IO) {
-        val allEntries = diaryDao.getAllPreviews().first()
-        val totalEntries = allEntries.size
-        val totalWords = allEntries.sumOf { it.plainText.length }
-        val dates = allEntries.map { Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault()).toLocalDate() }.toSet()
-        val streak = computeStreak(dates)
-        val uniqueMoods = allEntries.mapNotNull { it.moodLevel }.distinct().size
-        val uniqueWeathers = allEntries.mapNotNull { it.weather }.distinct().size
-        val favoriteCount = allEntries.count { it.isFavorite }
-        val imageCount = mediaDao.getAllImages().size
-        val tagCount = tagDao.getAllTagsOnce().size
+        // Use aggregate queries instead of loading all entries into memory
+        val totalEntries = diaryDao.getEntryCount()
+        val totalWords = diaryDao.getTotalWordCount()
+        val timestamps = diaryDao.getAllTimestampsOnce()
         val zone = ZoneId.systemDefault()
-        val nightEntries = allEntries.count { Instant.ofEpochMilli(it.createdAt).atZone(zone).hour in 0..4 }
-        val earlyEntries = allEntries.count { Instant.ofEpochMilli(it.createdAt).atZone(zone).hour in 5..6 }
-        val dawnEntries = allEntries.count { Instant.ofEpochMilli(it.createdAt).atZone(zone).hour in 3..4 }
-        val weekdays = allEntries.map { Instant.ofEpochMilli(it.createdAt).atZone(zone).dayOfWeek.value }.toSet().size
-        val recentMoods = allEntries.take(20).mapNotNull { it.moodLevel }
+        val dates = timestamps.map { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }.toSet()
+        val streak = computeStreak(dates)
+        val uniqueMoods = diaryDao.getDistinctMoodCount()
+        val uniqueWeathers = diaryDao.getDistinctWeatherCount()
+        val favoriteCount = diaryDao.getFavoriteCount()
+        val imageCount = diaryDao.getImageCount()
+        val tagCount = diaryDao.getTagCount()
+        val nightEntries = diaryDao.getEntryCountByHourRange(0, 4)
+        val earlyEntries = diaryDao.getEntryCountByHourRange(5, 6)
+        val dawnEntries = diaryDao.getEntryCountByHourRange(3, 4)
+        val weekdays = diaryDao.getDistinctWeekdayCount()
+        val recentMoods = diaryDao.getRecentMoodLevels(20)
         val highMoodStreak = countConsecutiveFromEnd(recentMoods) { it >= 5 }
         val lowMoodStreak = countConsecutiveFromEnd(recentMoods) { it <= 2 }
         val calmMoodStreak = countConsecutiveFromEnd(recentMoods) { it in 3..4 }
-        val maxWordsInEntry = allEntries.maxOfOrNull { it.plainText.length } ?: 0
-        val hasShortFavorite = allEntries.any { it.isFavorite && it.plainText.length < 50 }
-        val rainCount = allEntries.count { it.weather == "\u96E8\u5929" }
-        val snowCount = allEntries.count { it.weather == "\u96EA\u5929" }
-        val stormCount = allEntries.count { it.weather == "\u5927\u98CE" || it.weather == "\u98CE\u66B4" }
-        val sunnyCount = allEntries.count { it.weather == "\u6674\u5929" }
+        val maxWordsInEntry = diaryDao.getMaxWordCount()
+        val hasShortFavorite = diaryDao.getShortFavoriteCount() > 0
+        val rainCount = diaryDao.getWeatherCount("\u96E8\u5929")
+        val snowCount = diaryDao.getWeatherCount("\u96EA\u5929")
+        val stormCount = diaryDao.getWeatherCount("\u5927\u98CE") + diaryDao.getWeatherCount("\u98CE\u66B4")
+        val sunnyCount = diaryDao.getWeatherCount("\u6674\u5929")
         val updates = mapOf(
             "first_entry" to totalEntries, "entries_10" to totalEntries, "entries_50" to totalEntries, "entries_100" to totalEntries,
             "words_10000" to totalWords, "words_100000" to totalWords, "tags_5" to tagCount, "images_10" to imageCount,
@@ -115,7 +117,7 @@ class AchievementRepository(
                 Tag(id = tagId, name = "\u91CC\u7A0B\u7891", color = 0xFF4CAF50)
             }
 
-        val today = java.time.LocalDate.now()
+        val today = LocalDate.now()
         val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
         val todayEnd = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
 
@@ -126,7 +128,6 @@ class AchievementRepository(
             val target = def?.target ?: achievement.target
             if (value >= target) {
                 achievementDao.unlock(key, System.currentTimeMillis(), value)
-                // Create milestone diary entry
                 if (def != null) {
                     createMilestoneDiary(def, milestoneTag, todayStart, todayEnd)
                 }
