@@ -644,7 +644,7 @@ object BackupManager {
      */
     fun scanImportableBackupFiles(context: Context): List<DownloadBackupFile> {
         val results = mutableListOf<DownloadBackupFile>()
-        scanBackupDir().forEach { file ->
+        scanBackupDir(context).forEach { file ->
             if (results.none { it.fileName == file.name }) {
                 results.add(DownloadBackupFile(file.name, file.length(), file.lastModified()))
             }
@@ -778,7 +778,7 @@ object BackupManager {
         createBackupDir()
 
         // 扫描备份目录中已有文件，恢复历史记录
-        val existingFiles = scanBackupDir()
+        val existingFiles = scanBackupDir(context)
         if (existingFiles.isNotEmpty()) {
             val history = getBackupHistory(context)
             val knownFileNames = history.map { it.fileName }.toSet()
@@ -808,14 +808,49 @@ object BackupManager {
     /**
      * 扫描 Documents/DiaryApp/ 目录中的备份文件
      */
-    private fun scanBackupDir(): Array<File> {
+    private fun scanBackupDir(context: Context? = null): Array<File> {
         val dir = getBackupDir()
         if (!dir.exists()) return emptyArray()
-        return dir.listFiles { file ->
+        val files = dir.listFiles { file ->
             file.isFile &&
                 BACKUP_SCAN_PREFIXES.any { prefix -> file.name.startsWith(prefix) } &&
                 BACKUP_SCAN_EXTENSIONS.any { extension -> file.name.endsWith(extension) }
-        } ?: emptyArray()
+        }
+        if (!files.isNullOrEmpty()) return files
+
+        // Android 11+: listFiles may silently fail; fall back to MediaStore
+        if (context != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return scanBackupDirViaMediaStore(context)
+        }
+        return emptyArray()
+    }
+
+    private fun scanBackupDirViaMediaStore(context: Context): Array<File> {
+        val dir = getBackupDir()
+        val results = mutableListOf<File>()
+        val projection = arrayOf(
+            MediaStore.Downloads._ID,
+            MediaStore.Downloads.DISPLAY_NAME
+        )
+        for (prefix in BACKUP_SCAN_PREFIXES) {
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND ${MediaStore.Downloads.RELATIVE_PATH} LIKE ?"
+            val selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
+            context.contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs, null
+            )?.use { cursor ->
+                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                while (cursor.moveToNext()) {
+                    val fileName = cursor.getString(nameIdx)
+                    if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) }) {
+                        val file = File(dir, fileName)
+                        if (file.exists()) {
+                            results.add(file)
+                        }
+                    }
+                }
+            }
+        }
+        return results.toTypedArray()
     }
 
     /**

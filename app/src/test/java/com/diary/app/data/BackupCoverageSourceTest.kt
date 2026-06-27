@@ -37,7 +37,7 @@ class BackupCoverageSourceTest {
         val backupScreenSource = File("src/main/java/com/diary/app/ui/backup/BackupScreen.kt").readText()
 
         assertTrue(backupManagerSource.contains("fun scanImportableBackupFiles(context: Context): List<DownloadBackupFile>"))
-        assertTrue(backupManagerSource.contains("scanBackupDir().forEach"))
+        assertTrue(backupManagerSource.contains("scanBackupDir(context).forEach"))
         assertTrue(backupManagerSource.contains("for (prefix in BACKUP_SCAN_PREFIXES)"))
         assertTrue(backupScreenSource.contains("BackupManager.scanImportableBackupFiles(context)"))
     }
