@@ -217,8 +217,6 @@ fun ProfileScreen(
     // Notification settings
     var weatherAlertsEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertsEnabled(context)) }
     var achievementsNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isAchievementsEnabled(context)) }
-    var petCareNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isPetCareEnabled(context)) }
-
     var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isBiometricLockEnabled(context)) }
     val canUseBiometric = BiometricHelper.canAuthenticate(context)
     var pinLockEnabled by remember { mutableStateOf(BiometricHelper.isPinLockEnabled(context)) }
@@ -528,21 +526,6 @@ fun ProfileScreen(
                         }
                     )
                     SettingDivider()
-                    SwitchSettingRow(
-                        icon = Icons.Default.Notifications,
-                        iconBg = sectionIconBg(2),
-                        iconTint = sectionIconTint(2),
-                        title = "宠物关怀",
-                        subtitle = if (petCareNotifEnabled) "宠物需要照顾时通知" else "已关闭",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        accentColor = accentColor,
-                        checked = petCareNotifEnabled,
-                        onCheckedChange = { newValue ->
-                            NotificationPreferencesManager.setPetCareEnabled(context, newValue)
-                            petCareNotifEnabled = newValue
-                        }
-                    )
                 }
 
                 // Privacy & Security section
