@@ -836,17 +836,25 @@ object BackupManager {
         val dir = getBackupDir()
         val results = mutableListOf<File>()
 
-        // 使用 MediaStore.Files 查询 Documents/DiaryApp 目录中的备份文件
-        // MediaStore.Downloads 只索引 Downloads 目录，不索引 Documents 目录
         val projection = arrayOf(
             MediaStore.Files.FileColumns._ID,
             MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.RELATIVE_PATH,
             MediaStore.Files.FileColumns.DATA
         )
 
         for (prefix in BACKUP_SCAN_PREFIXES) {
-            val selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DATA} LIKE ?"
-            val selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
+            // Android 10+ 使用 RELATIVE_PATH 定位 Documents/DiaryApp/ 目录
+            // DATA 列在 Android 10+ 已废弃，不可靠
+            val selection: String
+            val selectionArgs: Array<String>
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND (${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ? OR ${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ?)"
+                selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%", "%${BACKUP_DIR_NAME}/%")
+            } else {
+                selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DATA} LIKE ?"
+                selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
+            }
             context.contentResolver.query(
                 MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs, null
             )?.use { cursor ->
@@ -854,20 +862,32 @@ object BackupManager {
                 val dataIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA)
                 while (cursor.moveToNext()) {
                     val fileName = cursor.getString(nameIdx)
-                    val filePath = cursor.getString(dataIdx)
+                    val filePath = if (dataIdx >= 0) cursor.getString(dataIdx) else null
                     if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) }) {
-                        // 使用 MediaStore 返回的实际路径
                         val file = if (filePath != null) File(filePath) else File(dir, fileName)
                         if (file.exists()) {
                             results.add(file)
                         } else {
-                            // 如果文件不存在，仍然添加到结果中
                             results.add(File(dir, fileName))
                         }
                     }
                 }
             }
         }
+
+        // 如果 MediaStore 查询没有结果，尝试直接遍历目录
+        // 某些设备上 MediaStore 可能未索引 Documents 子目录中的文件
+        if (results.isEmpty() && dir.exists()) {
+            dir.listFiles()?.forEach { file ->
+                if (file.isFile &&
+                    BACKUP_SCAN_PREFIXES.any { prefix -> file.name.startsWith(prefix) } &&
+                    BACKUP_SCAN_EXTENSIONS.any { ext -> file.name.endsWith(ext) }
+                ) {
+                    results.add(file)
+                }
+            }
+        }
+
         return results.toTypedArray()
     }
 

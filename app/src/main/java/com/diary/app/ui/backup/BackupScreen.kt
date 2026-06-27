@@ -115,7 +115,6 @@ fun BackupScreen(
     var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
     var selectedImportFile by remember { mutableStateOf<BackupManager.DownloadBackupFile?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
-    var showContent by remember { mutableStateOf(false) }
     var showFileListDialog by remember { mutableStateOf(false) }
     var downloadFiles by remember { mutableStateOf<List<BackupManager.DownloadBackupFile>>(emptyList()) }
 
@@ -130,7 +129,6 @@ fun BackupScreen(
     }
 
     LaunchedEffect(Unit) {
-        showContent = true
         if (BackupManager.hasStoragePermission()) {
             withContext(Dispatchers.IO) { BackupManager.initBackupDir(context) }
             backupHistory = BackupManager.getBackupHistory(context)
@@ -512,8 +510,7 @@ fun BackupScreen(
                 }
 
                 item {
-                    StaggeredBackupItem(index = 0, showContent = showContent) {
-                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+                    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                             Column {
                                 BackupSettingRow(
                                     icon = Icons.Default.Schedule,
@@ -594,17 +591,15 @@ fun BackupScreen(
                             }
                         }
                     }
-                }
 
                 item {
-                    StaggeredBackupItem(index = 1, showContent = showContent) {
-                        GlassCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = 24.dp,
-                            enableShadow = true
-                        ) {
-                            Column {
-                                AnimatedVisibility(
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 24.dp,
+                        enableShadow = true
+                    ) {
+                        Column {
+                            AnimatedVisibility(
                                     visible = isBackingUp,
                                     enter = expandVertically(),
                                     exit = shrinkVertically()
@@ -696,57 +691,49 @@ fun BackupScreen(
                             }
                         }
                     }
-                }
-
                 if (backupHistory.isNotEmpty()) {
                     item {
-                        StaggeredBackupItem(index = 2, showContent = showContent) {
-                            SectionHeader(
-                                title = stringResource(R.string.backup_history),
-                                icon = Icons.Default.History,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
+                        SectionHeader(
+                            title = stringResource(R.string.backup_history),
+                            icon = Icons.Default.History,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
                     }
 
                     itemsIndexed(backupHistory) { index, record ->
-                        StaggeredBackupItem(index = 3 + index, showContent = showContent) {
-                            BackupHistoryItem(
-                                record = record,
-                                textColor = textColor,
-                                textSecondary = textSecondary,
-                                textTertiary = textTertiary,
-                                onRename = {
-                                    renameTarget = record
-                                    renameInput = displayBackupName(record.fileName)
-                                },
-                                onDelete = { deleteTarget = record }
-                            )
-                        }
+                        BackupHistoryItem(
+                            record = record,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            textTertiary = textTertiary,
+                            onRename = {
+                                renameTarget = record
+                                renameInput = displayBackupName(record.fileName)
+                            },
+                            onDelete = { deleteTarget = record }
+                        )
                     }
                 } else {
                     item {
-                        StaggeredBackupItem(index = 2, showContent = showContent) {
-                            GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "暂无本地备份",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = textColor
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "创建一个本地备份后，就能在这里重命名、删除或导入。",
-                                        fontSize = 12.sp,
-                                        color = textTertiary
-                                    )
-                                }
+                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "暂无本地备份",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = textColor
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "创建一个本地备份后，就能在这里重命名、删除或导入。",
+                                    fontSize = 12.sp,
+                                    color = textTertiary
+                                )
                             }
                         }
                     }
@@ -982,19 +969,5 @@ private fun BackupActionButton(
             Text(text = title, fontSize = 15.sp, color = textColor)
             Text(text = subtitle, fontSize = 12.sp, color = textTertiary, modifier = Modifier.padding(top = 2.dp))
         }
-    }
-}
-
-@Composable
-private fun StaggeredBackupItem(
-    index: Int,
-    showContent: Boolean,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        content()
     }
 }
