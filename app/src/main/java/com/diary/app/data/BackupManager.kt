@@ -835,25 +835,27 @@ object BackupManager {
     private fun scanBackupDirViaMediaStore(context: Context): Array<File> {
         val dir = getBackupDir()
         val results = mutableListOf<File>()
+
+        // 查询 Documents/DiaryApp 目录中的备份文件
+        // 使用 MediaStore.Downloads 并指定 RELATIVE_PATH 来精确查询
         val projection = arrayOf(
-            MediaStore.Files.FileColumns._ID,
-            MediaStore.Files.FileColumns.DISPLAY_NAME,
-            MediaStore.Files.FileColumns.DATA
+            MediaStore.Downloads._ID,
+            MediaStore.Downloads.DISPLAY_NAME
         )
+
         for (prefix in BACKUP_SCAN_PREFIXES) {
-            val selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DATA} LIKE ?"
+            // 查询 Documents/DiaryApp 目录
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND ${MediaStore.Downloads.RELATIVE_PATH} LIKE ?"
             val selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
             context.contentResolver.query(
-                MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs, null
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs, null
             )?.use { cursor ->
-                val nameIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
                 while (cursor.moveToNext()) {
                     val fileName = cursor.getString(nameIdx)
                     if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) }) {
                         val file = File(dir, fileName)
-                        if (file.exists()) {
-                            results.add(file)
-                        }
+                        results.add(file)
                     }
                 }
             }
