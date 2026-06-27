@@ -39,6 +39,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
@@ -131,6 +133,10 @@ fun ToolsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToAiManagement: () -> Unit = {},
+    onNavigateToSmallWins: () -> Unit = {},
+    onNavigateToQuickCheckin: () -> Unit = {},
+    onNavigateToGoals: () -> Unit = {},
+    onNavigateToWritingCoach: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -262,6 +268,39 @@ fun ToolsScreen(
                             textTertiary = textTertiary,
                             onClick = onNavigateToStorage
                         )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.Favorite,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "小确幸",
+                            subtitle = "记录每天的小胜利",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToSmallWins
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.Edit,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "快速签到",
+                            subtitle = "三秒完成心情记录",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToQuickCheckin
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.BarChart,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "目标追踪",
+                            subtitle = "分解目标追踪进度",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToGoals
+                        )
                     }
 
                     // 回忆与探索
@@ -366,6 +405,17 @@ fun ToolsScreen(
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = onNavigateToBiography
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.AutoAwesome,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "写作教练",
+                            subtitle = "AI 分析写作习惯",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToWritingCoach
                         )
                         SettingDivider()
                         AiFeatureToggleRow(

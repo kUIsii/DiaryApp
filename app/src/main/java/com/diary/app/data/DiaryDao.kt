@@ -625,6 +625,272 @@ interface DiaryDao {
 
     @Query("SELECT SUM(writing_duration_seconds) FROM diary_entries WHERE createdAt >= :start AND createdAt < :end AND writing_duration_seconds IS NOT NULL")
     suspend fun getTotalWritingDurationSeconds(start: Long, end: Long): Int?
+
+    // Small wins queries
+    @Query("SELECT * FROM small_wins WHERE recordDate = :date ORDER BY createdAt DESC")
+    fun getSmallWinsByDate(date: Long): Flow<List<SmallWin>>
+
+    @Query("SELECT * FROM small_wins WHERE recordDate >= :startDate AND recordDate <= :endDate ORDER BY recordDate DESC, createdAt DESC")
+    fun getSmallWinsByDateRange(startDate: Long, endDate: Long): Flow<List<SmallWin>>
+
+    @Query("SELECT * FROM small_wins ORDER BY recordDate DESC, createdAt DESC")
+    fun getAllSmallWins(): Flow<List<SmallWin>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSmallWin(smallWin: SmallWin): Long
+
+    @Query("DELETE FROM small_wins WHERE id = :id")
+    suspend fun deleteSmallWin(id: Long)
+
+    @Query("SELECT COUNT(*) FROM small_wins WHERE recordDate = :date")
+    suspend fun getSmallWinCountByDate(date: Long): Int
+
+    // Quick checkins
+    @Query("SELECT * FROM quick_checkins ORDER BY createdAt DESC")
+    fun getAllQuickCheckins(): Flow<List<QuickCheckin>>
+
+    @Query("SELECT * FROM quick_checkins WHERE createdAt >= :start AND createdAt < :end ORDER BY createdAt DESC")
+    fun getQuickCheckinsByDateRange(start: Long, end: Long): Flow<List<QuickCheckin>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertQuickCheckin(checkin: QuickCheckin): Long
+
+    @Query("DELETE FROM quick_checkins WHERE id = :id")
+    suspend fun deleteQuickCheckin(id: Long)
+
+    // Goals
+    @Query("SELECT * FROM goals WHERE parentId IS NULL ORDER BY createdAt DESC")
+    fun getAllGoals(): Flow<List<Goal>>
+
+    @Query("SELECT * FROM goals WHERE parentId = :parentId ORDER BY createdAt ASC")
+    fun getSubGoals(parentId: Long): Flow<List<Goal>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertGoal(goal: Goal): Long
+
+    @Update
+    suspend fun updateGoal(goal: Goal)
+
+    @Query("DELETE FROM goals WHERE id = :id")
+    suspend fun deleteGoal(id: Long)
+
+    @Query("UPDATE goals SET progress = :progress WHERE id = :id")
+    suspend fun updateGoalProgress(id: Long, progress: Int)
+
+    // Diary summaries
+    @Query("SELECT * FROM diary_summaries WHERE diaryId = :diaryId")
+    suspend fun getSummaryForDiary(diaryId: Long): DiarySummary?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiarySummary(summary: DiarySummary): Long
+
+    @Query("DELETE FROM diary_summaries WHERE diaryId = :diaryId")
+    suspend fun deleteDiarySummary(diaryId: Long)
+
+    // Focus sessions
+    @Query("SELECT * FROM focus_sessions ORDER BY startTime DESC")
+    fun getAllFocusSessions(): Flow<List<FocusSession>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertFocusSession(session: FocusSession): Long
+
+    @Query("UPDATE focus_sessions SET endTime = :endTime, completedAt = :completedAt WHERE id = :id")
+    suspend fun completeFocusSession(id: Long, endTime: Long, completedAt: Long)
+
+    // Cover themes
+    @Query("SELECT * FROM cover_themes ORDER BY createdAt DESC")
+    fun getAllCoverThemes(): Flow<List<CoverTheme>>
+
+    @Query("SELECT * FROM cover_themes WHERE isActive = 1 LIMIT 1")
+    suspend fun getActiveCoverTheme(): CoverTheme?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCoverTheme(theme: CoverTheme): Long
+
+    @Query("UPDATE cover_themes SET isActive = 0")
+    suspend fun deactivateAllCoverThemes()
+
+    @Query("UPDATE cover_themes SET isActive = 1 WHERE id = :id")
+    suspend fun activateCoverTheme(id: Long)
+
+    // Diary embeddings
+    @Query("SELECT * FROM diary_embeddings WHERE diaryId = :diaryId")
+    suspend fun getEmbeddingForDiary(diaryId: Long): DiaryEmbedding?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiaryEmbedding(embedding: DiaryEmbedding): Long
+
+    @Query("SELECT * FROM diary_embeddings")
+    suspend fun getAllDiaryEmbeddings(): List<DiaryEmbedding>
+
+    // Location memories
+    @Query("SELECT * FROM location_memories ORDER BY createdAt DESC")
+    fun getAllLocationMemories(): Flow<List<LocationMemory>>
+
+    @Query("SELECT * FROM location_memories WHERE diaryId = :diaryId")
+    suspend fun getLocationMemoriesForDiary(diaryId: Long): List<LocationMemory>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertLocationMemory(memory: LocationMemory): Long
+
+    @Query("DELETE FROM location_memories WHERE id = :id")
+    suspend fun deleteLocationMemory(id: Long)
+
+    // Voice memos
+    @Query("SELECT * FROM voice_memos ORDER BY createdAt DESC")
+    fun getAllVoiceMemos(): Flow<List<VoiceMemo>>
+
+    @Query("SELECT * FROM voice_memos WHERE diaryId = :diaryId")
+    suspend fun getVoiceMemosForDiary(diaryId: Long): List<VoiceMemo>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertVoiceMemo(memo: VoiceMemo): Long
+
+    @Query("DELETE FROM voice_memos WHERE id = :id")
+    suspend fun deleteVoiceMemo(id: Long)
+
+    // Emotion radar
+    @Query("SELECT * FROM emotion_radar WHERE diaryId = :diaryId")
+    suspend fun getEmotionRadarForDiary(diaryId: Long): EmotionRadar?
+
+    @Query("SELECT * FROM emotion_radar ORDER BY createdAt DESC")
+    fun getAllEmotionRadars(): Flow<List<EmotionRadar>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEmotionRadar(radar: EmotionRadar): Long
+
+    // Memory anchors
+    @Query("SELECT * FROM memory_anchors ORDER BY createdAt DESC")
+    fun getAllMemoryAnchors(): Flow<List<MemoryAnchor>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertMemoryAnchor(anchor: MemoryAnchor): Long
+
+    @Query("DELETE FROM memory_anchors WHERE id = :id")
+    suspend fun deleteMemoryAnchor(id: Long)
+
+    // Anchor relations
+    @Query("SELECT * FROM anchor_relations WHERE anchorId = :anchorId ORDER BY createdAt DESC")
+    fun getAnchorRelations(anchorId: Long): Flow<List<AnchorRelation>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAnchorRelation(relation: AnchorRelation): Long
+
+    // Writing fingerprints
+    @Query("SELECT * FROM writing_fingerprints WHERE diaryId = :diaryId")
+    suspend fun getWritingFingerprintForDiary(diaryId: Long): WritingFingerprint?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWritingFingerprint(fingerprint: WritingFingerprint): Long
+
+    // Tracked persons
+    @Query("SELECT * FROM tracked_persons ORDER BY mentionCount DESC")
+    fun getAllTrackedPersons(): Flow<List<TrackedPerson>>
+
+    @Query("SELECT * FROM tracked_persons WHERE name = :name LIMIT 1")
+    suspend fun getTrackedPersonByName(name: String): TrackedPerson?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertTrackedPerson(person: TrackedPerson): Long
+
+    @Update
+    suspend fun updateTrackedPerson(person: TrackedPerson)
+
+    // Person mentions
+    @Query("SELECT * FROM person_mentions WHERE personId = :personId ORDER BY createdAt DESC")
+    fun getPersonMentions(personId: Long): Flow<List<PersonMention>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertPersonMention(mention: PersonMention): Long
+
+    // Decisions
+    @Query("SELECT * FROM decisions ORDER BY madeAt DESC")
+    fun getAllDecisions(): Flow<List<Decision>>
+
+    @Query("SELECT * FROM decisions WHERE diaryId = :diaryId")
+    suspend fun getDecisionsForDiary(diaryId: Long): List<Decision>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertDecision(decision: Decision): Long
+
+    @Update
+    suspend fun updateDecision(decision: Decision)
+
+    // Extracted values
+    @Query("SELECT * FROM extracted_values ORDER BY confidence DESC")
+    fun getAllExtractedValues(): Flow<List<ExtractedValue>>
+
+    @Query("SELECT * FROM extracted_values WHERE category = :category")
+    fun getExtractedValuesByCategory(category: String): Flow<List<ExtractedValue>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExtractedValue(value: ExtractedValue): Long
+
+    // Writing experiments
+    @Query("SELECT * FROM writing_experiments ORDER BY startDate DESC")
+    fun getAllWritingExperiments(): Flow<List<WritingExperiment>>
+
+    @Query("SELECT * FROM writing_experiments WHERE status = 'active' LIMIT 1")
+    suspend fun getActiveWritingExperiment(): WritingExperiment?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertWritingExperiment(experiment: WritingExperiment): Long
+
+    @Update
+    suspend fun updateWritingExperiment(experiment: WritingExperiment)
+
+    // Experiment participations
+    @Query("SELECT * FROM experiment_participations WHERE experimentId = :experimentId ORDER BY dayNumber ASC")
+    fun getExperimentParticipations(experimentId: Long): Flow<List<ExperimentParticipation>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertExperimentParticipation(participation: ExperimentParticipation): Long
+
+    // Monthly challenges
+    @Query("SELECT * FROM monthly_challenges ORDER BY year DESC, month DESC")
+    fun getAllMonthlyChallenges(): Flow<List<MonthlyChallenge>>
+
+    @Query("SELECT * FROM monthly_challenges WHERE year = :year AND month = :month LIMIT 1")
+    suspend fun getMonthlyChallenge(year: Int, month: Int): MonthlyChallenge?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertMonthlyChallenge(challenge: MonthlyChallenge): Long
+
+    @Update
+    suspend fun updateMonthlyChallenge(challenge: MonthlyChallenge)
+
+    // Challenge daily logs
+    @Query("SELECT * FROM challenge_daily_logs WHERE challengeId = :challengeId ORDER BY date DESC")
+    fun getChallengeDailyLogs(challengeId: Long): Flow<List<ChallengeDailyLog>>
+
+    @Query("SELECT * FROM challenge_daily_logs WHERE challengeId = :challengeId AND date = :date LIMIT 1")
+    suspend fun getChallengeDailyLog(challengeId: Long, date: Long): ChallengeDailyLog?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertChallengeDailyLog(log: ChallengeDailyLog): Long
+
+    @Update
+    suspend fun updateChallengeDailyLog(log: ChallengeDailyLog)
+
+    // Streak shields
+    @Query("SELECT * FROM streak_shields WHERE month = :month LIMIT 1")
+    suspend fun getStreakShieldForMonth(month: String): StreakShield?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertStreakShield(shield: StreakShield): Long
+
+    @Update
+    suspend fun updateStreakShield(shield: StreakShield)
+
+    // Easter eggs
+    @Query("SELECT * FROM easter_eggs ORDER BY triggeredAt DESC")
+    fun getAllEasterEggs(): Flow<List<EasterEgg>>
+
+    @Query("SELECT * FROM easter_eggs WHERE eggId = :eggId LIMIT 1")
+    suspend fun getEasterEgg(eggId: String): EasterEgg?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertEasterEgg(egg: EasterEgg): Long
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

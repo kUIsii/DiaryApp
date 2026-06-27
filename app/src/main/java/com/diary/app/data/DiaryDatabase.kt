@@ -8,16 +8,25 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class, Achievement::class, TitleDefinition::class, UserTitle::class, TitleProfile::class, PetPersonality::class, PetStateRecord::class, PetProfile::class, IslandEnvironment::class, IslandProfile::class, IslandDecoration::class, IslandUpdate::class, IslandDiscovery::class, IslandCombo::class, PetMemory::class, PetHiddenState::class, IslandTimelineEvent::class],
-    version = 32,
+    entities = [
+        DiaryEntry::class, Tag::class, DiaryTag::class, TodoItem::class, TrashEntry::class, 
+        DiaryImage::class, CountDownItem::class, HabitRecord::class, TimeCapsule::class, 
+        NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class, 
+        Achievement::class, TitleDefinition::class, UserTitle::class, TitleProfile::class,
+        SmallWin::class, QuickCheckin::class, Goal::class, DiarySummary::class,
+        FocusSession::class, CoverTheme::class, DiaryEmbedding::class, LocationMemory::class,
+        VoiceMemo::class, EmotionRadar::class, MemoryAnchor::class, AnchorRelation::class,
+        WritingFingerprint::class, TrackedPerson::class, PersonMention::class, Decision::class,
+        ExtractedValue::class, WritingExperiment::class, ExperimentParticipation::class,
+        MonthlyChallenge::class, ChallengeDailyLog::class, StreakShield::class, EasterEgg::class
+    ],
+    version = 35,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
     abstract fun diaryDao(): DiaryDao
     abstract fun achievementDao(): AchievementDao
     abstract fun titleDao(): TitleDao
-    abstract fun petDao(): PetDao
-    abstract fun islandDao(): IslandDao
 
     companion object {
         class DiaryDatabaseOpenException(
@@ -711,6 +720,351 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create small_wins table for daily small victories tracking
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS small_wins (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        recordDate INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_small_wins_recordDate ON small_wins (recordDate)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_small_wins_createdAt ON small_wins (createdAt)")
+            }
+        }
+
+        val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Quick checkins
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS quick_checkins (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        moodLevel INTEGER,
+                        photoUri TEXT,
+                        text TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_quick_checkins_createdAt ON quick_checkins (createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_quick_checkins_moodLevel ON quick_checkins (moodLevel)")
+
+                // Goals
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS goals (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',
+                        parentId INTEGER,
+                        progress INTEGER NOT NULL DEFAULT 0,
+                        targetValue INTEGER NOT NULL DEFAULT 100,
+                        unit TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        completedAt INTEGER
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goals_parentId ON goals (parentId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goals_createdAt ON goals (createdAt)")
+
+                // Diary summaries
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS diary_summaries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        summary TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_diary_summaries_diaryId ON diary_summaries (diaryId)")
+
+                // Focus sessions
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS focus_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        startTime INTEGER NOT NULL,
+                        endTime INTEGER,
+                        durationMinutes INTEGER NOT NULL DEFAULT 25,
+                        wordCountGoal INTEGER,
+                        ambientSound TEXT,
+                        completedAt INTEGER
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_focus_sessions_startTime ON focus_sessions (startTime)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_focus_sessions_endTime ON focus_sessions (endTime)")
+
+                // Cover themes
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS cover_themes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        texturePath TEXT,
+                        fontFamily TEXT,
+                        accentColor INTEGER,
+                        isActive INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_cover_themes_isActive ON cover_themes (isActive)")
+
+                // Diary embeddings
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS diary_embeddings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        embeddingJson TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_diary_embeddings_diaryId ON diary_embeddings (diaryId)")
+
+                // Location memories
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS location_memories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        radiusMeters REAL NOT NULL DEFAULT 100.0,
+                        locationName TEXT,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_location_memories_latitude_longitude ON location_memories (latitude, longitude)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_location_memories_diaryId ON location_memories (diaryId)")
+
+                // Voice memos
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS voice_memos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER,
+                        audioPath TEXT NOT NULL,
+                        durationSeconds INTEGER NOT NULL,
+                        transcript TEXT,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_voice_memos_diaryId ON voice_memos (diaryId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_voice_memos_createdAt ON voice_memos (createdAt)")
+            }
+        }
+
+        val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Emotion radar
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS emotion_radar (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        vitality REAL NOT NULL DEFAULT 0.5,
+                        calmness REAL NOT NULL DEFAULT 0.5,
+                        happiness REAL NOT NULL DEFAULT 0.5,
+                        gratitude REAL NOT NULL DEFAULT 0.5,
+                        socialConnection REAL NOT NULL DEFAULT 0.5,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_emotion_radar_diaryId ON emotion_radar (diaryId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_emotion_radar_createdAt ON emotion_radar (createdAt)")
+
+                // Memory anchors
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS memory_anchors (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        topic TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_memory_anchors_diaryId ON memory_anchors (diaryId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_memory_anchors_topic ON memory_anchors (topic)")
+
+                // Anchor relations
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS anchor_relations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        anchorId INTEGER NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        relevanceScore REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_anchor_relations_anchorId ON anchor_relations (anchorId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_anchor_relations_diaryId ON anchor_relations (diaryId)")
+
+                // Writing fingerprints
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS writing_fingerprints (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        periodStart INTEGER NOT NULL,
+                        avgSentenceLength REAL NOT NULL DEFAULT 0.0,
+                        vocabularyRichness REAL NOT NULL DEFAULT 0.0,
+                        avgWordLength REAL NOT NULL DEFAULT 0.0,
+                        punctuationRatio REAL NOT NULL DEFAULT 0.0,
+                        paragraphCount INTEGER NOT NULL DEFAULT 0,
+                        avgParagraphLength REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_writing_fingerprints_periodStart ON writing_fingerprints (periodStart)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_writing_fingerprints_diaryId ON writing_fingerprints (diaryId)")
+
+                // Tracked persons
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS tracked_persons (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        mentionCount INTEGER NOT NULL DEFAULT 0,
+                        lastMentionedAt INTEGER,
+                        avgSentiment REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracked_persons_name ON tracked_persons (name)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracked_persons_createdAt ON tracked_persons (createdAt)")
+
+                // Person mentions
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS person_mentions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        personId INTEGER NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        context TEXT NOT NULL DEFAULT '',
+                        sentiment REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_person_mentions_personId ON person_mentions (personId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_person_mentions_diaryId ON person_mentions (diaryId)")
+
+                // Decisions
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS decisions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        diaryId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        context TEXT NOT NULL DEFAULT '',
+                        options TEXT NOT NULL DEFAULT '',
+                        chosenOption TEXT NOT NULL DEFAULT '',
+                        concerns TEXT NOT NULL DEFAULT '',
+                        madeAt INTEGER NOT NULL DEFAULT 0,
+                        followUpAt INTEGER,
+                        outcome TEXT,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_decisions_diaryId ON decisions (diaryId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_decisions_madeAt ON decisions (madeAt)")
+
+                // Extracted values
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS extracted_values (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        category TEXT NOT NULL,
+                        value TEXT NOT NULL,
+                        evidence TEXT NOT NULL DEFAULT '',
+                        confidence REAL NOT NULL DEFAULT 0.0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_extracted_values_category ON extracted_values (category)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_extracted_values_updatedAt ON extracted_values (updatedAt)")
+
+                // Writing experiments
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS writing_experiments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        rules TEXT NOT NULL,
+                        badgeName TEXT NOT NULL DEFAULT '',
+                        startDate INTEGER NOT NULL,
+                        endDate INTEGER NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'upcoming',
+                        completedAt INTEGER,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_writing_experiments_startDate ON writing_experiments (startDate)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_writing_experiments_status ON writing_experiments (status)")
+
+                // Experiment participations
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS experiment_participations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        experimentId INTEGER NOT NULL,
+                        diaryId INTEGER,
+                        dayNumber INTEGER NOT NULL,
+                        note TEXT NOT NULL DEFAULT '',
+                        completedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_experiment_participations_experimentId ON experiment_participations (experimentId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_experiment_participations_diaryId ON experiment_participations (diaryId)")
+
+                // Monthly challenges
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS monthly_challenges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        year INTEGER NOT NULL,
+                        month INTEGER NOT NULL,
+                        targetDays INTEGER NOT NULL DEFAULT 20,
+                        completedDays INTEGER NOT NULL DEFAULT 0,
+                        status TEXT NOT NULL DEFAULT 'upcoming',
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_monthly_challenges_year_month ON monthly_challenges (year, month)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_monthly_challenges_status ON monthly_challenges (status)")
+
+                // Challenge daily logs
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS challenge_daily_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        challengeId INTEGER NOT NULL,
+                        date INTEGER NOT NULL,
+                        completed INTEGER NOT NULL DEFAULT 0,
+                        note TEXT NOT NULL DEFAULT '',
+                        diaryId INTEGER,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_challenge_daily_logs_challengeId_date ON challenge_daily_logs (challengeId, date)")
+
+                // Streak shields
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS streak_shields (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        month TEXT NOT NULL,
+                        usedAt INTEGER,
+                        savedDate INTEGER,
+                        isUsed INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_streak_shields_month ON streak_shields (month)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_streak_shields_usedAt ON streak_shields (usedAt)")
+
+                // Easter eggs
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS easter_eggs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        eggId TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        triggeredAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_easter_eggs_eggId ON easter_eggs (eggId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_easter_eggs_triggeredAt ON easter_eggs (triggeredAt)")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val allMigrations = arrayOf(
@@ -721,7 +1075,7 @@ abstract class DiaryDatabase : RoomDatabase() {
                     MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                     MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
-                    MIGRATION_30_31, MIGRATION_31_32
+                    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35
                 )
                 val callback = object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {

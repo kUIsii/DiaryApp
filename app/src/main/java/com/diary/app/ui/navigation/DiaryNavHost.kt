@@ -107,6 +107,26 @@ import com.diary.app.ui.achievement.AchievementScreen
 import com.diary.app.ui.achievement.AchievementDetailScreen
 import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
+import com.diary.app.ui.writingcoach.WritingCoachScreen
+import com.diary.app.ui.smallwins.SmallWinsScreen
+import com.diary.app.ui.quickcheckin.QuickCheckinScreen
+import com.diary.app.ui.goals.GoalsScreen
+import com.diary.app.ui.emotionradar.EmotionRadarScreen
+import com.diary.app.ui.textmicroscope.TextMicroscopeScreen
+import com.diary.app.ui.memoryanchors.MemoryAnchorsScreen
+import com.diary.app.ui.writingfingerprint.WritingFingerprintScreen
+import com.diary.app.ui.emotionforecast.EmotionForecastScreen
+import com.diary.app.ui.relationships.RelationshipTrackingScreen
+import com.diary.app.ui.decisions.DecisionAnalysisScreen
+import com.diary.app.ui.values.ValuesExtractionScreen
+import com.diary.app.ui.writinglab.WritingLabScreen
+import com.diary.app.ui.eastereggs.EasterEggsScreen
+import com.diary.app.ui.monthlychallenge.MonthlyChallengeScreen
+import com.diary.app.ui.streakshield.StreakShieldScreen
+import com.diary.app.ui.quietcompanion.QuietCompanionScreen
+import com.diary.app.ui.ambienttheme.AmbientThemeScreen
+import com.diary.app.ui.gentlenotification.GentleNotificationScreen
+import com.diary.app.ui.outline.OutlineViewScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -180,6 +200,26 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
     object WeatherDetail : Screen("weather_detail", "天气详情", Icons.Default.LocationOn)
+    object SmallWins : Screen("small_wins", "小确幸", Icons.Default.Favorite)
+    object QuickCheckin : Screen("quick_checkin", "快速签到", Icons.Default.Edit)
+    object Goals : Screen("goals", "目标追踪", Icons.Default.BarChart)
+    object EmotionRadar : Screen("emotion_radar", "情绪雷达", Icons.Default.BarChart)
+    object TextMicroscope : Screen("text_microscope", "文字显微镜", Icons.Default.Article)
+    object MemoryAnchors : Screen("memory_anchors", "记忆锚点", Icons.Default.Label)
+    object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
+    object EmotionForecast : Screen("emotion_forecast", "情绪预报", Icons.Default.Home)
+    object RelationshipTracking : Screen("relationship_tracking", "关系追踪", Icons.Default.Person)
+    object DecisionAnalysis : Screen("decision_analysis", "决策追踪", Icons.Default.CheckBox)
+    object ValuesExtraction : Screen("values_extraction", "价值观", Icons.Default.Favorite)
+    object WritingLab : Screen("writing_lab", "写作实验室", Icons.Default.Science)
+    object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
+    object EasterEggs : Screen("easter_eggs", "隐藏彩蛋", Icons.Default.EmojiEvents)
+    object MonthlyChallenge : Screen("monthly_challenge", "月度挑战", Icons.Default.CalendarMonth)
+    object StreakShield : Screen("streak_shield", "连续保护罩", Icons.Default.EmojiEvents)
+    object QuietCompanion : Screen("quiet_companion", "安静陪伴", Icons.Default.Home)
+    object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
+    object GentleNotification : Screen("gentle_notification", "温柔通知", Icons.Default.Notifications)
+    object OutlineView : Screen("outline_view", "大纲视图", Icons.Default.Article)
 }
 
 data class BottomNavItem(
@@ -359,6 +399,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
+                    onNavigateToSmallWins = { navController.navigate(Screen.SmallWins.route) },
+                    onNavigateToQuickCheckin = { navController.navigate(Screen.QuickCheckin.route) },
+                    onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
+                    onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -771,6 +815,60 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { id -> navController.navigate(Screen.Detail.createRoute(id)) }
                 )
             }
+
+            composable(
+                route = Screen.SmallWins.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                SmallWinsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.QuickCheckin.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                QuickCheckinScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.Goals.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                GoalsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.EmotionRadar.route) { EmotionRadarScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.TextMicroscope.route) { TextMicroscopeScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.MemoryAnchors.route) { MemoryAnchorsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.WritingFingerprint.route) { WritingFingerprintScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.EmotionForecast.route) { EmotionForecastScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.RelationshipTracking.route) { RelationshipTrackingScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.DecisionAnalysis.route) { DecisionAnalysisScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.ValuesExtraction.route) { ValuesExtractionScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.WritingLab.route) { WritingLabScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.WritingCoach.route) { WritingCoachScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.EasterEggs.route) { EasterEggsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.MonthlyChallenge.route) { MonthlyChallengeScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.StreakShield.route) { StreakShieldScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.QuietCompanion.route) { QuietCompanionScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AmbientTheme.route) { AmbientThemeScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.OutlineView.route) { OutlineViewScreen(onNavigateBack = { navController.popBackStack() }) }
         }
     }
 }
