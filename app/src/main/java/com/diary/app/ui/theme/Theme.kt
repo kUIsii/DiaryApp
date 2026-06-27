@@ -94,7 +94,9 @@ fun getFontScale(context: android.content.Context): Float {
     val sizeKey = com.diary.app.ui.editor.appFontSizeKey(prefs)
     return when (sizeKey) {
         "tiny" -> 0.85f
+        "smaller" -> 0.92f
         "small" -> 1.0f
+        "medium_small" -> 1.07f
         "medium" -> 1.15f
         "large" -> 1.3f
         "extra_large" -> 1.5f

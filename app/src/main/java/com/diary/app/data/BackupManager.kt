@@ -936,29 +936,60 @@ object BackupManager {
 
             for (oldFile in oldFiles) {
                 if (oldFile.fileName in knownFileNames) continue
-                if (oldFile.fileName.endsWith(FULL_BACKUP_EXTENSION)) continue
-                val content = readDownloadBackup(context, oldFile.fileName) ?: continue
-
                 val newFile = File(dir, oldFile.fileName)
-                if (!newFile.exists()) {
-                    newFile.writeText(content)
-                }
 
-                val entryCount = try {
-                    Gson().fromJson(content, DiaryBackup::class.java)?.entries?.size ?: 0
-                } catch (_: Exception) {
-                    Log.w("BackupManager", "Failed to count entries in migration")
-                    0
+                if (oldFile.fileName.endsWith(FULL_BACKUP_EXTENSION)) {
+                    // Try to copy binary backup file from Downloads to Documents/DiaryApp
+                    var filePath = oldFile.fileName  // fallback to Downloads path
+                    var fileSize = oldFile.fileSize
+                    try {
+                        if (!newFile.exists()) {
+                            val bytes = readBackupPackageBytes(context, oldFile.fileName)
+                            if (bytes != null) {
+                                newFile.writeBytes(bytes)
+                                filePath = newFile.absolutePath
+                                fileSize = newFile.length()
+                            }
+                        } else {
+                            filePath = newFile.absolutePath
+                            fileSize = newFile.length()
+                        }
+                    } catch (_: Exception) { /* keep Downloads path */ }
+                    val entryCount = try {
+                        val targetFile = if (filePath == newFile.absolutePath) newFile else null
+                        val json = targetFile?.let { readBackupJsonFromFile(it) }
+                            ?: readDownloadBackup(context, oldFile.fileName)
+                        Gson().fromJson(json, DiaryBackup::class.java)?.entries?.size ?: 0
+                    } catch (_: Exception) { 0 }
+                    history.add(0, BackupRecord(
+                        fileName = oldFile.fileName,
+                        filePath = filePath,
+                        timestamp = oldFile.lastModified,
+                        entryCount = entryCount,
+                        fileSize = fileSize
+                    ))
+                    changed = true
+                } else {
+                    // Migrate old .json backup files
+                    val content = readDownloadBackup(context, oldFile.fileName) ?: continue
+                    if (!newFile.exists()) {
+                        newFile.writeText(content)
+                    }
+                    val entryCount = try {
+                        Gson().fromJson(content, DiaryBackup::class.java)?.entries?.size ?: 0
+                    } catch (_: Exception) {
+                        Log.w("BackupManager", "Failed to count entries in migration")
+                        0
+                    }
+                    history.add(0, BackupRecord(
+                        fileName = oldFile.fileName,
+                        filePath = newFile.absolutePath,
+                        timestamp = oldFile.lastModified,
+                        entryCount = entryCount,
+                        fileSize = newFile.length()
+                    ))
+                    changed = true
                 }
-
-                history.add(0, BackupRecord(
-                    fileName = oldFile.fileName,
-                    filePath = newFile.absolutePath,
-                    timestamp = oldFile.lastModified,
-                    entryCount = entryCount,
-                    fileSize = newFile.length()
-                ))
-                changed = true
             }
 
             if (changed) saveHistory(context, history)

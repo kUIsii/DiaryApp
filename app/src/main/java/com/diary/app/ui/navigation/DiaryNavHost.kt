@@ -239,13 +239,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         }
 
         val navHostModifier = if (showBottomBar) {
-            Modifier
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+            Modifier.padding(innerPadding)
         } else {
-            Modifier
-                .padding(top = innerPadding.calculateTopPadding())
-                .background(MaterialTheme.colorScheme.background)
+            Modifier.padding(top = innerPadding.calculateTopPadding())
         }
 
         NavHost(
