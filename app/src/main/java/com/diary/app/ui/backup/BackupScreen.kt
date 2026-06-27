@@ -259,6 +259,7 @@ fun BackupScreen(
                             } else {
                                 DiaryImporter.import(app.database, pending.backup)
                             }
+                            backupHistory = BackupManager.getBackupHistory(context)
                             Toast.makeText(
                                 context,
                                 if (overwrite) "覆盖导入成功: ${result.entryCount} 篇日记"
@@ -971,32 +972,9 @@ private fun StaggeredBackupItem(
     showContent: Boolean,
     content: @Composable () -> Unit
 ) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(showContent) {
-        if (showContent) {
-            delay(index * 60L)
-            visible = true
-        }
-    }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(300),
-        label = "backupStaggerAlpha"
-    )
-    val offsetY by animateFloatAsState(
-        targetValue = if (visible) 0f else 20f,
-        animationSpec = tween(300),
-        label = "backupStaggerOffset"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                this.alpha = alpha
-                translationY = offsetY
-            }
     ) {
         content()
     }
