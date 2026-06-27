@@ -836,26 +836,34 @@ object BackupManager {
         val dir = getBackupDir()
         val results = mutableListOf<File>()
 
-        // 查询 Documents/DiaryApp 目录中的备份文件
-        // 使用 MediaStore.Downloads 并指定 RELATIVE_PATH 来精确查询
+        // 使用 MediaStore.Files 查询 Documents/DiaryApp 目录中的备份文件
+        // MediaStore.Downloads 只索引 Downloads 目录，不索引 Documents 目录
         val projection = arrayOf(
-            MediaStore.Downloads._ID,
-            MediaStore.Downloads.DISPLAY_NAME
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.DATA
         )
 
         for (prefix in BACKUP_SCAN_PREFIXES) {
-            // 查询 Documents/DiaryApp 目录
-            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND ${MediaStore.Downloads.RELATIVE_PATH} LIKE ?"
+            val selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DATA} LIKE ?"
             val selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
             context.contentResolver.query(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs, null
+                MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs, null
             )?.use { cursor ->
-                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                val nameIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val dataIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA)
                 while (cursor.moveToNext()) {
                     val fileName = cursor.getString(nameIdx)
+                    val filePath = cursor.getString(dataIdx)
                     if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) }) {
-                        val file = File(dir, fileName)
-                        results.add(file)
+                        // 使用 MediaStore 返回的实际路径
+                        val file = if (filePath != null) File(filePath) else File(dir, fileName)
+                        if (file.exists()) {
+                            results.add(file)
+                        } else {
+                            // 如果文件不存在，仍然添加到结果中
+                            results.add(File(dir, fileName))
+                        }
                     }
                 }
             }

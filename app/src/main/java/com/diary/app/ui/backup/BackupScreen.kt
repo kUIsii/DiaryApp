@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.util.Log
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -267,14 +268,16 @@ fun BackupScreen(
                                 val entryCount = pending.backup.entries?.size ?: 0
                                 val record = BackupRecord(
                                     fileName = importFile.fileName,
-                                    filePath = "", // 导入的文件路径未知
+                                    filePath = importFile.fileName,
                                     timestamp = importFile.lastModified,
                                     entryCount = entryCount,
                                     fileSize = importFile.fileSize
                                 )
                                 BackupManager.addBackupRecord(context, record)
+                                Log.d("BackupScreen", "Added import record: ${importFile.fileName}")
                             }
                             backupHistory = BackupManager.getBackupHistory(context)
+                            Log.d("BackupScreen", "Backup history size: ${backupHistory.size}")
                             Toast.makeText(
                                 context,
                                 if (overwrite) "覆盖导入成功: ${result.entryCount} 篇日记"
