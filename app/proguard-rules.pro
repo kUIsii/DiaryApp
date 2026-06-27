@@ -2,6 +2,7 @@
 -keep class com.google.gson.** { *; }
 -keep class com.diary.app.update.ChangelogRelease { *; }
 -keep class com.diary.app.update.GitHubRelease { *; }
+-keep class com.diary.app.update.GitHubAsset { *; }
 -keep class com.diary.app.data.DiaryBackup { *; }
 -keep class com.diary.app.data.BackupEntry { *; }
 -keep class com.diary.app.data.BackupTag { *; }
