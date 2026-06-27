@@ -1,12 +1,9 @@
 package com.diary.app.ui.achievement
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
@@ -52,12 +49,10 @@ import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -174,75 +169,37 @@ fun AchievementArtwork(
     val shape = RoundedCornerShape(cornerRadius.dp)
     val baseColor = categoryColor(category)
 
-    // Tier affects saturation/brightness
-    val (bgStart, bgEnd, iconAlpha) = when {
-        !isUnlocked -> Triple(
-            Color(0xFFF0EDE8),
-            Color(0xFFE2DDD5),
-            0.3f
-        )
-        tier == AchievementTier.LEGENDARY -> Triple(
-            baseColor.copy(alpha = 0.22f),
-            baseColor.copy(alpha = 0.38f),
-            1f
-        )
-        tier == AchievementTier.EPIC -> Triple(
-            baseColor.copy(alpha = 0.15f),
-            baseColor.copy(alpha = 0.30f),
-            0.95f
-        )
-        tier == AchievementTier.RARE -> Triple(
-            baseColor.copy(alpha = 0.10f),
-            baseColor.copy(alpha = 0.22f),
-            0.9f
-        )
-        else -> Triple(
-            baseColor.copy(alpha = 0.07f),
-            baseColor.copy(alpha = 0.16f),
-            0.85f
-        )
+    // Tier: icon size and tint alpha
+    val (iconSize, iconAlpha) = when {
+        !isUnlocked -> 28.dp to 0.30f
+        tier == AchievementTier.LEGENDARY -> 36.dp to 1.0f
+        tier == AchievementTier.EPIC -> 34.dp to 0.92f
+        tier == AchievementTier.RARE -> 32.dp to 0.84f
+        else -> 30.dp to 0.75f
     }
 
-    val borderColor = if (isUnlocked) {
-        baseColor.copy(alpha = 0.25f)
-    } else {
-        Color(0xFFD6D0C8).copy(alpha = 0.4f)
+    // Background: solid, very low alpha
+    val bgAlpha = when {
+        !isUnlocked -> 0.04f
+        tier == AchievementTier.LEGENDARY -> 0.14f
+        tier == AchievementTier.EPIC -> 0.10f
+        tier == AchievementTier.RARE -> 0.07f
+        else -> 0.05f
     }
+
+    val iconColor = if (isUnlocked) baseColor else Color(0xFFB0A99E)
 
     Box(
         modifier = modifier
             .clip(shape)
-            .background(
-                Brush.linearGradient(listOf(bgStart, bgEnd)),
-                shape
-            )
-            .border(1.dp, borderColor, shape),
+            .background(baseColor.copy(alpha = bgAlpha), shape),
         contentAlignment = Alignment.Center
     ) {
-        // Soft circular glow behind icon (unlocked only)
-        if (isUnlocked) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(baseColor.copy(alpha = 0.10f))
-            )
-        }
-
-        // Icon
         Icon(
-            imageVector = if (isUnlocked) {
-                achievementIcon(achievementKey)
-            } else {
-                Icons.Default.Lock
-            },
+            imageVector = if (isUnlocked) achievementIcon(achievementKey) else Icons.Default.Lock,
             contentDescription = null,
-            modifier = Modifier.size(36.dp),
-            tint = if (isUnlocked) {
-                baseColor.copy(alpha = iconAlpha)
-            } else {
-                Color(0xFFB0A99E)
-            }
+            modifier = Modifier.size(iconSize),
+            tint = iconColor.copy(alpha = if (isUnlocked) iconAlpha else 0.30f)
         )
     }
 }
