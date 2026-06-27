@@ -28,12 +28,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -115,8 +112,7 @@ fun BackupScreen(
     var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
     var selectedImportFile by remember { mutableStateOf<BackupManager.DownloadBackupFile?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
-    var showFileListDialog by remember { mutableStateOf(false) }
-    var downloadFiles by remember { mutableStateOf<List<BackupManager.DownloadBackupFile>>(emptyList()) }
+    var backupFiles by remember { mutableStateOf<List<BackupRecord>>(emptyList()) }
 
     val storagePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -131,6 +127,18 @@ fun BackupScreen(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { BackupManager.initBackupDir(context) }
         backupHistory = BackupManager.getBackupHistory(context)
+        val scanned = BackupManager.scanImportableBackupFiles(context)
+        val merged = mutableListOf<BackupRecord>()
+        for (record in backupHistory) {
+            merged.add(record)
+        }
+        for (file in scanned) {
+            if (merged.none { it.fileName == file.fileName }) {
+                merged.add(BackupRecord(file.fileName, file.fileName, file.lastModified, 0, file.fileSize))
+            }
+        }
+        merged.sortByDescending { it.timestamp }
+        backupFiles = merged
     }
 
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -147,6 +155,7 @@ fun BackupScreen(
                 TextButton(onClick = {
                     BackupManager.deleteBackup(context, record)
                     backupHistory = BackupManager.getBackupHistory(context)
+                    backupFiles = backupFiles.filter { it.fileName != record.fileName }
                     deleteTarget = null
                     Toast.makeText(context, context.getString(R.string.backup_deleted), Toast.LENGTH_SHORT).show()
                 }) {
@@ -178,6 +187,16 @@ fun BackupScreen(
                     try {
                         BackupManager.renameBackup(context, record, renameInput)
                         backupHistory = BackupManager.getBackupHistory(context)
+                        val scannedAfterRename = BackupManager.scanImportableBackupFiles(context)
+                        val mergedAfterRename = mutableListOf<BackupRecord>()
+                        for (r in backupHistory) mergedAfterRename.add(r)
+                        for (f in scannedAfterRename) {
+                            if (mergedAfterRename.none { it.fileName == f.fileName }) {
+                                mergedAfterRename.add(BackupRecord(f.fileName, f.fileName, f.lastModified, 0, f.fileSize))
+                            }
+                        }
+                        mergedAfterRename.sortByDescending { it.timestamp }
+                        backupFiles = mergedAfterRename
                         renameTarget = null
                         Toast.makeText(context, "备份名称已更新", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
@@ -273,7 +292,16 @@ fun BackupScreen(
                                 Log.d("BackupScreen", "Added import record: ${importFile.fileName}")
                             }
                             backupHistory = BackupManager.getBackupHistory(context)
-                            Log.d("BackupScreen", "Backup history size: ${backupHistory.size}")
+                            val scannedAfterImport = BackupManager.scanImportableBackupFiles(context)
+                            val mergedAfterImport = mutableListOf<BackupRecord>()
+                            for (r in backupHistory) mergedAfterImport.add(r)
+                            for (f in scannedAfterImport) {
+                                if (mergedAfterImport.none { it.fileName == f.fileName }) {
+                                    mergedAfterImport.add(BackupRecord(f.fileName, f.fileName, f.lastModified, 0, f.fileSize))
+                                }
+                            }
+                            mergedAfterImport.sortByDescending { it.timestamp }
+                            backupFiles = mergedAfterImport
                             Toast.makeText(
                                 context,
                                 if (overwrite) "覆盖导入成功: ${result.entryCount} 篇日记"
@@ -345,94 +373,6 @@ fun BackupScreen(
         )
     }
 
-    // 备份文件列表弹窗
-    if (showFileListDialog) {
-        AlertDialog(
-            onDismissRequest = { showFileListDialog = false },
-            title = { Text("选择备份文件") },
-            text = {
-                if (downloadFiles.isEmpty()) {
-                    Text("Downloads 目录中没有找到备份文件", color = textTertiary)
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 360.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                        downloadFiles.forEach { file ->
-                            val sizeLabel = when {
-                                file.fileSize < 1024 -> "${file.fileSize}B"
-                                file.fileSize < 1024 * 1024 -> "${file.fileSize / 1024}KB"
-                                else -> String.format("%.1fMB", file.fileSize / (1024.0 * 1024.0))
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        showFileListDialog = false
-                                        selectedImportFile = file
-                                        // 读取文件并显示导入确认
-                                        scope.launch {
-                                            try {
-                                                val pending = BackupManager.readBackupForImport(context, file.fileName)
-                                                if (pending != null) {
-                                                    pendingImport = pending
-                                                } else {
-                                                    Toast.makeText(context, "无法读取文件", Toast.LENGTH_SHORT).show()
-                                                }
-                                            } catch (e: Exception) {
-                                                Toast.makeText(context, "读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    }
-                                    .padding(vertical = 10.dp, horizontal = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.Backup,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = displayBackupName(file.fileName),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = textColor,
-                                        maxLines = 1
-                                    )
-                                    Text(
-                                        text = "${dateFormat.format(Date(file.lastModified))}  |  $sizeLabel",
-                                        fontSize = 11.sp,
-                                        color = textTertiary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showFileListDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -644,6 +584,16 @@ fun BackupScreen(
                                                 }
                                                 val record = BackupManager.createBackup(context, dao)
                                                 backupHistory = BackupManager.getBackupHistory(context)
+                                                val scanned = BackupManager.scanImportableBackupFiles(context)
+                                                val merged = mutableListOf<BackupRecord>()
+                                                for (r in backupHistory) merged.add(r)
+                                                for (f in scanned) {
+                                                    if (merged.none { it.fileName == f.fileName }) {
+                                                        merged.add(BackupRecord(f.fileName, f.fileName, f.lastModified, 0, f.fileSize))
+                                                    }
+                                                }
+                                                merged.sortByDescending { it.timestamp }
+                                                backupFiles = merged
                                                 backupProgress = 1f
                                                 delay(250)
                                                 Toast.makeText(
@@ -681,15 +631,25 @@ fun BackupScreen(
                                     enabled = !isBackingUp && !isImporting,
                                     onClick = {
                                         if (!isBackingUp && !isImporting) {
-                                            downloadFiles = BackupManager.scanImportableBackupFiles(context)
-                                            showFileListDialog = true
+                                            val scanned = BackupManager.scanImportableBackupFiles(context)
+                                            val merged = mutableListOf<BackupRecord>()
+                                            for (record in backupHistory) {
+                                                merged.add(record)
+                                            }
+                                            for (file in scanned) {
+                                                if (merged.none { it.fileName == file.fileName }) {
+                                                    merged.add(BackupRecord(file.fileName, file.fileName, file.lastModified, 0, file.fileSize))
+                                                }
+                                            }
+                                            merged.sortByDescending { it.timestamp }
+                                            backupFiles = merged
                                         }
                                     }
                                 )
                             }
                         }
                     }
-                if (backupHistory.isNotEmpty()) {
+                if (backupFiles.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = stringResource(R.string.backup_history),
@@ -698,12 +658,26 @@ fun BackupScreen(
                         )
                     }
 
-                    itemsIndexed(backupHistory) { index, record ->
-                        BackupHistoryItem(
+                    itemsIndexed(backupFiles) { _, record ->
+                        BackupFileItem(
                             record = record,
                             textColor = textColor,
-                            textSecondary = textSecondary,
                             textTertiary = textTertiary,
+                            onImport = {
+                                selectedImportFile = BackupManager.DownloadBackupFile(record.fileName, record.fileSize, record.timestamp)
+                                scope.launch {
+                                    try {
+                                        val pending = BackupManager.readBackupForImport(context, record.fileName)
+                                        if (pending != null) {
+                                            pendingImport = pending
+                                        } else {
+                                            Toast.makeText(context, "无法读取文件", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "读取失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
                             onRename = {
                                 renameTarget = record
                                 renameInput = displayBackupName(record.fileName)
@@ -721,14 +695,14 @@ fun BackupScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "暂无本地备份",
+                                    text = "暂无本地备份文件",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = textColor
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "创建一个本地备份后，就能在这里重命名、删除或导入。",
+                                    text = "创建一个本地备份后，就能在这里管理、重命名或删除。",
                                     fontSize = 12.sp,
                                     color = textTertiary
                                 )
@@ -812,6 +786,92 @@ private fun BackupHistoryItem(
                     Icons.Default.Edit,
                     contentDescription = "重命名",
                     tint = textSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = textTertiary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackupFileItem(
+    record: BackupRecord,
+    textColor: Color,
+    textTertiary: Color,
+    onImport: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val dateStr = dateFormat.format(Date(record.timestamp))
+    val sizeLabel = when {
+        record.fileSize <= 0L -> ""
+        record.fileSize < 1024L -> "${record.fileSize}B"
+        record.fileSize < 1024L * 1024L -> "${record.fileSize / 1024L}KB"
+        else -> String.format("%.1fMB", record.fileSize / (1024f * 1024f))
+    }
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onImport),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Backup,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayBackupName(record.fileName),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row {
+                    Text(text = dateStr, fontSize = 11.sp, color = textTertiary)
+                    if (record.entryCount > 0) {
+                        Text(
+                            text = "  |  ${record.entryCount} 篇日记",
+                            fontSize = 11.sp,
+                            color = textTertiary
+                        )
+                    }
+                    if (sizeLabel.isNotBlank()) {
+                        Text(text = "  |  $sizeLabel", fontSize = 11.sp, color = textTertiary)
+                    }
+                }
+            }
+
+            IconButton(onClick = onRename, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "重命名",
+                    tint = textColor,
                     modifier = Modifier.size(18.dp)
                 )
             }
