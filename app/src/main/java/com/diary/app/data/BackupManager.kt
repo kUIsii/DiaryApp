@@ -700,6 +700,51 @@ object BackupManager {
     }
 
     /**
+     * 仅扫描 Downloads 目录中的备份文件（不含 Documents/DiaryApp/）
+     */
+    private fun scanDownloadsBackupFiles(context: Context): List<DownloadBackupFile> {
+        val results = mutableListOf<DownloadBackupFile>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val projection = arrayOf(
+                MediaStore.Downloads.DISPLAY_NAME,
+                MediaStore.Downloads.SIZE,
+                MediaStore.Downloads.DATE_MODIFIED
+            )
+            for (prefix in BACKUP_SCAN_PREFIXES) {
+                val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
+                context.contentResolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf("${prefix}%"),
+                    "${MediaStore.Downloads.DATE_MODIFIED} DESC"
+                )?.use { cursor ->
+                    val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                    val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
+                    val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
+                    while (cursor.moveToNext()) {
+                        val fileName = cursor.getString(nameIdx)
+                        if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) } && results.none { it.fileName == fileName }) {
+                            results.add(DownloadBackupFile(fileName, cursor.getLong(sizeIdx), cursor.getLong(dateIdx) * 1000))
+                        }
+                    }
+                }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (dir.exists()) {
+                dir.listFiles()?.filter {
+                    BACKUP_SCAN_PREFIXES.any { prefix -> it.name.startsWith(prefix) } &&
+                        BACKUP_SCAN_EXTENSIONS.any { ext -> it.name.endsWith(ext) }
+                }?.forEach {
+                    if (results.none { existing -> existing.fileName == it.name }) {
+                        results.add(DownloadBackupFile(it.name, it.length(), it.lastModified()))
+                    }
+                }
+            }
+        }
+        return results
+    }
+
+    /**
      * 读取 Downloads 中某个备份文件的内容
      */
     fun readDownloadBackup(context: Context, fileName: String): String? {
@@ -784,28 +829,46 @@ object BackupManager {
     fun initBackupDir(context: Context) {
         createBackupDir()
 
-        // 扫描备份目录中已有文件，恢复历史记录
+        val history = getBackupHistory(context)
+        val knownFileNames = history.map { it.fileName }.toSet()
+
+        // 扫描 Documents/DiaryApp/ 目录中已有文件，恢复历史记录
         val existingFiles = scanBackupDir(context)
-        if (existingFiles.isNotEmpty()) {
-            val history = getBackupHistory(context)
-            val knownFileNames = history.map { it.fileName }.toSet()
-            for (file in existingFiles) {
-                if (file.name in knownFileNames) continue
-                val entryCount = try {
-                    val parsed = Gson().fromJson(readBackupJsonFromFile(file), DiaryBackup::class.java)
-                    parsed?.entries?.size ?: 0
-                } catch (_: Exception) {
-                    Log.w("BackupManager", "Failed to count entries in backup file: ${file.name}")
-                    0
-                }
-                addBackupRecord(context, BackupRecord(
-                    fileName = file.name,
-                    filePath = file.absolutePath,
-                    timestamp = file.lastModified(),
-                    entryCount = entryCount,
-                    fileSize = file.length()
-                ))
+        for (file in existingFiles) {
+            if (file.name in knownFileNames) continue
+            val entryCount = try {
+                val parsed = Gson().fromJson(readBackupJsonFromFile(file), DiaryBackup::class.java)
+                parsed?.entries?.size ?: 0
+            } catch (_: Exception) {
+                Log.w("BackupManager", "Failed to count entries in backup file: ${file.name}")
+                0
             }
+            addBackupRecord(context, BackupRecord(
+                fileName = file.name,
+                filePath = file.absolutePath,
+                timestamp = file.lastModified(),
+                entryCount = entryCount,
+                fileSize = file.length()
+            ))
+        }
+
+        // 扫描 Downloads 目录中的旧备份文件，也加入历史记录
+        val currentKnown = getBackupHistory(context).map { it.fileName }.toSet()
+        scanDownloadsBackupFiles(context).forEach { dlFile ->
+            if (dlFile.fileName in currentKnown) return@forEach
+            val entryCount = try {
+                val json = readDownloadBackup(context, dlFile.fileName)
+                if (json != null) {
+                    Gson().fromJson(json, DiaryBackup::class.java)?.entries?.size ?: 0
+                } else 0
+            } catch (_: Exception) { 0 }
+            addBackupRecord(context, BackupRecord(
+                fileName = dlFile.fileName,
+                filePath = dlFile.fileName,
+                timestamp = dlFile.lastModified,
+                entryCount = entryCount,
+                fileSize = dlFile.fileSize
+            ))
         }
 
         // 迁移旧版 Downloads 中的备份到新目录
