@@ -112,6 +112,7 @@ fun BackupScreen(
     var renameTarget by remember { mutableStateOf<BackupRecord?>(null) }
     var renameInput by remember { mutableStateOf("") }
     var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
+    var selectedImportFile by remember { mutableStateOf<BackupManager.DownloadBackupFile?>(null) }
     var showFrequencyDialog by remember { mutableStateOf(false) }
     var showContent by remember { mutableStateOf(false) }
     var showFileListDialog by remember { mutableStateOf(false) }
@@ -246,8 +247,10 @@ fun BackupScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val pending = pendingImportData
+                    val importFile = selectedImportFile
                     val overwrite = overwriteMode
                     pendingImport = null
+                    selectedImportFile = null
                     isImporting = true
                     scope.launch {
                         try {
@@ -258,6 +261,18 @@ fun BackupScreen(
                                 DiaryImporter.importOverwrite(app.database, pending.backup)
                             } else {
                                 DiaryImporter.import(app.database, pending.backup)
+                            }
+                            // 将导入的备份文件添加到历史记录
+                            if (importFile != null) {
+                                val entryCount = pending.backup.entries?.size ?: 0
+                                val record = BackupRecord(
+                                    fileName = importFile.fileName,
+                                    filePath = "", // 导入的文件路径未知
+                                    timestamp = importFile.lastModified,
+                                    entryCount = entryCount,
+                                    fileSize = importFile.fileSize
+                                )
+                                BackupManager.addBackupRecord(context, record)
                             }
                             backupHistory = BackupManager.getBackupHistory(context)
                             Toast.makeText(
@@ -359,6 +374,7 @@ fun BackupScreen(
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
                                         showFileListDialog = false
+                                        selectedImportFile = file
                                         // 读取文件并显示导入确认
                                         scope.launch {
                                             try {
