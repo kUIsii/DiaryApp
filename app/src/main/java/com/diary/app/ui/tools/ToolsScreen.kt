@@ -131,8 +131,7 @@ fun ToolsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToAiManagement: () -> Unit = {},
-    onSwipeToTimeline: (() -> Unit)? = null,
-    onSwipeToTodo: (() -> Unit)? = null
+    onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? DiaryApplication
@@ -175,7 +174,7 @@ fun ToolsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(onSwipeToTimeline, onSwipeToTodo) {
+                    .pointerInput(onMainScreenSwipe) {
                         var totalDrag = 0f
                         detectHorizontalDragGestures(
                             onDragStart = { totalDrag = 0f },
@@ -184,10 +183,7 @@ fun ToolsScreen(
                                 change.consume()
                             },
                             onDragEnd = {
-                                when {
-                                    totalDrag >= 72f -> onSwipeToTimeline?.invoke()
-                                    totalDrag <= -72f -> onSwipeToTodo?.invoke()
-                                }
+                                onMainScreenSwipe?.invoke(totalDrag)
                             }
                         )
                     }

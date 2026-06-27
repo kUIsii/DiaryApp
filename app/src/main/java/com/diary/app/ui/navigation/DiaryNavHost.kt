@@ -217,7 +217,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
@@ -359,12 +359,16 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
-                    onSwipeToTimeline = if (experimentalFeatures.mainScreenSwipeEnabled) {
-                        { navigateToBottomRoute(Screen.Timeline.route) }
-                    } else null,
-                    onSwipeToTodo = if (experimentalFeatures.mainScreenSwipeEnabled) {
-                        { navigateToBottomRoute(Screen.Todo.route) }
-                    } else null
+                    onMainScreenSwipe = { dragAmount ->
+                        val targetRoute = resolveMainScreenSwipeTarget(
+                            currentRoute = Screen.Tools.route,
+                            totalDrag = dragAmount,
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
+                        )
+                        if (targetRoute != null) {
+                            navigateToBottomRoute(targetRoute)
+                        }
+                    }
                 )
             }
             composable(Screen.Todo.route) {
