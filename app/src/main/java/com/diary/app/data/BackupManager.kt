@@ -832,32 +832,13 @@ object BackupManager {
         val history = getBackupHistory(context)
         val knownFileNames = history.map { it.fileName }.toSet()
 
-        // 扫描 Documents/DiaryApp/ 目录中已有文件，恢复历史记录
-        val existingFiles = scanBackupDir(context)
-        for (file in existingFiles) {
-            if (file.name in knownFileNames) continue
+        // 使用 scanImportableBackupFiles 扫描所有可发现的备份文件
+        // （它已经覆盖了 Documents/DiaryApp/ 和 Downloads 两个位置）
+        val allFiles = scanImportableBackupFiles(context)
+        for (dlFile in allFiles) {
+            if (dlFile.fileName in knownFileNames) continue
             val entryCount = try {
-                val parsed = Gson().fromJson(readBackupJsonFromFile(file), DiaryBackup::class.java)
-                parsed?.entries?.size ?: 0
-            } catch (_: Exception) {
-                Log.w("BackupManager", "Failed to count entries in backup file: ${file.name}")
-                0
-            }
-            addBackupRecord(context, BackupRecord(
-                fileName = file.name,
-                filePath = file.absolutePath,
-                timestamp = file.lastModified(),
-                entryCount = entryCount,
-                fileSize = file.length()
-            ))
-        }
-
-        // 扫描 Downloads 目录中的旧备份文件，也加入历史记录
-        val currentKnown = getBackupHistory(context).map { it.fileName }.toSet()
-        scanDownloadsBackupFiles(context).forEach { dlFile ->
-            if (dlFile.fileName in currentKnown) return@forEach
-            val entryCount = try {
-                val json = readDownloadBackup(context, dlFile.fileName)
+                val json = readBackupForImportJson(context, dlFile.fileName)
                 if (json != null) {
                     Gson().fromJson(json, DiaryBackup::class.java)?.entries?.size ?: 0
                 } else 0
@@ -873,6 +854,17 @@ object BackupManager {
 
         // 迁移旧版 Downloads 中的备份到新目录
         migrateFromDownloads(context)
+    }
+
+    /**
+     * 从所有已知位置读取备份 JSON 内容
+     */
+    private fun readBackupForImportJson(context: Context, fileName: String): String? {
+        // 优先从 Documents/DiaryApp/ 读取
+        val dirResult = readBackupJsonFromBackupDir(fileName)
+        if (dirResult != null) return dirResult
+        // 回退到 Downloads
+        return readDownloadBackup(context, fileName)
     }
 
     /**
