@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 27119
-        versionName = "2.71.19-experimental"
+        versionCode = 27120
+        versionName = "2.71.20-experimental"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -67,8 +67,8 @@ android {
         create("experimental") {
             dimension = "version"
             applicationId = "com.diary.app.experimental"
-            versionCode = 27110
-            versionName = "2.71.10-experimental"
+            versionCode = 27120
+            versionName = "2.71.20-experimental"
         }
     }
 

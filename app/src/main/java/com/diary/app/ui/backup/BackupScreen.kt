@@ -129,10 +129,8 @@ fun BackupScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (BackupManager.hasStoragePermission()) {
-            withContext(Dispatchers.IO) { BackupManager.initBackupDir(context) }
-            backupHistory = BackupManager.getBackupHistory(context)
-        }
+        withContext(Dispatchers.IO) { BackupManager.initBackupDir(context) }
+        backupHistory = BackupManager.getBackupHistory(context)
     }
 
     val textColor = MaterialTheme.colorScheme.onBackground
