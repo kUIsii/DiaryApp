@@ -217,7 +217,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
