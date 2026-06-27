@@ -1,6 +1,7 @@
 package com.diary.app.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BackupManagerUtilsTest {
@@ -35,5 +36,17 @@ class BackupManagerUtilsTest {
             "diary_backup_20260612.diarybackup",
             normalizeBackupFileName("diary_backup_20260612.json")
         )
+    }
+
+    @Test
+    fun `supported backup scan prefixes include both legacy and current backup names`() {
+        assertTrue(BACKUP_SCAN_PREFIXES.contains("diary_backup_"))
+        assertTrue(BACKUP_SCAN_PREFIXES.contains("日记备份_"))
+    }
+
+    @Test
+    fun `supported backup file extensions include full package and legacy json`() {
+        assertTrue(BACKUP_SCAN_EXTENSIONS.contains(".json"))
+        assertTrue(BACKUP_SCAN_EXTENSIONS.contains(".diarybackup"))
     }
 }

@@ -2,7 +2,7 @@ package com.diary.app.ui.navigation
 
 const val MAIN_SCREEN_SWIPE_THRESHOLD = 48f
 
-val mainScreenRoutes = listOf("home", "timeline", "tools", "todo", "profile")
+val mainScreenRoutes = listOf("home", "timeline", "todo", "profile")
 
 fun resolveMainScreenSwipeTarget(
     currentRoute: String?,

@@ -30,4 +30,15 @@ class BackupCoverageSourceTest {
         assertTrue(!tagScreenSource.contains("CapsuleButton(text = \"恢复\""))
         assertTrue(!tagScreenSource.contains("TagBackup("))
     }
+
+    @Test
+    fun `backup import scans current documents directory instead of only downloads specific flow`() {
+        val backupManagerSource = File("src/main/java/com/diary/app/data/BackupManager.kt").readText()
+        val backupScreenSource = File("src/main/java/com/diary/app/ui/backup/BackupScreen.kt").readText()
+
+        assertTrue(backupManagerSource.contains("fun scanImportableBackupFiles(context: Context): List<DownloadBackupFile>"))
+        assertTrue(backupManagerSource.contains("scanBackupDir().forEach"))
+        assertTrue(backupManagerSource.contains("for (prefix in BACKUP_SCAN_PREFIXES)"))
+        assertTrue(backupScreenSource.contains("BackupManager.scanImportableBackupFiles(context)"))
+    }
 }

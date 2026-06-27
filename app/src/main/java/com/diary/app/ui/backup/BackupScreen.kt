@@ -668,7 +668,7 @@ fun BackupScreen(
                                     enabled = !isBackingUp && !isImporting,
                                     onClick = {
                                         if (!isBackingUp && !isImporting) {
-                                            downloadFiles = BackupManager.scanDownloadsBackups(context)
+                                            downloadFiles = BackupManager.scanImportableBackupFiles(context)
                                             showFileListDialog = true
                                         }
                                     }

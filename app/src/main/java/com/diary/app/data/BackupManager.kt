@@ -41,6 +41,8 @@ data class BackupRecord(
 )
 
 private const val FULL_BACKUP_EXTENSION = ".diarybackup"
+internal val BACKUP_SCAN_PREFIXES = listOf("diary_backup_", "日记备份_")
+internal val BACKUP_SCAN_EXTENSIONS = listOf(".json", FULL_BACKUP_EXTENSION)
 
 fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"): String {
     val baseName = rawName
@@ -54,7 +56,7 @@ fun normalizeBackupFileName(rawName: String, fallbackBaseName: String = "backup"
         .ifBlank { fallbackBaseName }
 
     // 确保以备份前缀开头，这样导入扫描能找到
-    val prefixed = if (baseName.startsWith("diary_backup_") || baseName.startsWith("日记备份_")) baseName else "diary_backup_$baseName"
+    val prefixed = if (BACKUP_SCAN_PREFIXES.any { baseName.startsWith(it) }) baseName else "diary_backup_$baseName"
     return "$prefixed$FULL_BACKUP_EXTENSION"
 }
 
@@ -640,10 +642,10 @@ object BackupManager {
     /**
      * 扫描 Downloads 目录中所有的备份文件。
      */
-    fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
+    fun scanImportableBackupFiles(context: Context): List<DownloadBackupFile> {
         val results = mutableListOf<DownloadBackupFile>()
-        if (hasStoragePermission()) {
-            scanBackupDir().forEach { file ->
+        scanBackupDir().forEach { file ->
+            if (results.none { it.fileName == file.name }) {
                 results.add(DownloadBackupFile(file.name, file.length(), file.lastModified()))
             }
         }
@@ -653,11 +655,10 @@ object BackupManager {
                 MediaStore.Downloads.SIZE,
                 MediaStore.Downloads.DATE_MODIFIED
             )
-            // Query both old and new naming prefixes
-            for (prefix in listOf("diary_backup_%", "日记备份_%")) {
+            for (prefix in BACKUP_SCAN_PREFIXES) {
                 val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
                 context.contentResolver.query(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf(prefix),
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf("${prefix}%"),
                     "${MediaStore.Downloads.DATE_MODIFIED} DESC"
                 )?.use { cursor ->
                     val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
@@ -680,8 +681,8 @@ object BackupManager {
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (dir.exists()) {
                 dir.listFiles()?.filter {
-                    (it.name.startsWith("diary_backup_") || it.name.startsWith("日记备份_")) &&
-                        (it.name.endsWith(".json") || it.name.endsWith(FULL_BACKUP_EXTENSION))
+                    BACKUP_SCAN_PREFIXES.any { prefix -> it.name.startsWith(prefix) } &&
+                        BACKUP_SCAN_EXTENSIONS.any { extension -> it.name.endsWith(extension) }
                 }
                     ?.sortedByDescending { it.lastModified() }
                     ?.forEach {
@@ -692,6 +693,10 @@ object BackupManager {
             }
         }
         return results.sortedByDescending { it.lastModified }
+    }
+
+    fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
+        return scanImportableBackupFiles(context)
     }
 
     /**
@@ -770,7 +775,6 @@ object BackupManager {
      * 在 BackupScreen 打开时调用。
      */
     fun initBackupDir(context: Context) {
-        if (!hasStoragePermission()) return
         createBackupDir()
 
         // 扫描备份目录中已有文件，恢复历史记录
@@ -808,8 +812,9 @@ object BackupManager {
         val dir = getBackupDir()
         if (!dir.exists()) return emptyArray()
         return dir.listFiles { file ->
-            file.isFile && (file.name.startsWith("diary_backup_") || file.name.startsWith("日记备份_")) &&
-                (file.name.endsWith(".json") || file.name.endsWith(FULL_BACKUP_EXTENSION))
+            file.isFile &&
+                BACKUP_SCAN_PREFIXES.any { prefix -> file.name.startsWith(prefix) } &&
+                BACKUP_SCAN_EXTENSIONS.any { extension -> file.name.endsWith(extension) }
         } ?: emptyArray()
     }
 

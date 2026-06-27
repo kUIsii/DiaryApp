@@ -3,7 +3,7 @@ package com.diary.app.ui.experimental
 import com.diary.app.data.TodoItem
 
 data class ExperimentalFeaturesState(
-    val mainScreenSwipeEnabled: Boolean = true,
+    val mainScreenSwipeEnabled: Boolean = false,
     val keepCompletedItemsInPlace: Boolean = false,
     val writingMilestonesEnabled: Boolean = false,
     val aiInsightCardEnabled: Boolean = false,

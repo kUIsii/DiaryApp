@@ -17,7 +17,7 @@ object ExperimentalFeaturesPreferences {
     fun getState(context: Context): ExperimentalFeaturesState {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return ExperimentalFeaturesState(
-            mainScreenSwipeEnabled = prefs.getBoolean(KEY_MAIN_SCREEN_SWIPE, true),
+            mainScreenSwipeEnabled = prefs.getBoolean(KEY_MAIN_SCREEN_SWIPE, false),
             keepCompletedItemsInPlace = prefs.getBoolean(KEY_KEEP_COMPLETED_IN_PLACE, false),
             writingMilestonesEnabled = prefs.getBoolean(KEY_WRITING_MILESTONES, false),
             aiInsightCardEnabled = prefs.getBoolean(KEY_AI_INSIGHT_CARD, false),

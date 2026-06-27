@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -520,7 +519,7 @@ fun HomeScreen(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(12.dp)) }
+                item { Spacer(modifier = Modifier.height(84.dp)) }
             }
 
             if (!multiSelectState.isEnabled) {
@@ -764,7 +763,6 @@ private fun HomeFab(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
             .padding(end = 20.dp, bottom = 16.dp),
         contentAlignment = Alignment.BottomEnd
     ) {

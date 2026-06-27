@@ -217,7 +217,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             if (showBottomBar) {
                 DiaryBottomNavigationBar(
@@ -255,7 +255,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
                 if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
                     val direction = if (toIdx > fromIdx) 1 else -1
-                    slideInHorizontally(tween(280)) { direction * it } +
+                    slideInHorizontally(tween(280)) { direction * it / 3 } +
                         fadeIn(tween(200))
                 } else {
                     fadeIn(animationSpec = tween(250))
@@ -268,7 +268,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
                 if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
                     val direction = if (toIdx > fromIdx) -1 else 1
-                    slideOutHorizontally(tween(280)) { direction * it } +
+                    slideOutHorizontally(tween(280)) { direction * it / 4 } +
                         fadeOut(tween(200))
                 } else {
                     fadeOut(animationSpec = tween(200))
