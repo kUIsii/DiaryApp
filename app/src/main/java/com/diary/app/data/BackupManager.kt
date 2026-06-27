@@ -726,10 +726,17 @@ object BackupManager {
 
     fun readBackupForImport(context: Context, fileName: String): PendingBackupImport? {
         return try {
-            val file = File(getBackupDir(), fileName)
-            if (file.exists()) {
-                readPendingImportFromFile(file)
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // 优先从外部备份目录读取（与 createBackup 一致）
+            val externalFile = File(getBackupDir(), fileName)
+            if (externalFile.exists()) {
+                return readPendingImportFromFile(externalFile)
+            }
+            // 回退到内部备份目录
+            val internalFile = File(getBackupDir(context), fileName)
+            if (internalFile.exists()) {
+                return readPendingImportFromFile(internalFile)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val uri = findDownloadsUri(context, fileName) ?: return null
                 context.contentResolver.openInputStream(uri)?.use { stream ->
                     if (fileName.endsWith(FULL_BACKUP_EXTENSION)) {
