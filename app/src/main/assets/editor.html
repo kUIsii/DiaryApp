@@ -543,7 +543,10 @@
             var editorRect = quill.root.getBoundingClientRect();
             var editorVisibleTop = Math.max(visibleTop, editorRect.top);
             var editorVisibleBottom = Math.min(visibleBottom, editorRect.bottom);
-            var bottomThreshold = editorVisibleBottom - 2;
+            var bottomThreshold = visibleBottom - 2;
+            if (editorVisibleBottom < bottomThreshold) {
+                var bottomThreshold = editorVisibleBottom - 2;
+            }
             var topThreshold = editorVisibleTop + (force ? 2 : 0);
             var caretTop = editorRect.top + bounds.top;
             var caretBottom = caretTop + bounds.height;
@@ -848,9 +851,7 @@
         }
 
         // Called by Kotlin when keyboard is dismissed — no-op, browser handles scrolling naturally
-        function scrollToCurrentCursor(forceRestore) {
-            scrollSelectionIntoView(!!forceRestore);
-        }
+        function scrollToCurrentCursor(forceRestore) { scrollSelectionIntoView(!!forceRestore); }
     </script>
 </body>
 </html>

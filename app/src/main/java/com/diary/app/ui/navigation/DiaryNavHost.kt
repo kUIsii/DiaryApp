@@ -58,6 +58,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -90,7 +91,6 @@ import com.diary.app.ui.countdown.CountDownScreen
 import com.diary.app.ui.detail.DiaryDetailScreen
 import com.diary.app.ui.editor.EditorScreen
 import com.diary.app.ui.experimental.ExperimentalFeaturesScreen
-import com.diary.app.ui.experimental.resolveMainScreenSwipeTarget
 import com.diary.app.ui.favorites.FavoritesScreen
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.media.MediaLibraryScreen
@@ -199,6 +199,7 @@ val bottomNavItems = listOf(
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
+    val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -288,6 +289,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         }
                         navController.navigate(Screen.Timeline.route)
                     },
+                    onNavigateToTodo = { navigateToBottomRoute(Screen.Todo.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToStats = { navController.navigate(Screen.Stats.route) },
@@ -305,7 +307,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,
                             totalDrag = dragAmount,
-                            enabled = true
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -324,7 +326,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Timeline.route,
                             totalDrag = dragAmount,
-                            enabled = true
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -357,8 +359,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
-                    onSwipeToTimeline = { navigateToBottomRoute(Screen.Timeline.route) },
-                    onSwipeToTodo = { navigateToBottomRoute(Screen.Todo.route) }
+                    onSwipeToTimeline = if (experimentalFeatures.mainScreenSwipeEnabled) {
+                        { navigateToBottomRoute(Screen.Timeline.route) }
+                    } else null,
+                    onSwipeToTodo = if (experimentalFeatures.mainScreenSwipeEnabled) {
+                        { navigateToBottomRoute(Screen.Todo.route) }
+                    } else null
                 )
             }
             composable(Screen.Todo.route) {
@@ -367,7 +373,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Todo.route,
                             totalDrag = dragAmount,
-                            enabled = true
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)
@@ -395,7 +401,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Profile.route,
                             totalDrag = dragAmount,
-                            enabled = true
+                            enabled = experimentalFeatures.mainScreenSwipeEnabled
                         )
                         if (targetRoute != null) {
                             navigateToBottomRoute(targetRoute)

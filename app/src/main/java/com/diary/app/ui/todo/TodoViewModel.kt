@@ -49,6 +49,61 @@ data class HabitSummaryUiState(
     val detailToday: Int = 0
 )
 
+enum class HabitDialogSurface {
+    NONE,
+    DETAIL,
+    RECORD
+}
+
+data class HabitDialogState(
+    val selectedHabitId: Long? = null,
+    val selectedMonth: YearMonth = YearMonth.now(),
+    val selectedDate: LocalDate = LocalDate.now(),
+    val activeDialog: HabitDialogSurface = HabitDialogSurface.NONE,
+    val returnToDetailAfterRecord: Boolean = false
+)
+
+internal fun openHabitDetailState(
+    habitId: Long,
+    initialDate: LocalDate = LocalDate.now()
+): HabitDialogState {
+    return HabitDialogState(
+        selectedHabitId = habitId,
+        selectedMonth = YearMonth.from(initialDate),
+        selectedDate = initialDate,
+        activeDialog = HabitDialogSurface.DETAIL
+    )
+}
+
+internal fun openHabitRecordDialogState(
+    current: HabitDialogState,
+    habitId: Long,
+    date: LocalDate = LocalDate.now()
+): HabitDialogState {
+    return HabitDialogState(
+        selectedHabitId = habitId,
+        selectedMonth = YearMonth.from(date),
+        selectedDate = date,
+        activeDialog = HabitDialogSurface.RECORD,
+        returnToDetailAfterRecord = current.activeDialog == HabitDialogSurface.DETAIL
+    )
+}
+
+internal fun dismissHabitDialogState(current: HabitDialogState): HabitDialogState {
+    return if (current.activeDialog == HabitDialogSurface.RECORD && current.returnToDetailAfterRecord && current.selectedHabitId != null) {
+        current.copy(
+            activeDialog = HabitDialogSurface.DETAIL,
+            returnToDetailAfterRecord = false
+        )
+    } else {
+        current.copy(
+            selectedHabitId = null,
+            activeDialog = HabitDialogSurface.NONE,
+            returnToDetailAfterRecord = false
+        )
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -93,20 +148,27 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     val allTags: StateFlow<List<Tag>> = dao.getAllTags()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedHabitId = MutableStateFlow<Long?>(null)
-    val selectedHabitId: StateFlow<Long?> = _selectedHabitId.asStateFlow()
+    private val _habitDialogState = MutableStateFlow(HabitDialogState())
+    val habitDialogState: StateFlow<HabitDialogState> = _habitDialogState.asStateFlow()
+    val selectedHabitId: StateFlow<Long?> = habitDialogState
+        .map { it.selectedHabitId }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _selectedHabitMonth = MutableStateFlow(YearMonth.now())
-    val selectedHabitMonth: StateFlow<YearMonth> = _selectedHabitMonth.asStateFlow()
+    val selectedHabitMonth: StateFlow<YearMonth> = habitDialogState
+        .map { it.selectedMonth }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), YearMonth.now())
 
-    private val _selectedHabitDate = MutableStateFlow(LocalDate.now())
-    val selectedHabitDate: StateFlow<LocalDate> = _selectedHabitDate.asStateFlow()
+    val selectedHabitDate: StateFlow<LocalDate> = habitDialogState
+        .map { it.selectedDate }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LocalDate.now())
 
-    private val _showHabitDetail = MutableStateFlow(false)
-    val showHabitDetail: StateFlow<Boolean> = _showHabitDetail.asStateFlow()
+    val showHabitDetail: StateFlow<Boolean> = habitDialogState
+        .map { it.activeDialog == HabitDialogSurface.DETAIL }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    private val _showHabitRecordDialog = MutableStateFlow(false)
-    val showHabitRecordDialog: StateFlow<Boolean> = _showHabitRecordDialog.asStateFlow()
+    val showHabitRecordDialog: StateFlow<Boolean> = habitDialogState
+        .map { it.activeDialog == HabitDialogSurface.RECORD }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val habitUiState: StateFlow<List<HabitItemUiState>> = allTodos
         .flatMapLatest { todos ->
@@ -118,7 +180,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         .map(::buildHabitSummaryUiState)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSummaryUiState())
 
-    val selectedHabit: StateFlow<TodoItem?> = combine(allTodos, _selectedHabitId) { todos, habitId ->
+    val selectedHabit: StateFlow<TodoItem?> = combine(allTodos, selectedHabitId) { todos, habitId ->
         todos.firstOrNull { it.id == habitId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -376,34 +438,36 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openHabitDetail(habitId: Long, initialDate: LocalDate = LocalDate.now()) {
-        _selectedHabitId.value = habitId
-        _selectedHabitDate.value = initialDate
-        _selectedHabitMonth.value = YearMonth.from(initialDate)
-        _showHabitDetail.value = true
+        _habitDialogState.value = openHabitDetailState(habitId, initialDate)
     }
 
     fun closeHabitDetail() {
-        _showHabitDetail.value = false
+        _habitDialogState.value = dismissHabitDialogState(_habitDialogState.value)
     }
 
     fun showHabitRecordDialog(habitId: Long, date: LocalDate = LocalDate.now()) {
-        _selectedHabitId.value = habitId
-        _selectedHabitDate.value = date
-        _selectedHabitMonth.value = YearMonth.from(date)
-        _showHabitRecordDialog.value = true
+        _habitDialogState.value = openHabitRecordDialogState(
+            current = _habitDialogState.value,
+            habitId = habitId,
+            date = date
+        )
     }
 
     fun hideHabitRecordDialog() {
-        _showHabitRecordDialog.value = false
+        _habitDialogState.value = dismissHabitDialogState(_habitDialogState.value)
     }
 
     fun selectHabitDate(date: LocalDate) {
-        _selectedHabitDate.value = date
-        _selectedHabitMonth.value = YearMonth.from(date)
+        _habitDialogState.value = _habitDialogState.value.copy(
+            selectedDate = date,
+            selectedMonth = YearMonth.from(date)
+        )
     }
 
     fun moveSelectedHabitMonth(delta: Long) {
-        _selectedHabitMonth.value = _selectedHabitMonth.value.plusMonths(delta)
+        _habitDialogState.value = _habitDialogState.value.copy(
+            selectedMonth = _habitDialogState.value.selectedMonth.plusMonths(delta)
+        )
     }
 
     fun saveHabitQuickRecord(habitId: Long, date: LocalDate, summary: String, source: String) {

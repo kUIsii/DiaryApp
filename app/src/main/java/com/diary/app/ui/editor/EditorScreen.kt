@@ -190,32 +190,19 @@ fun EditorScreen(
     var activePanel by remember { mutableStateOf<String?>(null) }
 
     // Toolbar state - initially hidden, shown when keyboard appears
-    var showToolbar by remember { mutableStateOf(true) }
-    var activeCategory by remember { mutableIntStateOf(-1) }
+    var chromeState by remember { mutableStateOf(EditorChromeState()) }
     var activeFormats by remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
-    var isToolbarManuallyHidden by remember { mutableStateOf(false) }
-    var keepToolbarOpen by remember { mutableStateOf(false) }
-    // Once user clicks the toggle button, lock the state �?no auto-show/hide
-    var isToolbarLocked by remember { mutableStateOf(false) }
 
     // Detect keyboard visibility and show/hide toolbar
     val isKeyboardVisible = WindowInsets.isImeVisible
     LaunchedEffect(isKeyboardVisible) {
-        if (isToolbarLocked) return@LaunchedEffect
-        if (isKeyboardVisible) {
-            // Keyboard appeared �?only show toolbar if user hasn't manually hidden it
-            if (!isToolbarManuallyHidden) {
-                showToolbar = true
-                if (activeCategory >= 0) {
-                    activeCategory = -1
-                }
-            }
-        } else if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
-            // Keyboard disappeared �?hide toolbar after short delay
+        if (!isKeyboardVisible && shouldAutoHideToolbarOnKeyboardHidden(chromeState.activeCategory, chromeState.keepToolbarOpen)) {
             kotlinx.coroutines.delay(200)
-            if (shouldAutoHideToolbarOnKeyboardHidden(activeCategory, keepToolbarOpen)) {
-                showToolbar = false
+            if (shouldAutoHideToolbarOnKeyboardHidden(chromeState.activeCategory, chromeState.keepToolbarOpen)) {
+                chromeState = onEditorKeyboardVisibilityChanged(chromeState, isKeyboardVisible = false)
             }
+        } else {
+            chromeState = onEditorKeyboardVisibilityChanged(chromeState, isKeyboardVisible)
         }
     }
 
@@ -388,9 +375,12 @@ fun EditorScreen(
         }
     }
 
-    LaunchedEffect(showToolbar, activeCategory, isWebViewReady, webViewViewportHeightPx, density) {
+    LaunchedEffect(chromeState.showToolbar, chromeState.activeCategory, isWebViewReady, webViewViewportHeightPx, density) {
         if (isWebViewReady) {
-            val bottomGap = resolveEditorBottomGap(showToolbar = showToolbar, activeCategory = activeCategory)
+            val bottomGap = resolveEditorBottomGap(
+                showToolbar = chromeState.showToolbar,
+                activeCategory = chromeState.activeCategory
+            )
             val viewportHeightCssPx = with(density) { webViewViewportHeightPx.toDp().value.toInt() }
             webView?.evaluateJavascript("setViewportMetrics($viewportHeightCssPx)", null)
             webView?.evaluateJavascript("setEditorBottomGap($bottomGap)", null)
@@ -641,7 +631,7 @@ fun EditorScreen(
             )
             kotlinx.coroutines.delay(80)
             webView?.evaluateJavascript("ensureSelection()", null)
-            isToolbarLocked = false
+            chromeState = chromeState.copy(isToolbarLocked = false)
         }
     }
 
@@ -711,7 +701,7 @@ fun EditorScreen(
                     currentDraftId = null
                     pendingDraft = null
                     viewModel.onManualSaveCompleted(diaryId)
-                    isToolbarLocked = false
+                    chromeState = chromeState.copy(isToolbarLocked = false)
                     haptic.success()
                     snackbarHostState.showSnackbar(
                         message = "日记已保存",
@@ -1083,14 +1073,10 @@ fun EditorScreen(
                     )
                 }
                 EditorTopIconButton(
-                    icon = if (showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = toolbarVisibilityDescription(showToolbar),
+                    icon = if (chromeState.showToolbar) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = toolbarVisibilityDescription(chromeState.showToolbar),
                     onClick = {
-                        val nextVisible = !showToolbar
-                        showToolbar = nextVisible
-                        isToolbarManuallyHidden = !nextVisible
-                        keepToolbarOpen = nextVisible
-                        isToolbarLocked = true
+                        chromeState = onEditorToolbarVisibilityToggled(chromeState)
                     }
                 )
                 EditorSaveButton(onClick = { saveCurrentEntry() }, enabled = !isSaving)
@@ -1330,23 +1316,20 @@ fun EditorScreen(
             }
 
             AnimatedVisibility(
-                visible = showToolbar,
+                visible = chromeState.showToolbar,
                 enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
                 exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
             ) {
                 EditorToolbar(
-                    showToolbar = showToolbar,
-                    activeCategory = activeCategory,
+                    showToolbar = chromeState.showToolbar,
+                    activeCategory = chromeState.activeCategory,
                     onCategoryChange = { cat ->
-                        if (activeCategory == cat) {
-                            activeCategory = -1
-                            keepToolbarOpen = true
+                        val previousCategory = chromeState.activeCategory
+                        chromeState = onEditorToolbarCategoryTapped(chromeState, cat)
+                        if (previousCategory == cat) {
                             webView?.requestFocus()
                             webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                            isToolbarLocked = false
                         } else {
-                            activeCategory = cat
-                            keepToolbarOpen = true
                             val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                             imm.hideSoftInputFromWindow((context as? android.app.Activity)?.currentFocus?.windowToken, 0)
                         }
@@ -1369,12 +1352,10 @@ fun EditorScreen(
                     onShowKeyboard = {
                         webView?.requestFocus()
                         webView?.evaluateJavascript("focusEditorWithRestore()", null)
-                        isToolbarLocked = false
+                        chromeState = chromeState.copy(isToolbarLocked = false)
                     },
                     onHideToolbar = {
-                        isToolbarManuallyHidden = true
-                        keepToolbarOpen = false
-                        showToolbar = false
+                        chromeState = onEditorToolbarHiddenByUser(chromeState)
                     },
                     fontSize = editorFontSize,
                     onFontSizeChange = { newSize ->

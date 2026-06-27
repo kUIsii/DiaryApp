@@ -27,7 +27,7 @@ interface DiaryDao {
     @Query("""
         SELECT id, title,
         CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
-        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt, writing_duration_seconds
         FROM diary_entries WHERE id = :id
     """)
     suspend fun getEntryByIdSafe(id: Long): DiaryEntry?
@@ -102,7 +102,7 @@ interface DiaryDao {
     @Query("""
         SELECT id, title,
         CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
-        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt, writing_duration_seconds
         FROM diary_entries WHERE id IN (:ids)
     """)
     suspend fun getEntriesByIdsSafe(ids: List<Long>): List<DiaryEntry>
@@ -203,9 +203,7 @@ interface DiaryDao {
     suspend fun getAllDiaryTagPairsOnce(): List<DiaryTagPair>
 
     @Query("""
-        SELECT id, title,
-        CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
-        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        SELECT id, title, plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
         FROM diary_entries WHERE id IN (:ids)
     """)
     suspend fun getPreviewsByIds(ids: List<Long>): List<DiaryPreview>
@@ -227,7 +225,7 @@ interface DiaryDao {
     @Query("""
         SELECT id, title,
         CASE WHEN instr(content, 'data:image/') > 0 AND length(content) > 262144 THEN '' ELSE content END AS content,
-        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt
+        plainText, moodLevel, weather, location, latitude, longitude, isFavorite, createdAt, updatedAt, writing_duration_seconds
         FROM diary_entries ORDER BY createdAt DESC LIMIT :limit OFFSET :offset
     """)
     suspend fun getEntriesBatchForExport(offset: Int, limit: Int): List<DiaryEntry>

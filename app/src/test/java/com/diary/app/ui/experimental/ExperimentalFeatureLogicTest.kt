@@ -1,6 +1,7 @@
 package com.diary.app.ui.experimental
 
 import com.diary.app.data.TodoItem
+import com.diary.app.ui.navigation.resolveMainScreenSwipeTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

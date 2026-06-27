@@ -20,6 +20,11 @@ abstract class DiaryDatabase : RoomDatabase() {
     abstract fun islandDao(): IslandDao
 
     companion object {
+        class DiaryDatabaseOpenException(
+            message: String,
+            cause: Throwable
+        ) : IllegalStateException(message, cause)
+
         @Volatile
         private var INSTANCE: DiaryDatabase? = null
 
@@ -738,9 +743,8 @@ abstract class DiaryDatabase : RoomDatabase() {
                     ).addMigrations(*allMigrations)
                     .addCallback(callback)
                     .build()
-                    .also { it.openHelper.writableDatabase }
                 } catch (e: Exception) {
-                    android.util.Log.e("DiaryDatabase", "Migration failed, backing up database before destructive migration", e)
+                    android.util.Log.e("DiaryDatabase", "Migration failed, backing up database before surfacing open error", e)
                     try {
                         val dbFile = context.getDatabasePath("diary_database")
                         val backupDir = java.io.File(context.filesDir, "db_backup")
@@ -758,15 +762,10 @@ abstract class DiaryDatabase : RoomDatabase() {
                     } catch (backupError: Exception) {
                         android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
                     }
-                    Room.databaseBuilder(
-                        context.applicationContext,
-                        DiaryDatabase::class.java,
-                        "diary_database"
-                    ).addMigrations(*allMigrations)
-                    .fallbackToDestructiveMigration()
-                    .addCallback(callback)
-                    .build()
-                    .also { it.openHelper.writableDatabase }
+                    throw DiaryDatabaseOpenException(
+                        message = "Unable to open diary database safely. A backup was created before aborting startup.",
+                        cause = e
+                    )
                 }
                 INSTANCE = instance
                 instance

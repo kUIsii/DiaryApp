@@ -141,7 +141,7 @@ internal fun shouldAutoHideToolbarOnKeyboardHidden(
     activeCategory: Int,
     keepToolbarOpen: Boolean
 ): Boolean {
-    return false
+    return activeCategory < 0 && !keepToolbarOpen
 }
 
 internal fun resolveCenteredLocationLabel(selectedLocation: String?): String {
@@ -191,7 +191,8 @@ internal fun isEditorDirty(
     initial: EditorSnapshot,
     current: EditorSnapshot
 ): Boolean {
-    return normalizedTitle(initial.title, initial.defaultTitle) != normalizedTitle(current.title, current.defaultTitle) ||
+    val sharedDefaultTitle = current.defaultTitle.ifBlank { initial.defaultTitle }
+    return normalizedTitle(initial.title, sharedDefaultTitle) != normalizedTitle(current.title, sharedDefaultTitle) ||
         normalizedPlainText(initial.plainText) != normalizedPlainText(current.plainText) ||
         initial.moodLevel != current.moodLevel ||
         initial.weather?.trim().orEmpty() != current.weather?.trim().orEmpty() ||

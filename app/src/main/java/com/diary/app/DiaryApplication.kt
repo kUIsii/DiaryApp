@@ -32,6 +32,10 @@ class DiaryApplication : Application() {
     val container by lazy { AppContainer(this) }
     val aiService by lazy { AiServiceManager(this) }
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _coreDataWarm = MutableStateFlow(false)
+    val coreDataWarm: StateFlow<Boolean> = _coreDataWarm.asStateFlow()
+    private val _startupError = MutableStateFlow<String?>(null)
+    val startupError: StateFlow<String?> = _startupError.asStateFlow()
 
     private val _themeMode = MutableStateFlow(ThemeMode.PURE_LIGHT)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -54,34 +58,7 @@ class DiaryApplication : Application() {
         // Schedule periodic weather refresh
         WeatherWorker.ensureChannel(this)
         WeatherWorker.schedule(this)
-
-        // Initialize unified achievement system
-        try {
-            val achievementDao = database.achievementDao()
-            val diaryDao = database.diaryDao()
-            val repo = AchievementRepository(achievementDao, diaryDao)
-            appScope.launch {
-                runCatching {
-                    repo.initialize()
-                    repo.checkAndUnlock()
-                    AchievementNotificationManager.scheduleCheck(this@DiaryApplication)
-                }.onFailure {
-                    android.util.Log.w("DiaryApplication", "Achievement check skipped", it)
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("DiaryApplication", "Achievement init skipped", e)
-        }
-        // Still run a one-shot check at cold start for immediate needs
-        appScope.launch {
-            runCatching {
-                if (BackupManager.shouldAutoBackup(this@DiaryApplication)) {
-                    BackupManager.performAutoBackup(this@DiaryApplication, database.diaryDao())
-                }
-            }.onFailure {
-                android.util.Log.w("DiaryApplication", "Auto backup skipped", it)
-            }
-        }
+        warmUpCoreData()
 
         // Initialize Amap SDK
         try {
@@ -103,6 +80,27 @@ class DiaryApplication : Application() {
             }
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun warmUpCoreData() {
+        appScope.launch {
+            runCatching {
+                val db = database
+                _coreDataWarm.value = true
+
+                if (BackupManager.shouldAutoBackup(this@DiaryApplication)) {
+                    BackupManager.performAutoBackup(this@DiaryApplication, db.diaryDao())
+                }
+
+                val repo = AchievementRepository(db.achievementDao(), db.diaryDao())
+                repo.initialize()
+                repo.checkAndUnlock()
+                AchievementNotificationManager.scheduleCheck(this@DiaryApplication)
+            }.onFailure {
+                android.util.Log.w("DiaryApplication", "Core data warm-up skipped", it)
+                _startupError.value = it.message ?: "应用启动时未能安全打开本地数据。"
+            }
         }
     }
 

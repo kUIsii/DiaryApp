@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,6 +70,12 @@ import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateDialog
 import kotlinx.coroutines.launch
 
+private sealed interface AppStartupState {
+    data object Initializing : AppStartupState
+    data object Ready : AppStartupState
+    data class Error(val message: String) : AppStartupState
+}
+
 class MainActivity : FragmentActivity() {
 
     private val navigateTo = mutableStateOf<String?>(null)
@@ -80,6 +87,8 @@ class MainActivity : FragmentActivity() {
         val app = application as DiaryApplication
         setContent {
             val themeMode by app.themeMode.collectAsState()
+            val isCoreDataWarm by app.coreDataWarm.collectAsState()
+            val startupErrorMessage by app.startupError.collectAsState()
             var fontScale by remember { mutableFloatStateOf(getFontScale(this)) }
             DisposableEffect(this) {
                 val prefs = getSharedPreferences("diary_prefs", MODE_PRIVATE)
@@ -96,6 +105,15 @@ class MainActivity : FragmentActivity() {
                 val context = LocalContext.current
                 val activity = this@MainActivity
                 val scope = rememberCoroutineScope()
+                val startupState: AppStartupState = when {
+                    !startupErrorMessage.isNullOrBlank() -> AppStartupState.Error(startupErrorMessage!!)
+                    isCoreDataWarm -> {
+                        AppStartupState.Ready
+                    }
+                    else -> {
+                        AppStartupState.Initializing
+                    }
+                }
                 var showUpdateDialog by remember { mutableStateOf(false) }
                 var updateVersion by remember { mutableStateOf("") }
                 var updateNotes by remember { mutableStateOf("") }
@@ -292,7 +310,7 @@ class MainActivity : FragmentActivity() {
                             }
                         }
                     }
-                } else {
+                } else if (startupState == AppStartupState.Ready) {
                     if (showUpdateDialog) {
                         UpdateDialog(
                             versionName = updateVersion,
@@ -394,6 +412,10 @@ class MainActivity : FragmentActivity() {
                             modifier = Modifier.align(Alignment.TopCenter)
                         )
                     }
+                } else when (startupState) {
+                    AppStartupState.Initializing -> StartupLoadingScreen()
+                    is AppStartupState.Error -> StartupErrorScreen(message = startupState.message)
+                    AppStartupState.Ready -> Unit
                 }
             }
         }
@@ -409,5 +431,41 @@ class MainActivity : FragmentActivity() {
         if (intent?.action == "com.diary.app.NEW_DIARY") return "editor"
         if (intent?.action == "com.diary.app.QUICK_TODO") return "todo"
         return intent?.getStringExtra("navigate_to")
+    }
+}
+
+@Composable
+private fun StartupLoadingScreen() {
+    GradientBackground {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = "正在准备日记世界…",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartupErrorScreen(message: String) {
+    GradientBackground {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "启动失败",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            }
+        }
     }
 }

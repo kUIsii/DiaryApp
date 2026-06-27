@@ -61,6 +61,22 @@ data class DayInfo(
     val entryCount: Int = 0
 )
 
+data class HomeHighlightsState(
+    val randomEntry: DiaryPreview? = null,
+    val onThisDayEntries: List<DiaryPreview> = emptyList()
+)
+
+internal fun refreshedHomeHighlightsState(
+    previous: HomeHighlightsState,
+    randomEntry: DiaryPreview?,
+    onThisDayEntries: List<DiaryPreview>
+): HomeHighlightsState {
+    return previous.copy(
+        randomEntry = randomEntry,
+        onThisDayEntries = onThisDayEntries
+    )
+}
+
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -135,9 +151,33 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches
 
+    private val _highlightRefreshNonce = MutableStateFlow(System.currentTimeMillis())
+
     private val allEntries: StateFlow<List<DiaryPreview>> = dao.getAllPreviews()
         .onEach { _isLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val homeHighlights: StateFlow<HomeHighlightsState> = combine(allEntries, _highlightRefreshNonce) { entries, nonce ->
+        val today = LocalDate.now()
+        val onThisDayEntries = entries.filter { entry ->
+            val entryDate = Instant.ofEpochMilli(entry.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            entryDate.monthValue == today.monthValue &&
+                entryDate.dayOfMonth == today.dayOfMonth &&
+                entryDate.year < today.year
+        }
+        val randomEntry = if (entries.isEmpty()) {
+            null
+        } else {
+            entries[java.util.Random(nonce).nextInt(entries.size)]
+        }
+        refreshedHomeHighlightsState(
+            previous = HomeHighlightsState(),
+            randomEntry = randomEntry,
+            onThisDayEntries = onThisDayEntries
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeHighlightsState())
 
     val dayInfoMap: StateFlow<Map<LocalDate, DayInfo>> = allEntries
         .map { entries ->
@@ -218,6 +258,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _recentSearches.value = emptyList()
     }
 
+    fun refreshHomeHighlights() {
+        _highlightRefreshNonce.value = System.currentTimeMillis()
+    }
+
     fun setTagFilter(tagId: Long?) {
         _selectedTagFilter.value = if (_selectedTagFilter.value == tagId) null else tagId
     }
@@ -265,21 +309,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 dao.deleteEntriesWithTags(entries)
             }
         }
-    }
-
-    suspend fun getRandomEntryId(): Long? = dao.getRandomEntryId()
-
-    suspend fun getEntryPreview(id: Long): DiaryPreview? = dao.getPreviewById(id)
-
-    suspend fun getOnThisDayPreviews(): List<DiaryPreview> {
-        val today = LocalDate.now()
-        return dao.getPreviewsByMonthDay(today.monthValue, today.dayOfMonth)
-            .filter { entry ->
-                val entryDate = java.time.Instant.ofEpochMilli(entry.createdAt)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDate()
-                entryDate.year < today.year
-            }
     }
 
     fun loadInsight() {

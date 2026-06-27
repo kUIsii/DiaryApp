@@ -126,15 +126,10 @@ private object ChangelogCache {
 }
 
 internal fun sortReleasesForDisplay(releases: List<ChangelogRelease>): List<ChangelogRelease> {
-    val currentVersion = BuildConfig.VERSION_NAME
     return releases.sortedWith { left, right ->
         val leftVersion = left.tagName.removePrefix("v")
         val rightVersion = right.tagName.removePrefix("v")
-        when {
-            leftVersion == currentVersion && rightVersion != currentVersion -> -1
-            rightVersion == currentVersion && leftVersion != currentVersion -> 1
-            else -> compareVersionNames(rightVersion, leftVersion)
-        }
+        compareVersionNames(rightVersion, leftVersion)
     }
 }
 
