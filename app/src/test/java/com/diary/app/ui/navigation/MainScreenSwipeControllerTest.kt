@@ -21,9 +21,29 @@ class MainScreenSwipeControllerTest {
     @Test
     fun `right swipe moves to previous main route`() {
         assertEquals(
-            "timeline",
+            "tools",
             resolveMainScreenSwipeTarget(
                 currentRoute = "todo",
+                totalDrag = 60f,
+                enabled = true
+            )
+        )
+    }
+
+    @Test
+    fun `swipe order matches bottom navigation including tools`() {
+        assertEquals(
+            "tools",
+            resolveMainScreenSwipeTarget(
+                currentRoute = "timeline",
+                totalDrag = -60f,
+                enabled = true
+            )
+        )
+        assertEquals(
+            "timeline",
+            resolveMainScreenSwipeTarget(
+                currentRoute = "tools",
                 totalDrag = 60f,
                 enabled = true
             )
@@ -41,7 +61,7 @@ class MainScreenSwipeControllerTest {
         )
         assertNull(
             resolveMainScreenSwipeTarget(
-                currentRoute = "tools",
+                currentRoute = "settings",
                 totalDrag = -80f,
                 enabled = true
             )
