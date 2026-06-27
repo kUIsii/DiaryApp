@@ -829,16 +829,17 @@ object BackupManager {
         val dir = getBackupDir()
         val results = mutableListOf<File>()
         val projection = arrayOf(
-            MediaStore.Downloads._ID,
-            MediaStore.Downloads.DISPLAY_NAME
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.DATA
         )
         for (prefix in BACKUP_SCAN_PREFIXES) {
-            val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND ${MediaStore.Downloads.RELATIVE_PATH} LIKE ?"
+            val selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.Files.FileColumns.DATA} LIKE ?"
             val selectionArgs = arrayOf("${prefix}%", "%${BACKUP_DIR_NAME}%")
             context.contentResolver.query(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs, null
+                MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs, null
             )?.use { cursor ->
-                val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
+                val nameIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
                 while (cursor.moveToNext()) {
                     val fileName = cursor.getString(nameIdx)
                     if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) }) {
