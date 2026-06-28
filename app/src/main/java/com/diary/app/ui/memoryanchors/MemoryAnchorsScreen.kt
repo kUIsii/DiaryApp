@@ -1,6 +1,8 @@
 package com.diary.app.ui.memoryanchors
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -12,14 +14,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemoryAnchorsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: MemoryAnchorsViewModel = viewModel()
 ) {
+    val anchors by viewModel.anchors.collectAsState()
+
     GradientBackground {
         Column(
             modifier = Modifier
@@ -39,13 +47,13 @@ fun MemoryAnchorsScreen(
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
-                IconButton(onClick = { /* TODO: Add anchor */ }) {
+                IconButton(onClick = { viewModel.setShowAddDialog(true) }) {
                     Icon(Icons.Default.Add, contentDescription = "添加锚点")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -66,51 +74,125 @@ fun MemoryAnchorsScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
-                text = "我的锚点",
+                text = "我的锚点 (${anchors.size})",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AnchorItem("职业转型", "2026-03-15", 5)
-                    AnchorItem("搬家决定", "2026-01-20", 3)
-                    AnchorItem("新习惯养成", "2025-12-01", 8)
+
+            if (anchors.isEmpty()) {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 16.dp
+                ) {
+                    Text(
+                        text = "还没有记忆锚点，点击右上角 + 添加。",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(anchors) { item ->
+                        val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+                        AnchorItem(
+                            title = item.anchor.topic,
+                            date = dateFormat.format(Date(item.anchor.createdAt)),
+                            relatedCount = item.relatedCount
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
+        }
+
+        if (viewModel.showAddDialog.collectAsState().value) {
+            AddAnchorDialog(
+                onDismiss = { viewModel.setShowAddDialog(false) },
+                onConfirm = { topic, description ->
+                    viewModel.addAnchor(topic, description, 0L)
+                }
+            )
         }
     }
 }
 
 @Composable
 private fun AnchorItem(title: String, date: String, relatedCount: Int) {
-    Row(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp
     ) {
-        Icon(
-            Icons.Default.Link,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(
-                text = "$date · $relatedCount 篇关联",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Link,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    text = "$date · $relatedCount 篇关联",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun AddAnchorDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
+    var topic by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加记忆锚点") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = topic,
+                    onValueChange = { topic = it },
+                    label = { Text("主题") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("描述（可选）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(topic, description) },
+                enabled = topic.isNotBlank()
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }

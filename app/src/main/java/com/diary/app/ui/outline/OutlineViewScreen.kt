@@ -1,5 +1,6 @@
 package com.diary.app.ui.outline
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -11,14 +12,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutlineViewScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    diaryId: Long? = null,
+    viewModel: OutlineViewViewModel = viewModel()
 ) {
+    val outline by viewModel.outline.collectAsState()
+
+    LaunchedEffect(diaryId) {
+        diaryId?.let { viewModel.loadDiary(it) }
+    }
+
     GradientBackground {
         Column(
             modifier = Modifier
@@ -40,71 +50,78 @@ fun OutlineViewScreen(
                 )
                 Spacer(modifier = Modifier.width(48.dp))
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Text(
-                        text = "长篇日记的大纲视图",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "自动识别标题层级，在左侧显示目录树。点击可快速跳转到对应段落。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
-                    )
+
+            if (outline == null) {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 16.dp
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("正在解析日记结构...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Text(
-                        text = "示例大纲",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlineItem("今天的工作", 0, true)
-                    OutlineItem("上午的会议", 1, false)
-                    OutlineItem("下午的编码", 1, false)
-                    OutlineItem("晚上的思考", 0, true)
-                    OutlineItem("关于未来", 1, false)
-                    OutlineItem("关于当下", 1, false)
+            } else {
+                val data = outline!!
+
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 16.dp
+                ) {
+                    Column {
+                        Text(
+                            text = "目录",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (data.items.isEmpty()) {
+                            Text(
+                                text = "未检测到标题层级",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "使用 # 或 ## 或 ### 标记标题",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        } else {
+                            data.items.forEach { item ->
+                                OutlineItemRow(
+                                    title = item.title,
+                                    level = item.level,
+                                    onClick = { /* TODO: scroll to position */ }
+                                )
+                            }
+                        }
+                    }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Text(
-                        text = "统计",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlineStat("总字数", "2,345")
-                    OutlineStat("段落数", "12")
-                    OutlineStat("标题数", "6")
-                    OutlineStat("预计阅读", "8分钟")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 16.dp
+                ) {
+                    Column {
+                        Text(
+                            text = "统计",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlineStat("总字数", "${data.totalWords}")
+                        OutlineStat("段落数", "${data.paragraphCount}")
+                        OutlineStat("标题数", "${data.items.size}")
+                        OutlineStat("预计阅读", "${data.estimatedReadMinutes}分钟")
+                    }
                 }
             }
         }
@@ -112,11 +129,12 @@ fun OutlineViewScreen(
 }
 
 @Composable
-private fun OutlineItem(title: String, level: Int, expanded: Boolean) {
+private fun OutlineItemRow(title: String, level: Int, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = (level * 16).dp, top = 4.dp, bottom = 4.dp),
+            .padding(start = (level * 16).dp, top = 4.dp, bottom = 4.dp)
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (level == 0) {
@@ -133,7 +151,7 @@ private fun OutlineItem(title: String, level: Int, expanded: Boolean) {
             text = title,
             fontSize = if (level == 0) 14.sp else 13.sp,
             fontWeight = if (level == 0) FontWeight.Medium else FontWeight.Normal,
-            color = if (level == 0) MaterialTheme.colorScheme.onBackground 
+            color = if (level == 0) MaterialTheme.colorScheme.onBackground
                     else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

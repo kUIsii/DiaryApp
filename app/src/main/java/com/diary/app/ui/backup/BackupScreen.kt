@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
@@ -763,7 +764,8 @@ private fun BackupHistoryItem(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = textColor,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row {
@@ -849,7 +851,8 @@ private fun BackupFileItem(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = textColor,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row {

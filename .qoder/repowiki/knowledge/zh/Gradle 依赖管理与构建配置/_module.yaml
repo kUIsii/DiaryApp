@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: dependency_management
+title: Gradle 依赖管理与构建配置
+scope: []
+source_files:
+    - build.gradle.kts
+    - app/build.gradle.kts
+    - settings.gradle.kts
+    - gradle.properties
+    - gradle/wrapper/gradle-wrapper.properties
+    - app/proguard-rules.pro
+depends_on: []
+related_to: []

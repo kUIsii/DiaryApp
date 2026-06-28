@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
@@ -137,6 +138,7 @@ fun ToolsScreen(
     onNavigateToQuickCheckin: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToWritingCoach: () -> Unit = {},
+    onNavigateToVoiceRecording: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -300,6 +302,17 @@ fun ToolsScreen(
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = onNavigateToGoals
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.Mic,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "语音备忘录",
+                            subtitle = "录音并自动转写为文字",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToVoiceRecording
                         )
                     }
 

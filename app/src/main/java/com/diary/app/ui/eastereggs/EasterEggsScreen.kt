@@ -11,21 +11,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EasterEggsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: EasterEggsViewModel = viewModel()
 ) {
+    val discoveredEggs by viewModel.discoveredEggs.collectAsState()
+    val discoveredIds = discoveredEggs.map { it.eggId }.toSet()
+
     GradientBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -41,10 +45,9 @@ fun EasterEggsScreen(
                 )
                 Spacer(modifier = Modifier.width(48.dp))
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Stats
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -56,7 +59,7 @@ fun EasterEggsScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "3",
+                            text = "${discoveredEggs.size}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -69,7 +72,7 @@ fun EasterEggsScreen(
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "12",
+                            text = "${viewModel.allEggs.size}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -81,62 +84,30 @@ fun EasterEggsScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Discovered eggs
+
             Text(
-                text = "已发现的彩蛋",
+                text = "彩蛋列表",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
+
+            androidx.compose.foundation.lazy.LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EasterEggItem("连续写作100天", "首页出现了烟花动画", true)
-                    EasterEggItem("深夜笔者", "凌晨2点写作时看到流星", true)
-                    EasterEggItem("早起鸟儿", "清晨5点写作时的日出动画", true)
-                    EasterEggItem("???", "尚未发现", false)
-                    EasterEggItem("???", "尚未发现", false)
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Hint
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "提示",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "彩蛋散布在应用的各个角落。试着在特殊的时间、特殊的地点，或者完成特殊的成就时，留意周围的變化。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
+                items(viewModel.allEggs.size) { index ->
+                    val egg = viewModel.allEggs[index]
+                    val discovered = egg.id in discoveredIds
+                    val discoveredEgg = discoveredEggs.find { it.eggId == egg.id }
+                    EasterEggItem(
+                        title = if (discovered) egg.title else "???",
+                        description = if (discovered) (discoveredEgg?.description ?: egg.description) else "尚未发现",
+                        discovered = discovered
                     )
                 }
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }
@@ -144,32 +115,38 @@ fun EasterEggsScreen(
 
 @Composable
 private fun EasterEggItem(title: String, description: String, discovered: Boolean) {
-    Row(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        cornerRadius = 16.dp,
+        innerPadding = 16.dp
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (discovered) MaterialTheme.colorScheme.onBackground 
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Text(
-                text = description,
-                fontSize = 12.sp,
-                color = if (discovered) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-        }
-        if (discovered) {
-            Icon(
-                Icons.Default.EmojiEvents,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (discovered) MaterialTheme.colorScheme.onBackground
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = description,
+                    fontSize = 12.sp,
+                    color = if (discovered) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+            if (discovered) {
+                Icon(
+                    Icons.Default.EmojiEvents,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

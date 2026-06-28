@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: configuration_system
+title: 基于 SharedPreferences 的分域配置管理
+scope: []
+source_files:
+    - app/src/main/java/com/diary/app/ai/AiConfigStore.kt
+    - app/src/main/java/com/diary/app/reminder/NotificationPreferencesManager.kt
+    - app/src/main/java/com/diary/app/ui/theme/ThemePreferences.kt
+    - app/src/main/java/com/diary/app/ui/experimental/ExperimentalFeaturesPreferences.kt
+    - app/src/main/java/com/diary/app/biometric/BiometricHelper.kt
+    - app/src/main/java/com/diary/app/data/BackupManager.kt
+depends_on: []
+related_to: []

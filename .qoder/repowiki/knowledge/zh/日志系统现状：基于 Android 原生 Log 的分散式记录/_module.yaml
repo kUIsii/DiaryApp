@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: logging_system
+title: 日志系统现状：基于 Android 原生 Log 的分散式记录
+scope: []
+source_files:
+    - app/src/main/java/com/diary/app/DiaryApplication.kt
+    - app/src/main/java/com/diary/app/data/BackupManager.kt
+    - app/src/main/java/com/diary/app/data/DiaryDatabase.kt
+    - app/src/main/java/com/diary/app/ai/AiAssistantViewModel.kt
+    - app/src/main/java/com/diary/app/ai/AiServiceManager.kt
+depends_on: []
+related_to: []

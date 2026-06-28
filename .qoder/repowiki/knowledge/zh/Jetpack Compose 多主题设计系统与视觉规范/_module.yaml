@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: frontend_style
+title: Jetpack Compose 多主题设计系统与视觉规范
+scope: []
+source_files:
+    - app/src/main/java/com/diary/app/ui/theme/Theme.kt
+    - app/src/main/java/com/diary/app/ui/theme/Color.kt
+    - app/src/main/java/com/diary/app/ui/theme/DesignTokens.kt
+    - app/src/main/java/com/diary/app/ui/theme/ThemeMode.kt
+    - app/src/main/java/com/diary/app/ui/theme/Type.kt
+    - app/src/main/java/com/diary/app/ui/components/GlassCard.kt
+    - app/src/main/java/com/diary/app/ui/components/GradientBackground.kt
+depends_on: []
+related_to: []

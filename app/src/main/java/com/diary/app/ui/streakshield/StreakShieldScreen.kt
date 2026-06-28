@@ -11,14 +11,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreakShieldScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: StreakShieldViewModel = viewModel()
 ) {
+    val currentShield by viewModel.currentShield.collectAsState()
+    val isUsed by viewModel.isUsed.collectAsState()
+
     GradientBackground {
         Column(
             modifier = Modifier
@@ -40,9 +45,9 @@ fun StreakShieldScreen(
                 )
                 Spacer(modifier = Modifier.width(48.dp))
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -52,7 +57,8 @@ fun StreakShieldScreen(
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isUsed) MaterialTheme.colorScheme.onSurfaceVariant
+                               else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(48.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -63,22 +69,24 @@ fun StreakShieldScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "已激活",
+                        text = if (isUsed) "已使用" else if (currentShield != null) "已激活" else "待激活",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (isUsed) MaterialTheme.colorScheme.onSurfaceVariant
+                               else MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "如果某天忘记写日记，保护罩会自动激活",
+                        text = if (isUsed) "本月保护罩已使用，下月将自动重置"
+                               else "如果某天忘记写日记，保护罩会自动激活",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -97,9 +105,9 @@ fun StreakShieldScreen(
                     ShieldRule("知道有保护罩反而更不容易忘记")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -113,7 +121,8 @@ fun StreakShieldScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "你还没有使用过保护罩。继续保持每日写作的好习惯！",
+                        text = if (isUsed) "本月保护罩已使用"
+                               else "你还没有使用过保护罩。继续保持每日写作的好习惯！",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 19.sp

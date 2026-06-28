@@ -28,8 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +57,7 @@ fun UpdateDialog(
     isDownloading: Boolean,
     downloadProgress: Float = -1f,
     isForceUpdate: Boolean = false,
+    onCancelDownload: (() -> Unit)? = null,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -102,7 +105,7 @@ fun UpdateDialog(
                         )
 
                         Column(modifier = Modifier.padding(24.dp)) {
-                            // Header with icon
+                            // Header with icon and close button
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
@@ -123,7 +126,7 @@ fun UpdateDialog(
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(14.dp))
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "发现新版本",
                                         fontSize = 13.sp,
@@ -137,6 +140,22 @@ fun UpdateDialog(
                                         fontWeight = FontWeight.Bold,
                                         color = textColor
                                     )
+                                }
+                                if (isDownloading) {
+                                    IconButton(
+                                        onClick = { onCancelDownload?.invoke() ?: onDismiss() },
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "取消下载",
+                                            tint = textSecondary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
                             }
 

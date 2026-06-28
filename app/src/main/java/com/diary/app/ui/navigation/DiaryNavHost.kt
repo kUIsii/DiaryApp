@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
@@ -108,6 +109,8 @@ import com.diary.app.ui.achievement.AchievementDetailScreen
 import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.writingcoach.WritingCoachScreen
+import com.diary.app.ui.voicerecording.VoiceRecordingScreen
+import com.diary.app.ui.diarysummary.DiarySummaryScreen
 import com.diary.app.ui.smallwins.SmallWinsScreen
 import com.diary.app.ui.quickcheckin.QuickCheckinScreen
 import com.diary.app.ui.goals.GoalsScreen
@@ -213,6 +216,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object ValuesExtraction : Screen("values_extraction", "价值观", Icons.Default.Favorite)
     object WritingLab : Screen("writing_lab", "写作实验室", Icons.Default.Science)
     object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
+    object VoiceRecording : Screen("voice_recording", "语音备忘录", Icons.Default.Mic)
     object EasterEggs : Screen("easter_eggs", "隐藏彩蛋", Icons.Default.EmojiEvents)
     object MonthlyChallenge : Screen("monthly_challenge", "月度挑战", Icons.Default.CalendarMonth)
     object StreakShield : Screen("streak_shield", "连续保护罩", Icons.Default.EmojiEvents)
@@ -403,6 +407,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToQuickCheckin = { navController.navigate(Screen.QuickCheckin.route) },
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
+                    onNavigateToVoiceRecording = { navController.navigate(Screen.VoiceRecording.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -862,6 +867,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.ValuesExtraction.route) { ValuesExtractionScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.WritingLab.route) { WritingLabScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.WritingCoach.route) { WritingCoachScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.VoiceRecording.route) { VoiceRecordingScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.EasterEggs.route) { EasterEggsScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.MonthlyChallenge.route) { MonthlyChallengeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.StreakShield.route) { StreakShieldScreen(onNavigateBack = { navController.popBackStack() }) }

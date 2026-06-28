@@ -11,14 +11,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmotionForecastScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: EmotionForecastViewModel = viewModel()
 ) {
+    val forecast by viewModel.forecast.collectAsState()
+    
     GradientBackground {
         Column(
             modifier = Modifier
@@ -43,6 +47,20 @@ fun EmotionForecastScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            if (forecast == null) {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 16.dp
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("正在分析情绪模式...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                val data = forecast!!
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
@@ -63,14 +81,14 @@ fun EmotionForecastScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "平静偏积极",
+                        text = data.forecastLabel,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "基于你最近的情绪走势和历史模式",
+                        text = "基于你最近${data.recentMoods.size}篇日记的情绪走势",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -91,9 +109,9 @@ fun EmotionForecastScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    ForecastReason("最近7天情绪稳定", "积极")
-                    ForecastReason("周三是你通常最开心的一天", "期待")
-                    ForecastReason("天气预报显示晴天", "正面影响")
+                    data.reasons.forEach { reason ->
+                        ForecastReason(reason.reason, reason.impact)
+                    }
                 }
             }
             
@@ -119,6 +137,7 @@ fun EmotionForecastScreen(
                     )
                 }
             }
+            } // end if/else
         }
     }
 }

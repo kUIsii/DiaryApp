@@ -68,6 +68,7 @@ import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateDialog
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private sealed interface AppStartupState {
@@ -120,6 +121,7 @@ class MainActivity : FragmentActivity() {
                 var updateUrl by remember { mutableStateOf("") }
                 var isDownloading by remember { mutableStateOf(false) }
                 var downloadProgress by remember { mutableStateOf(-1f) }
+                var downloadJob by remember { mutableStateOf<Job?>(null) }
                 var hasChecked by remember { mutableStateOf(false) }
                 val pendingNavigation by navigateTo
 
@@ -321,7 +323,7 @@ class MainActivity : FragmentActivity() {
                                 isDownloading = true
                                 downloadProgress = -1f
                                 val fileName = "DiaryApp-v$updateVersion.apk"
-                                scope.launch {
+                                downloadJob = scope.launch {
                                     try {
                                         ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
                                             .collect { state ->
@@ -351,6 +353,12 @@ class MainActivity : FragmentActivity() {
                                         Toast.makeText(context, "更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
                                 }
+                            },
+                            onCancelDownload = {
+                                downloadJob?.cancel()
+                                downloadJob = null
+                                isDownloading = false
+                                downloadProgress = -1f
                             },
                             onDismiss = { showUpdateDialog = false }
                         )

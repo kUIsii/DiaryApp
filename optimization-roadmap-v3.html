@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品演进路线 V3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafafa;--surface:#fff;--surface2:#f5f5f0;
+  --bd:#e8e8e0;--bd2:#d4d4c8;
+  --t1:#1a1a1a;--t2:#4a4a4a;--t3:#7a7a6e;
+  --gold:#92710a;--teal:#0d7a6e;--coral:#c2580a;
+  --violet:#6d28d9;--rose:#be123c;--blue:#1d4ed8;--emerald:#047857;
+  --r:10px;
+}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{font-family:'Inter','Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--t1);line-height:1.7;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(109,40,217,.12)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+
+.nav{position:sticky;top:0;z-index:100;background:rgba(250,250,250,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd);padding:0 20px}
+.nav-inner{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:24px;height:56px}
+.nav-brand{font-weight:700;font-size:14px;white-space:nowrap;color:var(--t1)}
+.nav-links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-link{font-size:12px;color:var(--t3);text-decoration:none;padding:4px 9px;border-radius:6px;white-space:nowrap;transition:all .15s;font-weight:500}
+.nav-link:hover{color:var(--t2);background:rgba(0,0,0,.04)}
+.nav-link.active{color:var(--violet);background:rgba(109,40,217,.08)}
+
+.hero{max-width:860px;margin:0 auto;padding:56px 20px 36px}
+.hero-badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+.hero h1{font-size:clamp(24px,3.5vw,34px);font-weight:700;letter-spacing:-.02em;line-height:1.3;margin-bottom:12px}
+.hero-desc{font-size:15px;color:var(--t2);max-width:520px;line-height:1.8;margin-bottom:28px}
+.stats{display:flex;gap:32px;flex-wrap:wrap}
+.stat{display:flex;align-items:baseline;gap:6px}
+.stat-num{font-size:24px;font-weight:700}
+.stat-label{font-size:12px;color:var(--t3)}
+
+.picks{max-width:860px;margin:0 auto;padding:0 20px 32px}
+.picks-label{font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+.picks-row{display:flex;flex-wrap:wrap;gap:8px}
+.pick-chip{font-size:13px;color:var(--t2);background:var(--surface);border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-weight:500;transition:all .15s}
+.pick-chip:hover{border-color:var(--violet);color:var(--violet);background:rgba(109,40,217,.04)}
+
+.accordion{max-width:860px;margin:0 auto;padding:0 20px 48px}
+.acc-item{border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;background:var(--surface);overflow:hidden;transition:border-color .2s}
+.acc-item.open{border-color:var(--bd2)}
+.acc-head{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .15s}
+.acc-head:hover{background:var(--surface2)}
+.acc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.acc-num{font-size:11px;font-weight:600;color:var(--t3);min-width:18px}
+.acc-title{font-size:14px;font-weight:600;flex:1;color:var(--t1)}
+.acc-count{font-size:11px;color:var(--t3);margin-right:8px}
+.acc-arrow{width:16px;height:16px;color:var(--t3);transition:transform .25s;flex-shrink:0}
+.acc-item.open .acc-arrow{transform:rotate(180deg)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.acc-item.open .acc-body{max-height:5000px}
+.acc-content{padding:0 18px 18px}
+
+.cards{display:grid;grid-template-columns:1fr;gap:10px}
+.card{background:var(--surface2);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;transition:all .15s;cursor:pointer;position:relative}
+.card:hover{border-color:var(--bd2)}
+.card-check{position:absolute;top:14px;right:14px;width:20px;height:20px;border-radius:50%;border:2px solid var(--bd2);display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--surface)}
+.card-check svg{width:12px;height:12px;opacity:0;transition:opacity .15s;stroke:#fff;stroke-width:2.5;fill:none}
+.card.selected{border-color:var(--violet);background:rgba(109,40,217,.03)}
+.card.selected .card-check{border-color:var(--violet);background:var(--violet)}
+.card.selected .card-check svg{opacity:1}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.card-tag{font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:4px;background:rgba(0,0,0,.04);color:var(--t3)}
+.card-pri{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--t3)}
+.card-pri-dot{width:6px;height:6px;border-radius:50%}
+.p-h .card-pri-dot{background:var(--rose)}.p-m .card-pri-dot{background:var(--gold)}.p-e .card-pri-dot{background:var(--t3)}
+.card h3{font-size:14.5px;font-weight:600;margin-bottom:6px;line-height:1.4;color:var(--t1)}
+.card p{font-size:13.5px;color:var(--t2);line-height:1.75;margin-bottom:10px}
+.card-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.card-effort{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px}
+.ebar{display:flex;gap:2px}
+.ebar span{width:12px;height:3px;border-radius:2px;background:#e0e0d8}
+.ebar span.on{background:var(--teal)}
+.card-ref{font-size:10.5px;color:var(--t3);font-style:italic}
+
+.summary{max-width:860px;margin:0 auto;padding:40px 20px 60px}
+.summary h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.summary-sub{font-size:13px;color:var(--t3);margin-bottom:16px}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}
+.stbl th{text-align:left;padding:8px 10px;font-weight:600;color:var(--t3);font-size:11px;letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--bd)}
+.stbl td{padding:9px 10px;border-bottom:1px solid var(--bd);color:var(--t2)}
+.stbl tr:hover td{background:var(--surface2)}
+.stbl td:first-child{color:var(--t1);font-weight:500}
+.td-p{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500}
+.td-d{width:5px;height:5px;border-radius:50%;display:inline-block}
+
+.footer{max-width:860px;margin:0 auto;padding:0 20px 32px;text-align:center;font-size:11px;color:var(--t3);border-top:1px solid var(--bd);padding-top:20px}
+
+.fab{position:fixed;bottom:24px;right:24px;z-index:200;background:var(--violet);color:#fff;border:none;border-radius:28px;padding:0 20px;height:48px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(109,40,217,.3);transition:all .2s;opacity:0;pointer-events:none;font-family:inherit}
+.fab.show{opacity:1;pointer-events:auto}
+.fab:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(109,40,217,.4)}
+.fab-count{background:rgba(255,255,255,.2);border-radius:12px;padding:2px 8px;font-size:12px}
+
+.modal-bg{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--surface);border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:15px;font-weight:600}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--t3);padding:4px;font-size:18px;line-height:1}
+.modal-close:hover{color:var(--t1)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-body pre{font-size:12.5px;color:var(--t2);line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:'Inter','Noto Sans SC',monospace;background:var(--surface2);padding:14px;border-radius:8px;border:1px solid var(--bd)}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
+.modal-btn{padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;border:1px solid var(--bd);background:var(--surface);color:var(--t1);font-family:inherit;transition:all .15s}
+.modal-btn:hover{background:var(--surface2)}
+.modal-btn.primary{background:var(--violet);color:#fff;border-color:var(--violet)}
+.modal-btn.primary:hover{opacity:.9}
+
+@media(max-width:640px){
+  .hero{padding:36px 16px 24px}
+  .accordion{padding:0 12px 32px}
+  .acc-head{padding:12px 14px}
+  .acc-content{padding:0 14px 14px}
+  .card{padding:14px 16px}
+  .summary{padding:28px 12px 40px}
+  .picks{padding:0 12px 24px}
+  .nav-brand{display:none}
+  .fab{bottom:16px;right:16px;height:44px;padding:0 16px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="nav-inner"><div class="nav-brand">产品演进路线 V3</div><div class="nav-links" id="nav"></div></div></nav>
+
+<header class="hero">
+<div class="hero-badge">Feature Roadmap V3</div>
+<h1>全新功能优化方案（第三版）</h1>
+<p class="hero-desc">完全排除V1已选的25项功能，给出全新的、可实施的建议。每条都有完整的需求描述和实施方案。</p>
+<div class="stats">
+<div class="stat"><span class="stat-num">8</span><span class="stat-label">个方向</span></div>
+<div class="stat"><span class="stat-num">32</span><span class="stat-label">条建议</span></div>
+<div class="stat"><span class="stat-num">14</span><span class="stat-label">条高优先级</span></div>
+</div>
+</header>
+
+<div class="picks" id="picks"></div>
+<div class="accordion" id="acc"></div>
+
+<section class="summary">
+<h2>优先级总览</h2>
+<p class="summary-sub">按优先级排序。高优先级项直接影响核心体验。</p>
+<table class="stbl"><thead><tr><th>功能</th><th>方向</th><th>优先级</th><th>工作量</th></tr></thead><tbody id="tbody"></tbody></table>
+</section>
+
+<footer class="footer"><p>点击卡片选中感兴趣的功能，选中后右下角按钮可导出需求清单给 AI</p><p style="margin-top:4px">2026.06 / 完全原创设计，排除V1已选25项</p></footer>
+
+<button class="fab" id="fab" onclick="openModal()"><span>导出需求</span><span class="fab-count" id="fabCount">0</span></button>
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="modal-box">
+<div class="modal-head"><h3>已选需求清单</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+<div class="modal-body"><pre id="exportText"></pre></div>
+<div class="modal-foot"><button class="modal-btn" onclick="clearAll()">清空选择</button><button class="modal-btn primary" onclick="copyText()">复制文本</button></div>
+</div>
+</div>
+
+<script>
+const D=[
+{id:"input",t:"输入方式创新",c:"var(--gold)",items:[
+{tg:"新输入",t:"多段式日记",d:"一天写多个独立片段，每个片段有自己的心情、时间、照片。适合一天经历了很多事的情况。比如早上开会心情一般，中午和朋友吃饭很开心，晚上回家又有点焦虑。现有日记只能选一个心情，无法准确描述这种复杂的一天。实现方式：在现有日记结构下增加「片段」概念，每个片段独立记录，但属于同一篇日记。",p:"high",e:3,r:"Day One"},
+{tg:"新输入",t:"语音备忘录",d:"和语音转文字不同，这个保留原始音频。文字转写作为附件，用户可以听原声。有些时刻语气、停顿、叹气比文字本身传递更多信息。适合想要「听到自己声音」的回顾场景。实现方式：录音文件 + 自动转写文本，两者绑定存储。",p:"mid",e:4,r:"Day One"},
+{tg:"新输入",t:"图片日记模式",d:"以照片为主体的日记模式。选一张或多张照片，AI自动根据EXIF信息（时间、地点）生成基础描述，用户补充文字。适合旅行、活动、日常记录等视觉驱动的场景。和现有的「图片附件」不同，这个是照片优先的工作流。实现方式：照片选择器 + EXIF解析 + AI描述生成。",p:"mid",e:3,r:"原创"},
+{tg:"增强",t:"快速模板切换",d:"在编辑器内一键切换模板类型。写着写着发现应该用「感恩日记」模板？一键切换，已有内容保留。现有模板是创建时选择的，中途无法切换。实现方式：模板切换时保留已有内容，只调整结构和提示。",p:"mid",e:2,r:"原创"}
+]},
+{id:"review",t:"回顾与记忆增强",c:"var(--coral)",items:[
+{tg:"新功能",t:"时间胶囊日记",d:"写给未来自己的日记。设定一个未来日期，到时候才会解锁显示。比如给一年后的自己写一封信，记录现在的想法和期待。和现有的「时间胶囊」功能不同，这个是日记形式的，更私密。实现方式：日记增加「解锁日期」字段，未到日期时显示为锁定状态。",p:"high",e:2,r:"原创"},
+{tg:"新功能",t:"随机漫步",d:"随机打开一篇过去的日记。不是「那年今日」的固定日期，而是完全随机的回忆。有时候你需要的是意外重逢，而不是按部就班的回顾。可以设定范围：只看最近三个月的，或者只看收藏的。实现方式：随机算法 + 可选过滤条件。",p:"mid",e:1,r:"原创"},
+{tg:"新功能",t:"日记链接",d:"在日记中引用其他日记，形成关联网络。比如「今天的情况让我想起了上周那次」，点击就能跳转。适合追踪某个持续发展的事情。实现方式：编辑器内支持插入日记链接，存储日记ID关联。",p:"mid",e:3,r:"原创"},
+{tg:"新功能",t:"主题空间",d:"创建私人的主题空间，把相关日记聚合在一起。「工作项目A」「旅行计划」「成长反思」——每个空间就是一个子日记本。和标签不同，空间是独立的视图，不会混在主时间线里。适合想把日记分门别类管理的用户。实现方式：空间数据结构 + 独立视图 + 日记归属字段。",p:"mid",e:4,r:"原创"},
+{tg:"增强",t:"回忆推送优化",d:"不只是「那年今日」，还可以推送「你上次写关于这个话题是一周前」「这张照片你还没写过日记」。基于内容、标签、时间的智能推送，帮助用户回顾容易被遗忘的内容。实现方式：内容分析 + 时间计算 + 推送策略。",p:"mid",e:3,r:"原创"}
+]},
+{id:"ai",t:"AI智能增强",c:"var(--violet)",items:[
+{tg:"AI",t:"自动标签建议",d:"AI分析日记内容，自动建议合适的标签。写完一篇关于项目进展的日记，AI建议打上「工作」「项目A」标签。用户可以一键接受或忽略。解决标签管理懒惰导致分类混乱的问题。实现方式：本地NLP模型或调用AI API分析文本。",p:"high",e:3,r:"原创"},
+{tg:"AI",t:"情感一致性检测",d:"检测心情评分和实际内容是否一致。你打了「开心」但文字里全是抱怨，AI会温和提示：「看起来今天其实挺不容易的，要调整一下心情评分吗？」帮助用户更诚实地面对自己。实现方式：情感分析模型对比心情评分。",p:"mid",e:4,r:"原创"},
+{tg:"AI",t:"思维模式识别",d:"跨越多篇日记，识别反复出现的思维模式。「你经常在周日晚上对工作感到焦虑」「提到某个人时情绪总是低落」。不是单次分析，而是长期追踪。帮助用户看到自己可能忽略的心理模式。实现方式：定期批量分析日记内容，提取模式。",p:"mid",e:5,r:"Rosebud"},
+{tg:"AI",t:"智能周报",d:"AI从一周的日记中提取关键事件、情绪变化、未完成的事项，生成一份简洁的周报。不是统计数字，而是叙事性的总结：「这周你主要在处理项目A的压力，周三和朋友聚会让你开心了不少，周末你开始反思工作方向。」实现方式：周数据聚合 + LLM摘要生成。",p:"high",e:3,r:"原创"},
+{tg:"AI",t:"敏感内容提醒",d:"检测到特别负面或敏感的内容时，温和提醒：「这篇看起来挺沉重的，要不要先放一放，过几天再回顾？」或者建议寻求专业帮助。不是审查，而是关心。可以关闭这个功能。实现方式：情感分析 + 阈值判断 + 提醒UI。",p:"explore",e:3,r:"原创"}
+]},
+{id:"visual",t:"可视化创新",c:"var(--blue)",items:[
+{tg:"新功能",t:"3D地球记忆",d:"用3D地球仪展示所有写过日记的地点。可以旋转、缩放，看到全球各地留下的记忆。比现有的平面地图更有沉浸感。适合旅行日记多的用户。实现方式：Three.js或类似3D库渲染地球。",p:"mid",e:4,r:"原创"},
+{tg:"新功能",t:"心情波动图",d:"连续的心情曲线图，不是离散的数值，而是平滑的波动。可以看到一天内、一周内的心情起伏。支持缩放和对比。比现有的心情分布统计更直观。实现方式：折线图 + 平滑算法。",p:"mid",e:3,r:"原创"},
+{tg:"新功能",t:"词云对比",d:"并排对比两个时期的词云：上个月vs这个月，去年vs今年。直观看到关注点的变化。比如去年高频词是「焦虑」「加班」，今年变成了「健身」「读书」。实现方式：分词 + 词频统计 + 对比可视化。",p:"mid",e:3,r:"原创"},
+{tg:"新功能",t:"写作节奏分析",d:"分析你的写作时间模式：通常几点写？一周写几天？每次写多久？连续写作天数中断前有什么规律？帮你了解自己的写作习惯，找到最适合的时间。实现方式：时间戳分析 + 模式识别。",p:"mid",e:2,r:"原创"},
+{tg:"新功能",t:"生活仪表盘",d:"整合所有数据源：日记频率、心情趋势、睡眠质量、运动情况、社交频率（从内容提取）。一个页面看到生活的全貌。不是分散的统计，而是综合的洞察。实现方式：聚合各模块数据，统一可视化。",p:"mid",e:5,r:"原创"}
+]},
+{id:"personal",t:"个性化深度",c:"var(--violet)",items:[
+{tg:"增强",t:"自定义标签图标",d:"给常用标签设置图标：工作用💼，旅行用✈️，健康用❤️。在标签列表和日记详情中显示图标，更直观。实现方式：标签数据增加图标字段，UI渲染时显示。",p:"mid",e:2,r:"原创"},
+{tg:"增强",t:"打字音效",d:"可选的打字音效：机械键盘、打字机、铅笔沙沙声。让写作过程更有仪式感。可以调节音量或关闭。实现方式：按键时播放音效，支持多种音效包。",p:"mid",e:2,r:"原创"},
+{tg:"增强",t:"自定义快捷键",d:"为常用操作设置键盘快捷键（平板或外接键盘用户）：Ctrl+N新建日记，Ctrl+S保存，Ctrl+T切换模板。提升效率用户的体验。实现方式：键盘事件监听 + 快捷键映射。",p:"mid",e:1,r:"原创"},
+{tg:"增强",t:"主题定时切换",d:"设定时间自动切换主题：白天用浅色，晚上自动切深色。或者工作日用专业主题，周末用休闲主题。让App随时间自然变化。实现方式：时间判断 + 主题自动切换逻辑。",p:"mid",e:2,r:"原创"}
+]},
+{id:"scene",t:"场景拓展",c:"var(--blue)",items:[
+{tg:"新功能",t:"分支时间线",d:"按主题查看日记：工作时间线、个人时间线、健康时间线。根据标签和内容自动分类。想专注看某个维度时不用在一堆混在一起的日记里翻。实现方式：标签 + 内容分析 + 过滤视图。",p:"mid",e:3,r:"原创"},
+{tg:"新功能",t:"协作日记",d:"邀请一个信任的人（伴侣、挚友）共同维护一个日记空间。双方都能写、能留言、能回应。本质上是两人的私密博客。适合情侣、闺蜜、亲子。实现方式：共享数据空间 + 权限管理。",p:"mid",e:5,r:"原创"},
+{tg:"新功能",t:"日记接龙",d:"两人轮流写同一篇日记，但看不到对方正在写的内容。都写完后才能看到对方的部分。适合情侣或朋友间的趣味互动。实现方式：锁定机制，双方提交后解锁。",p:"explore",e:4,r:"原创"},
+{tg:"增强",t:"批量操作优化",d:"多选日记后批量操作：批量打标签、批量移动到其他空间、批量导出、批量删除。现有批量操作有限。实现方式：多选模式 + 批量动作菜单。",p:"mid",e:2,r:"原创"}
+]},
+{id:"growth",t:"成长与反思",c:"var(--coral)",items:[
+{tg:"增强",t:"矛盾检测",d:"检测行动和目标之间的矛盾。你说要早睡但凌晨两点还在写日记，你说要省钱但日记里全是购物记录。温和提示这种不一致，帮助用户自我觉察。实现方式：目标声明 + 行为分析 + 矛盾检测。",p:"mid",e:4,r:"原创"},
+{tg:"增强",t:"习惯关联分析",d:"分析习惯和心情的关联：「运动的日子心情平均高1.2」「熬夜后第二天效率低」。不是简单的习惯追踪，而是看到习惯对生活的实际影响。实现方式：习惯记录 + 心情关联 + 统计分析。",p:"mid",e:3,r:"原创"},
+{tg:"增强",t:"成长里程碑",d:"自动识别重要的成长节点：「第一次连续写作30天」「第一次主动反思情绪」「第一次完成一个长期目标」。记录这些时刻，帮助用户看到自己的进步。实现方式：行为模式识别 + 里程碑触发。",p:"mid",e:3,r:"原创"}
+]},
+{id:"exp",t:"实验性探索",c:"var(--rose)",items:[
+{tg:"探索",t:"梦境分析",d:"专门的梦境记录模式：梦境类型、清晰度、反复元素。AI分析梦境模式，识别反复出现的符号和情绪主题。和日常日记分开，保持梦境记录的独特工作流。实现方式：梦境专用模板 + 模式分析。",p:"explore",e:4,r:"Stoic"},
+{tg:"探索",t:"情绪预测",d:"基于历史模式预测明天的情绪状态。不追求准确度，而是帮助用户意识到情绪有规律和节奏。附带置信区间。实现方式：时间序列分析 + 预测模型。",p:"explore",e:4,r:"原创"},
+{tg:"探索",t:"关系图谱",d:"可视化日记中提到的人物关系网络。谁出现的频率最高？和谁互动时心情最好？关系如何随时间变化？揭示社交模式。实现方式：人物标签 + 关系分析 + 图谱可视化。",p:"explore",e:5,r:"原创"},
+{tg:"探索",t:"声音日记",d:"录制一段环境声音作为日记的开头：咖啡馆的背景音、雨声、朋友的笑声。声音比文字更能唤起记忆。实现方式：录音功能 + 音频附件。",p:"explore",e:3,r:"原创"}
+]}
+];
+
+const arrowSVG='<svg class="acc-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4"/></svg>';
+
+const nav=document.getElementById('nav');
+D.forEach(s=>{const a=document.createElement('a');a.className='nav-link';a.href='#'+s.id;a.textContent=s.t;nav.appendChild(a)});
+
+const picksEl=document.getElementById('picks');
+const topPicks=D.flatMap(s=>s.items.filter(i=>i.p==='high'&&i.e<=3).map(i=>({t:i.t})));
+if(topPicks.length){
+  let h='<div class="picks-label">如果只做五件事</div><div class="picks-row">';
+  topPicks.slice(0,5).forEach(i=>{h+='<div class="pick-chip">'+i.t+'</div>'});
+  h+='</div>';picksEl.innerHTML=h;
+}
+
+const acc=document.getElementById('acc');
+D.forEach((s,si)=>{
+  const div=document.createElement('div');
+  div.className='acc-item'+(si===0?' open':'');
+  div.id=s.id;
+  let ch='';
+  s.items.forEach(i=>{
+    const pc=i.p==='high'?'p-h':i.p==='mid'?'p-m':'p-e';
+    const pl=i.p==='high'?'高':i.p==='mid'?'中':'探索';
+    let bars='';for(let j=0;j<5;j++)bars+='<span'+(j<i.e?' class="on"':'')+'></span>';
+    ch+='<div class="card '+pc+'" data-title="'+i.t+'" data-cat="'+s.t+'" data-pri="'+pl+'" data-effort="'+i.e+'" onclick="toggleCard(this,event)"><div class="card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="card-top"><span class="card-tag">'+i.tg+'</span><span class="card-pri"><span class="card-pri-dot"></span>'+pl+'</span></div><h3>'+i.t+'</h3><p>'+i.d+'</p><div class="card-foot"><span class="card-effort">工作量 <span class="ebar">'+bars+'</span></span><span class="card-ref">'+i.r+'</span></div></div>';
+  });
+  div.innerHTML='<div class="acc-head"><span class="acc-dot" style="background:'+s.c+'"></span><span class="acc-num">'+String(si+1).padStart(2,'0')+'</span><span class="acc-title">'+s.t+'</span><span class="acc-count">'+s.items.length+' 条</span>'+arrowSVG+'</div><div class="acc-body"><div class="acc-content"><div class="cards">'+ch+'</div></div></div>';
+  div.querySelector('.acc-head').addEventListener('click',()=>{div.classList.toggle('open')});
+  acc.appendChild(div);
+});
+
+const tb=document.getElementById('tbody');
+const all=D.flatMap(s=>s.items.map(i=>({...i,cat:s.t,cc:s.c})));
+all.sort((a,b)=>({high:0,mid:1,explore:2})[a.p]-({high:0,mid:1,explore:2})[b.p]);
+all.forEach(i=>{
+  const pl=i.p==='high'?'高':i.p==='mid'?'中':'探索';
+  const pc=i.p==='high'?'var(--rose)':i.p==='mid'?'var(--gold)':'var(--t3)';
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td>'+i.t+'</td><td><span style="color:'+i.cc+'">'+i.cat+'</span></td><td><span class="td-p"><span class="td-d" style="background:'+pc+'"></span>'+pl+'</span></td><td>'+i.e+'/5</td>';
+  tb.appendChild(tr);
+});
+
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));const lk=document.querySelector('.nav-link[href="#'+e.target.id+'"]');if(lk)lk.classList.add('active')}})},{rootMargin:'-20% 0px -70% 0px'});
+document.querySelectorAll('.acc-item').forEach(s=>obs.observe(s));
+
+const fab=document.getElementById('fab');
+const fabCount=document.getElementById('fabCount');
+function toggleCard(el,e){
+  e.stopPropagation();
+  el.classList.toggle('selected');
+  updateFab();
+}
+function updateFab(){
+  const n=document.querySelectorAll('.card.selected').length;
+  fabCount.textContent=n;
+  fab.classList.toggle('show',n>0);
+}
+function openModal(){
+  const sel=document.querySelectorAll('.card.selected');
+  if(!sel.length)return;
+  let txt='=== 已选需求清单 V3 ('+sel.length+' 项) ===\n\n';
+  let lastCat='';
+  sel.forEach(c=>{
+    const cat=c.dataset.cat;
+    if(cat!==lastCat){txt+='\n['+cat+']\n';lastCat=cat}
+    const pri=c.dataset.pri;
+    const effort=c.dataset.effort;
+    txt+='  - '+c.dataset.title+' ('+pri+'优先级, 工作量'+effort+'/5)\n';
+  });
+  txt+='\n=== 共 '+sel.length+' 项待实现 ===';
+  document.getElementById('exportText').textContent=txt;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function copyText(){
+  const txt=document.getElementById('exportText').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.querySelector('.modal-btn.primary');
+    btn.textContent='已复制';setTimeout(()=>btn.textContent='复制文本',1500);
+  });
+}
+function clearAll(){
+  document.querySelectorAll('.card.selected').forEach(c=>c.classList.remove('selected'));
+  updateFab();closeModal();
+}
+</script>
+</body>
+</html>

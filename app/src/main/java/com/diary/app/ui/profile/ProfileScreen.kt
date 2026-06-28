@@ -123,6 +123,7 @@ import com.diary.app.update.UpdateChecker
 import com.diary.app.update.UpdateCheckResult
 import com.diary.app.update.UpdateDialog
 import com.diary.app.update.toUserMessage
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
@@ -190,6 +191,7 @@ fun ProfileScreen(
     var updateUrl by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableStateOf(-1f) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
     var isForceUpdate by remember { mutableStateOf(false) }
     val fontSizeOptions = listOf(
         FontSizeOption("tiny", "极小", 10),
@@ -281,7 +283,7 @@ fun ProfileScreen(
                 isDownloading = true
                 downloadProgress = -1f
                 val fileName = "DiaryApp-v$updateVersion.apk"
-                scope.launch {
+                downloadJob = scope.launch {
                     try {
                         ApkInstaller.downloadAndInstall(context, updateUrl, fileName)
                             .collect { state ->
@@ -297,6 +299,12 @@ fun ProfileScreen(
                             }
                     } catch (e: Exception) { isDownloading = false; downloadProgress = -1f; showUpdateDialog = false; Toast.makeText(context, context.getString(R.string.profile_update_failed_msg, e.message ?: ""), Toast.LENGTH_SHORT).show() }
                 }
+            },
+            onCancelDownload = {
+                downloadJob?.cancel()
+                downloadJob = null
+                isDownloading = false
+                downloadProgress = -1f
             },
             onDismiss = { showUpdateDialog = false }
         )

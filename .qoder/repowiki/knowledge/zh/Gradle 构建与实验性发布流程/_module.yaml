@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: build_system
+title: Gradle 构建与实验性发布流程
+scope: []
+source_files:
+    - build.gradle.kts
+    - settings.gradle.kts
+    - app/build.gradle.kts
+    - gradle.properties
+    - gradle/wrapper/gradle-wrapper.properties
+    - scripts/release-experimental.ps1
+    - app/proguard-rules.pro
+depends_on: []
+related_to: []
