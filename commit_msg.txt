@@ -1,1 +1,1 @@
-v2.71.25: connect 12 feature screens to real data + update cancel + backup layout fix + quick checkin camera
+v2.71.26: goals hierarchy + sub-goals + quick checkin camera
