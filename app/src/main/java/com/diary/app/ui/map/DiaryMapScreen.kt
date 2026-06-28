@@ -495,7 +495,19 @@ private fun MapViewWithLocation(
                                 .title(marker.title)
                                 .snippet(marker.location.ifBlank { null })
 
-                            // In route mode, add numbered markers
+                            // Color marker by mood level
+                            val moodHue = when (marker.moodLevel) {
+                                1 -> BitmapDescriptorFactory.HUE_RED       // 沮丧 - 红色
+                                2 -> BitmapDescriptorFactory.HUE_ORANGE    // 低落 - 橙色
+                                3 -> BitmapDescriptorFactory.HUE_YELLOW    // 一般 - 黄色
+                                4 -> BitmapDescriptorFactory.HUE_GREEN     // 不错 - 绿色
+                                5 -> BitmapDescriptorFactory.HUE_CYAN      // 开心 - 青色
+                                6 -> BitmapDescriptorFactory.HUE_AZURE     // 兴奋 - 蓝色
+                                else -> BitmapDescriptorFactory.HUE_RED    // 默认 - 红色
+                            }
+                            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(moodHue))
+
+                            // In route mode, override with route color
                             if (isRouteMode) {
                                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                             }

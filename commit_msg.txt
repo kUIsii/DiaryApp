@@ -1,5 +1,9 @@
-Add immersive reader and quarterly review features
+feat: 添加心情地图功能
 
-- Immersive reader: e-book style reading with warm light filter and font size control
-- Quarterly review: statistics and mood trends for current quarter
-- Both features integrated into Tools screen navigation
+地图标记现在按心情等级着色：
+- 心情1(沮丧) - 红色
+- 心情2(低落) - 橙色
+- 心情3(一般) - 黄色
+- 心情4(不错) - 绿色
+- 心情5(开心) - 青色
+- 心情6(兴奋) - 蓝色
