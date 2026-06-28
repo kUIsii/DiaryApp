@@ -35,9 +35,9 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
             dao.getAllWritingExperiments().collect { experiments ->
                 _activeExperiment.value = experiments.firstOrNull { it.status == "active" }
                 _completedExperiments.value = experiments.filter { it.status == "completed" }
-            }
-            _activeExperiment.value?.let { exp ->
-                dao.getExperimentParticipations(exp.id).collect { parts ->
+                val active = experiments.firstOrNull { it.status == "active" }
+                if (active != null) {
+                    val parts = dao.getExperimentParticipations(active.id).first()
                     _participations.value = parts
                 }
             }
@@ -62,7 +62,7 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
             val existing = dao.getAllWritingExperiments().first()
             val now = System.currentTimeMillis()
             val hasActive = existing.any { it.status == "active" }
-            if (!hasActive && existing.isEmpty()) {
+            if (!hasActive) {
                 // 创建默认实验
                 val weekStart = now
                 val weekEnd = now + 7 * 24 * 60 * 60 * 1000L

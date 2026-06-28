@@ -8,6 +8,7 @@ import com.diary.app.data.Decision
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class DecisionViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,11 +50,7 @@ class DecisionViewModel(application: Application) : AndroidViewModel(application
     private fun scanForDecisions() {
         viewModelScope.launch {
             val entries = dao.getAllEntriesOnce()
-            val existing = dao.getAllDecisions().let { flow ->
-                var result = emptyList<Decision>()
-                flow.collect { result = it }
-                result
-            }
+            val existing = dao.getAllDecisions().first()
             val existingDiaryIds = existing.map { it.diaryId }.toSet()
 
             val decisionKeywords = listOf("决定", "选择", "考虑", "纠结", "最终", "下定决心", "想了很久")

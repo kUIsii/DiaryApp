@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.theme.MossGreenDarkCardBackground
 import com.diary.app.ui.theme.MossGreenDarkCardBorder
 import com.diary.app.ui.theme.MossGreenLightCardBackground
@@ -56,10 +57,10 @@ import com.diary.app.ui.theme.themeMode
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 16.dp,
+    cornerRadius: Dp = DesignTokens.CornerLarge,
     enableShadow: Boolean = false,
     gradientColors: List<Color>? = null,
-    innerPadding: Dp = 16.dp,
+    innerPadding: Dp = DesignTokens.SpacingLg,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {

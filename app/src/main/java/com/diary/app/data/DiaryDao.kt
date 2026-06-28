@@ -713,6 +713,12 @@ interface DiaryDao {
     @Query("UPDATE cover_themes SET isActive = 1 WHERE id = :id")
     suspend fun activateCoverTheme(id: Long)
 
+    @Update
+    suspend fun updateCoverTheme(theme: CoverTheme)
+
+    @Query("DELETE FROM cover_themes WHERE id = :id")
+    suspend fun deleteCoverThemeById(id: Long)
+
     // Diary embeddings
     @Query("SELECT * FROM diary_embeddings WHERE diaryId = :diaryId")
     suspend fun getEmbeddingForDiary(diaryId: Long): DiaryEmbedding?
@@ -927,4 +933,6 @@ data class RecentLocation(
     val latitude: Double?,
     val longitude: Double?
 )
+
+
 

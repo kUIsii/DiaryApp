@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +15,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,71 +30,48 @@ fun RelationshipTrackingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-                Text(
-                    text = "关系追踪",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
+            PageHeader(title = "关系追踪", onNavigateBack = onNavigateBack)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(
                         text = "AI识别的人物关系",
-                        fontSize = 16.sp,
+                        fontSize = DesignTokens.FontMedium,
                         fontWeight = FontWeight.Medium
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                     Text(
                         text = "AI自动识别日记中提到的人物，追踪你对每个人的情感变化。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
+                        fontSize = DesignTokens.FontSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
             Text(
                 text = "常提到的人 (${persons.size})",
-                fontSize = 16.sp,
+                fontSize = DesignTokens.FontMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = DesignTokens.SpacingSm)
             )
 
             if (persons.isEmpty()) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "还没有识别到人物，多写几篇日记后系统会自动识别。",
-                        fontSize = 14.sp,
+                        fontSize = DesignTokens.FontBody,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)
                 ) {
                     items(persons) { item ->
                         val sentimentLabel = when {
@@ -112,11 +90,7 @@ fun RelationshipTrackingScreen(
 
 @Composable
 private fun PersonItem(name: String, mentionCount: Int, sentiment: String) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically

@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiaryApp 功能展示画册</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg0:#f6efe7;
+      --bg1:#f2f5f7;
+      --paper:rgba(255,252,247,.86);
+      --paper-strong:rgba(255,255,255,.94);
+      --ink:#273646;
+      --muted:#667581;
+      --soft:#8a97a1;
+      --line:rgba(39,54,70,.09);
+      --line-strong:rgba(39,54,70,.16);
+      --shadow:0 30px 70px rgba(69,49,32,.12);
+      --brown:#9e6b49;
+      --blue:#5e82a5;
+      --green:#5d8c75;
+      --amber:#c38d3d;
+      --rose:#b86776;
+      --violet:#7f6dab;
+      --brown-soft:rgba(158,107,73,.12);
+      --blue-soft:rgba(94,130,165,.13);
+      --green-soft:rgba(93,140,117,.14);
+      --amber-soft:rgba(195,141,61,.14);
+      --rose-soft:rgba(184,103,118,.14);
+      --violet-soft:rgba(127,109,171,.13);
+      --radius-xl:32px;
+      --radius-lg:24px;
+      --radius-md:18px;
+      --radius-sm:14px;
+      --max:1480px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      color:var(--ink);
+      font-family:"Manrope","PingFang SC","Microsoft YaHei",sans-serif;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255,255,255,.92), transparent 22%),
+        radial-gradient(circle at 84% 8%, rgba(245,232,205,.8), transparent 20%),
+        linear-gradient(150deg,var(--bg0),var(--bg1));
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:
+        linear-gradient(rgba(121,145,168,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(121,145,168,.08) 1px, transparent 1px);
+      background-size:22px 22px;
+      opacity:.38;
+    }
+    .shell{
+      position:relative;
+      z-index:1;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:28px 22px 72px;
+    }
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0,1.24fr) minmax(340px,.76fr);
+      gap:18px;
+      align-items:stretch;
+      margin-bottom:18px;
+    }
+    .panel{
+      background:var(--paper);
+      border:1px solid rgba(255,255,255,.85);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
+      overflow:hidden;
+    }
+    .hero-main{
+      padding:30px 30px 26px;
+      position:relative;
+      isolation:isolate;
+    }
+    .hero-main::after{
+      content:"";
+      position:absolute;
+      inset:auto -90px -120px auto;
+      width:320px;
+      height:320px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(94,130,165,.16), rgba(94,130,165,0) 68%);
+      filter:blur(10px);
+      z-index:-1;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 13px;
+      border-radius:999px;
+      background:var(--blue-soft);
+      color:var(--blue);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .title{
+      font-family:"Noto Serif SC",serif;
+      font-weight:800;
+      line-height:1.04;
+      letter-spacing:0;
+      font-size:clamp(34px,4.7vw,60px);
+      margin:18px 0 12px;
+      max-width:12ch;
+    }
+    .lead{
+      max-width:760px;
+      font-size:15px;
+      line-height:1.9;
+      color:var(--muted);
+      margin:0;
+    }
+    .hero-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+    .nav-strip{
+      margin:0 0 18px;
+      padding:16px 18px;
+      border-radius:var(--radius-xl);
+      background:rgba(255,255,255,.62);
+      border:1px solid rgba(255,255,255,.8);
+      box-shadow:0 16px 34px rgba(69,49,32,.08);
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .nav-label{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      color:var(--soft);
+      text-transform:uppercase;
+      margin-right:4px;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid transparent;
+      border-radius:999px;
+      padding:10px 14px;
+      font-size:13px;
+      font-weight:800;
+      text-decoration:none;
+      color:var(--ink);
+      transition:transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{
+      background:var(--ink);
+      color:#fff;
+      box-shadow:0 12px 26px rgba(39,54,70,.14);
+    }
+    .btn.soft{background:rgba(255,255,255,.52);border-color:var(--line)}
+    .btn.blue{background:var(--blue-soft);color:var(--blue)}
+    .btn.green{background:var(--green-soft);color:var(--green)}
+    .btn.amber{background:var(--amber-soft);color:var(--amber)}
+    .hero-side{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .stat-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .stat{
+      padding:16px;
+      border-radius:20px;
+      background:var(--paper-strong);
+      border:1px solid rgba(39,54,70,.06);
+      min-height:98px;
+    }
+    .stat strong{
+      display:block;
+      font-size:26px;
+      font-weight:900;
+      line-height:1;
+      margin-bottom:8px;
+    }
+    .stat span{
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+    .mini-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .mini-item{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:12px 14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.65);
+      border:1px solid rgba(39,54,70,.06);
+    }
+    .mini-item .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      margin-top:5px;
+      flex:0 0 auto;
+    }
+    .mini-item .dot.blue{background:var(--blue)}
+    .mini-item .dot.green{background:var(--green)}
+    .mini-item .dot.amber{background:var(--amber)}
+    .mini-item .dot.rose{background:var(--rose)}
+    .mini-item .dot.violet{background:var(--violet)}
+    .mini-item strong{display:block;font-size:13px;font-weight:800;line-height:1.35}
+    .mini-item span{display:block;font-size:12px;line-height:1.6;color:var(--muted);margin-top:3px}
+
+    .section{
+      margin-top:18px;
+      border-radius:var(--radius-xl);
+      overflow:hidden;
+      background:var(--paper);
+      border:1px solid rgba(255,255,255,.85);
+      box-shadow:var(--shadow);
+    }
+    .section-head{
+      padding:24px 28px 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:16px;
+      border-bottom:1px solid rgba(39,54,70,.06);
+      background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0));
+    }
+    .section-title{
+      margin:0;
+      font-family:"Noto Serif SC",serif;
+      font-weight:800;
+      font-size:clamp(22px,2.4vw,32px);
+      line-height:1.14;
+      letter-spacing:0;
+    }
+    .section-sub{
+      margin:8px 0 0;
+      font-size:13px;
+      line-height:1.8;
+      color:var(--muted);
+      max-width:860px;
+    }
+    .section-chip{
+      padding:9px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.62);
+      border:1px solid rgba(39,54,70,.06);
+      color:var(--soft);
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .summary-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      padding:22px 28px 26px;
+    }
+    .summary-card{
+      padding:18px;
+      border-radius:22px;
+      background:rgba(255,255,255,.6);
+      border:1px solid rgba(39,54,70,.06);
+      min-height:124px;
+    }
+    .summary-card .label{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      color:var(--soft);
+      text-transform:uppercase;
+      margin-bottom:10px;
+    }
+    .summary-card strong{
+      display:block;
+      font-size:26px;
+      line-height:1;
+      margin-bottom:10px;
+    }
+    .summary-card p{
+      margin:0;
+      font-size:12.5px;
+      line-height:1.8;
+      color:var(--muted);
+    }
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:0 28px 22px;
+    }
+    .filterbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      padding:0 28px 18px;
+    }
+    .filterbtn{
+      border:1px solid rgba(39,54,70,.08);
+      background:rgba(255,255,255,.6);
+      color:var(--soft);
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      transition:all .16s ease;
+    }
+    .filterbtn:hover{transform:translateY(-1px);border-color:rgba(94,130,165,.18);color:var(--ink)}
+    .filterbtn.active{
+      background:var(--ink);
+      color:#fff;
+      border-color:var(--ink);
+    }
+    .band{
+      padding:0 28px 28px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+    }
+    .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .feature{
+      padding:18px 18px 17px;
+      border-radius:22px;
+      background:rgba(255,255,255,.66);
+      border:1px solid rgba(39,54,70,.07);
+      transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+      min-height:100%;
+    }
+    .feature:hover{
+      transform:translateY(-2px);
+      border-color:rgba(94,130,165,.22);
+      box-shadow:0 14px 28px rgba(69,49,32,.08);
+    }
+    .feature h3{
+      margin:0;
+      font-size:16px;
+      line-height:1.35;
+      font-weight:900;
+    }
+    .feature p{
+      margin:10px 0 0;
+      color:var(--muted);
+      font-size:12.7px;
+      line-height:1.82;
+    }
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:12px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.02em;
+      white-space:nowrap;
+    }
+    .tag.blue{background:var(--blue-soft);color:var(--blue)}
+    .tag.green{background:var(--green-soft);color:var(--green)}
+    .tag.amber{background:var(--amber-soft);color:var(--amber)}
+    .tag.rose{background:var(--rose-soft);color:var(--rose)}
+    .tag.violet{background:var(--violet-soft);color:var(--violet)}
+    .tag.brown{background:var(--brown-soft);color:var(--brown)}
+    .tag.gray{background:rgba(39,54,70,.06);color:var(--soft)}
+    .timeline{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+    }
+    .phase{
+      padding:18px;
+      border-radius:22px;
+      background:rgba(255,255,255,.68);
+      border:1px solid rgba(39,54,70,.07);
+      min-height:170px;
+    }
+    .phase .kicker{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      color:var(--soft);
+      text-transform:uppercase;
+    }
+    .phase h3{
+      margin:10px 0 8px;
+      font-size:16px;
+      line-height:1.4;
+      font-weight:900;
+    }
+    .phase p{
+      margin:0;
+      color:var(--muted);
+      font-size:12.6px;
+      line-height:1.8;
+    }
+    .list{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .bullet{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:14px 15px;
+      border-radius:18px;
+      background:rgba(255,255,255,.66);
+      border:1px solid rgba(39,54,70,.06);
+    }
+    .bullet .pill{
+      flex:0 0 auto;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:12px;
+      font-weight:900;
+      color:#fff;
+      margin-top:1px;
+    }
+    .bullet .pill.blue{background:var(--blue)}
+    .bullet .pill.green{background:var(--green)}
+    .bullet .pill.amber{background:var(--amber)}
+    .bullet .pill.rose{background:var(--rose)}
+    .bullet .pill.violet{background:var(--violet)}
+    .bullet .text strong{display:block;font-size:13px;font-weight:900;line-height:1.4}
+    .bullet .text span{display:block;margin-top:4px;font-size:12px;line-height:1.7;color:var(--muted)}
+    .quote{
+      padding:22px 24px;
+      border-radius:24px;
+      background:linear-gradient(135deg, rgba(94,130,165,.10), rgba(93,140,117,.10));
+      border:1px solid rgba(39,54,70,.07);
+    }
+    .quote p{
+      margin:0;
+      font-family:"Noto Serif SC",serif;
+      font-size:17px;
+      line-height:1.9;
+      font-weight:700;
+      color:var(--ink);
+    }
+    .quote small{
+      display:block;
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+    }
+    .catalog{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .catalog .item{
+      padding:16px 16px 15px;
+      border-radius:22px;
+      background:rgba(255,255,255,.68);
+      border:1px solid rgba(39,54,70,.07);
+      min-height:138px;
+    }
+    .catalog .item h3{
+      margin:0;
+      font-size:15px;
+      line-height:1.35;
+      font-weight:900;
+    }
+    .catalog .item p{
+      margin:10px 0 0;
+      font-size:12.5px;
+      line-height:1.8;
+      color:var(--muted);
+    }
+    .footer{
+      padding:18px 8px 0;
+      text-align:center;
+      color:var(--soft);
+      font-size:12px;
+      line-height:1.8;
+    }
+    @media (max-width:1200px){
+      .hero{grid-template-columns:1fr}
+      .summary-grid,.grid.four,.timeline{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .catalog{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:760px){
+      .shell{padding:14px 12px 56px}
+      .hero-main,.hero-side,.section-head,.summary-grid,.band,.toolbar,.filterbar{padding-left:18px;padding-right:18px}
+      .title{max-width:none;font-size:clamp(30px,9vw,44px)}
+      .summary-grid,.grid,.grid.two,.grid.four,.timeline,.list{grid-template-columns:1fr}
+      .catalog{grid-template-columns:1fr}
+      .section-head{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="nav-strip" aria-label="目录">
+      <span class="nav-label">目录</span>
+      <a class="btn soft" href="#overview">功能总览</a>
+      <a class="btn soft" href="#current">当前已实现</a>
+      <a class="btn soft" href="#ai">AI 功能</a>
+      <a class="btn soft" href="#emotion">情绪回顾</a>
+      <a class="btn soft" href="#matrix">功能矩阵</a>
+      <a class="btn soft" href="#expansion">扩展方向</a>
+      <a class="btn soft" href="#growth">成长系统</a>
+      <a class="btn soft" href="#privacy">隐私与可信</a>
+      <a class="btn soft" href="#visual">主题语言</a>
+      <a class="btn soft" href="#roadmap">路线建议</a>
+    </div>
+
+    <section class="hero">
+      <div class="panel hero-main">
+        <div class="eyebrow">DiaryApp · feature atlas</div>
+        <h1 class="title">把日记做成一座会呼吸的生活图书馆</h1>
+        <p class="lead">
+          这份画册不是把现有文档重新排版，而是基于你当前 App 的真实功能结构、设计系统和竞品调研，重新整理出一套更像产品展板的展示方案。
+          它覆盖了日记的输入、记录、理解、回顾、成长、隐私、个性化、游戏化和未来扩展，尽量把“一个日记 App 还能做什么”讲得完整而具体。
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#overview">浏览功能总览</a>
+          <a class="btn soft" href="#current">看当前已实现</a>
+          <a class="btn blue" href="#expansion">看扩展空间</a>
+          <a class="btn green" href="#roadmap">看路线建议</a>
+        </div>
+      </div>
+      <aside class="panel hero-side">
+        <div class="stat-grid">
+          <div class="stat">
+            <strong>6</strong>
+            <span>大类体验：记录、AI、回顾、成长、隐私、主题</span>
+          </div>
+          <div class="stat">
+            <strong>40+</strong>
+            <span>已实现/可继续扩展的功能展示点</span>
+          </div>
+          <div class="stat">
+            <strong>7</strong>
+            <span>主题风格：雾蓝、苔绿、海潮、花瓣、沙色、陶土、墨色</span>
+          </div>
+          <div class="stat">
+            <strong>1</strong>
+            <span>目标：让日记更像陪伴用户成长的生活系统</span>
+          </div>
+        </div>
+        <div class="mini-list">
+          <div class="mini-item">
+            <span class="dot blue"></span>
+            <div><strong>现有亮点不是单点功能，而是完整的系统感</strong><span>编辑器、地图、报告、目标、回顾、主题、锁定都已经有了真实骨架。</span></div>
+          </div>
+          <div class="mini-item">
+            <span class="dot green"></span>
+            <div><strong>扩展重点放在“更好写、写得更久、找得回来”</strong><span>语义搜索、上下文提示、地点回忆、环境音、信件模式都围绕这个方向展开。</span></div>
+          </div>
+          <div class="mini-item">
+            <span class="dot amber"></span>
+            <div><strong>页面风格统一为温暖纸感 + 安静色块 + 轻微动势</strong><span>避免太硬的仪表盘感，保持像一本精致、可翻阅的产品册。</span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">功能总览</h2>
+          <p class="section-sub">先把整个 App 的能力放在一张地图里看：从“怎么写”到“怎么回看”，再到“怎么长期陪伴用户”。</p>
+        </div>
+        <div class="section-chip">Application-wide view</div>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="label">Capture</div>
+          <strong>写进去</strong>
+          <p>富文本、语音、快速签到、图片、天气、位置、标签、待办一体记录。</p>
+        </div>
+        <div class="summary-card">
+          <div class="label">Understand</div>
+          <strong>看明白</strong>
+          <p>AI 摘要、情绪分析、人物关系、词频句长、回顾故事、趋势与预测。</p>
+        </div>
+        <div class="summary-card">
+          <div class="label">Remember</div>
+          <strong>找回来</strong>
+          <p>那年今日、地图回忆、时间轴、收藏、记忆锚点、语义搜索、时间胶囊。</p>
+        </div>
+        <div class="summary-card">
+          <div class="label">Grow</div>
+          <strong>长下去</strong>
+          <p>目标分解、小确幸、写作实验、保护罩、挑战、习惯、年度年鉴和故事化报告。</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <a class="btn soft" href="#current">当前功能</a>
+        <a class="btn blue" href="#ai">AI 能力</a>
+        <a class="btn green" href="#emotion">情绪与回顾</a>
+        <a class="btn amber" href="#expansion">扩展功能</a>
+      </div>
+    </section>
+
+    <section class="section" id="matrix">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">功能矩阵</h2>
+          <p class="section-sub">把一些最能代表 App 方向的能力，再浓缩成便于扫读的卡片墙。这里更适合当作提案页中间的一张“总览海报”。</p>
+        </div>
+        <div class="section-chip">Feature matrix</div>
+      </div>
+      <div class="filterbar" id="filters">
+        <button class="filterbtn active" data-filter="all">全部</button>
+        <button class="filterbtn" data-filter="capture">记录</button>
+        <button class="filterbtn" data-filter="ai">AI</button>
+        <button class="filterbtn" data-filter="memory">回顾</button>
+        <button class="filterbtn" data-filter="growth">成长</button>
+        <button class="filterbtn" data-filter="privacy">隐私</button>
+        <button class="filterbtn" data-filter="theme">主题</button>
+      </div>
+      <div class="band">
+        <div class="catalog" id="catalog">
+          <article class="item" data-cats="capture">
+            <h3>语音录入与转写</h3>
+            <p>随时说，自动转成文字，保留原始音频。最适合开车、走路、灵感突发时记录。</p>
+          </article>
+          <article class="item" data-cats="capture">
+            <h3>快速签到</h3>
+            <p>心情 + 照片 + 一句话，低成本完成一次记录，特别适合作为每日入口。</p>
+          </article>
+          <article class="item" data-cats="capture">
+            <h3>下拉快记</h3>
+            <p>首页往下轻轻一拉就能写，接住临时灵感，缩短记录路径。</p>
+          </article>
+          <article class="item" data-cats="ai">
+            <h3>上下文感知提示</h3>
+            <p>根据最近记录、天气和待办，自动给出最适合今天的写作切口。</p>
+          </article>
+          <article class="item" data-cats="ai">
+            <h3>写作教练</h3>
+            <p>分析句长、词频、节奏和情感深度，给出具体建议，帮助用户越写越有层次。</p>
+          </article>
+          <article class="item" data-cats="ai">
+            <h3>生活章节切分</h3>
+            <p>自动识别人生阶段变化，让日记流变成可以回看的故事章节。</p>
+          </article>
+          <article class="item" data-cats="memory">
+            <h3>那年今日</h3>
+            <p>同月同日的日记重现，把过去轻轻推回眼前，是最有温度的回顾功能。</p>
+          </article>
+          <article class="item" data-cats="memory">
+            <h3>语义搜索</h3>
+            <p>不只是关键词，而是像搜“那次差点放弃旅行的周末”这样的语义回忆。</p>
+          </article>
+          <article class="item" data-cats="memory">
+            <h3>地点触发回忆</h3>
+            <p>回到某个地方时，自动提示你在那儿写过什么，让现实和记忆重新连上。</p>
+          </article>
+          <article class="item" data-cats="growth">
+            <h3>连续保护罩</h3>
+            <p>给写作连续性一个温和保险，减轻断签焦虑，保留长期坚持的动力。</p>
+          </article>
+          <article class="item" data-cats="growth">
+            <h3>写作实验室</h3>
+            <p>通过主题挑战、实验任务和小徽章，让记录保持新鲜感和一点点乐趣。</p>
+          </article>
+          <article class="item" data-cats="growth">
+            <h3>个人年鉴</h3>
+            <p>把一年写成一本书，用户会觉得“我这一年真的被认真保存了”。</p>
+          </article>
+          <article class="item" data-cats="privacy">
+            <h3>本地优先</h3>
+            <p>数据保存在自己设备里，天然建立信任感，是日记类产品最重要的底座。</p>
+          </article>
+          <article class="item" data-cats="privacy">
+            <h3>生物锁 / PIN</h3>
+            <p>让隐私入口尽量简单，用户知道这些内容始终只属于自己。</p>
+          </article>
+          <article class="item" data-cats="privacy">
+            <h3>导入导出</h3>
+            <p>保证数据可以随时迁移，降低“我会不会被绑住”的心理压力。</p>
+          </article>
+          <article class="item" data-cats="theme">
+            <h3>环境感知主题</h3>
+            <p>时间和天气会轻轻改变化面，让 App 在不同场景里都像在呼吸。</p>
+          </article>
+          <article class="item" data-cats="theme">
+            <h3>沉浸阅读模式</h3>
+            <p>暖光、翻页、字体调节，把旧日记读得更像一本真正的书。</p>
+          </article>
+          <article class="item" data-cats="theme">
+            <h3>温柔通知</h3>
+            <p>用水滴、风铃、翻页这种更安静的方式提醒，不打断情绪。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="current">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">当前已经很强的部分</h2>
+          <p class="section-sub">这些是你项目里已经存在的“骨架级能力”，也是后面扩展最适合接上的地方。</p>
+        </div>
+        <div class="section-chip">What already works</div>
+      </div>
+      <div class="band">
+        <div class="grid four">
+          <article class="feature">
+            <h3>富文本编辑器 + WebView</h3>
+            <p>适合长文、照片、排版和更接近写作本体的输入方式，不只是“打字框”。</p>
+            <div class="meta">
+              <span class="tag blue">编辑器</span><span class="tag gray">Quill.js</span><span class="tag green">图片/媒体</span>
+            </div>
+          </article>
+          <article class="feature">
+            <h3>那年今日 + 时间回看</h3>
+            <p>把过去的同一天拉回眼前，这是日记里最有情绪价值的功能之一。</p>
+            <div class="meta">
+              <span class="tag amber">回忆</span><span class="tag brown">时间轴</span><span class="tag gray">高复访</span>
+            </div>
+          </article>
+          <article class="feature">
+            <h3>地图与天气元数据</h3>
+            <p>位置与天气会让日记不只是文字，还变成“当时的场景证据”。</p>
+            <div class="meta">
+              <span class="tag green">位置</span><span class="tag blue">天气</span><span class="tag gray">情境还原</span>
+            </div>
+          </article>
+          <article class="feature">
+            <h3>本地优先 + 生物锁</h3>
+            <p>这是日记类产品最重要的底层信任感：数据在自己手里，安全感才成立。</p>
+            <div class="meta">
+              <span class="tag violet">隐私</span><span class="tag gray">本地存储</span><span class="tag gray">锁屏保护</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="ai">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">AI 功能展示</h2>
+          <p class="section-sub">AI 在这里不是为了炫技，而是把“读不完的日记”变成“读得懂的生活”。</p>
+        </div>
+        <div class="section-chip">AI as a second reader</div>
+      </div>
+      <div class="band">
+        <div class="grid">
+          <article class="feature">
+            <h3>智能摘要与标题建议</h3>
+            <p>长日记自动压成 1-2 句摘要，在列表里就能看懂今天写了什么，也可以给正文补一个更贴切的标题。</p>
+            <div class="meta"><span class="tag blue">总结</span><span class="tag gray">列表友好</span></div>
+          </article>
+          <article class="feature">
+            <h3>写作教练</h3>
+            <p>分析重复词、句长、节奏和表达深度，给出具体建议，不是改语法，而是帮用户越写越有层次。</p>
+            <div class="meta"><span class="tag green">写作成长</span><span class="tag gray">词频分析</span></div>
+          </article>
+          <article class="feature">
+            <h3>生活章节切分</h3>
+            <p>自动识别人生阶段的转折点，把杂乱的日记流整理成章节，年末回看时会很有故事感。</p>
+            <div class="meta"><span class="tag amber">章节</span><span class="tag gray">转折点</span></div>
+          </article>
+          <article class="feature">
+            <h3>关系情感追踪</h3>
+            <p>识别你在日记中提到的人物，观察你对他们的情绪变化，让人际关系变成可回看的长期曲线。</p>
+            <div class="meta"><span class="tag rose">人物</span><span class="tag gray">关系趋势</span></div>
+          </article>
+          <article class="feature">
+            <h3>价值观提取</h3>
+            <p>从长期内容里推断你真正在意什么，帮助用户把“我以为的自己”和“真实写下的自己”对齐。</p>
+            <div class="meta"><span class="tag violet">洞察</span><span class="tag gray">长期偏好</span></div>
+          </article>
+          <article class="feature">
+            <h3>平行视角与故事化改写</h3>
+            <p>同一段经历可以被改写成朋友视角、未来视角、信件体或故事体，让回看更立体、更有情绪。</p>
+            <div class="meta"><span class="tag blue">叙事</span><span class="tag gray">多视角</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="emotion">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">情绪、回顾与记忆</h2>
+          <p class="section-sub">真正会让用户反复打开的，是“我今天写了什么”之外的第二层价值：我最近怎么了、我以前怎么样、我和谁、在哪、因为什么而改变。</p>
+        </div>
+        <div class="section-chip">Memory & emotion layer</div>
+      </div>
+      <div class="band">
+        <div class="grid two">
+          <article class="feature">
+            <h3>情绪雷达图 + 情绪弧线</h3>
+            <p>不只显示开心或难过，而是用活力、平静、感恩、社交感、压力等维度拼出更真实的情绪轮廓。</p>
+            <div class="meta"><span class="tag blue">雷达</span><span class="tag violet">趋势</span><span class="tag gray">五维</span></div>
+          </article>
+          <article class="feature">
+            <h3>情绪天气预报</h3>
+            <p>根据最近的记录趋势给出温和提醒，比如“这三天有点低落，今晚适合写一句轻一点的东西”。</p>
+            <div class="meta"><span class="tag amber">预报</span><span class="tag gray">温柔提醒</span></div>
+          </article>
+          <article class="feature">
+            <h3>地点情感地图</h3>
+            <p>把情绪绑在地点上，用户会发现某些地方总是更安静，某些地方总是更兴奋，记忆与空间开始互相召回。</p>
+            <div class="meta"><span class="tag green">地图</span><span class="tag gray">热力</span></div>
+          </article>
+          <article class="feature">
+            <h3>文字显微镜与年度词汇进化</h3>
+            <p>把语句长度、高频词、用词丰富度、标点习惯做成可回看的演变图，能很直观地看见一个人如何写作、如何成长。</p>
+            <div class="meta"><span class="tag blue">文本分析</span><span class="tag gray">风格变化</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="expansion">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">最值得继续拓展的方向</h2>
+          <p class="section-sub">这些功能都尽量遵循一个原则：不是让日记更复杂，而是让日记更容易开始、更容易坚持、更容易回看。</p>
+        </div>
+        <div class="section-chip">High-value expansion</div>
+      </div>
+      <div class="band">
+        <div class="grid">
+          <article class="feature">
+            <h3>上下文感知写作提示</h3>
+            <p>结合最近几篇日记、天气、待办和当日状态，给出非常个性化的写作切入口，降低“今天不知道写什么”的门槛。</p>
+            <div class="meta"><span class="tag blue">高优先级</span><span class="tag gray">入口建议</span></div>
+          </article>
+          <article class="feature">
+            <h3>语义搜索</h3>
+            <p>不仅能按标题和标签搜，还能搜“那次差点放弃旅行的周末”这种自然语言，让“写过但找不到”成为过去式。</p>
+            <div class="meta"><span class="tag green">检索</span><span class="tag gray">向量化</span></div>
+          </article>
+          <article class="feature">
+            <h3>地点触发回忆</h3>
+            <p>当用户再次回到某个地方，自动提示以前在那里写过的日记，形成很强的现实触发记忆。</p>
+            <div class="meta"><span class="tag amber">回忆触发</span><span class="tag gray">位置感知</span></div>
+          </article>
+          <article class="feature">
+            <h3>场景环境音</h3>
+            <p>根据写作场景和情绪选择轻音环境，例如雨声、夜风、咖啡馆白噪音，让写作状态更容易进入。</p>
+            <div class="meta"><span class="tag violet">氛围</span><span class="tag gray">沉浸</span></div>
+          </article>
+          <article class="feature">
+            <h3>锁屏快写 + 小组件</h3>
+            <p>把“即时灵感”变成一个最短路径：从锁屏或者桌面组件直接记一笔，不被完整编辑流程打断。</p>
+            <div class="meta"><span class="tag rose">快速输入</span><span class="tag gray">Widget</span></div>
+          </article>
+          <article class="feature">
+            <h3>自适应界面</h3>
+            <p>根据用户使用习惯自动调整首页优先级，比如近期常看回顾，就把回忆卡片前置；常写碎片，就把快记入口突出。</p>
+            <div class="meta"><span class="tag blue">智能 UI</span><span class="tag gray">行为响应</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="growth">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">成长、自我管理与游戏化</h2>
+          <p class="section-sub">这些功能的重点不是“管住用户”，而是让写日记这件事持续变得有一点点好玩、有一点点成就感。</p>
+        </div>
+        <div class="section-chip">Motivation layer</div>
+      </div>
+      <div class="band">
+        <div class="timeline">
+          <article class="phase">
+            <div class="kicker">01 · 习惯建立</div>
+            <h3>快速签到 / 下拉快记</h3>
+            <p>先把记录变轻，允许用户用一句话、一个心情、一个照片开始，不要求一次写完整篇。</p>
+          </article>
+          <article class="phase">
+            <div class="kicker">02 · 持续激励</div>
+            <h3>连续保护罩 / 月度挑战</h3>
+            <p>给连续性一个温和的保护机制，用主题挑战代替硬任务，维持“我还在写”的感觉。</p>
+          </article>
+          <article class="phase">
+            <div class="kicker">03 · 深度回看</div>
+            <h3>年度回顾 / 个人年鉴</h3>
+            <p>把一年写作整理成一本书，让用户感到过去这一年并没有白白流走。</p>
+          </article>
+          <article class="phase">
+            <div class="kicker">04 · 自我对话</div>
+            <h3>与过去的自己对话</h3>
+            <p>把旧日记作为上下文，让 AI 变成“你自己给自己写回信”的桥梁，完成更深层的反思。</p>
+          </article>
+          <article class="phase">
+            <div class="kicker">05 · 仪式感</div>
+            <h3>写作实验室 / 彩蛋</h3>
+            <p>通过实验、徽章、彩蛋和特殊主题，把记录变成一个有节奏、有惊喜、有风格的长期仪式。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="privacy">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">隐私、可信感与数据掌控</h2>
+          <p class="section-sub">日记类产品最怕“看起来很丰富，实际上不敢存”。你的项目已经有很好的底子，这部分很适合继续强化。</p>
+        </div>
+        <div class="section-chip">Trust first</div>
+      </div>
+      <div class="band">
+        <div class="list">
+          <div class="bullet">
+            <div class="pill blue">1</div>
+            <div class="text"><strong>本地优先 + 导入导出</strong><span>让用户明确知道自己的内容可以随时带走，不被单一平台锁死。</span></div>
+          </div>
+          <div class="bullet">
+            <div class="pill green">2</div>
+            <div class="text"><strong>生物识别 / PIN / 锁屏保护</strong><span>隐私入口要简洁直接，减少解锁过程的心理摩擦。</span></div>
+          </div>
+          <div class="bullet">
+            <div class="pill amber">3</div>
+            <div class="text"><strong>回收站与恢复机制</strong><span>误删是一种很常见的焦虑，恢复能力会直接提升信任感。</span></div>
+          </div>
+          <div class="bullet">
+            <div class="pill rose">4</div>
+            <div class="text"><strong>分享粒度可控</strong><span>允许用户按条目、按片段、按仅预览文字来分享，而不是非黑即白的公开/私密。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="visual">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">主题与视觉语言</h2>
+          <p class="section-sub">整体视觉应该保留你当前项目的温度：像纸张、像晨雾、像安静的海面，而不是冰冷的管理后台。</p>
+        </div>
+        <div class="section-chip">Theme language</div>
+      </div>
+      <div class="band">
+        <div class="grid two">
+          <article class="quote">
+            <p>“页面的重点不是堆信息，而是让用户愿意待在这里。”</p>
+            <small>因此我们在这里用了纸感背景、低饱和主题色、柔和卡片、少量动效和适度留白，让展示页像一本会慢慢展开的画册。</small>
+          </article>
+          <article class="feature">
+            <h3>建议的展示风格</h3>
+            <p>封面用大标题 + 简洁总览，主体用分区叙事，最后用路线图和优先级收尾。每一块都可独立阅读，但串起来又是完整的产品故事。</p>
+            <div class="meta">
+              <span class="tag blue">纸感</span><span class="tag green">低饱和</span><span class="tag amber">分区叙事</span><span class="tag gray">轻动效</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">下一步路线建议</h2>
+          <p class="section-sub">如果要继续做，我建议优先补最有价值、最贴近日记本质的能力，而不是先做最花哨的概念。</p>
+        </div>
+        <div class="section-chip">Priority roadmap</div>
+      </div>
+      <div class="band">
+        <div class="grid">
+          <article class="feature">
+            <h3>第一优先：语义搜索 + 上下文提示</h3>
+            <p>这是“记得起”和“找得到”的核心组合，最直接提升体验，也最容易形成差异化价值。</p>
+            <div class="meta"><span class="tag blue">最高优先级</span></div>
+          </article>
+          <article class="feature">
+            <h3>第二优先：地点回忆 + 情绪地图</h3>
+            <p>把现实地点和日记联动起来，特别适合形成记忆回流，也能增强 App 的场景感。</p>
+            <div class="meta"><span class="tag green">高优先级</span></div>
+          </article>
+          <article class="feature">
+            <h3>第三优先：写作实验室 + 轻游戏化</h3>
+            <p>让坚持写作更轻松，但保持安静克制，不要把 App 变成打卡机器。</p>
+            <div class="meta"><span class="tag amber">中优先级</span></div>
+          </article>
+          <article class="feature">
+            <h3>第四优先：更强的 AI 洞察</h3>
+            <p>包括章节切分、关系分析、价值观提取、风格 DNA，适合做成长期报告。</p>
+            <div class="meta"><span class="tag violet">中高优先级</span></div>
+          </article>
+          <article class="feature">
+            <h3>第五优先：场景氛围能力</h3>
+            <p>环境音、沉浸阅读、温柔通知、呼吸灯等，让 App 更有陪伴感。</p>
+            <div class="meta"><span class="tag rose">体验增强</span></div>
+          </article>
+          <article class="feature">
+            <h3>第六优先：对外分享和年鉴输出</h3>
+            <p>导出成册、分享片段、年度故事、时间胶囊解锁，这些会让用户觉得内容“值得保存”。</p>
+            <div class="meta"><span class="tag brown">输出能力</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      本页为根据当前项目、已有设计语言和外部对照整理出的原创功能展示画册。<br />
+      适合直接打开浏览，也适合作为后续继续扩写产品提案、设计说明或演示页的基础。
+    </div>
+  </div>
+  <script>
+    (function () {
+      const buttons = Array.from(document.querySelectorAll('.filterbtn'));
+      const cards = Array.from(document.querySelectorAll('#catalog .item'));
+      function applyFilter(filter) {
+        cards.forEach(card => {
+          const cats = (card.getAttribute('data-cats') || '').split(/\s+/);
+          const visible = filter === 'all' || cats.includes(filter);
+          card.style.display = visible ? '' : 'none';
+        });
+      }
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilter(btn.dataset.filter);
+        });
+      });
+      applyFilter('all');
+    })();
+  </script>
+</body>
+</html>

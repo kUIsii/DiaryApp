@@ -28,8 +28,11 @@ class OutlineViewViewModel(application: Application) : AndroidViewModel(applicat
     private val _outline = MutableStateFlow<OutlineData?>(null)
     val outline: StateFlow<OutlineData?> = _outline.asStateFlow()
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     fun loadDiary(diaryId: Long) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             val entry = dao.getEntryById(diaryId) ?: return@launch
             val text = entry.plainText
             if (text.isBlank()) {
@@ -43,8 +46,10 @@ class OutlineViewViewModel(application: Application) : AndroidViewModel(applicat
 
             lines.forEach { line ->
                 val trimmed = line.trim()
+                val lineFeedLen = if (line.endsWith("\r")) 2 else 1
+
                 if (trimmed.isEmpty()) {
-                    offset += line.length + 1
+                    offset += line.length + lineFeedLen
                     return@forEach
                 }
 
@@ -59,13 +64,13 @@ class OutlineViewViewModel(application: Application) : AndroidViewModel(applicat
                     trimmed.startsWith("### ") -> {
                         items.add(OutlineItem(trimmed.removePrefix("### ").trim(), 2, offset))
                     }
-                    trimmed.endsWith("：") || trimmed.endsWith(":") -> {
+                    trimmed.endsWith("：") || (trimmed.endsWith(":") && !trimmed.contains("://")) -> {
                         if (trimmed.length < 30) {
                             items.add(OutlineItem(trimmed, 0, offset))
                         }
                     }
                 }
-                offset += line.length + 1
+                offset += line.length + lineFeedLen
             }
 
             val words = text.length

@@ -3,7 +3,6 @@ package com.diary.app.ui.monthlychallenge
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +15,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,33 +32,15 @@ fun MonthlyChallengeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-                Text(
-                    text = "月度挑战",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
+            PageHeader(title = "月度挑战", onNavigateBack = onNavigateBack)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
             if (currentChallenge != null) {
                 val challenge = currentChallenge!!
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -65,54 +48,49 @@ fun MonthlyChallengeScreen(
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(DesignTokens.SpacingSm))
                             Text(
                                 text = "${challenge.month}月挑战",
-                                fontSize = 16.sp,
+                                fontSize = DesignTokens.FontMedium,
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
                         Text(
                             text = challenge.title,
-                            fontSize = 20.sp,
+                            fontSize = DesignTokens.FontTitle,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
                         Text(
                             text = challenge.description,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 20.sp
+                            fontSize = DesignTokens.FontBody,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
                         LinearProgressIndicator(
                             progress = challenge.completedDays.toFloat() / challenge.targetDays.toFloat(),
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                         Text(
                             text = "${challenge.completedDays}/${challenge.targetDays} 天 · ${((challenge.completedDays.toFloat() / challenge.targetDays) * 100).toInt()}% 完成",
-                            fontSize = 12.sp,
+                            fontSize = DesignTokens.FontSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Text(
                             text = "完成记录",
-                            fontSize = 16.sp,
+                            fontSize = DesignTokens.FontMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
                         ChallengeCalendarGrid(
                             completedDays = completedDays,
                             onDayClick = { date -> viewModel.toggleDay(date) }
@@ -120,18 +98,14 @@ fun MonthlyChallengeScreen(
                     }
                 }
             } else {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 24.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("正在加载挑战...")
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
+                        Text("正在加载挑战...", fontSize = DesignTokens.FontBody)
                     }
                 }
             }

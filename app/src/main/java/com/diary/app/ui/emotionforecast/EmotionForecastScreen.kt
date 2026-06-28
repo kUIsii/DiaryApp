@@ -1,8 +1,11 @@
 package com.diary.app.ui.emotionforecast
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,8 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,122 +28,125 @@ fun EmotionForecastScreen(
     viewModel: EmotionForecastViewModel = viewModel()
 ) {
     val forecast by viewModel.forecast.collectAsState()
-    
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMsg by viewModel.errorMsg.collectAsState()
+
     GradientBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-                Text(
-                    text = "情绪预报",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (forecast == null) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+            PageHeader(title = "情绪预报", onNavigateBack = onNavigateBack)
+
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
+
+            if (isLoading) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("正在分析情绪模式...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                        Text(
+                            "正在分析情绪模式...",
+                            fontSize = DesignTokens.FontBody,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
-            } else {
+            } else if (errorMsg != null) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = errorMsg!!,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                        OutlinedButton(
+                            onClick = { viewModel.generateForecast() }
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(DesignTokens.IconMedium))
+                            Spacer(modifier = Modifier.width(DesignTokens.SpacingXs))
+                            Text("重新分析")
+                        }
+                    }
+                }
+            } else if (forecast != null) {
                 val data = forecast!!
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.WbSunny,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "明日预报",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = data.forecastLabel,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "基于你最近${data.recentMoods.size}篇日记的情绪走势",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Text(
-                        text = "分析依据",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    data.reasons.forEach { reason ->
-                        ForecastReason(reason.reason, reason.impact)
+
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically { it / 2 }
+                ) {
+                    Column {
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.WbSunny,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                                Text(
+                                    text = "明日预报",
+                                    fontSize = DesignTokens.FontMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+                                Text(
+                                    text = data.forecastLabel,
+                                    fontSize = DesignTokens.FontHeadline,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                                Text(
+                                    text = "基于你最近${data.recentMoods.size}篇日记的情绪走势",
+                                    fontSize = DesignTokens.FontSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                Text(
+                                    text = "分析依据",
+                                    fontSize = DesignTokens.FontMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                                data.reasons.forEach { reason ->
+                                    ForecastReason(reason.reason, reason.impact)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                Text(
+                                    text = "温馨提示",
+                                    fontSize = DesignTokens.FontMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                                Text(
+                                    text = "情绪预报不是预测未来，而是帮助你觉察自己的情绪模式。无论明天感觉如何，都是正常的。",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 19.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
-                Column {
-                    Text(
-                        text = "温馨提示",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "情绪预报不是预测未来，而是帮助你觉察自己的情绪模式。无论明天感觉如何，都是正常的。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
-                    )
-                }
-            }
-            } // end if/else
         }
     }
 }

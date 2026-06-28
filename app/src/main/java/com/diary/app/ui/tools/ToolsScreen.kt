@@ -18,7 +18,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,35 +32,43 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MarkEmailUnread
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,7 +79,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -84,8 +90,23 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
+import com.diary.app.ui.experimental.ExperimentalFeaturesState
 
-// Section icon colors — same approach as ProfileScreen
+private data class ToolItem(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+    val onClick: () -> Unit
+)
+
+private data class ToolSection(
+    val key: String,
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+    val items: List<ToolItem>
+)
+
 @Composable
 private fun sectionIconBg(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
@@ -96,6 +117,7 @@ private fun sectionIconBg(index: Int): Color {
         1 -> s.copy(alpha = 0.13f)
         2 -> t.copy(alpha = 0.12f)
         3 -> p.copy(alpha = 0.08f)
+        4 -> s.copy(alpha = 0.10f)
         else -> p.copy(alpha = 0.10f)
     }
 }
@@ -105,17 +127,12 @@ private fun sectionIconTint(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
     val s = MaterialTheme.colorScheme.secondary
     val t = MaterialTheme.colorScheme.tertiary
-    val gray = MaterialTheme.colorScheme.onSurfaceVariant
     return when (index) {
         0 -> p
         1 -> s
         2 -> t
-        3 -> Color(
-            (p.red * 0.6f + gray.red * 0.4f),
-            (p.green * 0.6f + gray.green * 0.4f),
-            (p.blue * 0.6f + gray.blue * 0.4f),
-            1f
-        )
+        3 -> p
+        4 -> s
         else -> p
     }
 }
@@ -132,7 +149,6 @@ fun ToolsScreen(
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
-    onNavigateToExperimental: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToAiManagement: () -> Unit = {},
@@ -144,6 +160,29 @@ fun ToolsScreen(
     onNavigateToFocusMode: () -> Unit = {},
     onNavigateToImmersiveReader: () -> Unit = {},
     onNavigateToQuarterlyReview: () -> Unit = {},
+    onNavigateToMemoryAnchors: () -> Unit = {},
+    onNavigateToWritingFingerprint: () -> Unit = {},
+    onNavigateToEmotionForecast: () -> Unit = {},
+    onNavigateToRelationshipTracking: () -> Unit = {},
+    onNavigateToDecisionAnalysis: () -> Unit = {},
+    onNavigateToValuesExtraction: () -> Unit = {},
+    onNavigateToWritingLab: () -> Unit = {},
+    onNavigateToEasterEggs: () -> Unit = {},
+    onNavigateToMonthlyChallenge: () -> Unit = {},
+    onNavigateToStreakShield: () -> Unit = {},
+    onNavigateToGentleNotification: () -> Unit = {},
+    onNavigateToOutlineView: () -> Unit = {},
+    onNavigateToCoverTheme: () -> Unit = {},
+    onNavigateToSemanticSearch: () -> Unit = {},
+    onNavigateToWritingHint: () -> Unit = {},
+    onNavigateToAmbientSound: () -> Unit = {},
+    onNavigateToGestureQuickAction: () -> Unit = {},
+    onNavigateToLockScreenQuickWrite: () -> Unit = {},
+    onNavigateToAdaptiveInterface: () -> Unit = {},
+    onNavigateToPersonalYearbook: () -> Unit = {},
+    onNavigateToTravelLog: () -> Unit = {},
+    onNavigateToLocationMemories: () -> Unit = {},
+    onNavigateToDiaryTalk: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -152,25 +191,102 @@ fun ToolsScreen(
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val textTertiary = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
 
-    // AI config state
-    var showApiKeyDialog by remember { mutableStateOf(false) }
-    var configVersion by remember { mutableStateOf(0) }
-    val isAiConfigured = remember(configVersion) { com.diary.app.ai.AiConfigStore.isConfigured(context) }
-
-    // Experimental features state for AI toggles
     val featuresState = app?.experimentalFeatures?.collectAsState()
-    val features = featuresState?.value ?: com.diary.app.ui.experimental.ExperimentalFeaturesState()
+    val features = featuresState?.value ?: ExperimentalFeaturesState()
 
-    // Expanded state for each section
     var expandedSection by remember { mutableStateOf<String?>(null) }
+    val isAiConfigured = com.diary.app.ai.AiConfigStore.isConfigured(context)
 
-    // API Key dialog
-    if (showApiKeyDialog && app != null) {
-        AiApiKeyDialog(
-            onDismiss = { showApiKeyDialog = false },
-            onSaved = { configVersion++ }
+    val sections = listOf(
+        ToolSection(
+            key = "create",
+            icon = Icons.Default.Edit,
+            title = "创作记录",
+            subtitle = "快速签到、语音备忘、写作工具",
+            items = listOf(
+                ToolItem(Icons.Default.Edit, "快速签到", "三秒完成心情记录", onNavigateToQuickCheckin),
+                ToolItem(Icons.Default.Mic, "语音备忘录", "录音并自动转写为文字", onNavigateToVoiceRecording),
+                ToolItem(Icons.Default.Lock, "锁屏快写", "未解锁快速记录灵感", onNavigateToLockScreenQuickWrite),
+                ToolItem(Icons.Default.PanTool, "手势快捷操作", "自定义手势快速执行操作", onNavigateToGestureQuickAction),
+                ToolItem(Icons.Default.Favorite, "小确幸", "记录每天的小胜利", onNavigateToSmallWins),
+                ToolItem(Icons.Default.AutoAwesome, "写作灵感", "上下文感知写作提示", onNavigateToWritingHint),
+                ToolItem(Icons.Default.SmartToy, "写作实验室", "实验性写作工具", onNavigateToWritingLab),
+            )
+        ),
+        ToolSection(
+            key = "analysis",
+            icon = Icons.Default.Search,
+            title = "数据分析",
+            subtitle = "统计、情绪分析、语义搜索",
+            items = listOf(
+                ToolItem(Icons.Default.BarChart, "数据统计", "查看你的写作轨迹", onNavigateToStats),
+                ToolItem(Icons.Default.Home, "情绪预报", "预测未来情绪走向", onNavigateToEmotionForecast),
+                ToolItem(Icons.Default.Edit, "写作指纹", "分析写作风格特征", onNavigateToWritingFingerprint),
+                ToolItem(Icons.Default.Person, "关系追踪", "追踪人物关系变化", onNavigateToRelationshipTracking),
+                ToolItem(Icons.Default.Widgets, "决策追踪", "追踪决策与结果", onNavigateToDecisionAnalysis),
+                ToolItem(Icons.Default.Favorite, "价值观", "提取日记中的价值观", onNavigateToValuesExtraction),
+                ToolItem(Icons.Default.Search, "语义搜索", "基于语义的全文搜索", onNavigateToSemanticSearch),
+                ToolItem(Icons.Default.EmojiEvents, "成就", "查看你的里程碑勋章", onNavigateToAchievements),
+                ToolItem(Icons.Default.CalendarMonth, "季度回顾", "季度数据统计", onNavigateToQuarterlyReview),
+                ToolItem(Icons.Default.CalendarMonth, "个人年鉴", "年度精华汇编", onNavigateToPersonalYearbook),
+            )
+        ),
+        ToolSection(
+            key = "ai",
+            icon = Icons.Default.AutoAwesome,
+            title = "AI 智能",
+            subtitle = if (isAiConfigured) "已配置 API" else "未配置 API",
+            items = listOf(
+                ToolItem(Icons.Default.Key, "AI 配置", if (isAiConfigured) "已配置" else "点击配置 AI 密钥", onNavigateToAiManagement),
+                ToolItem(Icons.Default.ChatBubbleOutline, "AI 助手", "智能写作助手小墨", onNavigateToAiAssistant),
+                ToolItem(Icons.Default.AutoAwesome, "AI 传记", "AI 生成个人传记", onNavigateToBiography),
+                ToolItem(Icons.Default.AutoAwesome, "与过去的自己对话", "基于日记的 AI 对话", onNavigateToDiaryTalk),
+                ToolItem(Icons.Default.AutoAwesome, "写作教练", "AI 分析写作习惯", onNavigateToWritingCoach),
+            )
+        ),
+        ToolSection(
+            key = "memory",
+            icon = Icons.Default.Map,
+            title = "回忆旅程",
+            subtitle = "倒数日、地图、回忆",
+            items = listOf(
+                ToolItem(Icons.Default.Timer, "倒数日", "重要日期倒计时", onNavigateToCountDown),
+                ToolItem(Icons.Default.MarkEmailUnread, "时间胶囊", "给未来的自己写信", onNavigateToTimeCapsule),
+                ToolItem(Icons.Default.Map, "日记地图", "在地图上回顾足迹", onNavigateToDiaryMap),
+                ToolItem(Icons.Default.Shuffle, "随机回顾", "随机打开一篇日记", onNavigateToRandom),
+                ToolItem(Icons.Default.Label, "记忆锚点", "关联日记中的重复元素", onNavigateToMemoryAnchors),
+                ToolItem(Icons.Default.MusicNote, "场景环境音", "沉浸式写作背景音", onNavigateToAmbientSound),
+                ToolItem(Icons.Default.LocationOn, "地点触发回忆", "到达旧地时提醒", onNavigateToLocationMemories),
+                ToolItem(Icons.Default.Flight, "旅行日志", "旅行专用记录模式", onNavigateToTravelLog),
+                ToolItem(Icons.Default.Image, "封面主题", "日记封面样式", onNavigateToCoverTheme),
+                ToolItem(Icons.Default.EmojiEvents, "隐藏彩蛋", "发现日记中的彩蛋", onNavigateToEasterEggs),
+            )
+        ),
+        ToolSection(
+            key = "system",
+            icon = Icons.Default.Widgets,
+            title = "系统管理",
+            subtitle = "标签、存储、挑战",
+            items = listOf(
+                ToolItem(Icons.Default.Label, "标签管理", "整理你的日记分类", onNavigateToTagManagement),
+                ToolItem(Icons.Default.Collections, "媒体库", "浏览所有图片和视频", onNavigateToMediaLibrary),
+                ToolItem(Icons.Default.Memory, "存储管理", "查看存储空间使用情况", onNavigateToStorage),
+                ToolItem(Icons.Default.Backup, "备份", "数据备份与恢复", {}),
+                ToolItem(Icons.Default.Notifications, "消息通知", "查看系统通知和提醒", onNavigateToNotifications),
+                ToolItem(Icons.Default.Article, "大纲视图", "时间线式浏览日记", onNavigateToOutlineView),
+                ToolItem(Icons.Default.Timer, "专注模式", "番茄钟与专注写作", onNavigateToFocusMode),
+                ToolItem(Icons.Default.Article, "沉浸阅读", "电子书风格阅读日记", onNavigateToImmersiveReader),
+                ToolItem(Icons.Default.BarChart, "目标追踪", "分解目标追踪进度", onNavigateToGoals),
+                ToolItem(Icons.Default.CalendarMonth, "月度挑战", "每月写作挑战", onNavigateToMonthlyChallenge),
+                ToolItem(Icons.Default.EmojiEvents, "连续保护罩", "保持写作连续记录", onNavigateToStreakShield),
+                ToolItem(Icons.Default.AutoAwesome, "自适应界面", "智能调整界面布局", onNavigateToAdaptiveInterface),
+                ToolItem(Icons.Default.Notifications, "温柔通知", "非侵入式提醒", onNavigateToGentleNotification),
+                ToolItem(Icons.Default.Home, "安静陪伴", "无声陪伴模式", {}),
+                ToolItem(Icons.Default.Image, "环境感知主题", "根据环境切换主题", {}),
+                ToolItem(Icons.Default.Delete, "回收站", "已删除的日记", {}),
+            )
         )
-    }
+    )
 
     GradientBackground {
         Box(
@@ -184,14 +300,11 @@ fun ToolsScreen(
                             totalDrag += dragAmount
                             change.consume()
                         },
-                        onDragEnd = {
-                            onMainScreenSwipe?.invoke(totalDrag)
-                        }
+                        onDragEnd = { onMainScreenSwipe?.invoke(totalDrag) }
                     )
                 }
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header
                 Text(
                     text = "工具",
                     fontSize = 28.sp,
@@ -208,311 +321,44 @@ fun ToolsScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 创作与记录
-                    CollapsibleSection(
-                        icon = Icons.Default.Edit,
-                        iconBg = sectionIconBg(0),
-                        iconTint = sectionIconTint(0),
-                        title = "创作与记录",
-                        subtitle = "数据统计、媒体库、标签管理",
-                        isExpanded = expandedSection == "create",
-                        onToggle = { expandedSection = if (expandedSection == "create") null else "create" },
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        textTertiary = textTertiary
-                    ) {
-                        ClickableToolRow(
-                            icon = Icons.Default.BarChart,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "数据统计",
-                            subtitle = "查看你的写作轨迹",
+                    sections.forEachIndexed { index, section ->
+                        CollapsibleSection(
+                            icon = section.icon,
+                            iconBg = sectionIconBg(index),
+                            iconTint = sectionIconTint(index),
+                            title = section.title,
+                            subtitle = section.subtitle,
+                            isExpanded = expandedSection == section.key,
+                            onToggle = { expandedSection = if (expandedSection == section.key) null else section.key },
                             textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToStats
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Collections,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "媒体库",
-                            subtitle = "浏览所有图片和视频",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToMediaLibrary
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Tag,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "标签管理",
-                            subtitle = "整理你的日记分类",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToTagManagement
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.EmojiEvents,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "成就",
-                            subtitle = "查看你的里程碑勋章",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToAchievements
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Memory,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "存储管理",
-                            subtitle = "查看存储空间使用情况",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToStorage
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Favorite,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "小确幸",
-                            subtitle = "记录每天的小胜利",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToSmallWins
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Edit,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "快速签到",
-                            subtitle = "三秒完成心情记录",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToQuickCheckin
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.BarChart,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "目标追踪",
-                            subtitle = "分解目标追踪进度",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToGoals
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Mic,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "语音备忘录",
-                            subtitle = "录音并自动转写为文字",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToVoiceRecording
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Timer,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "专注模式",
-                            subtitle = "番茄钟与环境音",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToFocusMode
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Article,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "沉浸阅读",
-                            subtitle = "电子书风格阅读日记",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToImmersiveReader
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.CalendarMonth,
-                            iconBg = sectionIconBg(0),
-                            iconTint = sectionIconTint(0),
-                            title = "季度回顾",
-                            subtitle = "季度数据统计",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToQuarterlyReview
-                        )
-                    }
-
-                    // 回忆与探索
-                    CollapsibleSection(
-                        icon = Icons.Default.Search,
-                        iconBg = sectionIconBg(1),
-                        iconTint = sectionIconTint(1),
-                        title = "回忆与探索",
-                        subtitle = "倒数日、时间胶囊、日记地图、随机回顾",
-                        isExpanded = expandedSection == "explore",
-                        onToggle = { expandedSection = if (expandedSection == "explore") null else "explore" },
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        textTertiary = textTertiary
-                    ) {
-                        ClickableToolRow(
-                            icon = Icons.Default.Timer,
-                            iconBg = sectionIconBg(1),
-                            iconTint = sectionIconTint(1),
-                            title = "倒数日",
-                            subtitle = "重要日期倒计时",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToCountDown
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.MarkEmailUnread,
-                            iconBg = sectionIconBg(1),
-                            iconTint = sectionIconTint(1),
-                            title = "时间胶囊",
-                            subtitle = "给未来的自己写信",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToTimeCapsule
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Map,
-                            iconBg = sectionIconBg(1),
-                            iconTint = sectionIconTint(1),
-                            title = "日记地图",
-                            subtitle = "在地图上回顾足迹",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToDiaryMap
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Shuffle,
-                            iconBg = sectionIconBg(1),
-                            iconTint = sectionIconTint(1),
-                            title = "随机回顾",
-                            subtitle = "随机打开一篇日记",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToRandom
-                        )
-                    }
-
-                    // AI 伙伴
-                    CollapsibleSection(
-                        icon = Icons.Default.Memory,
-                        iconBg = sectionIconBg(2),
-                        iconTint = sectionIconTint(2),
-                        title = "AI 伙伴",
-                        subtitle = if (isAiConfigured) "已配置 API" else "未配置 API",
-                        isExpanded = expandedSection == "ai",
-                        onToggle = { expandedSection = if (expandedSection == "ai") null else "ai" },
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        textTertiary = textTertiary
-                    ) {
-                        ClickableToolRow(
-                            icon = Icons.Default.Key,
-                            iconBg = sectionIconBg(2),
-                            iconTint = sectionIconTint(2),
-                            title = "AI 配置",
-                            subtitle = if (isAiConfigured) "已配置" else "点击配置 AI 密钥",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToAiManagement
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.ChatBubbleOutline,
-                            iconBg = sectionIconBg(2),
-                            iconTint = sectionIconTint(2),
-                            title = "AI 助手",
-                            subtitle = "智能写作助手小墨",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToAiAssistant
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.AutoAwesome,
-                            iconBg = sectionIconBg(2),
-                            iconTint = sectionIconTint(2),
-                            title = "AI 传记",
-                            subtitle = "AI 生成个人传记",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToBiography
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.AutoAwesome,
-                            iconBg = sectionIconBg(2),
-                            iconTint = sectionIconTint(2),
-                            title = "写作教练",
-                            subtitle = "AI 分析写作习惯",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToWritingCoach
-                        )
-                        SettingDivider()
-                        AiFeatureToggleRow(
-                            icon = Icons.Default.Lightbulb,
-                            title = "AI 洞察卡片",
-                            subtitle = "首页偶尔出现轻量的 AI 提示",
-                            checked = features.aiInsightCardEnabled && isAiConfigured,
-                            enabled = isAiConfigured,
-                            onCheckedChange = { app?.setAiInsightCardEnabled(it) }
-                        )
-                    }
-
-                    // 其他
-                    CollapsibleSection(
-                        icon = Icons.Default.Notifications,
-                        iconBg = sectionIconBg(3),
-                        iconTint = sectionIconTint(3),
-                        title = "其他",
-                        subtitle = "消息通知、实验性功能",
-                        isExpanded = expandedSection == "other",
-                        onToggle = { expandedSection = if (expandedSection == "other") null else "other" },
-                        textColor = textColor,
-                        textSecondary = textSecondary,
-                        textTertiary = textTertiary
-                    ) {
-                        ClickableToolRow(
-                            icon = Icons.Default.Notifications,
-                            iconBg = sectionIconBg(3),
-                            iconTint = sectionIconTint(3),
-                            title = "消息通知",
-                            subtitle = "查看系统通知和提醒",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToNotifications
-                        )
-                        SettingDivider()
-                        ClickableToolRow(
-                            icon = Icons.Default.Science,
-                            iconBg = sectionIconBg(3),
-                            iconTint = sectionIconTint(3),
-                            title = "实验性功能",
-                            subtitle = "Beta",
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = onNavigateToExperimental
-                        )
+                            textSecondary = textSecondary,
+                            textTertiary = textTertiary
+                        ) {
+                            section.items.forEachIndexed { itemIndex, item ->
+                                if (itemIndex > 0) SettingDivider()
+                                ClickableToolRow(
+                                    icon = item.icon,
+                                    iconBg = sectionIconBg(index),
+                                    iconTint = sectionIconTint(index),
+                                    title = item.title,
+                                    subtitle = item.subtitle,
+                                    textColor = textColor,
+                                    textTertiary = textTertiary,
+                                    onClick = item.onClick
+                                )
+                            }
+                            if (section.key == "ai") {
+                                SettingDivider()
+                                AiFeatureToggleRow(
+                                    icon = Icons.Default.Lightbulb,
+                                    title = "AI 洞察卡片",
+                                    subtitle = "首页偶尔出现轻量的 AI 提示",
+                                    checked = features.aiInsightCardEnabled && isAiConfigured,
+                                    enabled = isAiConfigured,
+                                    onCheckedChange = { app?.setAiInsightCardEnabled(it) }
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(80.dp))
@@ -521,8 +367,6 @@ fun ToolsScreen(
         }
     }
 }
-
-// --- Collapsible Section ---
 
 @Composable
 private fun CollapsibleSection(
@@ -544,7 +388,6 @@ private fun CollapsibleSection(
         innerPadding = 16.dp
     ) {
         Column {
-            // Header row
             val headerInteraction = remember { MutableInteractionSource() }
             val headerPressed by headerInteraction.collectIsPressedAsState()
             val headerBg by animateColorAsState(
@@ -574,7 +417,6 @@ private fun CollapsibleSection(
                 )
             }
 
-            // Expandable content
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(
@@ -592,8 +434,6 @@ private fun CollapsibleSection(
         }
     }
 }
-
-// --- Clickable Tool Row ---
 
 @Composable
 private fun ClickableToolRow(
@@ -633,64 +473,6 @@ private fun ClickableToolRow(
 }
 
 @Composable
-private fun AiApiKeyDialog(
-    onDismiss: () -> Unit,
-    onSaved: () -> Unit
-) {
-    val context = LocalContext.current
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    var apiKeyInput by remember { mutableStateOf(com.diary.app.ai.AiConfigStore.getApiKey(context)) }
-    var endpointInput by remember { mutableStateOf(com.diary.app.ai.AiConfigStore.getEndpoint(context)) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("AI 配置") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = apiKeyInput,
-                    onValueChange = { apiKeyInput = it },
-                    label = { Text("API Key") },
-                    placeholder = { Text("粘贴你的 Agnes API Key") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = endpointInput,
-                    onValueChange = { endpointInput = it },
-                    label = { Text("Endpoint") },
-                    placeholder = { Text("https://apihub.agnes-ai.com/v1/") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "填入 Base URL 即可，不需要加 chat/completions。\n默认 Agnes AI 免费服务，无需修改。",
-                    fontSize = 12.sp,
-                    color = textSecondary,
-                    lineHeight = 18.sp
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                com.diary.app.ai.AiConfigStore.setApiKey(context, apiKeyInput.trim())
-                val cleanedEndpoint = endpointInput.trim()
-                    .removeSuffix("/")
-                    .removeSuffix("chat/completions")
-                    .trimEnd('/') + "/"
-                com.diary.app.ai.AiConfigStore.setEndpoint(context, cleanedEndpoint)
-                com.diary.app.ai.AiConfigStore.setActiveProvider(context, "agnes")
-                onSaved()
-                onDismiss()
-            }) { Text("保存") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
-        }
-    )
-}
-
-@Composable
 private fun AiFeatureToggleRow(
     icon: ImageVector,
     title: String,
@@ -713,13 +495,13 @@ private fun AiFeatureToggleRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(sectionIconBg(2)),
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = sectionIconTint(2),
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(18.dp)
             )
         }

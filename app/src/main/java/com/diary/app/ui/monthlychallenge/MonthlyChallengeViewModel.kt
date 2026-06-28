@@ -73,8 +73,8 @@ class MonthlyChallengeViewModel(application: Application) : AndroidViewModel(app
                     targetDays = 20,
                     status = "active"
                 )
-                dao.insertMonthlyChallenge(challenge)
-                _currentChallenge.value = challenge
+                val insertedId = dao.insertMonthlyChallenge(challenge)
+                _currentChallenge.value = challenge.copy(id = insertedId)
             }
         }
     }

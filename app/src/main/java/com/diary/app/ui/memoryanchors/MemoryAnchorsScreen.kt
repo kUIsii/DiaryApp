@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +16,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,73 +33,56 @@ fun MemoryAnchorsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+            PageHeader(
+                title = "记忆锚点",
+                onNavigateBack = onNavigateBack,
+                action = {
+                    IconButton(onClick = { viewModel.setShowAddDialog(true) }) {
+                        Icon(Icons.Default.Add, contentDescription = "添加锚点")
+                    }
                 }
-                Text(
-                    text = "记忆锚点",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = { viewModel.setShowAddDialog(true) }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加锚点")
-                }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(
                         text = "什么是记忆锚点？",
-                        fontSize = 14.sp,
+                        fontSize = DesignTokens.FontBody,
                         fontWeight = FontWeight.Medium
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
                     Text(
                         text = "标记重要日记为锚点，之后提到相关主题的新日记会自动关联。追踪一个决定如何被不断重新解读。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
+                        fontSize = DesignTokens.FontSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
             Text(
                 text = "我的锚点 (${anchors.size})",
-                fontSize = 16.sp,
+                fontSize = DesignTokens.FontMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = DesignTokens.SpacingSm)
             )
 
             if (anchors.isEmpty()) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "还没有记忆锚点，点击右上角 + 添加。",
-                        fontSize = 14.sp,
+                        fontSize = DesignTokens.FontBody,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)
                 ) {
                     items(anchors) { item ->
                         val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
@@ -126,11 +110,7 @@ fun MemoryAnchorsScreen(
 
 @Composable
 private fun AnchorItem(title: String, date: String, relatedCount: Int) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically

@@ -2,7 +2,6 @@ package com.diary.app.ui.decisions
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +14,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.Decision
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,82 +32,59 @@ fun DecisionAnalysisScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-                Text(
-                    text = "决策追踪",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
+            PageHeader(title = "决策追踪", onNavigateBack = onNavigateBack)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                innerPadding = 16.dp
-            ) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(
                         text = "AI识别的重大决定",
-                        fontSize = 16.sp,
+                        fontSize = DesignTokens.FontMedium,
                         fontWeight = FontWeight.Medium
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                     Text(
                         text = "当你在日记中提到重大决定时，AI自动标记并追踪后续。",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 19.sp
+                        fontSize = DesignTokens.FontSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
             Text(
                 text = "我的决定 (${decisions.size})",
-                fontSize = 16.sp,
+                fontSize = DesignTokens.FontMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = DesignTokens.SpacingSm)
             )
 
             if (decisions.isEmpty()) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 24.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "还没有识别到决策",
-                            fontSize = 14.sp,
+                            fontSize = DesignTokens.FontBody,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
                         Text(
                             text = "在日记中提到重大决定时，系统会自动识别",
-                            fontSize = 12.sp,
+                            fontSize = DesignTokens.FontSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
             } else {
                 androidx.compose.foundation.lazy.LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)
                 ) {
                     items(decisions.size) { index ->
                         val decision = decisions[index]
@@ -125,11 +103,7 @@ fun DecisionAnalysisScreen(
 @Composable
 private fun DecisionItem(decision: Decision, dateFormat: SimpleDateFormat) {
     val hasOutcome = decision.outcome != null
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp,
-        innerPadding = 16.dp
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top

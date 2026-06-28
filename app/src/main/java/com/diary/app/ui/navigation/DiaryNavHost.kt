@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
@@ -50,6 +51,11 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -136,6 +142,17 @@ import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
 import com.diary.app.ui.emotionarc.EmotionArcScreen
 import com.diary.app.ui.memoryart.MemoryArtScreen
 import com.diary.app.ui.tools.ToolsScreen
+import com.diary.app.ui.covertheme.CoverThemeScreen
+import com.diary.app.ui.semanticsearch.SemanticSearchScreen
+import com.diary.app.ui.writinghint.WritingHintScreen
+import com.diary.app.ui.ambientsound.AmbientSoundScreen
+import com.diary.app.ui.gesturequickaction.GestureQuickActionScreen
+import com.diary.app.ui.lockscreenquickwrite.LockScreenQuickWriteScreen
+import com.diary.app.ui.adaptiveinterface.AdaptiveInterfaceScreen
+import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
+import com.diary.app.ui.travellog.TravelLogScreen
+import com.diary.app.ui.locationmemories.LocationMemoriesScreen
+import com.diary.app.ui.diarytalk.DiaryTalkScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
@@ -238,6 +255,17 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object MemoryArt : Screen("memory_art/{diaryId}", "记忆艺术", Icons.Default.Image) {
         fun createRoute(diaryId: Long) = "memory_art/$diaryId"
     }
+    object CoverTheme : Screen("cover_theme", "封面主题", Icons.Default.Image)
+    object SemanticSearch : Screen("semantic_search", "语义搜索", Icons.Default.Search)
+    object WritingHint : Screen("writing_hint", "写作灵感", Icons.Default.AutoAwesome)
+    object AmbientSound : Screen("ambient_sound", "场景环境音", Icons.Default.MusicNote)
+    object GestureQuickAction : Screen("gesture_quick_action", "手势快捷操作", Icons.Default.PanTool)
+    object LockScreenQuickWrite : Screen("lock_screen_quick_write", "锁屏快写", Icons.Default.Lock)
+    object AdaptiveInterface : Screen("adaptive_interface", "自适应界面", Icons.Default.AutoAwesome)
+    object PersonalYearbook : Screen("personal_yearbook", "个人年鉴", Icons.Default.CalendarMonth)
+    object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
+    object LocationMemories : Screen("location_memories", "地点触发回忆", Icons.Default.LocationOn)
+    object DiaryTalk : Screen("diary_talk", "与过去的自己对话", Icons.Default.ChatBubbleOutline)
 }
 
 data class BottomNavItem(
@@ -413,7 +441,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
-                    onNavigateToExperimental = { navController.navigate(Screen.ExperimentalFeatures.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
@@ -425,6 +452,29 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
                     onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.route) },
                     onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
+                    onNavigateToMemoryAnchors = { navController.navigate(Screen.MemoryAnchors.route) },
+                    onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
+                    onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
+                    onNavigateToRelationshipTracking = { navController.navigate(Screen.RelationshipTracking.route) },
+                    onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
+                    onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
+                    onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
+                    onNavigateToEasterEggs = { navController.navigate(Screen.EasterEggs.route) },
+                    onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
+                    onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) },
+                    onNavigateToGentleNotification = { navController.navigate(Screen.GentleNotification.route) },
+                    onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.route) },
+                    onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) },
+                    onNavigateToSemanticSearch = { navController.navigate(Screen.SemanticSearch.route) },
+                    onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
+                    onNavigateToAmbientSound = { navController.navigate(Screen.AmbientSound.route) },
+                    onNavigateToGestureQuickAction = { navController.navigate(Screen.GestureQuickAction.route) },
+                    onNavigateToLockScreenQuickWrite = { navController.navigate(Screen.LockScreenQuickWrite.route) },
+                    onNavigateToAdaptiveInterface = { navController.navigate(Screen.AdaptiveInterface.route) },
+                    onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
+                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
+                    onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) },
+                    onNavigateToDiaryTalk = { navController.navigate(Screen.DiaryTalk.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -913,6 +963,69 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 MemoryArtScreen(
                     diaryId = diaryId,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.CoverTheme.route) {
+                CoverThemeScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.SemanticSearch.route) {
+                SemanticSearchScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId ->
+                        navController.navigate(Screen.Detail.createRoute(diaryId))
+                    }
+                )
+            }
+            composable(route = Screen.WritingHint.route) {
+                WritingHintScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.AmbientSound.route) {
+                AmbientSoundScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.GestureQuickAction.route) {
+                GestureQuickActionScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.LockScreenQuickWrite.route) {
+                LockScreenQuickWriteScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditor = { navController.navigate(Screen.Editor.createRoute()) }
+                )
+            }
+            composable(route = Screen.AdaptiveInterface.route) {
+                AdaptiveInterfaceScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(route = Screen.PersonalYearbook.route) {
+                PersonalYearbookScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(route = Screen.TravelLog.route) {
+                TravelLogScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(route = Screen.LocationMemories.route) {
+                LocationMemoriesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+            composable(route = Screen.DiaryTalk.route) {
+                DiaryTalkScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
         }

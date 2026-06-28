@@ -59,10 +59,11 @@ class EasterEggsViewModel(application: Application) : AndroidViewModel(applicati
 
             val discoveredIds = _discoveredEggs.value.map { it.eggId }.toSet()
             val now = System.currentTimeMillis()
+            val sorted = entries.sortedBy { it.createdAt }
 
             // 第一篇日记
-            if ("first_entry" !in discoveredIds && entries.isNotEmpty()) {
-                dao.insertEasterEgg(EasterEgg(eggId = "first_entry", title = "第一步", description = "写下了第一篇日记", triggeredAt = now))
+            if ("first_entry" !in discoveredIds && sorted.isNotEmpty()) {
+                dao.insertEasterEgg(EasterEgg(eggId = "first_entry", title = "第一步", description = "写下了第一篇日记", triggeredAt = sorted.first().createdAt))
             }
 
             // 篇数里程碑
@@ -94,11 +95,58 @@ class EasterEggsViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
 
+            // 连续天数彩蛋: streak_7, streak_30, streak_100
+            if (sorted.size >= 7) {
+                val maxStreak = calculateMaxStreak(sorted.map { it.createdAt })
+                if ("streak_7" !in discoveredIds && maxStreak >= 7) {
+                    dao.insertEasterEgg(EasterEgg(eggId = "streak_7", title = "七日不间断", description = "连续写作7天", triggeredAt = now))
+                }
+                if ("streak_30" !in discoveredIds && maxStreak >= 30) {
+                    dao.insertEasterEgg(EasterEgg(eggId = "streak_30", title = "月度坚持", description = "连续写作30天", triggeredAt = now))
+                }
+                if ("streak_100" !in discoveredIds && maxStreak >= 100) {
+                    dao.insertEasterEgg(EasterEgg(eggId = "streak_100", title = "百日征程", description = "连续写作100天", triggeredAt = now))
+                }
+            }
+
+            // 满月之夜（基于简单的近似检测：农历15日附近）
+            if ("full_moon" !in discoveredIds) {
+                entries.forEach { entry ->
+                    val instant = java.time.Instant.ofEpochMilli(entry.createdAt)
+                    val localDate = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    val dayOfMonth = localDate.dayOfMonth
+                    val hour = instant.atZone(java.time.ZoneId.systemDefault()).toLocalTime().hour
+                    // 近似在每月14-16日且在深夜22点后
+                    if (dayOfMonth in 14..16 && hour in 22..23 || hour in 0..3) {
+                        dao.insertEasterEgg(EasterEgg(eggId = "full_moon", title = "满月之夜", description = "在月圆之夜写日记", triggeredAt = now))
+                    }
+                }
+            }
+
             // 心情全收集
             val moodsUsed = entries.mapNotNull { it.moodLevel }.toSet()
             if ("all_moods" !in discoveredIds && moodsUsed.size >= 6) {
                 dao.insertEasterEgg(EasterEgg(eggId = "all_moods", title = "情绪调色盘", description = "使用过全部6种心情", triggeredAt = now))
             }
         }
+    }
+
+    private fun calculateMaxStreak(timestamps: List<Long>): Int {
+        if (timestamps.isEmpty()) return 0
+        val dates = timestamps.map {
+            java.time.Instant.ofEpochMilli(it)
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        }.distinct().sorted()
+        var maxStreak = 1
+        var currentStreak = 1
+        for (i in 1 until dates.size) {
+            if (dates[i].toEpochDay() - dates[i - 1].toEpochDay() == 1L) {
+                currentStreak++
+                maxStreak = maxOf(maxStreak, currentStreak)
+            } else if (dates[i] != dates[i - 1]) {
+                currentStreak = 1
+            }
+        }
+        return maxStreak
     }
 }

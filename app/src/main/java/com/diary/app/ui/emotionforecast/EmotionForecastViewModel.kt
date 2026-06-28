@@ -31,15 +31,25 @@ class EmotionForecastViewModel(application: Application) : AndroidViewModel(appl
     private val _forecast = MutableStateFlow<EmotionForecastData?>(null)
     val forecast: StateFlow<EmotionForecastData?> = _forecast.asStateFlow()
 
+    private val _errorMsg = MutableStateFlow<String?>(null)
+    val errorMsg: StateFlow<String?> = _errorMsg.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         generateForecast()
     }
 
     fun generateForecast() {
         viewModelScope.launch {
+            _isLoading.value = true
+            _errorMsg.value = null
             val entries = dao.getAllEntriesOnce()
             if (entries.size < 3) {
                 _forecast.value = null
+                _errorMsg.value = "需要至少3篇日记才能生成情绪预报，当前${entries.size}篇"
+                _isLoading.value = false
                 return@launch
             }
 
@@ -47,6 +57,8 @@ class EmotionForecastViewModel(application: Application) : AndroidViewModel(appl
             val moods = recentEntries.mapNotNull { it.moodLevel }
             if (moods.isEmpty()) {
                 _forecast.value = null
+                _errorMsg.value = "最近的日记未记录心情，记录心情后可以生成更准确的预报"
+                _isLoading.value = false
                 return@launch
             }
 
@@ -111,6 +123,7 @@ class EmotionForecastViewModel(application: Application) : AndroidViewModel(appl
                 recentMoods = moods,
                 trend = trend
             )
+            _isLoading.value = false
         }
     }
 

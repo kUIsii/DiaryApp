@@ -75,7 +75,7 @@ class MemoryAnchorsViewModel(application: Application) : AndroidViewModel(applic
             val matches = keywords.count { kw ->
                 entry.plainText.contains(kw, ignoreCase = true)
             }
-            if (matches > 0 && entry.id != dao.getEntryById(entry.id)?.id) {
+            if (matches > 0 && entry.id != anchorId) {
                 val score = matches.toFloat() / keywords.size.toFloat()
                 dao.insertAnchorRelation(
                     AnchorRelation(

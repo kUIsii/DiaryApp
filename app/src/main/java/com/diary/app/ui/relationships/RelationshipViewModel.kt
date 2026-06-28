@@ -85,12 +85,13 @@ class RelationshipViewModel(application: Application) : AndroidViewModel(applica
                 val id = dao.insertTrackedPerson(person)
                 // 添加提及记录
                 entries.filter { it.plainText.contains(name) }.take(5).forEach { entry ->
+                    val sentimentScore = com.diary.app.data.SentimentAnalyzer.analyze(entry.plainText)
                     dao.insertPersonMention(
                         PersonMention(
                             personId = id,
                             diaryId = entry.id,
                             context = extractContext(entry.plainText, name),
-                            sentiment = 0f
+                            sentiment = sentimentScore
                         )
                     )
                 }

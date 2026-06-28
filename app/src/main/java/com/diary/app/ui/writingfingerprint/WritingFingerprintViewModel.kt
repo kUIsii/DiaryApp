@@ -55,11 +55,16 @@ class WritingFingerprintViewModel(application: Application) : AndroidViewModel(a
                 totalChars += text.length
                 val sentences = text.split(Regex("[.!?。！？\\n]+")).filter { it.isNotBlank() }
                 totalSentences += sentences.size
-                val words = text.split(Regex("\\s+|[，,。.！？!?、]")).filter { it.length > 0 }
+                val words = extractChineseWords(text)
                 allWords.addAll(words)
                 totalPunctuation += text.count { it in "，,。.！？!?、；;" }
-                val paragraphs = text.split(Regex("\\n\\s*\\n|\\n")).filter { it.isNotBlank() }
-                totalParagraphs += paragraphs.size
+                val paragraphs = text.split(Regex("\\n\\s*\\n")).filter { it.isNotBlank() }
+                if (paragraphs.isEmpty()) {
+                    val singleParagraphs = text.split("\n").filter { it.isNotBlank() }
+                    totalParagraphs += singleParagraphs.size
+                } else {
+                    totalParagraphs += paragraphs.size
+                }
             }
 
             val uniqueWords = allWords.toSet().size
@@ -94,5 +99,30 @@ class WritingFingerprintViewModel(application: Application) : AndroidViewModel(a
                 evolutionNote = evolutionNote
             )
         }
+    }
+
+    private fun extractChineseWords(text: String): List<String> {
+        val words = mutableListOf<String>()
+        val currentWord = StringBuilder()
+        for (ch in text) {
+            if (ch.isLetterOrDigit()) {
+                currentWord.append(ch)
+            } else {
+                if (currentWord.isNotEmpty()) {
+                    val word = currentWord.toString()
+                    if (word.length >= 2 || word.all { it.isLowerCase() || it.isUpperCase() }) {
+                        words.add(word)
+                    }
+                    currentWord.clear()
+                }
+            }
+        }
+        if (currentWord.isNotEmpty()) {
+            val word = currentWord.toString()
+            if (word.length >= 2 || word.all { it.isLowerCase() || it.isUpperCase() }) {
+                words.add(word)
+            }
+        }
+        return words
     }
 }

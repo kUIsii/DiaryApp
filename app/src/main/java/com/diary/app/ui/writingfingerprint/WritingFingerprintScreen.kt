@@ -2,8 +2,6 @@ package com.diary.app.ui.writingfingerprint
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +14,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.theme.DesignTokens
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -31,53 +31,31 @@ fun WritingFingerprintScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(DesignTokens.SpacingLg)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                }
-                Text(
-                    text = "写作指纹",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
+            PageHeader(title = "写作指纹", onNavigateBack = onNavigateBack)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
             if (analysis == null) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("正在分析写作风格...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                        Text("正在分析写作风格...", fontSize = DesignTokens.FontBody, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
                 val data = analysis!!
 
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "你的写作指纹",
-                            fontSize = 16.sp,
+                            fontSize = DesignTokens.FontMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
 
                         FingerprintVisualization(
                             avgSentenceLength = data.avgSentenceLength,
@@ -86,31 +64,27 @@ fun WritingFingerprintScreen(
                             modifier = Modifier.size(200.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
 
                         Text(
                             text = data.styleLabel,
-                            fontSize = 20.sp,
+                            fontSize = DesignTokens.FontTitle,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Text(
                             text = "风格特征",
-                            fontSize = 16.sp,
+                            fontSize = DesignTokens.FontMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
                         FingerprintStatRow("平均句长", "${"%.1f".format(data.avgSentenceLength)} 字")
                         FingerprintStatRow("用词丰富度", "${"%.0f".format(data.vocabularyRichness * 100)}%")
                         FingerprintStatRow("平均词长", "${"%.1f".format(data.avgWordLength)} 字")
@@ -119,25 +93,20 @@ fun WritingFingerprintScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
 
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    innerPadding = 16.dp
-                ) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Text(
                             text = "风格演变",
-                            fontSize = 16.sp,
+                            fontSize = DesignTokens.FontMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                         Text(
                             text = data.evolutionNote,
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 19.sp
+                            fontSize = DesignTokens.FontSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
