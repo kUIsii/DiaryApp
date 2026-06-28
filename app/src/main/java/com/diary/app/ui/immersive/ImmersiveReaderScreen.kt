@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,7 @@ import java.util.Locale
 @Composable
 fun ImmersiveReaderScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToFocusMode: () -> Unit = {},
     viewModel: ImmersiveReaderViewModel = viewModel()
 ) {
     val entries by viewModel.entries.collectAsState()
@@ -63,7 +65,15 @@ fun ImmersiveReaderScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("还没有日记可以阅读", fontSize = 16.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("还没有日记可以阅读", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "试试专注模式，在安静环境中记录你的想法",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 } else {
                     HorizontalPager(
@@ -105,6 +115,9 @@ fun ImmersiveReaderScreen(
                             viewModel.setFontSize(newSize)
                         }) {
                             Icon(Icons.Default.TextFields, contentDescription = "字体大小")
+                        }
+                        IconButton(onClick = onNavigateToFocusMode) {
+                            Icon(Icons.Default.Timer, contentDescription = "专注模式")
                         }
                     }
                 }

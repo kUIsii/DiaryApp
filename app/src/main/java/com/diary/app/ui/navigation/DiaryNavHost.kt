@@ -508,7 +508,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToMonthlyReport = {
                         val now = java.time.LocalDate.now()
                         navController.navigate(Screen.MonthlyReport.createRoute(now.year, now.monthValue))
-                    }
+                    },
+                    onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
+                    onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) }
                 )
             }
             composable(Screen.Profile.route) {
@@ -768,7 +770,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { key ->
                         navController.navigate(Screen.AchievementDetail.createRoute(key))
-                    }
+                    },
+                    onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
+                    onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) }
                 )
             }
 
@@ -944,7 +948,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.OutlineView.route) { OutlineViewScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.FocusMode.route) { FocusModeScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.ImmersiveReader.route) { ImmersiveReaderScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.ImmersiveReader.route) {
+                ImmersiveReaderScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) }
+                )
+            }
             composable(Screen.QuarterlyReview.route) { QuarterlyReviewScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(
                 route = Screen.EmotionArc.route,

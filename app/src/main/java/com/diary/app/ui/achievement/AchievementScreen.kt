@@ -22,7 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -66,7 +68,9 @@ internal fun tierColor(tier: AchievementTier): Color = TierColors[tier] ?: Color
 fun AchievementScreen(
     viewModel: AchievementViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToDetail: (String) -> Unit = {}
+    onNavigateToDetail: (String) -> Unit = {},
+    onNavigateToMonthlyChallenge: () -> Unit = {},
+    onNavigateToStreakShield: () -> Unit = {}
 ) {
     val stats by viewModel.stats.collectAsState()
     val galleryState by viewModel.galleryState.collectAsState()
@@ -117,6 +121,14 @@ fun AchievementScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Feature entry cards
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    AchievementFeatureCards(
+                        onNavigateToMonthlyChallenge = onNavigateToMonthlyChallenge,
+                        onNavigateToStreakShield = onNavigateToStreakShield
+                    )
+                }
+
                 // Overview card
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     AchievementOverviewCard(stats = stats, galleryState = galleryState)
@@ -179,6 +191,86 @@ fun AchievementScreen(
             onTierClick = viewModel::selectTier,
             onDismiss = { viewModel.collapseFilter() }
         )
+    }
+}
+
+@Composable
+private fun AchievementFeatureCards(
+    onNavigateToMonthlyChallenge: () -> Unit,
+    onNavigateToStreakShield: () -> Unit
+) {
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        GlassCard(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onNavigateToMonthlyChallenge),
+            cornerRadius = 16.dp,
+            innerPadding = 14.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    Icons.Default.EmojiEvents,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column {
+                    Text(
+                        text = "月度挑战",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "每月新目标",
+                        fontSize = 11.sp,
+                        color = textSecondary
+                    )
+                }
+            }
+        }
+
+        GlassCard(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onNavigateToStreakShield),
+            cornerRadius = 16.dp,
+            innerPadding = 14.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Column {
+                    Text(
+                        text = "连续保护罩",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "保持记录习惯",
+                        fontSize = 11.sp,
+                        color = textSecondary
+                    )
+                }
+            }
+        }
     }
 }
 
