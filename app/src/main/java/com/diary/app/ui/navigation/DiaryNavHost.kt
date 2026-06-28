@@ -133,6 +133,8 @@ import com.diary.app.ui.outline.OutlineViewScreen
 import com.diary.app.ui.focus.FocusModeScreen
 import com.diary.app.ui.immersive.ImmersiveReaderScreen
 import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
+import com.diary.app.ui.emotionarc.EmotionArcScreen
+import com.diary.app.ui.memoryart.MemoryArtScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -230,6 +232,12 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object FocusMode : Screen("focus_mode", "专注模式", Icons.Default.Timer)
     object ImmersiveReader : Screen("immersive_reader", "沉浸阅读", Icons.Default.Article)
     object QuarterlyReview : Screen("quarterly_review", "季度回顾", Icons.Default.CalendarMonth)
+    object EmotionArc : Screen("emotion_arc/{diaryId}", "情绪弧线", Icons.Default.BarChart) {
+        fun createRoute(diaryId: Long) = "emotion_arc/$diaryId"
+    }
+    object MemoryArt : Screen("memory_art/{diaryId}", "记忆艺术", Icons.Default.Image) {
+        fun createRoute(diaryId: Long) = "memory_art/$diaryId"
+    }
 }
 
 data class BottomNavItem(
@@ -887,6 +895,26 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.FocusMode.route) { FocusModeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.ImmersiveReader.route) { ImmersiveReaderScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.QuarterlyReview.route) { QuarterlyReviewScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(
+                route = Screen.EmotionArc.route,
+                arguments = listOf(navArgument("diaryId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
+                EmotionArcScreen(
+                    diaryId = diaryId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Screen.MemoryArt.route,
+                arguments = listOf(navArgument("diaryId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
+                MemoryArtScreen(
+                    diaryId = diaryId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
