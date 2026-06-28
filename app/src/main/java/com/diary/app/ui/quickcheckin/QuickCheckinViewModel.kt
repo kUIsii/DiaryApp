@@ -18,6 +18,9 @@ class QuickCheckinViewModel(application: Application) : AndroidViewModel(applica
     private val _text = MutableStateFlow("")
     val text: StateFlow<String> = _text
 
+    private val _photoUri = MutableStateFlow<String?>(null)
+    val photoUri: StateFlow<String?> = _photoUri
+
     fun setMood(mood: Int) {
         _selectedMood.value = mood
     }
@@ -26,10 +29,15 @@ class QuickCheckinViewModel(application: Application) : AndroidViewModel(applica
         _text.value = value
     }
 
+    fun setPhotoUri(uri: String?) {
+        _photoUri.value = uri
+    }
+
     fun submit() {
         viewModelScope.launch {
             val checkin = QuickCheckin(
                 moodLevel = _selectedMood.value,
+                photoUri = _photoUri.value,
                 text = _text.value,
                 createdAt = System.currentTimeMillis()
             )

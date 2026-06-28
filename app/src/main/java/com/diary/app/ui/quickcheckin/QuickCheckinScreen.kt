@@ -1,9 +1,13 @@
 package com.diary.app.ui.quickcheckin
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -12,12 +16,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,8 +34,34 @@ fun QuickCheckinScreen(
     onNavigateBack: () -> Unit,
     viewModel: QuickCheckinViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val selectedMood by viewModel.selectedMood.collectAsState()
     val text by viewModel.text.collectAsState()
+    val photoUri by viewModel.photoUri.collectAsState()
+    
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                tempPhotoUri?.let { uri ->
+                    viewModel.setPhotoUri(uri.toString())
+                }
+            }
+        }
+    )
+
+    fun takePhoto() {
+        val file = File(context.cacheDir, "quick_checkin_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        tempPhotoUri = uri
+        cameraLauncher.launch(uri)
+    }
 
     GradientBackground {
         Column(
@@ -121,6 +156,69 @@ fun QuickCheckinScreen(
                         placeholder = { Text("今天发生了什么...") },
                         maxLines = 3
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Photo section
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 16.dp,
+                innerPadding = 16.dp
+            ) {
+                Column {
+                    Text(
+                        text = "拍张照片（可选）",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (photoUri != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                        ) {
+                            AsyncImage(
+                                model = photoUri,
+                                contentDescription = "签到照片",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = { viewModel.setPhotoUri(null) },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "删除照片",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { takePhoto() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("拍照")
+                        }
+                    }
                 }
             }
 
