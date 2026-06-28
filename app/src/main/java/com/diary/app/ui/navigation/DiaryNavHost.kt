@@ -475,6 +475,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
                     onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) },
                     onNavigateToDiaryTalk = { navController.navigate(Screen.DiaryTalk.route) },
+                    onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -995,8 +996,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(route = Screen.LockScreenQuickWrite.route) {
                 LockScreenQuickWriteScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditor = { navController.navigate(Screen.Editor.createRoute()) }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(route = Screen.AdaptiveInterface.route) {

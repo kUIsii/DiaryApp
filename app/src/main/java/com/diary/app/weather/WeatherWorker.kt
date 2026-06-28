@@ -22,8 +22,8 @@ class WeatherWorker(
     override suspend fun doWork(): Result {
         return try {
             val weather = WeatherManager.fetchWeather(applicationContext)
-            if (weather != null) {
-                checkAndSendAlert(weather)
+            if (weather != null && weather.alerts.isNotEmpty()) {
+                sendAlerts(weather.alerts, weather.city)
             }
             Result.success()
         } catch (e: Exception) {
@@ -32,37 +32,40 @@ class WeatherWorker(
         }
     }
 
-    private fun checkAndSendAlert(weather: CurrentWeather) {
-        val severeTypes = listOf("雷", "暴", "冰雹", "台风")
-        val isSevere = severeTypes.any { weather.weather.contains(it) }
-        if (isSevere) {
-            sendWeatherAlert(weather)
+    private fun sendAlerts(alerts: List<WeatherAlert>, city: String) {
+        val ctx = applicationContext
+        ensureChannel(ctx)
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        var notifId = NOTIFICATION_ID
+
+        for (alert in alerts) {
+            val openIntent = android.content.Intent(ctx, com.diary.app.MainActivity::class.java).apply {
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(ctx, notifId, openIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
+
+            val levelColor = when (alert.level) {
+                "红色" -> NotificationCompat.PRIORITY_MAX
+                "橙色" -> NotificationCompat.PRIORITY_HIGH
+                "黄色" -> NotificationCompat.PRIORITY_DEFAULT
+                "蓝色" -> NotificationCompat.PRIORITY_LOW
+                else -> NotificationCompat.PRIORITY_HIGH
+            }
+
+            val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("${alert.level}预警：${alert.type}")
+                .setContentText("$city：${alert.text.take(80)}")
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$city：${alert.text}"))
+                .setPriority(levelColor)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+
+            nm.notify(notifId, notification)
+            notifId++
         }
-    }
-
-    private fun sendWeatherAlert(weather: CurrentWeather) {
-        val context = applicationContext
-        ensureChannel(context)
-
-        val openIntent = android.content.Intent(context, com.diary.app.MainActivity::class.java).apply {
-            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = android.app.PendingIntent.getActivity(
-            context, 2, openIntent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("天气预警")
-            .setContentText("${weather.city}：${weather.weather}，气温${weather.temperature}度")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .build()
-
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIFICATION_ID, notification)
     }
 
     companion object {
@@ -72,28 +75,17 @@ class WeatherWorker(
         private const val NOTIFICATION_ID = 1002
 
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<WeatherWorker>(
-                3, TimeUnit.HOURS
-            ).build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
-            )
+            val request = PeriodicWorkRequestBuilder<WeatherWorker>(3, TimeUnit.HOURS).build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
 
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-                    val channel = NotificationChannel(
-                        CHANNEL_ID,
-                        "天气预警",
-                        NotificationManager.IMPORTANCE_HIGH
-                    ).apply {
+                    nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "天气预警", NotificationManager.IMPORTANCE_HIGH).apply {
                         description = "恶劣天气预警通知"
-                    }
-                    nm.createNotificationChannel(channel)
+                    })
                 }
             }
         }

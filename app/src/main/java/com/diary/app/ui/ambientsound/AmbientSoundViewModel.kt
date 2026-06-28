@@ -11,11 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class TimerOption(val minutes: Int, val label: String) {
-    OFF(0, "关闭"),
-    MIN_15(15, "15分钟"),
-    MIN_30(30, "30分钟"),
-    MIN_60(60, "60分钟"),
-    MIN_90(90, "90分钟")
+    OFF(0, "关闭"), MIN_15(15, "15分"), MIN_30(30, "30分"), MIN_60(60, "60分"), MIN_90(90, "90分")
 }
 
 data class AmbientSoundState(
@@ -33,24 +29,18 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
 
     private val _state = MutableStateFlow(AmbientSoundState(presets = PresetStorage.load(application)))
     val state: StateFlow<AmbientSoundState> = _state.asStateFlow()
-
     private var timerJob: Job? = null
 
     fun toggle(type: AmbientSoundType) {
-        val current = _state.value
-        val newActive: Set<AmbientSoundType>
-        val newVolumes: Map<AmbientSoundType, Float>
-        if (type in current.activeSounds) {
+        val cur = _state.value
+        if (type in cur.activeSounds) {
             player.stop(type)
-            newActive = current.activeSounds - type
-            newVolumes = current.volumes - type
+            _state.value = cur.copy(activeSounds = cur.activeSounds - type, volumes = cur.volumes - type)
         } else {
-            val vol = current.volumes[type] ?: 0.5f
+            val vol = cur.volumes[type] ?: 0.5f
             player.play(type, vol)
-            newActive = current.activeSounds + type
-            newVolumes = current.volumes + (type to vol)
+            _state.value = cur.copy(activeSounds = cur.activeSounds + type, volumes = cur.volumes + (type to vol))
         }
-        _state.value = current.copy(activeSounds = newActive, volumes = newVolumes)
         updateService()
     }
 
@@ -60,44 +50,30 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun stopAll() {
-        player.stopAll()
         timerJob?.cancel()
-        _state.value = _state.value.copy(
-            activeSounds = emptySet(), volumes = emptyMap(),
-            remainingSeconds = 0, isSleepFading = false
-        )
+        player.stopAll()
+        _state.value = _state.value.copy(activeSounds = emptySet(), volumes = emptyMap(), remainingSeconds = 0, isSleepFading = false)
         AmbientSoundService.stop(ctx)
     }
 
     fun setTimer(option: TimerOption) {
         timerJob?.cancel()
-        val s = _state.value
         if (option == TimerOption.OFF) {
-            _state.value = s.copy(timerOption = TimerOption.OFF, remainingSeconds = 0, isSleepFading = false)
+            _state.value = _state.value.copy(timerOption = TimerOption.OFF, remainingSeconds = 0, isSleepFading = false)
             return
         }
         val totalSec = option.minutes * 60
-        _state.value = s.copy(timerOption = option, remainingSeconds = totalSec, isSleepFading = false)
-
+        _state.value = _state.value.copy(timerOption = option, remainingSeconds = totalSec, isSleepFading = false)
         timerJob = viewModelScope.launch {
             var remaining = totalSec
-            val fadeStart = 120
-            val initialVolumes = s.volumes.toMap()
             while (remaining > 0) {
-                delay(1000)
-                remaining--
-                val fading = remaining <= fadeStart && remaining > 0
+                delay(1000); remaining--
+                val fading = remaining <= 120 && remaining > 0
                 if (fading) {
-                    val fraction = remaining.toFloat() / fadeStart
-                    for ((type, vol) in initialVolumes) {
-                        val faded = vol * fraction
-                        player.setVolume(type, faded)
-                    }
+                    val fraction = remaining.toFloat() / 120f
+                    for (type in _state.value.activeSounds) player.setVolume(type, (_state.value.volumes[type] ?: 0.5f) * fraction)
                 }
-                _state.value = _state.value.copy(
-                    remainingSeconds = remaining,
-                    isSleepFading = fading
-                )
+                _state.value = _state.value.copy(remainingSeconds = remaining, isSleepFading = fading)
             }
             stopAll()
         }
@@ -105,14 +81,12 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
 
     fun applyPreset(preset: SoundPreset) {
         stopAll()
-        val types = preset.toActiveTypesSet()
-        val volumes = preset.toVolumesMap()
-        for (type in types) {
-            val vol = volumes[type] ?: 0.5f
-            player.play(type, vol)
+        for (type in preset.toActiveTypesSet()) {
+            player.play(type, preset.toVolumesMap()[type] ?: 0.5f)
         }
         _state.value = _state.value.copy(
-            activeSounds = types, volumes = volumes, presets = PresetStorage.load(ctx)
+            activeSounds = preset.toActiveTypesSet(), volumes = preset.toVolumesMap(),
+            presets = PresetStorage.load(ctx)
         )
         updateService()
     }
@@ -120,12 +94,11 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     fun saveCurrentPreset(name: String) {
         val s = _state.value
         if (s.activeSounds.isEmpty()) return
-        val preset = SoundPreset(
+        PresetStorage.save(ctx, SoundPreset(
             name = name,
             activeTypes = s.activeSounds.map { it.key }.sorted(),
             volumes = s.activeSounds.associate { it.key to (s.volumes[it]?.toDouble() ?: 0.5) }
-        )
-        PresetStorage.save(ctx, preset)
+        ))
         _state.value = s.copy(presets = PresetStorage.load(ctx))
     }
 
@@ -135,15 +108,8 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun updateService() {
-        if (player.isAnyPlaying) {
-            AmbientSoundService.start(ctx)
-        } else {
-            AmbientSoundService.stop(ctx)
-        }
+        if (player.isAnyPlaying) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        timerJob?.cancel()
-    }
+    override fun onCleared() { super.onCleared(); timerJob?.cancel() }
 }
