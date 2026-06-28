@@ -15,28 +15,28 @@ object TitleManager {
         TitleCombination(
             id = "knowledge_master",
             name = "知识渊博",
-            description = "同时拥有书虫和思考者称号，宠物获得智慧光环",
+            description = "同时拥有书虫和思考者称号，获得智慧光环",
             requiredTitles = listOf("bookworm", "deep_thinker"),
             effectType = CombinationEffect.WISDOM_AURA
         ),
         TitleCombination(
             id = "emotion_master",
             name = "情绪大师",
-            description = "同时拥有乐观者和共情者称号，宠物获得温暖光环",
+            description = "同时拥有乐观者和共情者称号，获得温暖光环",
             requiredTitles = listOf("optimist", "empath"),
             effectType = CombinationEffect.WARM_GLOW
         ),
         TitleCombination(
             id = "adventurer",
             name = "冒险家",
-            description = "同时拥有旅行者和探索者称号，宠物获得冒险徽章",
+            description = "同时拥有旅行者和探索者称号，获得冒险徽章",
             requiredTitles = listOf("traveler", "explorer"),
             effectType = CombinationEffect.ADVENTURE_BADGE
         ),
         TitleCombination(
             id = "persistence",
             name = "坚持不懈",
-            description = "同时拥有连续记录7天和连续记录30天称号，宠物获得坚持光环",
+            description = "同时拥有连续记录7天和连续记录30天称号，获得坚持光环",
             requiredTitles = listOf("daily_writer", "hundred_days"),
             effectType = CombinationEffect.PERSISTENCE_AURA
         )

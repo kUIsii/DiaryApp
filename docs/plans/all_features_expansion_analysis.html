@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiaryApp · 41 项功能深度探索报告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg1: #F5F7FA;
+    --bg2: #EFF3F8;
+    --bg3: #E8EDF4;
+    --surface: #FFFFFF;
+    --surface-hover: #f8faff;
+    --text-primary: #2C3344;
+    --text-secondary: #5A6577;
+    --text-tertiary: #8A96A8;
+    --accent: #6B8DB5;
+    --accent-light: #8db5d9;
+    --accent2: #B5926B;
+    --accent3: #9B8EBA;
+    --card-bg: #FFFFFF;
+    --card-border: rgba(130,150,180,0.30);
+    --success: #6ABF8A;
+    --warning: #E8A84C;
+    --error: #E07070;
+    --info: #7BA7E0;
+    --font-heading: 'Noto Serif SC', serif;
+    --font-body: 'Inter', sans-serif;
+    --shadow: 0 2px 16px rgba(44,51,68,0.06);
+    --shadow-lg: 0 8px 40px rgba(44,51,68,0.08);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  .dark {
+    --bg1: #0B0D12;
+    --bg2: #0E1018;
+    --bg3: #11131C;
+    --surface: #161822;
+    --surface-hover: #1a1d2e;
+    --text-primary: #D8E0F0;
+    --text-secondary: #9AA8C0;
+    --text-tertiary: #6A7890;
+    --accent: #88B0D4;
+    --accent-light: #a0c8e8;
+    --accent2: #D4A878;
+    --accent3: #A89AC8;
+    --card-bg: #181A26;
+    --card-border: rgba(130,150,180,0.18);
+    --shadow: 0 2px 16px rgba(0,0,0,0.2);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg1);
+    color: var(--text-primary);
+    line-height: 1.7;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 3px; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 260px;
+    background: var(--surface); border-right: 1px solid var(--card-border);
+    padding: 24px 0; overflow-y: auto; z-index: 100;
+    transition: background 0.3s;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px; border-bottom: 1px solid var(--card-border);
+    margin-bottom: 12px;
+  }
+  .sidebar-logo h1 { font-family: var(--font-heading); font-size: 18px; font-weight: 700; }
+  .sidebar-logo .version {
+    font-size: 12px; color: var(--text-tertiary); margin-top: 2px;
+  }
+  .sidebar-nav { list-style: none; padding: 0 12px; }
+  .sidebar-nav li { margin: 2px 0; border-radius: var(--radius-sm); transition: all 0.2s; }
+  .sidebar-nav li a {
+    display: block; padding: 8px 12px; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none; border-radius: var(--radius-sm);
+    transition: all 0.2s;
+  }
+  .sidebar-nav li a:hover, .sidebar-nav li.active a {
+    background: rgba(107,141,181,0.10); color: var(--accent);
+  }
+  .sidebar-nav li .badge {
+    float: right; font-size: 10px; padding: 1px 8px; border-radius: 10px;
+    font-weight: 600;
+  }
+  .badge.p0 { background: rgba(224,112,112,0.15); color: var(--error); }
+  .badge.p1 { background: rgba(232,168,76,0.15); color: var(--warning); }
+  .badge.p2 { background: rgba(106,191,138,0.15); color: var(--success); }
+  .badge.p3 { background: rgba(123,167,224,0.15); color: var(--info); }
+
+  /* Main */
+  .main { margin-left: 260px; padding: 0; min-height: 100vh; }
+
+  /* Hero */
+  .hero {
+    padding: 60px 48px 40px;
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .hero h1 {
+    font-family: var(--font-heading); font-size: 36px; font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .hero .subtitle {
+    font-size: 16px; color: var(--text-secondary); margin-top: 8px;
+    max-width: 600px;
+  }
+  .hero-stats {
+    display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap;
+  }
+  .hero-stat {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 16px 24px; min-width: 120px;
+    box-shadow: var(--shadow);
+  }
+  .hero-stat .num { font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--accent); }
+  .hero-stat .label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Content */
+  .content { padding: 32px 48px 80px; }
+
+  /* Category Section */
+  .category {
+    margin-bottom: 48px;
+    scroll-margin-top: 20px;
+  }
+  .category-header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--card-border);
+  }
+  .category-header h2 {
+    font-family: var(--font-heading); font-size: 24px; font-weight: 700;
+  }
+  .category-count {
+    font-size: 13px; color: var(--text-tertiary);
+    background: var(--bg2); padding: 2px 12px; border-radius: 12px;
+  }
+
+  /* Feature Card */
+  .feature-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 20px 24px; margin-bottom: 12px;
+    box-shadow: var(--shadow); transition: all 0.3s;
+    cursor: pointer;
+  }
+  .feature-card:hover { box-shadow: var(--shadow-lg); border-color: var(--accent-light); }
+  .feature-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .feature-card-title {
+    display: flex; align-items: center; gap: 10px; flex: 1;
+  }
+  .feature-card-title .id {
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    background: rgba(107,141,181,0.10); padding: 1px 8px; border-radius: 6px;
+  }
+  .feature-card-title h3 {
+    font-family: var(--font-heading); font-size: 16px; font-weight: 600;
+  }
+  .feature-card-title .completion {
+    font-size: 12px; padding: 1px 8px; border-radius: 8px;
+    font-weight: 600;
+  }
+  .pct-high { background: rgba(106,191,138,0.15); color: #4a9a6a; }
+  .pct-mid { background: rgba(232,168,76,0.15); color: #c88a30; }
+  .pct-low { background: rgba(224,112,112,0.15); color: #c05050; }
+  .feature-card-status {
+    font-size: 12px; color: var(--text-tertiary); text-align: right;
+    white-space: nowrap;
+  }
+  .feature-card-body {
+    margin-top: 14px; display: none;
+    border-top: 1px solid var(--card-border); padding-top: 14px;
+  }
+  .feature-card.expanded .feature-card-body { display: block; }
+
+  .feature-card-body .desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; }
+  .expansion-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-top: 8px;
+  }
+  @media (max-width: 768px) { .expansion-grid { grid-template-columns: 1fr; } }
+  .expansion-item {
+    background: var(--bg2); border-radius: var(--radius-sm);
+    padding: 12px 14px; border-left: 3px solid var(--accent);
+  }
+  .expansion-item .prio {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 4px; margin-bottom: 4px;
+  }
+  .expansion-item .title { font-size: 13px; font-weight: 600; }
+  .expansion-item .detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
+  .expansion-item .effort {
+    font-size: 11px; color: var(--text-tertiary); margin-top: 4px;
+  }
+
+  /* State labels */
+  .state-row {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .state-item {
+    font-size: 12px; padding: 2px 10px; border-radius: 6px;
+  }
+  .state-good { background: rgba(106,191,138,0.12); color: #4a9a6a; }
+  .state-warn { background: rgba(232,168,76,0.12); color: #c88a30; }
+  .state-bad { background: rgba(224,112,112,0.12); color: #c05050; }
+
+  /* Priority Matrix */
+  .priority-matrix {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin: 20px 0;
+  }
+  @media (max-width: 768px) { .priority-matrix { grid-template-columns: 1fr 1fr; } }
+  .prio-col { }
+  .prio-col h4 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 8px 12px; border-radius: var(--radius-sm);
+    margin-bottom: 8px; text-align: center;
+  }
+  .prio-col ul { list-style: none; }
+  .prio-col li {
+    font-size: 12px; padding: 4px 8px; border-radius: 4px;
+    margin: 2px 0; background: var(--bg2);
+  }
+  .prio-p0 h4 { background: rgba(224,112,112,0.15); color: var(--error); }
+  .prio-p1 h4 { background: rgba(232,168,76,0.15); color: var(--warning); }
+  .prio-p2 h4 { background: rgba(106,191,138,0.15); color: var(--success); }
+  .prio-p3 h4 { background: rgba(123,167,224,0.15); color: var(--info); }
+
+  /* Dark toggle */
+  .dark-toggle {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-lg); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; transition: all 0.3s;
+  }
+  .dark-toggle:hover { transform: scale(1.1); }
+
+  /* Expand all */
+  .expand-all-btn {
+    background: var(--surface); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 8px 16px;
+    font-size: 13px; cursor: pointer; color: var(--text-secondary);
+    transition: all 0.2s; margin-bottom: 16px;
+  }
+  .expand-all-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .hero { padding: 40px 24px 24px; }
+    .content { padding: 24px; }
+    .hero h1 { font-size: 28px; }
+    .feature-card { padding: 16px; }
+  }
+
+  /* Chart bars */
+  .chart-bar-group { display: flex; gap: 8px; align-items: flex-end; height: 120px; padding: 12px 0; }
+  .chart-bar {
+    flex: 1; border-radius: 4px 4px 0 0; min-height: 4px;
+    transition: all 0.5s; position: relative; cursor: pointer;
+  }
+  .chart-bar:hover { opacity: 0.8; }
+  .chart-bar .ct-label {
+    position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--text-tertiary); white-space: nowrap;
+  }
+
+  /* Floating nav */
+  .floating-toc {
+    position: fixed; top: 50%; right: 16px; transform: translateY(-50%);
+    z-index: 90; display: flex; flex-direction: column; gap: 4px;
+  }
+  .floating-toc a {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--text-tertiary); opacity: 0.3;
+    transition: all 0.3s; text-decoration: none;
+  }
+  .floating-toc a:hover, .floating-toc a.active { opacity: 1; background: var(--accent); transform: scale(1.3); }
+</style>
+</head>
+<body>
+
+<!-- Dark Toggle -->
+<button class="dark-toggle" onclick="toggleDark()" id="darkBtn">&#9790;</button>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>DiaryApp</h1>
+    <div class="version">v2.72.00-experimental &middot; 41 features</div>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="#overview">&#9632; 总览</a></li>
+    <li><a href="#priority">&#9632; 优先级矩阵</a></li>
+    <li><a href="#writing">&#9998; 创作写作类 <span class="badge p1">3项</span></a></li>
+    <li><a href="#ai">&#9889; AI智能类 <span class="badge p0">6项</span></a></li>
+    <li><a href="#data">&#128202; 数据分析类 <span class="badge p1">6项</span></a></li>
+    <li><a href="#memory">&#128214; 回忆旅程类 <span class="badge p0">8项</span></a></li>
+    <li><a href="#growth">&#127919; 成长挑战类 <span class="badge p1">6项</span></a></li>
+    <li><a href="#system">&#9881; 系统工具类 <span class="badge p1">12项</span></a></li>
+  </ul>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+<!-- Hero -->
+<section class="hero" id="overview">
+  <h1>41 项功能深度探索报告</h1>
+  <div class="subtitle">
+    基于源码级审查（259 Kotlin 文件，~62,000 行代码）对全部功能进行深度分析，
+    识别当前缺陷并提出可落地的扩展方向与优先级
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">41</div><div class="label">功能总数</div></div>
+    <div class="hero-stat"><div class="num" style="color:var(--success)">100%</div><div class="label">功能完成率</div></div>
+    <div class="hero-stat"><div class="num" style="color:var(--warning)">70%</div><div class="label">加权完成度</div></div>
+    <div class="hero-stat"><div class="num" style="color:var(--info)">127</div><div class="label">推荐扩展项</div></div>
+    <div class="hero-stat"><div class="num" style="color:var(--error)">5</div><div class="label">空目录占位</div></div>
+  </div>
+  <!-- Completion chart -->
+  <div style="margin-top:24px;">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--text-secondary);font-weight:600;">类别完成度：</span>
+      <span style="font-size:12px;background:rgba(106,191,138,0.12);color:#4a9a6a;padding:2px 10px;border-radius:6px;">输入方式 85%</span>
+      <span style="font-size:12px;background:rgba(106,191,138,0.12);color:#4a9a6a;padding:2px 10px;border-radius:6px;">AI深度 80%</span>
+      <span style="font-size:12px;background:rgba(106,191,138,0.12);color:#4a9a6a;padding:2px 10px;border-radius:6px;">回顾记忆 83%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">可视化数据 77%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">交互设计 78%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">个性化 80%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">成长反思 80%</span>
+      <span style="font-size:12px;background:rgba(106,191,138,0.12);color:#4a9a6a;padding:2px 10px;border-radius:6px;">数据洞察 85%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">场景拓展 73%</span>
+      <span style="font-size:12px;background:rgba(232,168,76,0.12);color:#c88a30;padding:2px 10px;border-radius:6px;">实验探索 73%</span>
+    </div>
+  </div>
+</section>
+
+<!-- Content -->
+<div class="content">
+
+<!-- Priority Matrix -->
+<section id="priority" style="margin-bottom:48px;scroll-margin-top:20px;">
+  <div class="category-header">
+    <h2>&#128204; 优先级执行矩阵</h2>
+    <span class="category-count">127 项扩展推荐</span>
+  </div>
+  <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">
+    基于影响面 x 技术可行性 x 用户价值的综合评估
+  </p>
+  <div class="priority-matrix">
+    <div class="prio-col prio-p0">
+      <h4>P0 &#9733; 立即可做 (34项)</h4>
+      <ul>
+        <li>&#x25B6; 年鉴真实数据连接</li>
+        <li>&#x25B6; 旅行日志 DB + ViewModel</li>
+        <li>&#x25B6; 地点回忆 DB + ViewModel</li>
+        <li>&#x25B6; DiaryTalk AI 集成</li>
+        <li>&#x25B6; 手势持久化 + HomeScreen 集成</li>
+        <li>&#x25B6; 锁屏快写本地持久化</li>
+        <li>&#x25B6; 自适应开关持久化 + 夜间模式联动</li>
+        <li>&#x25B6; 封面主题应用到全局</li>
+        <li>&#x25B6; 写作实验室参与交互入口</li>
+        <li>&#x25B6; 连续保护罩连击计算</li>
+        <li>&#x25B6; 彩蛋实时触发引擎</li>
+        <li>&#x25B6; 情绪弧线 LLM 情感分析</li>
+        <li>&#x25B6; 写作教练中文分词</li>
+        <li>&#x25B6; 摘要统一 AiServiceManager</li>
+        <li>&#x25B6; 年度报告 AI 叙事生成</li>
+        <li>&#x25B6; 心情地图交互增强</li>
+        <li>&#x25B6; 语义搜索增量索引</li>
+        <li>&#x25B6; 小确幸多日回顾 + 编辑</li>
+        <li>&#x25B6; 季度回顾历史切换</li>
+      </ul>
+    </div>
+    <div class="prio-col prio-p1">
+      <h4>P1 &#9650; 短期迭代 (52项)</h4>
+      <ul>
+        <li>&#x25B6; 语音文件转录 + 编辑器集成</li>
+        <li>&#x25B6; 签到多图 + 位置自动关联</li>
+        <li>&#x25B6; 情绪弧线多日记时间线</li>
+        <li>&#x25B6; 写作提示反馈循环</li>
+        <li>&#x25B6; 摘要展示浏览界面</li>
+        <li>&#x25B6; 专注模式环境音播放</li>
+        <li>&#x25B6; 年度 Wrapped 翻页重构</li>
+        <li>&#x25B6; 目标统计面板 + 关联日记</li>
+        <li>&#x25B6; 旅行日志关联自动匹配</li>
+        <li>&#x25B6; 地点触发 Geofencing 后台</li>
+        <li>&#x25B6; DiaryTalk RAG 向量检索</li>
+        <li>&#x25B6; 月度挑战模板轮换</li>
+        <li>&#x25B6; 连续保护罩自动检测</li>
+        <li>&#x25B6; 宠物核心实体构建</li>
+        <li>&#x25B6; 岛屿核心数据模型</li>
+        <li>&#x25B6; 称号展示 UI</li>
+        <li>&#x25B6; 时间胶囊解锁通知</li>
+      </ul>
+    </div>
+    <div class="prio-col prio-p2">
+      <h4>P2 &#9660; 中期规划 (32项)</h4>
+      <ul>
+        <li>&#x25B6; 语音波形可视化</li>
+        <li>&#x25B6; 签到首页一入口</li>
+        <li>&#x25B6; 写作教练逐篇评分</li>
+        <li>&#x25B6; 日记交互式弧线</li>
+        <li>&#x25B6; 阅读器排版增强</li>
+        <li>&#x25B6; 年度对比多年度报告</li>
+        <li>&#x25B6; 心情地图真实导航路径</li>
+        <li>&#x25B6; 目标截止日期与提醒</li>
+        <li>&#x25B6; 小确幸分类与提醒</li>
+        <li>&#x25B6; 语义搜索 LLM 重排序</li>
+        <li>&#x25B6; 季度趋势图增强</li>
+        <li>&#x25B6; 个性化挑战 AI 生成</li>
+      </ul>
+    </div>
+    <div class="prio-col prio-p3">
+      <h4>P3 &#9830; 长期愿景 (9项)</h4>
+      <ul>
+        <li>&#x25B6; 旅行自动 GPS 检测</li>
+        <li>&#x25B6; 岛屿画布渲染</li>
+        <li>&#x25B6; 宠物 UI + 交互</li>
+        <li>&#x25B6; 主题分享市场</li>
+        <li>&#x25B6; 自适应布局动态调整</li>
+        <li>&#x25B6; 彩蛋稀有度层扩展</li>
+        <li>&#x25B6; 加密胶囊</li>
+        <li>&#x25B6; 成就统计仪表盘</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 1: 创作写作类 ========== -->
+<section class="category" id="writing">
+  <div class="category-header">
+    <h2>&#9998; 创作写作类</h2>
+    <span class="category-count">1.1 &middot; 1.2 &middot; 2.1</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 1.1 语音录入 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">1.1</span>
+        <h3>语音录入与转写</h3>
+        <span class="completion pct-low">75%</span>
+      </div>
+      <div class="feature-card-status">MediaRecorder + SpeechRecognizer &middot; 289行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">
+        <strong>当前状态：</strong>录音功能完整（AAC/MPEG4, 44.1kHz），但<strong>无音频播放</strong>、文件转写使用实时语音识别而非离线文件转录、无编辑器集成入口、无波形可视化。
+      </div>
+      <div class="state-row">
+        <span class="state-item state-good">&#10003; 录音/停止/取消</span>
+        <span class="state-item state-good">&#10003; 权限处理</span>
+        <span class="state-item state-good">&#10003; CRUD + 列表</span>
+        <span class="state-item state-bad">&#10007; 无播放/SeekBar</span>
+        <span class="state-item state-bad">&#10007; 文件转写</span>
+        <span class="state-item state-warn">&#9888; 编辑器集成</span>
+      </div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">音频播放 + SeekBar</div>
+          <div class="detail">MediaPlayer 播放引擎，PlaybackState sealed class，Slider 进度条</div>
+          <div class="effort">工作量: Medium &middot; 无依赖</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">离线文件转录</div>
+          <div class="detail">Android SpeechRecognizer.setInputFile() (API 33+) 或 Vosk/whisper.cpp</div>
+          <div class="effort">工作量: Medium &middot; 依赖 Android 13+</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">编辑器集成入口</div>
+          <div class="detail">编辑器工具栏 Mic icon &rarr; 录音 &rarr; 自动关联 diaryId</div>
+          <div class="effort">工作量: Small &middot; 依赖 EditorScreen</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">波形可视化</div>
+          <div class="detail">MediaRecorder.getMaxAmplitude() Canvas 实时振幅柱状图</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.2 快速签到 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">1.2</span>
+        <h3>快速签到</h3>
+        <span class="completion pct-high">90%</span>
+      </div>
+      <div class="feature-card-status">6级心情 + 拍照 + Room &middot; 242行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">
+        <strong>当前状态：</strong>UI 和数据层基本完整，但<strong>心情选择器无点击事件</strong>（emoji 不可交互）、圆形高亮渲染有 bug、提交逻辑应为 AND 非 OR。无多图/位置/编辑功能。
+      </div>
+      <div class="state-row">
+        <span class="state-item state-good">&#10003; 6级心情</span>
+        <span class="state-item state-good">&#10003; 相机拍照 + FileProvider</span>
+        <span class="state-item state-good">&#10003; DB CRUD</span>
+        <span class="state-item state-bad">&#10007; Mood 不可点击</span>
+        <span class="state-item state-warn">&#9888; 高亮渲染</span>
+      </div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">修复心情选择器</div>
+          <div class="detail">clickable 修饰符 + 圆形背景修复 + 提交逻辑改为 AND</div>
+          <div class="effort">工作量: Small &middot; 纯 UI 修复</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">多图 + 历史视图</div>
+          <div class="detail">Gallery 选择器 + LazyColumn 历史 + 当日签到列表</div>
+          <div class="effort">工作量: Medium &middot; 需迁移实体</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">位置自动附加</div>
+          <div class="detail">FusedLocationProviderClient 单次定位 &rarr; 附加 lat/lng</div>
+          <div class="effort">工作量: Small &middot; 需位置权限</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">首页一入口签到</div>
+          <div class="detail">HomeScreen 浮窗 Chip &rarr; ModalBottomSheet 快速签到</div>
+          <div class="effort">工作量: Small &middot; 依赖 HomeScreen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.1 写作教练 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">2.1</span>
+        <h3>写作教练</h3>
+        <span class="completion pct-mid">80%</span>
+      </div>
+      <div class="feature-card-status">规则分析引擎 &middot; 472行 (Screen+VM+Engine)</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">
+        <strong>当前状态：</strong>统计引擎完整（词频/句长/情绪/时段），但<strong>无中文 NLP</strong>（split 分词导致中文分析不准确）、无 LLM 增强、无进度追踪、无个性化建议。
+      </div>
+      <div class="state-row">
+        <span class="state-item state-good">&#10003; 5 维度统计</span>
+        <span class="state-item state-good">&#10003; 5 条建议规则</span>
+        <span class="state-item state-warn">&#9888; 中文分词有缺陷</span>
+        <span class="state-item state-bad">&#10007; 无 LLM 集成</span>
+      </div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">中文 NLP 分词</div>
+          <div class="detail">集成 HanLP 或 jieba-android 替代 tokenizeSimple()</div>
+          <div class="effort">工作量: Medium &middot; 需添加依赖</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">LLM 增强分析</div>
+          <div class="detail">AiServiceManager 接入，分析摘要 + 样本 &rarr; 个性化建议</div>
+          <div class="effort">工作量: Medium &middot; 依赖 AiServiceManager</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">趋势对比追踪</div>
+          <div class="detail">WritingSnapshot 实体持久化 + 周/月趋势对比 + 评分变化</div>
+          <div class="effort">工作量: Medium &middot; 需建表迁移</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">写作挑战生成</div>
+          <div class="detail">基于分析结果生成个性化挑战，集成 MonthlyChallenge 表</div>
+          <div class="effort">工作量: Medium &middot; 依赖 MonthlyChallenge</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 2: AI智能类 ========== -->
+<section class="category" id="ai">
+  <div class="category-header">
+    <h2>&#9889; AI 智能类</h2>
+    <span class="category-count">2.2 &middot; 2.3 &middot; 2.4 &middot; 3.2 &middot; 3.3 &middot; 4.2</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 2.2 情绪弧线 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">2.2</span>
+        <h3>情绪弧线可视化</h3>
+        <span class="completion pct-low">65%</span>
+      </div>
+      <div class="feature-card-status">Canvas 折线图 &middot; 仅 18 个关键词</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">Canvas 折线图渲染正常，但情感分析仅基于 9 积极 + 9 消极关键词，无法理解语义反转。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">LLM 情感分析</div>
+          <div class="detail">AiServiceManager 逐段评估情绪分值，替代硬编码词表</div>
+          <div class="effort">工作量: Small &middot; AiServiceManager 已就绪</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">多日记时间线弧线</div>
+          <div class="detail">按天聚合多篇日记情感均值，X 轴改为时间戳</div>
+          <div class="effort">工作量: Medium &middot; DAO getEntriesByDateRange</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">情绪事件标注</div>
+          <div class="detail">从 Tag/Values 表提取关键事件标记在弧线底部</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">交互式弧线</div>
+          <div class="detail">Canvas 点击节点展开原文 + 与 DiaryTalk 联动</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.3 写作提示 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">2.3</span>
+        <h3>上下文感知写作提示</h3>
+        <span class="completion pct-high">85%</span>
+      </div>
+      <div class="feature-card-status">AI + 本地规则双路径 &middot; 280行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">AI path 已对接 AiServiceManager，本地规则 5 大类。但 prompt 仅用标题+字数+心情，未用正文。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">正文内容增强 Prompt</div>
+          <div class="detail">提取最近篇关键词、情绪标签、主题聚类作为 AI 上下文</div>
+          <div class="effort">工作量: Small &middot; 依赖 WritingCoach 分析引擎</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">反馈循环 + 个性化</div>
+          <div class="detail">有用/无用按钮 &rarr; WritingHintFeedback 表调整权重</div>
+          <div class="effort">工作量: Medium &middot; 需建表</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">季节/时间感知 + 人格轮换</div>
+          <div class="detail">节气感知 + 鼓励/挑战/哲学人格轮流</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">提示收藏 + 编辑器侧栏</div>
+          <div class="detail">收藏提示显示在 EditorScreen 侧边栏</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.4 摘要 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">2.4</span>
+        <h3>日记摘要生成</h3>
+        <span class="completion pct-high">80%</span>
+      </div>
+      <div class="feature-card-status">独立 HTTP 实现 &middot; 428行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">批量/单篇摘要 + 进度条 + 持久化。但 DiarySummarizer 独立实现 HTTP 调用，未复用 AiServiceManager。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">重构为统一 AiServiceManager</div>
+          <div class="detail">删除独立 HTTP 实现，统一 API 密钥管理和错误处理</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">摘要浏览界面</div>
+          <div class="detail">卡片式摘要列表 + 原文片段 + 心情指示器 + 跳转详情</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">周/月聚合摘要</div>
+          <div class="detail">合并多篇摘要为高层次周报/月报</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3.2 沉浸阅读 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">3.2</span>
+        <h3>沉浸阅读模式</h3>
+        <span class="completion pct-mid">78%</span>
+      </div>
+      <div class="feature-card-status">HorizontalPager + 暖光 &middot; 258行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">翻页+暖光+字号切换完整，但无阅读位置记忆、无书签、进度条基础。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">阅读位置持久化</div>
+          <div class="detail">SharedPreferences 存储 lastReadEntryId + lastReadPageIndex</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">书签系统</div>
+          <div class="detail">Bookmark 表 + 页面书签 icon + 书签筛选</div>
+          <div class="effort">工作量: Medium &middot; 需建表</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">排版引擎增强</div>
+          <div class="detail">行间距调节 + 衬线/无衬线切换 + 深色模式</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3.3 环境音 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">3.3</span>
+        <h3>场景环境音</h3>
+        <span class="completion pct-high">85%</span>
+      </div>
+      <div class="feature-card-status">算法生成 WAV &middot; 零外部资源</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">5 种算法生成 WAV 纯代码实现，品质稳定。但无声音混合、无定时关闭、退后台停止。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">声音混合 + 定时关闭</div>
+          <div class="detail">多音效线性叠加 + Handler 定时器自动停止</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">后台播放 + 专注模式联动</div>
+          <div class="detail">ForegroundService + MediaSession 通知栏控制</div>
+          <div class="effort">工作量: Medium &middot; Android Service</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">外部音源导入</div>
+          <div class="detail">/raw/ 真实录音替代算法生成</div>
+          <div class="effort">工作量: Medium &middot; 音频资源文件</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4.2 年度回顾 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">4.2</span>
+        <h3>年度回顾故事</h3>
+        <span class="completion pct-low">60%</span>
+      </div>
+      <div class="feature-card-status">1322行 &middot; 15页数据驱动</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">数据最全面的年度报告（28 指标），但非 Spotify Wrapped 风格、无 AI 叙事文案、无法分享。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">AI 年度叙事生成</div>
+          <div class="detail">序列化 AnnualReport &rarr; AI prompt &rarr; 个性化温暖总结</div>
+          <div class="effort">工作量: Medium &middot; AiServiceManager</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">Wrapped 翻页重构</div>
+          <div class="detail">全屏卡片 + 渐变背景 + 数字动画 + 每页一句话</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">分享为图片/PDF</div>
+          <div class="detail">Compose drawToBitmap + 长图拼接 + ShareSheet</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">历年对比</div>
+          <div class="detail">多年度指标对比折线图</div>
+          <div class="effort">工作量: Large &middot; AnnualReport 持久化</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 3: 数据分析类 ========== -->
+<section class="category" id="data">
+  <div class="category-header">
+    <h2>&#128202; 数据分析类</h2>
+    <span class="category-count">4.1 &middot; 7.1 &middot; 7.2 &middot; 7.3 &middot; 8.1 &middot; 9.3</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 4.1 心情地图 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">4.1</span>
+        <h3>心情地图</h3>
+        <span class="completion pct-high">88%</span>
+      </div>
+      <div class="feature-card-status">886行 &middot; 高德SDK &middot; 三模式</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">项目中最复杂的功能。地图/列表/路线三模式完整，但标记无详情弹窗、无时间筛选、无热力图。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">标记详情弹窗</div>
+          <div class="detail">点击标记弹出 InfoWindow/BottomSheet 展示日记摘要</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">时间维度筛选器</div>
+          <div class="detail">日期范围滑块 &rarr; DAO 按时间筛选</div>
+          <div class="effort">工作量: Medium &middot; 新增 DAO</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">热力图叠加层</div>
+          <div class="detail">高德 HeatmapTileProvider 日记密度热力图</div>
+          <div class="effort">工作量: Medium &middot; 高德SDK已集成</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">真实导航路径</div>
+          <div class="detail">高德 RouteSearch API 真实行驶路线替代直线连线</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7.1 目标分解 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">7.1</span>
+        <h3>目标分解追踪</h3>
+        <span class="completion pct-high">82%</span>
+      </div>
+      <div class="feature-card-status">子目标层级 + DB &middot; 380行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">子目标展开/收起完整，但父级进度不自动汇总、无截止日期/提醒、无关联日记。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">子目标进度自动汇总</div>
+          <div class="detail">parentProgress = subGoals.avg(progress)</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">统计面板 + 历史</div>
+          <div class="detail">总目标数/完成率/平均进度卡片 + 已完成目标列表</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">关联日记条目</div>
+          <div class="detail">goal_entries 关联表 &rarr; 目标详情显示关联日记</div>
+          <div class="effort">工作量: Large &middot; 新表</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7.2 年鉴 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">7.2</span>
+        <h3>个人年鉴</h3>
+        <span class="completion pct-low">30%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 100% 假数据 &middot; 无 ViewModel</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>最紧迫的空壳功能。</strong> 无 ViewModel、无 DAO 调用、PDF 导出空实现、统计为硬编码字符串。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">创建 ViewModel + 真实数据</div>
+          <div class="detail">按年份筛选 DiaryEntry，计算真实统计指标</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">PDF 真实导出</div>
+          <div class="detail">Android PdfDocument API 生成含图表的多页 PDF</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">年度情绪曲线 + 精选推荐</div>
+          <div class="detail">Canvas 12月折线 + 心情最佳/字数最长日记推荐</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7.3 小确幸 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">7.3</span>
+        <h3>小确幸记录</h3>
+        <span class="completion pct-high">90%</span>
+      </div>
+      <div class="feature-card-status">288行 &middot; 实时记录 + DB</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">今日记录流 + 计数徽章完整。但无多日回顾、无周/月统计、无分类、无编辑。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">多日回顾 + 编辑</div>
+          <div class="detail">日期选择器切换任意日期 + 点击记录编辑</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">周/月统计看板</div>
+          <div class="detail">近7日柱状图 + 连续打卡天数</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">分类 + 批量分享</div>
+          <div class="detail">工作/生活/健康等分类 + Intent 分享文本摘要</div>
+          <div class="effort">工作量: Medium &middot; 需迁移实体</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8.1 语义搜索 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">8.1</span>
+        <h3>语义搜索</h3>
+        <span class="completion pct-high">85%</span>
+      </div>
+      <div class="feature-card-status">TF-IDF + 二元分词 &middot; 334行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">TF-IDF 索引 + 余弦相似度 + 片段高亮完整，但全量加载内存、无增量更新、无 LLM 增强。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">增量索引更新</div>
+          <div class="detail">监听 Flow 变化，diff 后只更新新增/修改文档向量</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">LLM 语义搜索</div>
+          <div class="detail">TF-IDF Top-10 + LLM 重排序 + AiServiceManager</div>
+          <div class="effort">工作量: Large &middot; AiServiceManager 已就绪</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">过滤 + 排序 + 性能优化</div>
+          <div class="detail">日期/心情/标签 FilterChip + SQLite FTS5 替代内存索引</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9.3 季度回顾 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">9.3</span>
+        <h3>季度回顾</h3>
+        <span class="completion pct-mid">78%</span>
+      </div>
+      <div class="feature-card-status">Canvas 趋势图 &middot; 341行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">数据聚合 + Canvas 折线图完整。但仅当前季度、无环比对比、无 AI 洞察。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">历史季度切换 + 环比</div>
+          <div class="detail">左右箭头导航季度 + 关键指标变化箭头显示</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">趋势图增强 + 写作洞察</div>
+          <div class="detail">均值线叠加 + 渐变填充 + 最活跃时段统计</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">导出为图片</div>
+          <div class="detail">Compose drawToBitmap + 分享</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 4: 回忆旅程类 ========== -->
+<section class="category" id="memory">
+  <div class="category-header">
+    <h2>&#128214; 回忆旅程类</h2>
+    <span class="category-count">3.1 &middot; 5.1 &middot; 5.2 &middot; 5.3 &middot; 9.1 &middot; 9.2 &middot; 10.1 &middot; 10.2</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 3.1 那年今日 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">3.1</span>
+        <h3>那年今日</h3>
+        <span class="completion pct-high">90%</span>
+      </div>
+      <div class="feature-card-status">HomeScreen 卡片 &middot; 响应式</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">DAO + Flow 响应式，最多 3 条。可扩展年度时间轴、通知系统集成。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">年度时间轴 + 通知集成</div>
+          <div class="detail">HorizontalPager 逐篇浏览 + WorkManager 每日通知</div>
+          <div class="effort">工作量: Medium &middot; OnThisDayNotification 已定义</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">记忆聚合 + AI 对比</div>
+          <div class="detail">多年同日 mood 趋势 + AiServiceManager 跨年对比</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.1 手势 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">5.1</span>
+        <h3>手势快捷操作</h3>
+        <span class="completion pct-low">40%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 仅有配置 UI &middot; 无实际手势检测</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>严重缺失。</strong> 5 种手势映射 UI 完整，但未持久化、未在 HomeScreen 集成实际手势检测。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">持久化 + HomeScreen 集成</div>
+          <div class="detail">SharedPreferences 存储映射 + pointerInput 分派实际手势</div>
+          <div class="effort">工作量: Medium &middot; 需修改 HomeScreen</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">冲突检测 + 触觉反馈</div>
+          <div class="detail">左滑右滑相同操作提示 + HapticFeedback</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">新手引导动画</div>
+          <div class="detail">AnimatedVisibility + 箭头指示每个手势效果</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.2 专注 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">5.2</span>
+        <h3>专注写作模式</h3>
+        <span class="completion pct-mid">78%</span>
+      </div>
+      <div class="feature-card-status">番茄钟完整 &middot; 但环境音无声</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">计时器核心完整（Job+delay）、DB 持久化、历史记录。但环境音仅为 UI 选择、无结束通知。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">环境音播放 + 结束通知</div>
+          <div class="detail">MediaPlayer 循环播放 + NotificationManager 计时结束推送</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">编辑器集成</div>
+          <div class="detail">EditorScreen 底部悬浮计时条 + 专注期间 autosave</div>
+          <div class="effort">工作量: Medium &middot; 依赖 EditorScreen</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">番茄钟模式增强</div>
+          <div class="detail">自定义时长 + 长/短休息交替 + 自动开始</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.3 锁屏快写 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">5.3</span>
+        <h3>锁屏快写</h3>
+        <span class="completion pct-low">30%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 无 Widget &middot; 无持久化</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>严重缺失。</strong> 笔记全在内存（重启丢失）、无真锁屏 Widget、同步按钮为空壳。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">本地持久化 + 真同步</div>
+          <div class="detail">QuickNoteEntity Room 表 + 实际创建 DiaryEntry</div>
+          <div class="effort">工作量: Medium &middot; 需建表</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">真锁屏 AppWidget</div>
+          <div class="detail">Glance AppWidget + RemoteViews 锁屏文本输入</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">加密存储 + 通知栏入口</div>
+          <div class="detail">EncryptedSharedPreferences + 常驻通知快捷记录</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9.1 旅行日志 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">9.1</span>
+        <h3>旅行日志模式</h3>
+        <span class="completion pct-low">30%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 全 mock 数据 &middot; 无 ViewModel</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>严重缺失。</strong> 所有数据硬编码、无 Room 表、无 ViewModel、无日记关联。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">DB + ViewModel + CRUD</div>
+          <div class="detail">Trip 实体 + TripEntryCrossRef + TravelLogViewModel</div>
+          <div class="effort">工作量: Medium &middot; 需建表迁移</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">关联自动匹配 + 时间线</div>
+          <div class="detail">日期+地点 fuzzy match + HorizontalPager 日记时间线</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">自动 GPS 检测 + 封面分享</div>
+          <div class="detail">高德定位连续多日同区域 &rarr; 提示创建旅行</div>
+          <div class="effort">工作量: Large &middot; 高德SDK已集成</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9.2 地点回忆 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">9.2</span>
+        <h3>地点触发回忆</h3>
+        <span class="completion pct-low">30%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 全 mock &middot; 无 Geofencing</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>严重缺失。</strong> 所有数据硬编码、无 GeofencingClient 集成、无通知推送。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">真实位置持久化 + ViewModel</div>
+          <div class="detail">LocationMemoryEntity + 从 diary_entries 聚合坐标生成记忆点</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">Geofencing 后台监控</div>
+          <div class="detail">GeofencingClient + IntentService 触发通知</div>
+          <div class="effort">工作量: Large</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">位置聚类算法</div>
+          <div class="detail">DBSCAN 经纬度聚类 &rarr; 自动建议高频到访地点</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10.1 DiaryTalk -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">10.1</span>
+        <h3>与过去的自己对话</h3>
+        <span class="completion pct-low">40%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 4 条硬编码回复 &middot; 无 AI</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">UI 聊天界面完整，但回答仅 4 条 sampleResponses 循环，无 AI 调用、无 RAG 检索。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">基础 AI 对话</div>
+          <div class="detail">DiaryTalkViewModel + AiServiceManager + 最近日记上下文 prompt</div>
+          <div class="effort">工作量: Medium &middot; AiServiceManager 已就绪</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">RAG 向量检索 + 引用标注</div>
+          <div class="detail">DiaryEmbedding 表 + 向量相似度检索 + [1] 引用脚标</div>
+          <div class="effort">工作量: Large &middot; embedding 写入 pipeline</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">对话历史持久化</div>
+          <div class="detail">DiaryTalkSession + DiaryTalkMessage Room 表</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10.2 记忆艺术 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">10.2</span>
+        <h3>生成式记忆艺术</h3>
+        <span class="completion pct-low">68%</span>
+      </div>
+      <div class="feature-card-status">种子化生成 &middot; 5 种形状 &middot; 301行</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">Canvas 艺术生成完整，但无保存按钮、无分享入口、形状重叠、无用户交互。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">保存 &amp; 分享</div>
+          <div class="detail">View.drawToBitmap &rarr; MediaStore + ShareCompat</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">布局优化 + 交互</div>
+          <div class="detail">Poisson-disc 防重叠 + 双指缩放平移</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">AI 增强 + 动画</div>
+          <div class="detail">AiServiceManager 分析内容影响形状布局 + AnimatedVisibility 逐个淡入</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 5: 成长挑战类 ========== -->
+<section class="category" id="growth">
+  <div class="category-header">
+    <h2>&#127919; 成长挑战类</h2>
+    <span class="category-count">6.1 &middot; 6.2 &middot; 6.3 &middot; 6.4 &middot; 6.5 &middot; 8.2</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 6.1 自适应 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">6.1</span>
+        <h3>自适应界面</h3>
+        <span class="completion pct-low">20%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 仅有 UI 外壳 &middot; 无 ViewModel</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>严重缺失。</strong> 3 个开关仅本地 remember，不持久化、不改变任何实际行为。AI 建议/统计为静态假数据。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">偏好持久化 + 夜间模式联动</div>
+          <div class="detail">DataStore 存储 + 实际控制 isSystemInDarkTheme() 覆写 + 精简模式</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">真实使用统计引擎</div>
+          <div class="detail">DiaryDao 聚合 + 时段分布/频率统计替代假数据</div>
+          <div class="effort">工作量: Medium &middot; 依赖 DiaryDao</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">自适应建议生成器</div>
+          <div class="detail">规则引擎 + AiServiceManager 个性化建议</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.2 封面主题 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">6.2</span>
+        <h3>封面主题</h3>
+        <span class="completion pct-low">50%</span>
+      </div>
+      <div class="feature-card-status">DB CRUD 完整 &middot; 但未应用到 UI</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">9 种预设主题 + DB CRUD 完整。但选定主题没有任何 UI 组件读取，无可见效果。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">全局 ThemeManager</div>
+          <div class="detail">读取 activeTheme &rarr; CompositionLocal &rarr; 日记列表/详情/编辑器渲染</div>
+          <div class="effort">工作量: Medium &middot; 多 Screen 联动</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">主题自定义编辑器</div>
+          <div class="detail">颜色选择器 + 纹理 + 字体组合 &rarr; 保存新主题</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">动态季节主题 + 分享市场</div>
+          <div class="detail">按季节/节日自动切换 + JSON 序列化分享</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.3 写作实验室 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">6.3</span>
+        <h3>写作实验室</h3>
+        <span class="completion pct-low">55%</span>
+      </div>
+      <div class="feature-card-status">DB 完整 &middot; 但无参与交互入口</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">WritingExperiment + ExperimentParticipation 双表完整。但 Screen 未提供参与按钮，rules 字段未显示。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">参与交互入口</div>
+          <div class="detail">"记录今日参与"按钮 + 规则展示 + 进度更新</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">实验模板库</div>
+          <div class="detail">可扩展模板列表 + 不同时长/规则</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">完成徽章 + 结果分析</div>
+          <div class="detail">AchievementRepository 解锁 + 参与前后指标对比</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.4 月度挑战 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">6.4</span>
+        <h3>月度挑战</h3>
+        <span class="completion pct-low">65%</span>
+      </div>
+      <div class="feature-card-status">双表事务 &middot; 日历网格</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">双表事务稳定、日历打卡交互完整。但挑战内容单一硬编码、无完成庆祝。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">挑战模板轮换 + 完成庆祝</div>
+          <div class="detail">AI 生成 + 模板池随机选 + 烟花 Canvas 动画 + 成就关联</div>
+          <div class="effort">工作量: Medium &middot; 依赖 AchievementRepository</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">历史回顾 + 关联日记</div>
+          <div class="detail">月份选择器 + 年度完成率 + 打卡日日记列表</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.5 连续保护罩 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">6.5</span>
+        <h3>连续保护罩</h3>
+        <span class="completion pct-low">30%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 有框架 &middot; 核心逻辑缺失</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">streak_shields 表 + UI 展示。但无自动漏写检测、不计算当前连击、activateShield 无 UI 入口。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">连击计算 + 自动检测</div>
+          <div class="detail">复用 computeStreak() 显示当前天数 + WorkManager 每日检查漏写 + 自动消耗保护罩</div>
+          <div class="effort">工作量: Medium &middot; 依赖 DiaryDao</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">保护罩获取条件扩展</div>
+          <div class="detail">连续7天奖励 + 月度挑战完成奖励 + 评分奖励</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">连击日历可视化</div>
+          <div class="detail">热力图日历 + 保护罩拯救天特殊标记</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8.2 彩蛋 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">8.2</span>
+        <h3>隐藏彩蛋</h3>
+        <span class="completion pct-low">60%</span>
+      </div>
+      <div class="feature-card-status">12 个彩蛋 &middot; 触发逻辑完整</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">12 个彩蛋定义 + checkTriggers 完整。但仅 init 时触发一次、无发现反馈（无弹窗/音效/振动）。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--error);">
+          <span class="prio" style="background:rgba(224,112,112,0.15);color:var(--error);">P0</span>
+          <div class="title">实时事件驱动 + 庆祝弹窗</div>
+          <div class="detail">日记写入事件 &rarr; 增量检查 &rarr; Dialog + 粒子动画 + HapticFeedback</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">线索系统 + 精确满月</div>
+          <div class="detail">未发现彩蛋显示模糊线索 + 农历计算替代日期近似</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">稀有度层扩展</div>
+          <div class="detail">普通/稀有/史诗/传说区别对待 + 更难触发条件</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CATEGORY 6: 系统工具类 ========== -->
+<section class="category" id="system">
+  <div class="category-header">
+    <h2>&#9881; 系统工具类</h2>
+    <span class="category-count">12 项新功能 + 空目录</span>
+  </div>
+  <button class="expand-all-btn" onclick="toggleCategory(this)">&#x25BC; 展开全部</button>
+
+  <!-- 记忆锚点 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.1</span>
+        <h3>记忆锚点</h3>
+        <span class="completion pct-mid">75%</span>
+      </div>
+      <div class="feature-card-status">关键词关联 + anchor_relations 表</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">骨架完整，匹配算法简单 contains、无增量关联扫描。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">关联实时更新</div>
+          <div class="detail">日记保存事件 &rarr; 增量关联扫描</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">语义关联升级</div>
+          <div class="detail">DiaryEmbedding 向量相似度替代关键词 contains</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 写作指纹 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.2</span>
+        <h3>写作指纹</h3>
+        <span class="completion pct-mid">78%</span>
+      </div>
+      <div class="feature-card-status">5 维度 + Canvas 指纹图</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">分析引擎较完整、Canvas 36 射线 + 10 同心圆可视化。但风格标签仅 6 种、无时间对比。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">时间切片对比</div>
+          <div class="detail">按周/月分组趋势折线 + 风格演变</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">中文 NLP 升级 + 建议</div>
+          <div class="detail">HanLP 分词替代字符 split + 低于基线指标的建议</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 情绪预报 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.3</span>
+        <h3>情绪预报</h3>
+        <span class="completion pct-mid">70%</span>
+      </div>
+      <div class="feature-card-status">14 篇滑动平均预测</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">加权预测 + 星期效应。置信度简单、无历史验证。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">多模式预测 + 验证</div>
+          <div class="detail">7/14/30 天滑动 + 星期模式 + 上月对比 + 准确率反馈</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">LLM 增强分析</div>
+          <div class="detail">文本 + 心情数据 &rarr; AI 深度分析报告</div>
+          <div class="effort">工作量: Medium &middot; AiServiceManager</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关系追踪 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.4</span>
+        <h3>关系追踪</h3>
+        <span class="completion pct-low">65%</span>
+      </div>
+      <div class="feature-card-status">3 个人名正则 + 情感打分</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">人名提取 + 情感打分。但正则仅覆盖中文 2-4 字人名 + 6 家庭称呼，召回率低。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">情感趋势图 + NER 升级</div>
+          <div class="detail">Canvas 折线 + HanLP NER 替代正则 + 别名聚合</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">关系网络可视化</div>
+          <div class="detail">Canvas 节点+连线共现网络图</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 决策分析 + 价值观 + 大纲 + 通知 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.5-8</span>
+        <h3>决策·价值观·大纲·通知</h3>
+        <span class="completion pct-mid">65-75%</span>
+      </div>
+      <div class="feature-card-status">4 项工具型功能</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">决策分析（7 关键词识别）+ 价值观提取（6 预设分类）+ 大纲视图（#/## 解析）+ 温柔通知（4 音效选项）。均有 DB 连接但分析深度浅。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">决策结果闭环 + 价值观时域</div>
+          <div class="detail">决策状态可编辑 + 价值观堆叠面积图</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">大纲锚点跳转 + 通知音效</div>
+          <div class="detail">OutlineItem charOffset 跳转 + MediaPlayer 实际播放音效</div>
+          <div class="effort">工作量: Small</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">全库索引 + LLM 辅助决策</div>
+          <div class="detail">扫标题生成虚拟目录树 + AI 提炼决策结构</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 成就 + 时间胶囊 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">N.9-10</span>
+        <h3>成就系统 + 时间胶囊</h3>
+        <span class="completion pct-high">80-85%</span>
+      </div>
+      <div class="feature-card-status">最完整的两个模块</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc">成就 7 分类 4 稀有度 + 胶囊 3 屏幕 1724 行。均为高质量实现。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">成就反馈流 + 胶囊解锁通知</div>
+          <div class="detail">全屏 Lottie 动画 + 触觉反馈 + WorkManager 定时推送</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--info);">
+          <span class="prio" style="background:rgba(123,167,224,0.15);color:var(--info);">P2</span>
+          <div class="title">成就仪表盘 + 加密胶囊</div>
+          <div class="detail">径向图 + 稀有度饼图 + EncryptedSharedPreferences</div>
+          <div class="effort">工作量: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空目录 -->
+  <div class="feature-card" onclick="toggleCard(this)">
+    <div class="feature-card-header">
+      <div class="feature-card-title">
+        <span class="id">&#9888;</span>
+        <h3>宠物 · 岛屿 · 称号 UI</h3>
+        <span class="completion pct-low">0%</span>
+      </div>
+      <div class="feature-card-status">&#10060; 5 个空目录占位</div>
+    </div>
+    <div class="feature-card-body">
+      <div class="desc"><strong>最大技术债务。</strong> pet/, nurturing/, island/, floating/, title/ 均为空目录。宠物和岛屿子系统需从零构建。</div>
+      <div class="expansion-grid">
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">宠物核心实体 + 数据层</div>
+          <div class="detail">Pet entity (name/level/exp/hunger) + PetDao + exp 增长机制</div>
+          <div class="effort">工作量: Large &middot; 从零构建</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">称号展示 UI</div>
+          <div class="detail">TitleScreen Grid 列表 + HomeScreen/DetailScreen 标签渲染</div>
+          <div class="effort">工作量: Medium &middot; DB 已就绪</div>
+        </div>
+        <div class="expansion-item" style="border-left-color:var(--warning);">
+          <span class="prio" style="background:rgba(232,168,76,0.15);color:var(--warning);">P1</span>
+          <div class="title">岛屿核心数据模型</div>
+          <div class="detail">Island + IslandBuilding 实体 + 解锁条件管理器</div>
+          <div class="effort">工作量: Large &middot; 从零构建</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<div style="text-align:center;padding:40px 0 20px;color:var(--text-tertiary);font-size:13px;border-top:1px solid var(--card-border);">
+  DiaryApp &middot; v2.72.00-experimental &middot; 259 Kotlin files &middot; ~62,000 LOC &middot; Generated 2026-06-28
+</div>
+
+</div><!-- end content -->
+</div><!-- end main -->
+
+<!-- Floating TOC -->
+<nav class="floating-toc">
+  <a href="#overview" title="总览"></a>
+  <a href="#priority" title="优先级"></a>
+  <a href="#writing" title="创作"></a>
+  <a href="#ai" title="AI"></a>
+  <a href="#data" title="数据"></a>
+  <a href="#memory" title="回忆"></a>
+  <a href="#growth" title="成长"></a>
+  <a href="#system" title="系统"></a>
+</nav>
+
+<script>
+  function toggleCard(el) {
+    el.classList.toggle('expanded');
+  }
+  function toggleCategory(btn) {
+    const section = btn.closest('.category');
+    const cards = section.querySelectorAll('.feature-card');
+    const expanded = btn.textContent.includes('展开');
+    cards.forEach(c => expanded ? c.classList.add('expanded') : c.classList.remove('expanded'));
+    btn.textContent = expanded ? '\u25B2 收起全部' : '\u25BC 展开全部';
+  }
+  function toggleDark() {
+    document.body.classList.toggle('dark');
+    document.getElementById('darkBtn').textContent = document.body.classList.contains('dark') ? '\u2600' : '\u261E';
+  }
+  // Highlight active nav
+  const sections = document.querySelectorAll('.category, #overview, #priority');
+  const navLinks = document.querySelectorAll('.sidebar-nav a, .floating-toc a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        navLinks.forEach(a => {
+          a.parentElement?.classList?.remove('active');
+          if (a.getAttribute('href') === '#' + id) a.parentElement?.classList?.add('active');
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

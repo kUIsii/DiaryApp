@@ -8,6 +8,7 @@ import com.amap.api.maps.MapsInitializer
 import com.diary.app.data.DiaryDatabase
 import com.diary.app.di.AppContainer
 import com.diary.app.reminder.AchievementNotificationManager
+import com.diary.app.ui.ambientsound.AmbientSoundService
 import com.diary.app.reminder.ReminderReceiver
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.ai.AiServiceManager
@@ -48,6 +49,7 @@ class DiaryApplication : Application() {
         _themeMode.value = ThemePreferences.getThemeMode(this)
         _experimentalFeatures.value = ExperimentalFeaturesPreferences.getState(this)
         createNotificationChannel()
+        createAmbientSoundChannel()
         TodoReminderManager.createNotificationChannel(this)
         // Schedule periodic auto-backup via WorkManager
         if (BackupManager.isAutoBackupEnabled(this)) {
@@ -77,6 +79,21 @@ class DiaryApplication : Application() {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "每日写日记提醒"
+            }
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createAmbientSoundChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                AmbientSoundService.CHANNEL_ID,
+                "场景环境音",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "环境音背景播放控制"
+                setSound(null, null)
             }
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
