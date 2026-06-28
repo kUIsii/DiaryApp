@@ -7,18 +7,21 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
-import com.diary.app.R
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.sin
 import kotlin.random.Random
 
-enum class AmbientSoundType(val key: String, val displayName: String, val rawResId: Int?) {
-    WHITE_NOISE("white_noise", "白噪音", R.raw.white_noise),
-    RAIN("rain", "雨声", R.raw.rain),
-    CAFE("cafe", "咖啡厅", R.raw.cafe),
-    FOREST("forest", "森林", R.raw.forest),
-    OCEAN("ocean", "海浪", R.raw.ocean)
+enum class AmbientSoundType(
+    val key: String,
+    val displayName: String,
+    val downloadUrl: String?
+) {
+    WHITE_NOISE("white_noise", "白噪音", "https://bigsoundbank.com/UPLOAD/mp3/388.mp3"),
+    RAIN("rain", "雨声", "https://bigsoundbank.com/UPLOAD/mp3/0740.mp3"),
+    FOREST("forest", "森林", "https://bigsoundbank.com/UPLOAD/mp3/0100.mp3"),
+    OCEAN("ocean", "海浪", "https://bigsoundbank.com/UPLOAD/mp3/2566.mp3"),
+    CAFE("cafe", "咖啡厅", "https://bigsoundbank.com/UPLOAD/mp3/2561.mp3")
 }
 
 class AmbientSoundPlayer private constructor() {
@@ -28,43 +31,26 @@ class AmbientSoundPlayer private constructor() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
-            AudioManager.AUDIOFOCUS_LOSS -> {
-                wasPausedByFocusLoss = true
-                pauseAll()
-            }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                wasPausedByFocusLoss = true
-                pauseAll()
-            }
+            AudioManager.AUDIOFOCUS_LOSS -> { wasPausedByFocusLoss = true; pauseAll() }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> { wasPausedByFocusLoss = true; pauseAll() }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                ducked = true
-                for (t in players.keys) setVolume(t, currentVolumes[t]?.times(0.3f) ?: 0f)
+                ducked = true; for (t in players.keys) players[t]?.let { applyVolume(it, t) }
             }
             AudioManager.AUDIOFOCUS_GAIN -> {
-                if (ducked) {
-                    ducked = false
-                    for (t in players.keys) setVolume(t, currentVolumes[t] ?: 0.5f)
-                }
-                if (wasPausedByFocusLoss) {
-                    wasPausedByFocusLoss = false
-                }
+                if (ducked) { ducked = false; for (t in players.keys) players[t]?.let { applyVolume(it, t) } }
+                wasPausedByFocusLoss = false
             }
         }
     }
     private var currentVolumes = mutableMapOf<AmbientSoundType, Float>()
     private var ducked = false
-    private var wasPausedByFocusLoss = false
+    var wasPausedByFocusLoss = false
     private var audioFocusHeld = false
+    private var downloadInProgress = mutableSetOf<AmbientSoundType>()
 
     companion object {
-        @Volatile
-        private var instance: AmbientSoundPlayer? = null
-
-        fun getInstance(): AmbientSoundPlayer {
-            return instance ?: synchronized(this) {
-                instance ?: AmbientSoundPlayer().also { instance = it }
-            }
-        }
+        @Volatile private var instance: AmbientSoundPlayer? = null
+        fun getInstance(): AmbientSoundPlayer = instance ?: synchronized(this) { instance ?: AmbientSoundPlayer().also { instance = it } }
     }
 
     fun init(context: Context) {
@@ -74,89 +60,79 @@ class AmbientSoundPlayer private constructor() {
 
     fun play(type: AmbientSoundType, volume: Float = 0.5f) {
         val ctx = contextRef ?: return
-        if (players.containsKey(type)) return
-        ensureAudioFocus()
-        val player = try {
-            if (type.rawResId != null) {
-                MediaPlayer.create(ctx, type.rawResId).apply {
-                    isLooping = true
-                    start()
+        if (players.containsKey(type) || type in downloadInProgress) return
+
+        val audioFile = getAudioFile(ctx, type)
+        if (audioFile == null) {
+            downloadInProgress.add(type)
+            Thread {
+                val file = downloadAudio(ctx, type)
+                Handler(Looper.getMainLooper()).post {
+                    downloadInProgress.remove(type)
+                    if (file != null) playFile(type, volume, file) else createFallbackAndPlay(ctx, type, volume)
                 }
-            } else {
-                val file = getOrCreateAudioFile(ctx, type)
-                if (!file.exists()) return
-                MediaPlayer().apply {
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-                    )
-                    setDataSource(file.absolutePath)
-                    isLooping = true
-                    prepare()
-                    start()
-                }
-            }
-        } catch (_: Exception) {
+            }.start()
             return
         }
+        playFile(type, volume, audioFile)
+    }
+
+    private fun playFile(type: AmbientSoundType, volume: Float, file: File) {
+        ensureAudioFocus()
+        val player = try {
+            MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
+                )
+                setDataSource(file.absolutePath)
+                isLooping = true
+                prepare()
+                start()
+            }
+        } catch (_: Exception) { return }
         players[type] = player
         currentVolumes[type] = volume
-        if (ducked) {
-            player.setVolume(volume * 0.3f, volume * 0.3f)
-        } else {
-            player.setVolume(0f, 0f)
-            fadeTo(type, volume, 200)
-        }
+        player.setVolume(0f, 0f)
+        fadeTo(type, volume, 200)
+    }
+
+    private fun createFallbackAndPlay(ctx: Context, type: AmbientSoundType, volume: Float) {
+        val file = File(ctx.cacheDir, "${type.key}.wav")
+        if (!file.exists()) generateWav(type, file)
+        playFile(type, volume, file)
     }
 
     fun stop(type: AmbientSoundType) {
         fadeTo(type, 0f, 200)
         Handler(Looper.getMainLooper()).postDelayed({
-            players.remove(type)?.apply {
-                if (isPlaying) stop()
-                release()
-            }
+            players.remove(type)?.apply { if (isPlaying) stop(); release() }
             currentVolumes.remove(type)
             if (players.isEmpty()) abandonAudioFocus()
         }, 200)
     }
 
-    fun stopAll() {
-        val types = players.keys.toList()
-        types.forEach { stop(it) }
-    }
+    fun stopAll() { players.keys.toList().forEach { stop(it) } }
 
-    fun pauseAll() {
-        for ((_, player) in players) {
-            if (player.isPlaying) player.pause()
-        }
-    }
+    fun pauseAll() { for ((_, p) in players) if (p.isPlaying) p.pause() }
+    fun resumeAll() { for ((_, p) in players) if (!p.isPlaying) p.start() }
 
-    fun resumeAll() {
-        for ((_, player) in players) {
-            if (!player.isPlaying) player.start()
-        }
-    }
-
-    val isPaused: Boolean get() = players.values.any { !it.isPlaying } && players.isNotEmpty()
+    val isPaused: Boolean get() = players.isNotEmpty() && players.values.any { !it.isPlaying }
+    val isAnyPlaying: Boolean get() = players.values.any { it.isPlaying }
 
     fun setVolume(type: AmbientSoundType, volume: Float) {
         currentVolumes[type] = volume
-        val actual = if (ducked) volume * 0.3f else volume
-        players[type]?.setVolume(actual, actual)
+        players[type]?.let { applyVolume(it, type) }
     }
 
-    fun setVolumeAll(volume: Float) {
-        for (type in players.keys) {
-            setVolume(type, volume)
-        }
-    }
+    fun setVolumeAll(volume: Float) { for (t in players.keys) setVolume(t, volume) }
 
-    val isAnyPlaying: Boolean get() = players.values.any { it.isPlaying }
     fun getActiveTypes(): Set<AmbientSoundType> = players.keys.toSet()
     fun getVolume(type: AmbientSoundType): Float = currentVolumes[type] ?: 0.5f
+
+    private fun applyVolume(player: MediaPlayer, type: AmbientSoundType) {
+        val vol = (currentVolumes[type] ?: 0.5f).let { if (ducked) it * 0.3f else it }
+        player.setVolume(vol, vol)
+    }
 
     private fun fadeTo(type: AmbientSoundType, target: Float, durationMs: Int) {
         val player = players[type] ?: return
@@ -167,14 +143,9 @@ class AmbientSoundPlayer private constructor() {
         var i = 0
         fun step() {
             i++
-            if (i > steps) {
-                val actual = if (ducked) target * 0.3f else target
-                player.setVolume(actual, actual)
-                return
-            }
+            if (i > steps) { applyVolume(player, type); return }
             val v = (start + delta * i).coerceIn(0f, 1f)
-            val actual = if (ducked) v * 0.3f else v
-            player.setVolume(actual, actual)
+            player.setVolume(v, v)
             handler.postDelayed({ step() }, 16)
         }
         step()
@@ -185,45 +156,51 @@ class AmbientSoundPlayer private constructor() {
         val am = audioManager ?: return
         if (android.os.Build.VERSION.SDK_INT >= 26) {
             val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
                 .setOnAudioFocusChangeListener(focusChangeListener, Handler(Looper.getMainLooper()))
                 .build()
             audioFocusRequest = request
-            val result = am.requestAudioFocus(request)
-            audioFocusHeld = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            audioFocusHeld = am.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         } else {
-            val result = am.requestAudioFocus(focusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
-            audioFocusHeld = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            audioFocusHeld = am.requestAudioFocus(focusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         }
     }
 
     private fun abandonAudioFocus() {
         val am = audioManager ?: return
-        val req = audioFocusRequest
-        if (android.os.Build.VERSION.SDK_INT >= 26 && req != null) {
-            am.abandonAudioFocusRequest(req)
-        } else {
-            am.abandonAudioFocus(focusChangeListener)
-        }
-        audioFocusHeld = false
-        audioFocusRequest = null
+        if (android.os.Build.VERSION.SDK_INT >= 26) audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+        else am.abandonAudioFocus(focusChangeListener)
+        audioFocusHeld = false; audioFocusRequest = null
     }
 
-    private fun getOrCreateAudioFile(context: Context, type: AmbientSoundType): File {
-        val file = File(context.cacheDir, "${type.key}.wav")
-        if (!file.exists()) generateWav(type, file)
-        return file
+    private fun getAudioFile(ctx: Context, type: AmbientSoundType): File? {
+        val f = File(ctx.cacheDir, "${type.key}.mp3")
+        if (f.exists() && f.length() > 1000) return f
+        return null
+    }
+
+    private fun downloadAudio(ctx: Context, type: AmbientSoundType): File? {
+        val url = type.downloadUrl ?: return null
+        val dest = File(ctx.cacheDir, "${type.key}.mp3")
+        try {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+            conn.setRequestProperty("Referer", "https://bigsoundbank.com/")
+            conn.connectTimeout = 10000
+            conn.readTimeout = 60000
+            conn.instanceFollowRedirects = true
+            conn.connect()
+            if (conn.responseCode == 200) {
+                conn.inputStream.use { input -> FileOutputStream(dest).use { output -> input.copyTo(output) } }
+                if (dest.exists() && dest.length() > 1000) return dest
+            }
+            conn.disconnect()
+        } catch (_: Exception) {}
+        return null
     }
 
     private fun generateWav(type: AmbientSoundType, file: File) {
-        val sampleRate = 44100
-        val durationSec = 300
-        val numSamples = sampleRate * durationSec
+        val sampleRate = 44100; val durationSec = 300; val numSamples = sampleRate * durationSec
         val samples = when (type) {
             AmbientSoundType.WHITE_NOISE -> generateWhiteNoise(numSamples)
             AmbientSoundType.RAIN -> generateRain(numSamples, sampleRate)
@@ -234,102 +211,59 @@ class AmbientSoundPlayer private constructor() {
         writeWav(file, samples, sampleRate)
     }
 
-    private fun generateWhiteNoise(numSamples: Int): ShortArray {
-        val rng = Random(42)
-        return ShortArray(numSamples) {
-            ((rng.nextFloat() * 2f - 1f) * Short.MAX_VALUE * 0.3f).toInt().toShort()
-        }
+    private fun generateWhiteNoise(n: Int): ShortArray {
+        val rng = Random(42); return ShortArray(n) { ((rng.nextFloat() * 2f - 1f) * Short.MAX_VALUE * 0.3f).toInt().toShort() }
     }
 
-    private fun generateRain(numSamples: Int, sampleRate: Int): ShortArray {
-        val rng = Random(99)
-        val samples = ShortArray(numSamples)
-        var state = 0f
-        for (i in samples.indices) {
-            state = state * 0.999f + rng.nextFloat() * 0.001f - 0.0005f
-            val envelope = if (rng.nextFloat() < 0.001f) 1f else 0.3f
-            val filtered = state * 2f + rng.nextFloat() * 0.1f - 0.05f
-            val raw = (filtered * 32767f * 0.25f * envelope).toInt()
-            samples[i] = raw.coerceIn(-32767, 32767).toShort()
+    private fun generateRain(n: Int, sr: Int): ShortArray {
+        val rng = Random(99); val s = ShortArray(n); var st = 0f
+        for (i in s.indices) {
+            st = st * 0.999f + rng.nextFloat() * 0.001f - 0.0005f
+            val e = if (rng.nextFloat() < 0.001f) 1f else 0.3f
+            val v = (st * 2f + rng.nextFloat() * 0.1f - 0.05f) * 32767f * 0.25f * e
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
         }
-        return samples
+        return s
     }
 
-    private fun generateCafe(numSamples: Int, sampleRate: Int): ShortArray {
-        val rng = Random(77)
-        val samples = ShortArray(numSamples)
-        val chatterRate = 30f
-        for (i in samples.indices) {
-            val chatter = sin(i.toFloat() / sampleRate * chatterRate * 2f * Math.PI.toFloat()) * 0.15f
-            val clatter = if (rng.nextFloat() < 0.0005f) rng.nextFloat() * 0.3f else 0f
-            val noise = rng.nextFloat() * 0.08f - 0.04f
-            val raw = ((chatter + clatter + noise) * 32767f * 0.2f).toInt()
-            samples[i] = raw.coerceIn(-32767, 32767).toShort()
+    private fun generateCafe(n: Int, sr: Int): ShortArray {
+        val rng = Random(77); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            val v = ((sin(i.toFloat() / sr * 30f * 2f * pi) * 0.15f) + (if (rng.nextFloat() < 0.001f) rng.nextFloat() * 0.3f else 0f) + (rng.nextFloat() * 0.08f - 0.04f)) * 32767f * 0.15f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
         }
-        return samples
+        return s
     }
 
-    private fun generateForest(numSamples: Int, sampleRate: Int): ShortArray {
-        val rng = Random(55)
-        val samples = ShortArray(numSamples)
-        for (i in samples.indices) {
-            val wind = sin(i.toFloat() / sampleRate * 0.5f * 2f * Math.PI.toFloat()) * 0.2f
-            val rustle = rng.nextFloat() * 0.15f
-            val birdChance = if ((i % sampleRate) in (sampleRate / 4) until (sampleRate / 4 + 200)) 0.0001f else 0f
-            val bird = if (rng.nextFloat() < birdChance) sin(i.toFloat() / sampleRate * 2000f * 2f * Math.PI.toFloat()) * 0.1f else 0f
-            val raw = ((wind + rustle + bird) * 32767f * 0.25f).toInt()
-            samples[i] = raw.coerceIn(-32767, 32767).toShort()
+    private fun generateForest(n: Int, sr: Int): ShortArray {
+        val rng = Random(55); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            val v = (sin(i.toFloat() / sr * 0.5f * 2f * pi) * 0.2f + rng.nextFloat() * 0.12f + (if (rng.nextFloat() < 0.00005f) sin(i.toFloat() / sr * 2000f * 2f * pi) * 0.1f else 0f)) * 32767f * 0.2f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
         }
-        return samples
+        return s
     }
 
-    private fun generateOcean(numSamples: Int, sampleRate: Int): ShortArray {
-        val rng = Random(33)
-        val samples = ShortArray(numSamples)
-        var phase = 0f
-        for (i in samples.indices) {
-            val slowWave = sin(i.toFloat() / sampleRate * 0.1f * 2f * Math.PI.toFloat()) * 0.3f
-            val medWave = sin(i.toFloat() / sampleRate * 0.3f * 2f * Math.PI.toFloat()) * 0.2f
-            phase += 0.999f + rng.nextFloat() * 0.002f
-            val noise = sin(phase) * 0.1f
-            val crash = if (rng.nextFloat() < 0.00005f) rng.nextFloat() * 0.5f else 0f
-            val raw = ((slowWave + medWave + noise + crash) * 32767f * 0.2f).toInt()
-            samples[i] = raw.coerceIn(-32767, 32767).toShort()
+    private fun generateOcean(n: Int, sr: Int): ShortArray {
+        val rng = Random(33); val s = ShortArray(n); var p = 0f; val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            p += 0.999f + rng.nextFloat() * 0.002f
+            val v = (sin(i.toFloat() / sr * 0.1f * 2f * pi) * 0.3f + sin(i.toFloat() / sr * 0.3f * 2f * pi) * 0.2f + sin(p) * 0.1f + (if (rng.nextFloat() < 0.00003f) rng.nextFloat() * 0.5f else 0f)) * 32767f * 0.15f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
         }
-        return samples
+        return s
     }
 
     private fun writeWav(file: File, samples: ShortArray, sampleRate: Int) {
-        val numChannels = 1
-        val bitsPerSample = 16
-        val byteRate = sampleRate * numChannels * bitsPerSample / 8
-        val blockAlign = numChannels * bitsPerSample / 8
-        val dataSize = samples.size * 2
-        val fileSize = 36 + dataSize
+        val numChannels = 1; val bits = 16; val byteRate = sampleRate * numChannels * bits / 8
+        val blockAlign = numChannels * bits / 8; val dataSize = samples.size * 2; val fileSize = 36 + dataSize
         FileOutputStream(file).use { fos ->
-            fun writeString(s: String) { fos.write(s.toByteArray(Charsets.US_ASCII)) }
-            fun writeInt16(v: Int) { fos.write(byteArrayOf((v and 0xFF).toByte(), ((v shr 8) and 0xFF).toByte())) }
-            fun writeInt32(v: Int) { fos.write(byteArrayOf((v and 0xFF).toByte(), ((v shr 8) and 0xFF).toByte(), ((v shr 16) and 0xFF).toByte(), ((v shr 24) and 0xFF).toByte())) }
-            writeString("RIFF")
-            writeInt32(fileSize)
-            writeString("WAVE")
-            writeString("fmt ")
-            writeInt32(16)
-            writeInt16(1)
-            writeInt16(numChannels)
-            writeInt32(sampleRate)
-            writeInt32(byteRate)
-            writeInt16(blockAlign)
-            writeInt16(bitsPerSample)
-            writeString("data")
-            writeInt32(dataSize)
-            val buffer = ByteArray(dataSize)
-            for (i in samples.indices) {
-                val v = samples[i].toInt()
-                buffer[i * 2] = (v and 0xFF).toByte()
-                buffer[i * 2 + 1] = ((v shr 8) and 0xFF).toByte()
-            }
-            fos.write(buffer)
+            fun w(s: String) { fos.write(s.toByteArray(Charsets.US_ASCII)) }
+            fun i16(v: Int) { fos.write(byteArrayOf((v and 0xFF).toByte(), ((v shr 8) and 0xFF).toByte())) }
+            fun i32(v: Int) { fos.write(byteArrayOf((v and 0xFF).toByte(), ((v shr 8) and 0xFF).toByte(), ((v shr 16) and 0xFF).toByte(), ((v shr 24) and 0xFF).toByte())) }
+            w("RIFF"); i32(fileSize); w("WAVE"); w("fmt "); i32(16); i16(1); i16(numChannels); i32(sampleRate); i32(byteRate); i16(blockAlign); i16(bits); w("data"); i32(dataSize)
+            val buf = ByteArray(dataSize); for (i in samples.indices) { val v = samples[i].toInt(); buf[i * 2] = (v and 0xFF).toByte(); buf[i * 2 + 1] = ((v shr 8) and 0xFF).toByte() }
+            fos.write(buf)
         }
     }
 }
