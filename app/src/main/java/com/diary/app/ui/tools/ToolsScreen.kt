@@ -31,8 +31,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Edit
@@ -140,6 +142,8 @@ fun ToolsScreen(
     onNavigateToWritingCoach: () -> Unit = {},
     onNavigateToVoiceRecording: () -> Unit = {},
     onNavigateToFocusMode: () -> Unit = {},
+    onNavigateToImmersiveReader: () -> Unit = {},
+    onNavigateToQuarterlyReview: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -325,6 +329,28 @@ fun ToolsScreen(
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = onNavigateToFocusMode
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.Article,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "沉浸阅读",
+                            subtitle = "电子书风格阅读日记",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToImmersiveReader
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.CalendarMonth,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "季度回顾",
+                            subtitle = "季度数据统计",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToQuarterlyReview
                         )
                     }
 

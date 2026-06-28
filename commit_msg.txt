@@ -1,8 +1,5 @@
-v2.71.27: Focus mode + Goals hierarchy + Quick checkin camera
+Add immersive reader and quarterly review features
 
-- Added Focus Mode with Pomodoro timer and ambient sounds
-- Goals now support sub-goals with hierarchy
-- Quick checkin now supports camera integration
-- 12 feature screens connected to real database data
-- Update dialog now has cancel button during download
-- Fixed backup file list layout overflow issue
+- Immersive reader: e-book style reading with warm light filter and font size control
+- Quarterly review: statistics and mood trends for current quarter
+- Both features integrated into Tools screen navigation

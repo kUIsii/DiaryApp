@@ -131,6 +131,8 @@ import com.diary.app.ui.ambienttheme.AmbientThemeScreen
 import com.diary.app.ui.gentlenotification.GentleNotificationScreen
 import com.diary.app.ui.outline.OutlineViewScreen
 import com.diary.app.ui.focus.FocusModeScreen
+import com.diary.app.ui.immersive.ImmersiveReaderScreen
+import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -226,6 +228,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object GentleNotification : Screen("gentle_notification", "温柔通知", Icons.Default.Notifications)
     object OutlineView : Screen("outline_view", "大纲视图", Icons.Default.Article)
     object FocusMode : Screen("focus_mode", "专注模式", Icons.Default.Timer)
+    object ImmersiveReader : Screen("immersive_reader", "沉浸阅读", Icons.Default.Article)
+    object QuarterlyReview : Screen("quarterly_review", "季度回顾", Icons.Default.CalendarMonth)
 }
 
 data class BottomNavItem(
@@ -411,6 +415,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
                     onNavigateToVoiceRecording = { navController.navigate(Screen.VoiceRecording.route) },
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
+                    onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.route) },
+                    onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -879,6 +885,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.OutlineView.route) { OutlineViewScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.FocusMode.route) { FocusModeScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.ImmersiveReader.route) { ImmersiveReaderScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.QuarterlyReview.route) { QuarterlyReviewScreen(onNavigateBack = { navController.popBackStack() }) }
         }
     }
 }
