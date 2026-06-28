@@ -130,6 +130,7 @@ import com.diary.app.ui.quietcompanion.QuietCompanionScreen
 import com.diary.app.ui.ambienttheme.AmbientThemeScreen
 import com.diary.app.ui.gentlenotification.GentleNotificationScreen
 import com.diary.app.ui.outline.OutlineViewScreen
+import com.diary.app.ui.focus.FocusModeScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -224,6 +225,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
     object GentleNotification : Screen("gentle_notification", "温柔通知", Icons.Default.Notifications)
     object OutlineView : Screen("outline_view", "大纲视图", Icons.Default.Article)
+    object FocusMode : Screen("focus_mode", "专注模式", Icons.Default.Timer)
 }
 
 data class BottomNavItem(
@@ -408,6 +410,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
                     onNavigateToVoiceRecording = { navController.navigate(Screen.VoiceRecording.route) },
+                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Tools.route,
@@ -875,6 +878,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.AmbientTheme.route) { AmbientThemeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.OutlineView.route) { OutlineViewScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.FocusMode.route) { FocusModeScreen(onNavigateBack = { navController.popBackStack() }) }
         }
     }
 }

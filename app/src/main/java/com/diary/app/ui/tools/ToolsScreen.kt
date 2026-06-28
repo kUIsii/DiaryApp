@@ -139,6 +139,7 @@ fun ToolsScreen(
     onNavigateToGoals: () -> Unit = {},
     onNavigateToWritingCoach: () -> Unit = {},
     onNavigateToVoiceRecording: () -> Unit = {},
+    onNavigateToFocusMode: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -313,6 +314,17 @@ fun ToolsScreen(
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = onNavigateToVoiceRecording
+                        )
+                        SettingDivider()
+                        ClickableToolRow(
+                            icon = Icons.Default.Timer,
+                            iconBg = sectionIconBg(0),
+                            iconTint = sectionIconTint(0),
+                            title = "专注模式",
+                            subtitle = "番茄钟与环境音",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = onNavigateToFocusMode
                         )
                     }
 

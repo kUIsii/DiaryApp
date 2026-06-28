@@ -1,1 +1,8 @@
-v2.71.26: goals hierarchy + sub-goals + quick checkin camera
+v2.71.27: Focus mode + Goals hierarchy + Quick checkin camera
+
+- Added Focus Mode with Pomodoro timer and ambient sounds
+- Goals now support sub-goals with hierarchy
+- Quick checkin now supports camera integration
+- 12 feature screens connected to real database data
+- Update dialog now has cancel button during download
+- Fixed backup file list layout overflow issue
