@@ -1,6 +1,7 @@
 package com.diary.app.ui.ambientsound
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -20,7 +21,8 @@ data class AmbientSoundState(
     val timerOption: TimerOption = TimerOption.OFF,
     val remainingSeconds: Int = 0,
     val isSleepFading: Boolean = false,
-    val presets: List<SoundPreset> = emptyList()
+    val masterVolume: Float = 1f,
+    val meanderEnabled: Boolean = false
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,12 +30,49 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         it.init(application)
         it.setOnPlayCallback { updateService() }
         it.setOnStopCallback { updateService() }
+        it.setOnStateChangeCallback { syncStateFromPlayer() }
     }
     private val ctx = application
+    private val prefs = application.getSharedPreferences("ambient_sound", Context.MODE_PRIVATE)
 
-    private val _state = MutableStateFlow(AmbientSoundState(presets = PresetStorage.load(application)))
+    private val _state = MutableStateFlow(AmbientSoundState())
     val state: StateFlow<AmbientSoundState> = _state.asStateFlow()
     private var timerJob: Job? = null
+
+    init {
+        restoreState()
+    }
+
+    private fun restoreState() {
+        val savedKeys = prefs.getStringSet("active_keys", emptySet()) ?: emptySet()
+        if (savedKeys.isEmpty()) return
+        val savedVolumes = mutableMapOf<AmbientSoundType, Float>()
+        val savedMaster = prefs.getFloat("master_volume", 1f)
+        val savedMeander = prefs.getBoolean("meander_enabled", false)
+        for (key in savedKeys) {
+            val type = AmbientSoundType.entries.find { it.key == key } ?: continue
+            savedVolumes[type] = prefs.getFloat("vol_$key", 0.5f)
+        }
+        player.setMasterVolume(savedMaster)
+        player.setMeanderEnabled(savedMeander)
+        for ((type, vol) in savedVolumes) player.play(type, vol)
+        _state.value = AmbientSoundState(
+            activeSounds = savedVolumes.keys,
+            volumes = savedVolumes,
+            masterVolume = savedMaster,
+            meanderEnabled = savedMeander
+        )
+        updateService()
+    }
+
+    private fun syncStateFromPlayer() {
+        val cur = _state.value
+        _state.value = cur.copy(
+            activeSounds = player.getActiveTypes(),
+            masterVolume = player.masterVolume,
+            meanderEnabled = player.meanderEnabled
+        )
+    }
 
     fun toggle(type: AmbientSoundType) {
         val cur = _state.value
@@ -53,10 +92,20 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         _state.value = _state.value.copy(volumes = _state.value.volumes + (type to volume))
     }
 
+    fun setMasterVolume(v: Float) {
+        player.setMasterVolume(v)
+        _state.value = _state.value.copy(masterVolume = v)
+    }
+
+    fun toggleMeander() {
+        player.toggleMeander()
+        _state.value = _state.value.copy(meanderEnabled = !_state.value.meanderEnabled)
+    }
+
     fun stopAll() {
         timerJob?.cancel()
         player.stopAll()
-        _state.value = _state.value.copy(activeSounds = emptySet(), volumes = emptyMap(), remainingSeconds = 0, isSleepFading = false)
+        _state.value = AmbientSoundState(masterVolume = player.masterVolume)
         AmbientSoundService.stop(ctx)
     }
 
@@ -83,37 +132,20 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun applyPreset(preset: SoundPreset) {
-        stopAll()
-        for (type in preset.toActiveTypesSet()) {
-            player.play(type, preset.toVolumesMap()[type] ?: 0.5f)
-        }
-        _state.value = _state.value.copy(
-            activeSounds = preset.toActiveTypesSet(), volumes = preset.toVolumesMap(),
-            presets = PresetStorage.load(ctx)
-        )
-        updateService()
-    }
-
-    fun saveCurrentPreset(name: String) {
-        val s = _state.value
-        if (s.activeSounds.isEmpty()) return
-        PresetStorage.save(ctx, SoundPreset(
-            name = name,
-            activeTypes = s.activeSounds.map { it.key }.sorted(),
-            volumes = s.activeSounds.associate { it.key to (s.volumes[it]?.toDouble() ?: 0.5) }
-        ))
-        _state.value = s.copy(presets = PresetStorage.load(ctx))
-    }
-
-    fun deletePreset(name: String) {
-        PresetStorage.delete(ctx, name)
-        _state.value = _state.value.copy(presets = PresetStorage.load(ctx))
-    }
-
     private fun updateService() {
         if (player.isAnyPlaying) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
     }
 
-    override fun onCleared() { super.onCleared(); timerJob?.cancel() }
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
+        val s = _state.value
+        prefs.edit().apply {
+            putStringSet("active_keys", s.activeSounds.map { it.key }.toSet())
+            for ((type, vol) in s.volumes) putFloat("vol_${type.key}", vol)
+            putFloat("master_volume", s.masterVolume)
+            putBoolean("meander_enabled", s.meanderEnabled)
+            apply()
+        }
+    }
 }

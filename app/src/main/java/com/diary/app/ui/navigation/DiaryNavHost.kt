@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -144,6 +145,7 @@ import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.ui.covertheme.CoverThemeScreen
 import com.diary.app.ui.semanticsearch.SemanticSearchScreen
 import com.diary.app.ui.writinghint.WritingHintScreen
+import com.diary.app.ui.ambientsound.AmbientSoundMiniBar
 import com.diary.app.ui.ambientsound.AmbientSoundScreen
 import com.diary.app.ui.gesturequickaction.GestureQuickActionScreen
 import com.diary.app.ui.lockscreenquickwrite.LockScreenQuickWriteScreen
@@ -320,17 +322,12 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
         }
 
-        val navHostModifier = if (showBottomBar) {
-            Modifier.padding(innerPadding)
-        } else {
-            Modifier.padding(top = innerPadding.calculateTopPadding())
-        }
-
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = navHostModifier,
-            enterTransition = {
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home.route,
+                modifier = Modifier,
+                enterTransition = {
                 val from = initialState.destination.route
                 val to = targetState.destination.route
                 val fromIdx = bottomNavItems.indexOfFirst { it.screen.route == from }
@@ -1051,6 +1048,11 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
+        }
+
+        AmbientSoundMiniBar(
+            onNavigateToFullScreen = { navController.navigate(Screen.AmbientSound.route) }
+        )
         }
     }
 }
