@@ -658,7 +658,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 TimeCapsuleScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCreate = { navController.navigate(Screen.CreateCapsule.route) },
-                    onNavigateToRead = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) }
+                    onNavigateToRead = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
+                    onNavigateToCountDown = { navController.navigate(Screen.CountDown.route) }
                 )
             }
             composable(
@@ -743,7 +744,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 DiaryMapScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
+                    onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) }
                 )
             }
             composable(
@@ -926,7 +929,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 GoalsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) }
                 )
             }
 
