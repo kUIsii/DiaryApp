@@ -1,9 +1,8 @@
 package com.diary.app.ui.achievement
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,31 +10,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,7 +52,6 @@ internal val TierColors = mapOf(
 
 internal fun tierColor(tier: AchievementTier): Color = TierColors[tier] ?: Color.Gray
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementScreen(
     viewModel: AchievementViewModel,
@@ -77,49 +65,33 @@ fun AchievementScreen(
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedTier by viewModel.selectedTier.collectAsState()
     val selectedStateFilter by viewModel.selectedStateFilter.collectAsState()
-    val isFilterExpanded by viewModel.isFilterExpanded.collectAsState()
 
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "返回",
-                        tint = textSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "成就收藏",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textColor
+                    color = textColor,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                 )
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Feature entry cards
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -134,17 +106,82 @@ fun AchievementScreen(
                     AchievementOverviewCard(stats = stats, galleryState = galleryState)
                 }
 
-                // Filter chips row
+                // State filter chips
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    AchievementFilterRow(
-                        selectedStateFilter = selectedStateFilter,
-                        selectedCategory = selectedCategory,
-                        selectedTier = selectedTier,
-                        onStateFilterClick = viewModel::selectStateFilter,
-                        onCategoryClick = viewModel::selectCategory,
-                        onTierClick = viewModel::selectTier,
-                        onFilterSheetClick = { viewModel.toggleFilter() }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        AchievementGalleryFilter.entries.forEach { filter ->
+                            val isSelected = selectedStateFilter == filter
+                            Surface(
+                                onClick = { viewModel.selectStateFilter(filter) },
+                                shape = RoundedCornerShape(999.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ) {
+                                Text(
+                                    text = filter.label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Category filter chips
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        AchievementCategory.entries.forEach { cat ->
+                            val isSelected = selectedCategory == cat
+                            Surface(
+                                onClick = { viewModel.selectCategory(cat) },
+                                shape = RoundedCornerShape(999.dp),
+                                color = if (isSelected) categoryColor(cat).copy(alpha = 0.25f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ) {
+                                Text(
+                                    text = cat.displayName,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                    color = if (isSelected) categoryColor(cat) else textSecondary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Tier filter chips
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        AchievementTier.entries.forEach { tier ->
+                            val isSelected = selectedTier == tier
+                            Surface(
+                                onClick = { viewModel.selectTier(tier) },
+                                shape = RoundedCornerShape(999.dp),
+                                color = if (isSelected) tierColor(tier).copy(alpha = 0.25f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ) {
+                                Text(
+                                    text = "${tier.displayName} ${tier.stars}",
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                    color = if (isSelected) tierColor(tier) else textSecondary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Grid
@@ -177,20 +214,6 @@ fun AchievementScreen(
                 }
             }
         }
-    }
-
-    if (isFilterExpanded) {
-        AchievementFilterSheet(
-            selectedStateFilter = selectedStateFilter,
-            selectedCategory = selectedCategory,
-            selectedTier = selectedTier,
-            stats = stats,
-            viewModel = viewModel,
-            onStateFilterClick = viewModel::selectStateFilter,
-            onCategoryClick = viewModel::selectCategory,
-            onTierClick = viewModel::selectTier,
-            onDismiss = { viewModel.collapseFilter() }
-        )
     }
 }
 
@@ -358,74 +381,6 @@ private fun AchievementOverviewCard(
 }
 
 @Composable
-private fun AchievementFilterRow(
-    selectedStateFilter: AchievementGalleryFilter,
-    selectedCategory: AchievementCategory?,
-    selectedTier: AchievementTier?,
-    onStateFilterClick: (AchievementGalleryFilter) -> Unit,
-    onCategoryClick: (AchievementCategory?) -> Unit,
-    onTierClick: (AchievementTier?) -> Unit,
-    onFilterSheetClick: () -> Unit
-) {
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // State filter chips (compact)
-        AchievementGalleryFilter.entries.take(2).forEach { filter ->
-            val isSelected = selectedStateFilter == filter
-            Surface(
-                onClick = { onStateFilterClick(filter) },
-                shape = RoundedCornerShape(999.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-            ) {
-                Text(
-                    text = filter.label,
-                    fontSize = 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else textSecondary,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Filter sheet trigger
-        Surface(
-            onClick = onFilterSheetClick,
-            shape = RoundedCornerShape(999.dp),
-            color = if (selectedCategory != null || selectedTier != null)
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.FilterList,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = if (selectedCategory != null || selectedTier != null)
-                        MaterialTheme.colorScheme.primary else textSecondary
-                )
-                Text(
-                    text = "筛选",
-                    fontSize = 11.sp,
-                    color = if (selectedCategory != null || selectedTier != null)
-                        MaterialTheme.colorScheme.primary else textSecondary
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun AchievementCompactCard(
     card: AchievementGalleryCardState,
     onClick: () -> Unit
@@ -435,165 +390,43 @@ private fun AchievementCompactCard(
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Artwork - uses gradient badge with Canvas
         AchievementBadge(
             achievementKey = item.def.key,
             category = item.def.category,
             tier = item.def.tier,
             unlocked = item.isUnlocked,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f),
-            size = 96
+            modifier = Modifier.size(72.dp),
+            size = 72
         )
 
-        Spacer(modifier = Modifier.height(5.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // Name
         Text(
             text = if (isHiddenLocked(item)) "???" else item.def.name,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)
         )
 
-        // Status
         if (item.isUnlocked) {
             Text(
                 text = "已达成",
-                fontSize = 9.sp,
+                fontSize = 8.sp,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
             )
         } else if (!isHiddenLocked(item) && item.progressFraction > 0f) {
             Text(
                 text = "${(item.progressFraction * 100).toInt()}%",
-                fontSize = 9.sp,
+                fontSize = 8.sp,
                 color = textSecondary.copy(alpha = 0.5f)
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AchievementFilterSheet(
-    selectedStateFilter: AchievementGalleryFilter,
-    selectedCategory: AchievementCategory?,
-    selectedTier: AchievementTier?,
-    stats: AchievementStats,
-    viewModel: AchievementViewModel,
-    onStateFilterClick: (AchievementGalleryFilter) -> Unit,
-    onCategoryClick: (AchievementCategory?) -> Unit,
-    onTierClick: (AchievementTier?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Handle
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
-                    .align(Alignment.CenterHorizontally)
-            )
-
-            Text(
-                text = "筛选",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            // Category
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "分类", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textSecondary)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    AchievementCategory.entries.take(4).forEach { category ->
-                        val catStats = stats.categoryCounts[category] ?: (0 to 0)
-                        val isSelected = selectedCategory == category
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onCategoryClick(category) },
-                            label = { Text("${category.displayName} ${catStats.first}/${catStats.second}", fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = categoryColor(category),
-                                selectedLabelColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    AchievementCategory.entries.drop(4).forEach { category ->
-                        val catStats = stats.categoryCounts[category] ?: (0 to 0)
-                        val isSelected = selectedCategory == category
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onCategoryClick(category) },
-                            label = { Text("${category.displayName} ${catStats.first}/${catStats.second}", fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = categoryColor(category),
-                                selectedLabelColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // Tier
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "稀有度", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textSecondary)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AchievementTier.entries.forEach { tier ->
-                        val tierStats = viewModel.getTierProgress(tier)
-                        val isSelected = selectedTier == tier
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onTierClick(tier) },
-                            label = { Text("${tier.displayName} ${tierStats.first}/${tierStats.second}", fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = tierColor(tier),
-                                selectedLabelColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
         }
     }
 }

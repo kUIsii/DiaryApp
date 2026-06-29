@@ -2,10 +2,7 @@
 
 package com.diary.app.ui.ambientsound
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -30,14 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Waves
-import androidx.compose.material.icons.outlined.MusicNote
+
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,7 +64,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +82,13 @@ private fun soundIcon(type: AmbientSoundType): ImageVector = when (type) {
     AmbientSoundType.FOREST -> Icons.Default.Nature
     AmbientSoundType.OCEAN -> Icons.Default.Waves
     AmbientSoundType.CAFE -> Icons.Default.Coffee
+    AmbientSoundType.STREAM -> Icons.Default.WaterDrop
+    AmbientSoundType.WIND -> Icons.Default.GraphicEq
+    AmbientSoundType.BIRDS -> Icons.Default.Nature
+    AmbientSoundType.NIGHT -> Icons.Default.Star
+    AmbientSoundType.FIRE -> Icons.Default.LocalFireDepartment
+    AmbientSoundType.FAN -> Icons.Default.GraphicEq
+    AmbientSoundType.THUNDER -> Icons.Default.Star
 }
 
 private fun soundColor(type: AmbientSoundType): Color = when (type) {
@@ -92,6 +97,13 @@ private fun soundColor(type: AmbientSoundType): Color = when (type) {
     AmbientSoundType.FOREST -> MoodHappy.first
     AmbientSoundType.OCEAN -> MoodCalm.first
     AmbientSoundType.CAFE -> MoodCheerful.first
+    AmbientSoundType.STREAM -> Color(0xFF42A5F5)
+    AmbientSoundType.WIND -> Color(0xFFB0BEC5)
+    AmbientSoundType.BIRDS -> Color(0xFF66BB6A)
+    AmbientSoundType.NIGHT -> Color(0xFF5C6BC0)
+    AmbientSoundType.FIRE -> Color(0xFFFF7043)
+    AmbientSoundType.FAN -> Color(0xFF90A4AE)
+    AmbientSoundType.THUNDER -> Color(0xFF7E57C2)
 }
 
 private val timerOptions = listOf(TimerOption.OFF, TimerOption.MIN_15, TimerOption.MIN_30, TimerOption.MIN_60)
@@ -104,7 +116,6 @@ fun AmbientSoundScreen(
     val state by viewModel.state.collectAsState()
     var showSaveDialog by remember { mutableStateOf(false) }
     var presetName by remember { mutableStateOf("") }
-    var expandedCard by remember { mutableStateOf<AmbientSoundType?>(null) }
     val primary = MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val surface = MaterialTheme.colorScheme.surface
@@ -143,47 +154,22 @@ fun AmbientSoundScreen(
                 }
             }
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                if (state.activeSounds.isEmpty()) {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Outlined.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = primary.copy(alpha = 0.3f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "\u9009\u62E9\u4E00\u79CD\u73AF\u5883\u97F3\u5F00\u59CB",
-                            fontSize = 16.sp,
-                            color = onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(AmbientSoundType.entries, key = { it }) { type ->
-                            val active = type in state.activeSounds
-                            val vol = state.volumes[type] ?: 0.5f
-                            val isExpanded = expandedCard == type
-                            SoundGridCard(
-                                type = type,
-                                active = active,
-                                volume = vol,
-                                expanded = isExpanded,
-                                onToggle = { viewModel.toggle(type) },
-                                onVolume = { viewModel.setVolume(type, it) },
-                                onExpand = { expandedCard = if (isExpanded) null else type }
-                            )
-                        }
-                    }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(AmbientSoundType.entries, key = { it }) { type ->
+                    val active = type in state.activeSounds
+                    val vol = state.volumes[type] ?: 0.5f
+                    SoundGridCard(
+                        type = type,
+                        active = active,
+                        volume = vol,
+                        onToggle = { viewModel.toggle(type) },
+                        onVolume = { viewModel.setVolume(type, it) }
+                    )
                 }
             }
 
@@ -296,83 +282,55 @@ private fun SoundGridCard(
     type: AmbientSoundType,
     active: Boolean,
     volume: Float,
-    expanded: Boolean,
     onToggle: () -> Unit,
-    onVolume: (Float) -> Unit,
-    onExpand: () -> Unit
+    onVolume: (Float) -> Unit
 ) {
     val color = soundColor(type)
     val containerColor by animateColorAsState(
-        targetValue = if (active) color.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+        targetValue = if (active) color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
         label = "cardBg"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (active) color.copy(alpha = 0.4f) else Color.Transparent,
+        targetValue = if (active) color.copy(alpha = 0.5f) else Color.Transparent,
         label = "cardBorder"
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onExpand),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = if (active) androidx.compose.foundation.BorderStroke(1.dp, borderColor) else null
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 20.dp, start = 12.dp, end = 12.dp, bottom = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(if (active) color else MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(if (active) color else MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     soundIcon(type),
                     contentDescription = null,
                     tint = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                type.displayName,
-                fontSize = 14.sp,
-                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (active) color else MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            IconButton(
-                onClick = onToggle,
-                modifier = Modifier.size(36.dp).clip(CircleShape).background(if (active) color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Icon(
-                    if (active) Icons.Default.Stop else Icons.Default.PlayArrow,
-                    contentDescription = if (active) "\u505C\u6B62" else "\u64AD\u653E",
-                    tint = if (active) color else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(expandFrom = Alignment.Top),
-                exit = shrinkVertically(shrinkTowards = Alignment.Top)
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Slider(
-                        value = volume,
-                        onValueChange = onVolume,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                        colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color)
-                    )
-                    Text(
-                        "${(volume * 100).toInt()}%",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                type.displayName,
+                fontSize = 12.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (active) color else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Slider(
+                value = volume,
+                onValueChange = onVolume,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp).height(20.dp),
+                colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color)
+            )
         }
     }
 }

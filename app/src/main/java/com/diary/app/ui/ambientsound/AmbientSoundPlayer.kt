@@ -22,7 +22,14 @@ enum class AmbientSoundType(
     RAIN("rain", "\u96E8\u58F0", "https://bigsoundbank.com/UPLOAD/mp3/0740.mp3"),
     FOREST("forest", "\u68EE\u6797", "https://bigsoundbank.com/UPLOAD/mp3/0100.mp3"),
     OCEAN("ocean", "\u6D77\u6D6A", "https://bigsoundbank.com/UPLOAD/mp3/2566.mp3"),
-    CAFE("cafe", "\u5496\u5561\u5385", "https://bigsoundbank.com/UPLOAD/mp3/2561.mp3")
+    CAFE("cafe", "\u5496\u5561\u5385", "https://bigsoundbank.com/UPLOAD/mp3/2561.mp3"),
+    STREAM("stream", "\u6EAA\u6D41", null),
+    WIND("wind", "\u98CE\u58F0", null),
+    BIRDS("birds", "\u9E1F\u9E23", null),
+    NIGHT("night", "\u590F\u591C", null),
+    FIRE("fire", "\u58C1\u7089", null),
+    FAN("fan", "\u98CE\u6247", null),
+    THUNDER("thunder", "\u96F7\u58F0", null)
 }
 
 class AmbientSoundPlayer private constructor() {
@@ -287,6 +294,13 @@ class AmbientSoundPlayer private constructor() {
             AmbientSoundType.CAFE -> genCafe(n, sr)
             AmbientSoundType.FOREST -> genForest(n, sr)
             AmbientSoundType.OCEAN -> genOcean(n, sr)
+            AmbientSoundType.STREAM -> genStream(n, sr)
+            AmbientSoundType.WIND -> genWind(n, sr)
+            AmbientSoundType.BIRDS -> genBirds(n, sr)
+            AmbientSoundType.NIGHT -> genNight(n, sr)
+            AmbientSoundType.FIRE -> genFire(n, sr)
+            AmbientSoundType.FAN -> genFan(n, sr)
+            AmbientSoundType.THUNDER -> genThunder(n, sr)
         }
         writeWav(file, samples, sr)
     }
@@ -337,6 +351,92 @@ class AmbientSoundPlayer private constructor() {
             val wave = sin(i.toFloat() / sr * 0.1f * 2f * pi) * 0.3f + sin(i.toFloat() / sr * 0.3f * 2f * pi) * 0.2f + sin(p) * 0.1f
             val crash = if (rng.nextFloat() < 0.0005f) rng.nextFloat() * 0.5f else 0f
             val v = (wave + crash) * 32767f * 0.15f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genStream(n: Int, sr: Int): ShortArray {
+        val rng = Random(11); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            val flow = sin(i.toFloat() / sr * 0.8f * 2f * pi) * 0.4f + sin(i.toFloat() / sr * 2.3f * 2f * pi) * 0.2f
+            val bubble = if (rng.nextFloat() < 0.003f) rng.nextFloat() * 0.3f else 0f
+            val v = (flow + rng.nextFloat() * 0.1f + bubble) * 32767f * 0.12f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genWind(n: Int, sr: Int): ShortArray {
+        val rng = Random(22); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        var amp = 0f
+        for (i in s.indices) {
+            amp += (rng.nextFloat() - 0.5f) * 0.02f; amp = amp.coerceIn(0.2f, 0.8f)
+            val low = sin(i.toFloat() / sr * 0.3f * 2f * pi) * amp
+            val hiss = rng.nextFloat() * 0.3f - 0.15f
+            val v = (low + hiss) * 32767f * 0.12f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genBirds(n: Int, sr: Int): ShortArray {
+        val rng = Random(44); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        var chirpTimer = 0; var chirpFreq = 2000f + rng.nextFloat() * 2000f; var chirpAmp = 0f
+        for (i in s.indices) {
+            if (chirpTimer <= 0 && rng.nextFloat() < 0.002f) { chirpTimer = 50 + rng.nextInt(150); chirpFreq = 2000f + rng.nextFloat() * 3000f; chirpAmp = 0.08f + rng.nextFloat() * 0.12f }
+            val chirp = if (chirpTimer > 0) { chirpTimer--; chirpAmp *= 0.97f; sin(i.toFloat() / sr * chirpFreq * 2f * pi) * chirpAmp } else 0f
+            val ambient = sin(i.toFloat() / sr * 200f * 2f * pi) * 0.02f
+            val v = (chirp + ambient) * 32767f * 0.35f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genNight(n: Int, sr: Int): ShortArray {
+        val rng = Random(66); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            val cricket = sin(i.toFloat() / sr * 4000f * 2f * pi) * (sin(i.toFloat() / sr * 6f * 2f * pi) * 0.5f + 0.5f) * 0.08f
+            val hum = sin(i.toFloat() / sr * 80f * 2f * pi) * 0.04f
+            val v = (cricket + hum) * 32767f * 0.2f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genFire(n: Int, sr: Int): ShortArray {
+        val rng = Random(88); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        var crackleEnv = 0f
+        for (i in s.indices) {
+            crackleEnv = (crackleEnv + rng.nextFloat() * 0.05f) * 0.98f
+            val pop = if (rng.nextFloat() < 0.008f) rng.nextFloat() * 0.6f else 0f
+            val roar = sin(i.toFloat() / sr * 0.6f * 2f * pi) * 0.2f + sin(i.toFloat() / sr * 1.7f * 2f * pi) * 0.1f
+            val v = (roar + crackleEnv * 0.3f + pop) * 32767f * 0.15f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genFan(n: Int, sr: Int): ShortArray {
+        val rng = Random(12); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        for (i in s.indices) {
+            val blade = sin(i.toFloat() / sr * 80f * 2f * pi) * 0.3f + sin(i.toFloat() / sr * 160f * 2f * pi) * 0.15f
+            val hum = rng.nextFloat() * 0.1f - 0.05f
+            val v = (blade + hum) * 32767f * 0.1f
+            s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return s
+    }
+
+    private fun genThunder(n: Int, sr: Int): ShortArray {
+        val rng = Random(77); val s = ShortArray(n); val pi = Math.PI.toFloat()
+        var rumbleEnv = 0f
+        for (i in s.indices) {
+            if (rng.nextFloat() < 0.004f) rumbleEnv = 1f
+            rumbleEnv *= 0.998f
+            val rumble = sin(i.toFloat() / sr * (40f + rng.nextFloat() * 30f) * 2f * pi) * rumbleEnv
+            val rainBg = sin(i.toFloat() / sr * 0.5f * 2f * pi) * 0.05f + rng.nextFloat() * 0.02f
+            val v = (rumble + rainBg) * 32767f * 0.25f
             s[i] = v.toInt().coerceIn(-32767, 32767).toShort()
         }
         return s

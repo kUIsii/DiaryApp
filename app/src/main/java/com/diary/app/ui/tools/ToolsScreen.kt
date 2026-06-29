@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.AutoStories
@@ -48,6 +49,7 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
@@ -83,6 +85,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -340,6 +343,11 @@ private fun SectionCard(
     app: DiaryApplication?
 ) {
     val c = sectionColor(sectionIndex)
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "arrowRotation"
+    )
+
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 20.dp,
@@ -370,6 +378,12 @@ private fun SectionCard(
                     Text(section.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
                     Text(section.subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
                 }
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    modifier = Modifier.size(24.dp).rotate(arrowRotation),
+                    tint = textSecondary
+                )
             }
 
             AnimatedVisibility(
