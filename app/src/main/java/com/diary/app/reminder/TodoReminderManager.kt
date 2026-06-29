@@ -218,9 +218,9 @@ object TodoReminderManager {
 
                 allPending.take(5).forEach { todo ->
                     val prefix = when (todo.priority) {
-                        1 -> "⚡ "
-                        2 -> "🔥 "
-                        else -> "• "
+                        1 -> "[急] "
+                        2 -> "[要] "
+                        else -> ""
                     }
                     inboxStyle.addLine("$prefix${todo.title}")
                 }

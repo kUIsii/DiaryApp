@@ -49,6 +49,7 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.weatherIconForType
 import com.diary.app.weather.CurrentWeather
+import com.diary.app.weather.WeatherAlert
 import com.diary.app.weather.WeatherManager
 import kotlinx.coroutines.launch
 
@@ -128,7 +129,7 @@ fun WeatherDetailScreen(
                 }
 
                 // Weather alert
-                WeatherAlertCard()
+                WeatherAlertCard(currentWeather.alerts)
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -442,43 +443,58 @@ private fun WeatherDailyItem(forecast: com.diary.app.weather.DailyForecast) {
 }
 
 @Composable
-private fun WeatherAlertCard() {
+private fun WeatherAlertCard(alerts: List<WeatherAlert>) {
+    if (alerts.isEmpty()) return
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 16.dp,
         innerPadding = 14.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "天气预警",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "恶劣天气时会自动通知你",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column {
+            alerts.forEach { alert ->
+                val alertColor = when (alert.level) {
+                    "\u7EA2\u8272" -> MaterialTheme.colorScheme.error
+                    "\u6A59\u8272" -> MaterialTheme.colorScheme.tertiary
+                    "\u9EC4\u8272" -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.primary
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(alertColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = alertColor
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "${alert.level}\u9884\u8B66\uFF1A${alert.type}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = alertColor
+                        )
+                        Text(
+                            text = alert.text,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+                if (alert != alerts.last()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
             }
         }
     }

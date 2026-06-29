@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.sin
@@ -17,15 +18,16 @@ enum class AmbientSoundType(
     val displayName: String,
     val downloadUrl: String?
 ) {
-    WHITE_NOISE("white_noise", "白噪音", "https://bigsoundbank.com/UPLOAD/mp3/388.mp3"),
-    RAIN("rain", "雨声", "https://bigsoundbank.com/UPLOAD/mp3/0740.mp3"),
-    FOREST("forest", "森林", "https://bigsoundbank.com/UPLOAD/mp3/0100.mp3"),
-    OCEAN("ocean", "海浪", "https://bigsoundbank.com/UPLOAD/mp3/2566.mp3"),
-    CAFE("cafe", "咖啡厅", "https://bigsoundbank.com/UPLOAD/mp3/2561.mp3")
+    WHITE_NOISE("white_noise", "\u767D\u566A\u97F3", "https://bigsoundbank.com/UPLOAD/mp3/388.mp3"),
+    RAIN("rain", "\u96E8\u58F0", "https://bigsoundbank.com/UPLOAD/mp3/0740.mp3"),
+    FOREST("forest", "\u68EE\u6797", "https://bigsoundbank.com/UPLOAD/mp3/0100.mp3"),
+    OCEAN("ocean", "\u6D77\u6D6A", "https://bigsoundbank.com/UPLOAD/mp3/2566.mp3"),
+    CAFE("cafe", "\u5496\u5561\u5385", "https://bigsoundbank.com/UPLOAD/mp3/2561.mp3")
 }
 
 class AmbientSoundPlayer private constructor() {
     private val players = mutableMapOf<AmbientSoundType, MediaPlayer>()
+    private val pendingDownloads = mutableSetOf<AmbientSoundType>()
     private var contextRef: Context? = null
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -34,10 +36,10 @@ class AmbientSoundPlayer private constructor() {
             AudioManager.AUDIOFOCUS_LOSS -> { wasPausedByFocusLoss = true; pauseAll() }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> { wasPausedByFocusLoss = true; pauseAll() }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                ducked = true; for (t in players.keys) players[t]?.let { applyVol(it, t) }
+                ducked = true; for (t in getActiveTypes()) players[t]?.let { applyVol(it, t) }
             }
             AudioManager.AUDIOFOCUS_GAIN -> {
-                if (ducked) { ducked = false; for (t in players.keys) players[t]?.let { applyVol(it, t) } }
+                if (ducked) { ducked = false; for (t in getActiveTypes()) players[t]?.let { applyVol(it, t) } }
                 wasPausedByFocusLoss = false
             }
         }
@@ -46,6 +48,11 @@ class AmbientSoundPlayer private constructor() {
     private var ducked = false
     var wasPausedByFocusLoss = false
     private var audioFocusHeld = false
+    private var playCallback: (() -> Unit)? = null
+    private var stopCallback: (() -> Unit)? = null
+
+    fun setOnPlayCallback(cb: () -> Unit) { playCallback = cb }
+    fun setOnStopCallback(cb: () -> Unit) { stopCallback = cb }
 
     companion object {
         @Volatile private var instance: AmbientSoundPlayer? = null
@@ -59,7 +66,9 @@ class AmbientSoundPlayer private constructor() {
 
     fun play(type: AmbientSoundType, volume: Float = 0.5f) {
         val ctx = contextRef ?: return
-        if (players.containsKey(type)) return
+        synchronized(players) {
+            if (players.containsKey(type)) return
+        }
 
         val mp3 = File(ctx.cacheDir, "${type.key}.mp3")
         if (mp3.exists() && mp3.length() > 1000) {
@@ -72,6 +81,8 @@ class AmbientSoundPlayer private constructor() {
             playFile(type, volume, wav)
             return
         }
+
+        synchronized(pendingDownloads) { pendingDownloads.add(type) }
 
         Thread {
             try {
@@ -86,11 +97,18 @@ class AmbientSoundPlayer private constructor() {
                     conn.connect()
                     if (conn.responseCode == 200) {
                         conn.inputStream.use { input -> FileOutputStream(mp3).use { output -> input.copyTo(output) } }
-                        conn.disconnect()
                     }
+                    conn.disconnect()
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w("AmbientSoundPlayer", "Download failed for ${type.key}", e)
+                try { mp3.delete() } catch (_: Exception) {}
+            }
+            synchronized(pendingDownloads) { pendingDownloads.remove(type) }
             Handler(Looper.getMainLooper()).post {
+                synchronized(players) {
+                    if (players.containsKey(type)) return@post
+                }
                 if (mp3.exists() && mp3.length() > 1000) playFile(type, volume, mp3)
                 else {
                     if (!wav.exists()) generateFallbackWav(ctx, type)
@@ -101,7 +119,9 @@ class AmbientSoundPlayer private constructor() {
     }
 
     private fun playFile(type: AmbientSoundType, volume: Float, file: File) {
-        if (players.containsKey(type)) return
+        synchronized(players) {
+            if (players.containsKey(type)) return
+        }
         ensureAudioFocus()
         val player = try {
             MediaPlayer().apply {
@@ -110,78 +130,114 @@ class AmbientSoundPlayer private constructor() {
                 )
                 setDataSource(file.absolutePath)
                 isLooping = true
-                prepare()
-                start()
+                setOnPreparedListener {
+                    synchronized(players) { players[type] = this@apply }
+                    currentVolumes[type] = volume
+                    fadeTo(type, volume, 200)
+                    start()
+                    playCallback?.invoke()
+                }
+                setOnErrorListener { _, _, _ -> true }
+                prepareAsync()
                 setVolume(0f, 0f)
             }
-        } catch (_: Exception) { return }
-        players[type] = player
-        currentVolumes[type] = volume
-        fadeTo(type, volume, 200)
-    }
-
-    fun stop(type: AmbientSoundType) {
-        players.remove(type)?.apply {
-            try { if (isPlaying) stop() } catch (_: Exception) {}
-            release()
-            currentVolumes.remove(type)
-            if (players.isEmpty()) abandonAudioFocus()
+        } catch (e: Exception) {
+            Log.e("AmbientSoundPlayer", "Failed to create player for ${type.key}", e)
+            return
         }
     }
 
+    fun stop(type: AmbientSoundType) {
+        val p: MediaPlayer?
+        synchronized(players) {
+            p = players.remove(type)
+        }
+        p?.apply {
+            try { if (isPlaying) stop() } catch (_: Exception) {}
+            release()
+        }
+        synchronized(currentVolumes) { currentVolumes.remove(type) }
+        synchronized(players) { if (players.isEmpty()) abandonAudioFocus() }
+        stopCallback?.invoke()
+    }
+
     fun stopAll() {
-        players.keys.toList().forEach { stop(it) }
+        val active: List<AmbientSoundType>
+        synchronized(players) { active = players.keys.toList() }
+        active.forEach { stop(it) }
     }
 
     fun pauseAll() {
-        for ((_, p) in players) {
+        val active: List<MediaPlayer>
+        synchronized(players) { active = players.values.toList() }
+        for (p in active) {
             try { if (p.isPlaying) p.pause() } catch (_: Exception) {}
         }
     }
 
     fun resumeAll() {
-        for ((_, p) in players) {
+        val active: List<MediaPlayer>
+        synchronized(players) { active = players.values.toList() }
+        for (p in active) {
             try { if (!p.isPlaying) p.start() } catch (_: Exception) {}
         }
     }
 
-    val isPaused: Boolean get() = players.values.any {
-        try { !it.isPlaying } catch (_: Exception) { false }
+    val isPaused: Boolean get() {
+        val active: List<MediaPlayer>
+        synchronized(players) { active = players.values.toList() }
+        return active.any {
+            try { !it.isPlaying } catch (_: Exception) { false }
+        }
     }
 
-    val isAnyPlaying: Boolean get() = players.values.any {
-        try { it.isPlaying } catch (_: Exception) { false }
+    val isAnyPlaying: Boolean get() {
+        val active: List<MediaPlayer>
+        synchronized(players) { active = players.values.toList() }
+        return active.any {
+            try { it.isPlaying } catch (_: Exception) { false }
+        }
     }
+
+    fun getActiveTypes(): Set<AmbientSoundType> = synchronized(players) { players.keys.toSet() }
+    fun getVolume(type: AmbientSoundType): Float = synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }
+    fun hasActivePlayers(): Boolean = synchronized(players) { players.isNotEmpty() }
 
     fun setVolume(type: AmbientSoundType, volume: Float) {
-        currentVolumes[type] = volume
-        players[type]?.let { applyVol(it, type) }
+        synchronized(currentVolumes) { currentVolumes[type] = volume }
+        val p: MediaPlayer?
+        synchronized(players) { p = players[type] }
+        if (p != null) applyVol(p, type)
     }
 
-    fun setVolumeAll(volume: Float) { for (t in players.keys) setVolume(t, volume) }
-
-    fun getActiveTypes(): Set<AmbientSoundType> = players.keys.toSet()
-    fun getVolume(type: AmbientSoundType): Float = currentVolumes[type] ?: 0.5f
+    fun setVolumeAll(volume: Float) { for (t in getActiveTypes()) setVolume(t, volume) }
 
     private fun applyVol(player: MediaPlayer, type: AmbientSoundType) {
         try {
-            val vol = (currentVolumes[type] ?: 0.5f).let { if (ducked) it * 0.3f else it }
+            val vol = (synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }).let { if (ducked) it * 0.3f else it }
             player.setVolume(vol, vol)
         } catch (_: Exception) {}
     }
 
+    private var fadeHandler: Handler? = null
+    private var fadeSteps = 0
+    private var fadeIndex = 0
+
     private fun fadeTo(type: AmbientSoundType, target: Float, durationMs: Int) {
-        val player = players[type] ?: return
-        val start = currentVolumes[type] ?: target
+        fadeHandler?.removeCallbacksAndMessages(null)
+        fadeHandler = Handler(Looper.getMainLooper())
+        val p = synchronized(players) { players[type] } ?: return
+        val start = synchronized(currentVolumes) { currentVolumes[type] ?: target }
         val steps = (durationMs / 16).coerceAtLeast(1)
         val delta = (target - start) / steps
-        var i = 0
+        fadeSteps = steps
+        fadeIndex = 0
         fun step() {
-            i++
-            if (i > steps) { applyVol(player, type); return }
-            val v = (start + delta * i).coerceIn(0f, 1f)
-            try { player.setVolume(v, v) } catch (_: Exception) {}
-            Handler(Looper.getMainLooper()).postDelayed({ step() }, 16)
+            fadeIndex++
+            if (fadeIndex > fadeSteps) { applyVol(p, type); return }
+            val v = (start + delta * fadeIndex).coerceIn(0f, 1f)
+            try { p.setVolume(v, v) } catch (_: Exception) {}
+            fadeHandler?.postDelayed({ step() }, 16)
         }
         step()
     }

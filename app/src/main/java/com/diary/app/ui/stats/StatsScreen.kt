@@ -96,6 +96,7 @@ fun StatsScreen(
     onNavigateToMonthlyReport: () -> Unit = {},
     onNavigateToQuarterlyReview: () -> Unit = {},
     onNavigateToPersonalYearbook: () -> Unit = {},
+    onNavigateToAnnualReport: () -> Unit = {},
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -154,6 +155,10 @@ fun StatsScreen(
 
                     item {
                         PersonalYearbookEntryCard(onClick = onNavigateToPersonalYearbook)
+                    }
+
+                    item {
+                        AnnualReportEntryCard(onClick = onNavigateToAnnualReport)
                     }
 
                     item {
@@ -657,6 +662,57 @@ private fun PersonalYearbookEntryCard(onClick: () -> Unit) {
                 )
                 Text(
                     text = "将一年的日记精华汇编成可导出的精美文档",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.TrendingUp,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnnualReportEntryCard(onClick: () -> Unit) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        cornerRadius = 18.dp,
+        innerPadding = 14.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Analytics,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "\u5E74\u5EA6\u62A5\u544A",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "\u5168\u5E74\u5199\u4F5C\u6570\u636E\u4E0E\u60C5\u611F\u56DE\u987E",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

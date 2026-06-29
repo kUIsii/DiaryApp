@@ -24,7 +24,11 @@ data class AmbientSoundState(
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
-    private val player = AmbientSoundPlayer.getInstance().also { it.init(application) }
+    private val player = AmbientSoundPlayer.getInstance().also {
+        it.init(application)
+        it.setOnPlayCallback { updateService() }
+        it.setOnStopCallback { updateService() }
+    }
     private val ctx = application
 
     private val _state = MutableStateFlow(AmbientSoundState(presets = PresetStorage.load(application)))

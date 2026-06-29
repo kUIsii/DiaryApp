@@ -2,6 +2,7 @@
 
 package com.diary.app.ui.ambientsound
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,10 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,6 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.diary.app.ui.theme.MoodCalm
+import com.diary.app.ui.theme.MoodCheerful
+import com.diary.app.ui.theme.MoodDepressed
+import com.diary.app.ui.theme.MoodExcited
+import com.diary.app.ui.theme.MoodHappy
+import com.diary.app.ui.theme.WeatherCloudy
+import com.diary.app.ui.theme.WeatherRainy
+import com.diary.app.ui.theme.WeatherStormy
+import com.diary.app.ui.theme.WeatherSunny
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,7 +71,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
-import androidx.compose.material3.ExperimentalMaterial3Api
+
+private fun soundIcon(type: AmbientSoundType): ImageVector = when (type) {
+    AmbientSoundType.WHITE_NOISE -> Icons.Default.GraphicEq
+    AmbientSoundType.RAIN -> Icons.Default.WaterDrop
+    AmbientSoundType.FOREST -> Icons.Default.Nature
+    AmbientSoundType.OCEAN -> Icons.Default.Waves
+    AmbientSoundType.CAFE -> Icons.Default.Coffee
+}
+
+private fun soundColor(type: AmbientSoundType): Color = when (type) {
+    AmbientSoundType.WHITE_NOISE -> MoodDepressed.first
+    AmbientSoundType.RAIN -> WeatherRainy
+    AmbientSoundType.FOREST -> MoodHappy.first
+    AmbientSoundType.OCEAN -> MoodCalm.first
+    AmbientSoundType.CAFE -> MoodCheerful.first
+}
 
 @Composable
 fun AmbientSoundScreen(
@@ -67,24 +97,25 @@ fun AmbientSoundScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var presetName by remember { mutableStateOf("") }
     val primary = MaterialTheme.colorScheme.primary
-    val surface = MaterialTheme.colorScheme.surfaceVariant
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     GradientBackground {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp).verticalScroll(rememberScrollState())
         ) {
-            PageHeader(title = "场景环境音", onNavigateBack = onNavigateBack)
+            PageHeader(title = "\u573A\u666F\u73AF\u5883\u97F3", onNavigateBack = onNavigateBack)
             Spacer(modifier = Modifier.height(16.dp))
 
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            GlassCard(modifier = Modifier.fillMaxWidth(), innerPadding = 8.dp) {
                 AmbientSoundType.entries.forEach { type ->
                     val active = type in state.activeSounds
                     val vol = state.volumes[type] ?: 0.5f
-                    SoundRow(type = type, active = active, volume = vol,
+                    SoundCard(type = type, active = active, volume = vol,
                         onToggle = { viewModel.toggle(type) },
                         onVolume = { viewModel.setVolume(type, it) })
-                    if (type != AmbientSoundType.entries.last()) Spacer(modifier = Modifier.height(8.dp))
+                    if (type != AmbientSoundType.entries.last()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
                 }
             }
 
@@ -92,10 +123,10 @@ fun AmbientSoundScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("音效预设", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text("\u97F3\u6548\u9884\u8BBE", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.weight(1f))
                         IconButton(onClick = { presetName = ""; showSaveDialog = true }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Add, contentDescription = "保存预设", modifier = Modifier.size(16.dp), tint = primary)
+                            Icon(Icons.Default.Add, contentDescription = "\u4FDD\u5B58\u9884\u8BBE", modifier = Modifier.size(18.dp), tint = primary)
                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
@@ -113,11 +144,11 @@ fun AmbientSoundScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Timer, contentDescription = null, tint = primary, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("定时关闭", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("\u5B9A\u65F6\u5173\u95ED", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     if (state.isSleepFading) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
-                            Text("渐弱中", fontSize = 10.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text("\u6E10\u5F31\u4E2D", fontSize = 10.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
                 }
@@ -130,7 +161,7 @@ fun AmbientSoundScreen(
                 }
                 if (state.remainingSeconds > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("剩余 ${state.remainingSeconds / 60}分${state.remainingSeconds % 60}秒",
+                    Text("\u5269\u4F59 ${state.remainingSeconds / 60}\u5206${state.remainingSeconds % 60}\u79D2",
                         fontSize = 12.sp, color = if (state.isSleepFading) MaterialTheme.colorScheme.error else onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 }
@@ -142,7 +173,7 @@ fun AmbientSoundScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("停止所有音效")
+                    Text("\u505C\u6B62\u6240\u6709\u97F3\u6548")
                 }
             }
 
@@ -152,46 +183,56 @@ fun AmbientSoundScreen(
 
     if (showSaveDialog) {
         AlertDialog(onDismissRequest = { showSaveDialog = false },
-            title = { Text("保存音效预设") },
+            title = { Text("\u4FDD\u5B58\u97F3\u6548\u9884\u8BBE") },
             text = {
-                OutlinedTextField(value = presetName, onValueChange = { presetName = it }, label = { Text("预设名称") }, singleLine = true)
+                OutlinedTextField(value = presetName, onValueChange = { presetName = it }, label = { Text("\u9884\u8BBE\u540D\u79F0") }, singleLine = true)
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (presetName.isNotBlank()) { viewModel.saveCurrentPreset(presetName.trim()); showSaveDialog = false }
-                }) { Text("保存") }
+                }) { Text("\u4FDD\u5B58") }
             },
-            dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text("取消") } }
+            dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text("\u53D6\u6D88") } }
         )
     }
 }
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun SoundRow(type: AmbientSoundType, active: Boolean, volume: Float, onToggle: () -> Unit, onVolume: (Float) -> Unit) {
-    val primary = MaterialTheme.colorScheme.primary
-    Column {
+private fun SoundCard(type: AmbientSoundType, active: Boolean, volume: Float, onToggle: () -> Unit, onVolume: (Float) -> Unit) {
+    val color = soundColor(type)
+    val colorOnSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val bgColor by animateColorAsState(
+        targetValue = if (active) color.copy(alpha = 0.08f) else Color.Transparent,
+        label = "soundBg"
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(bgColor)
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                .background(if (active) primary.copy(alpha = 0.08f) else Color.Transparent)
-                .clickable(onClick = onToggle).padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-    Surface(color = if (active) primary else MaterialTheme.colorScheme.surfaceVariant, shape = CircleShape, modifier = Modifier.size(36.dp)) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(if (active) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null,
-                tint = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(if (active) color else MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(soundIcon(type), contentDescription = null,
+                    tint = if (active) Color.White else colorOnSurfaceVariant, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(type.displayName, fontSize = 15.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (active) color else MaterialTheme.colorScheme.onBackground)
+                if (active) {
+                    Text("\u64AD\u653E\u4E2D", fontSize = 11.sp, color = color.copy(alpha = 0.7f))
                 }
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(type.displayName, fontSize = 14.sp, fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
-                color = if (active) primary else MaterialTheme.colorScheme.onBackground)
         }
         if (active) {
-            Row(modifier = Modifier.fillMaxWidth().padding(start = 46.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 64.dp, end = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f),
-                    colors = SliderDefaults.colors(thumbColor = primary, activeTrackColor = primary))
-                Text("${(volume * 100).toInt()}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp), textAlign = TextAlign.End)
+                    colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color))
+                Text("${(volume * 100).toInt()}%", fontSize = 11.sp, color = colorOnSurfaceVariant, modifier = Modifier.width(36.dp), textAlign = TextAlign.End)
             }
         }
     }

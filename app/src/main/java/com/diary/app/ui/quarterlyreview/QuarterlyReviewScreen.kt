@@ -137,8 +137,8 @@ fun QuarterlyReviewScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = moodEmoji(d.topMood),
-                                fontSize = 24.sp
+                                text = moodLabel(d.topMood),
+                                fontSize = 13.sp
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -220,15 +220,15 @@ fun QuarterlyReviewScreen(
 }
 
 @Composable
-private fun moodEmoji(mood: Int): String {
+private fun moodLabel(mood: Int): String {
     return when (mood) {
-        1 -> "😢"
-        2 -> "😕"
-        3 -> "😐"
-        4 -> "😊"
-        5 -> "😄"
-        6 -> "🤩"
-        else -> "😐"
+        1 -> "沮丧"
+        2 -> "低落"
+        3 -> "平静"
+        4 -> "开心"
+        5 -> "愉快"
+        6 -> "兴奋"
+        else -> "平静"
     }
 }
 

@@ -105,20 +105,21 @@ fun QuickCheckinScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         val moods = listOf(
-                            1 to "😢",
-                            2 to "😕",
-                            3 to "😐",
-                            4 to "😊",
-                            5 to "😄",
-                            6 to "🤩"
+                            1 to "沮丧",
+                            2 to "低落",
+                            3 to "平静",
+                            4 to "开心",
+                            5 to "愉快",
+                            6 to "兴奋"
                         )
-                        moods.forEach { (level, emoji) ->
+                        moods.forEach { (level, label) ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = emoji,
-                                    fontSize = 32.sp,
+                                    text = label,
+                                    fontSize = 14.sp,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .background(

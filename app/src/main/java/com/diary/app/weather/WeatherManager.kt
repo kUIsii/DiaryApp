@@ -129,7 +129,7 @@ object WeatherManager {
         description.contains("雪") -> "雪天"
         description.contains("雨") -> "雨天"
         description.contains("风") || description.contains("台风") -> "大风"
-        description.contains("雾") || description.contains("霾") -> "阴天"
+        description.contains("雾") || description.contains("霾") -> "雾天"
         else -> "晴天"
     }
 
@@ -263,13 +263,13 @@ object WeatherManager {
         description.contains("多云") -> 2
         description.contains("阴") -> 3
         description.contains("雷") -> 95
-        description.contains("小雨") -> 61
-        description.contains("中雨") -> 63
-        description.contains("大雨") -> 65
         description.contains("暴雨") -> 82
-        description.contains("小雪") -> 71
-        description.contains("中雪") -> 73
+        description.contains("大雨") -> 65
+        description.contains("中雨") -> 63
+        description.contains("小雨") -> 61
         description.contains("大雪") -> 75
+        description.contains("中雪") -> 73
+        description.contains("小雪") -> 71
         description.contains("雾") -> 45
         description.contains("霾") -> 48
         description.contains("风") -> 1

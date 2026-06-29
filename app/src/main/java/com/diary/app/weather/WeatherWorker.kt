@@ -11,7 +11,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.diary.app.R
 import java.util.concurrent.TimeUnit
 
 class WeatherWorker(
@@ -54,13 +53,15 @@ class WeatherWorker(
             }
 
             val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("${alert.level}预警：${alert.type}")
-                .setContentText("$city：${alert.text.take(80)}")
-                .setStyle(NotificationCompat.BigTextStyle().bigText("$city：${alert.text}"))
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("${alert.level}\u9884\u8B66\uFF1A${alert.type}")
+                .setContentText("$city\uFF1A${alert.text.take(80)}")
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$city\uFF1A${alert.text}"))
                 .setPriority(levelColor)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .build()
 
             nm.notify(notifId, notification)
@@ -77,6 +78,9 @@ class WeatherWorker(
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<WeatherWorker>(3, TimeUnit.HOURS).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            val oneTimeRequest = androidx.work.OneTimeWorkRequestBuilder<WeatherWorker>()
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork("weather_initial", androidx.work.ExistingWorkPolicy.REPLACE, oneTimeRequest)
         }
 
         fun ensureChannel(context: Context) {

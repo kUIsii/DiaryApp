@@ -3,6 +3,7 @@ package com.diary.app.ui.emotionforecast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -25,6 +26,7 @@ import com.diary.app.ui.theme.DesignTokens
 @Composable
 fun EmotionForecastScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToEmotionRadar: () -> Unit = {},
     viewModel: EmotionForecastViewModel = viewModel()
 ) {
     val forecast by viewModel.forecast.collectAsState()
@@ -141,6 +143,26 @@ fun EmotionForecastScreen(
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 19.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToEmotionRadar),
+                            innerPadding = DesignTokens.SpacingMd
+                        ) {
+                            Column {
+                                Text(
+                                    text = "\u60C5\u7EEA\u96F7\u8FBE",
+                                    fontSize = DesignTokens.FontMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "\u591A\u7EF4\u5EA6\u60C5\u7EEA\u53EF\u89C6\u5316\u5206\u6790",
+                                    fontSize = DesignTokens.FontSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

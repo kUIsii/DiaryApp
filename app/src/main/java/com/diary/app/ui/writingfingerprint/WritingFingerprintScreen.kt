@@ -1,6 +1,7 @@
 package com.diary.app.ui.writingfingerprint
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,7 @@ import kotlin.math.sin
 @Composable
 fun WritingFingerprintScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToTextMicroscope: () -> Unit = {},
     viewModel: WritingFingerprintViewModel = viewModel()
 ) {
     val analysis by viewModel.analysis.collectAsState()
@@ -108,6 +110,26 @@ fun WritingFingerprintScreen(
                             fontSize = DesignTokens.FontSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToTextMicroscope),
+                        innerPadding = DesignTokens.SpacingMd
+                    ) {
+                        Column {
+                            Text(
+                                text = "\u6587\u5B57\u663E\u5FAE\u955C",
+                                fontSize = DesignTokens.FontMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "\u6DF1\u5EA6\u5206\u6790\u6587\u5B57\u8BCD\u6C47\u4E0E\u8BED\u6CD5\u7279\u5F81",
+                                fontSize = DesignTokens.FontSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

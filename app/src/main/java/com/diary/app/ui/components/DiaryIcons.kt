@@ -66,24 +66,13 @@ fun moodLabelForLevel(level: Int): String {
     }
 }
 
-fun moodEmojiForLevel(level: Int): String {
-    return when (level.coerceIn(1, 6)) {
-        1 -> "😞"
-        2 -> "😔"
-        3 -> "😌"
-        4 -> "😊"
-        5 -> "😄"
-        6 -> "🤩"
-        else -> "😌"
-    }
-}
-
 fun weatherIconFor(weather: String?): IconWithTint {
     return when (weather) {
         "晴", "晴天" -> IconWithTint(Icons.Default.WbSunny, WeatherSunny)
         "多云" -> IconWithTint(Icons.Default.Cloud, WeatherCloudy)
         "阴", "阴天" -> IconWithTint(Icons.Default.CloudQueue, WeatherOvercast)
         "雨", "雨天" -> IconWithTint(Icons.Default.Umbrella, WeatherRainy)
+        "雪", "雪天" -> IconWithTint(Icons.Default.CloudQueue, WeatherCloudy)
         "雷", "雷暴" -> IconWithTint(Icons.Default.Thunderstorm, WeatherStormy)
         "风", "大风" -> IconWithTint(Icons.Default.Air, WeatherWindy)
         else -> IconWithTint(Icons.Default.WbSunny, WeatherSunny)
@@ -95,6 +84,7 @@ fun weatherIconForType(type: String): ImageVector = when (type) {
     "多云" -> Icons.Default.Cloud
     "阴", "阴天" -> Icons.Default.CloudQueue
     "雨", "雨天" -> Icons.Default.Umbrella
+    "雪", "雪天" -> Icons.Default.CloudQueue
     "风", "大风" -> Icons.Default.Air
     "雷", "雷暴" -> Icons.Default.Thunderstorm
     else -> Icons.Default.WbSunny
@@ -106,6 +96,7 @@ fun weatherLabelFor(weather: String?): String {
         "多云" -> "多云"
         "阴", "阴天" -> "阴天"
         "雨", "雨天" -> "雨天"
+        "雪", "雪天" -> "雪天"
         "雷", "雷暴" -> "雷暴"
         "风", "大风" -> "大风"
         else -> weather ?: ""

@@ -2,7 +2,6 @@ package com.diary.app.ui.tools
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -28,17 +27,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.BorderColor
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
@@ -47,18 +49,16 @@ import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.NoteAlt
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -83,8 +83,6 @@ import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.components.IconCircle
-import com.diary.app.ui.components.SettingDivider
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 
 private data class ToolItem(
@@ -172,71 +170,69 @@ fun ToolsScreen(
     val isAiConfigured = com.diary.app.ai.AiConfigStore.isConfigured(context)
 
     var expandedSection by remember { mutableStateOf<String?>(null) }
-    var selectedTab by remember { mutableStateOf(0) }
 
     val sections = listOf(
         ToolSection(
             key = "create",
-            icon = Icons.Default.BorderColor,
-            title = "创作记录",
-            subtitle = "签到·语音·写作",
+            icon = Icons.Default.Create,
+            title = "\u521B\u4F5C\u8BB0\u5F55",
+            subtitle = "\u7B7E\u5230\u00B7\u8BED\u97F3\u00B7\u5199\u4F5C",
             items = listOf(
-                ToolItem(Icons.Default.NoteAlt, "快速签到", "心情记录与小确幸", onNavigateToQuickCheckin),
-                ToolItem(Icons.Default.Mic, "语音备忘录", "录音并转写文字", onNavigateToVoiceRecording),
-                ToolItem(Icons.Default.Lock, "锁屏快写", "不解锁快速记录", onNavigateToLockScreenQuickWrite),
-                ToolItem(Icons.Default.PanTool, "手势操作", "自定义手势动作", onNavigateToGestureQuickAction),
-                ToolItem(Icons.Default.AutoFixHigh, "写作工坊", "灵感·教练·实验", onNavigateToWritingLab),
+                ToolItem(Icons.Default.EditNote, "\u5FEB\u901F\u7B7E\u5230", "\u60C5\u611F\u8BB0\u5F55\u4E0E\u5C0F\u786E\u5E78", onNavigateToQuickCheckin),
+                ToolItem(Icons.Default.Mic, "\u8BED\u97F3\u7EAA\u5F55", "\u5F55\u97F3\u5E76\u8F6C\u5199\u6587\u5B57", onNavigateToVoiceRecording),
+                ToolItem(Icons.Default.Lock, "\u9501\u5C4F\u5FEB\u5199", "\u4E0D\u89E3\u9501\u5FEB\u901F\u8BB0\u5F55", onNavigateToLockScreenQuickWrite),
+                ToolItem(Icons.Default.PanTool, "\u5FEB\u6377\u64CD\u4F5C", "\u81EA\u5B9A\u4E49\u624B\u52BF\u52A8\u4F5C", onNavigateToGestureQuickAction),
+                ToolItem(Icons.Default.AutoFixHigh, "\u5199\u4F5C\u5DE5\u5177", "\u7075\u611F\u00B7\u6559\u7EC3\u00B7\u5B9E\u9A8C\u5BA4", onNavigateToWritingLab),
             )
         ),
         ToolSection(
             key = "analysis",
-            icon = Icons.Default.BarChart,
-            title = "数据分析",
-            subtitle = "统计·情绪·语义",
+            icon = Icons.Default.TrendingUp,
+            title = "\u6570\u636E\u6D1E\u5BDF",
+            subtitle = "\u7EDF\u8BA1\u00B7\u60C5\u7EEA\u00B7\u8BED\u4E49",
             items = listOf(
-                ToolItem(Icons.Default.BarChart, "数据总览", "统计报告·季度·年鉴", onNavigateToStats),
-                ToolItem(Icons.Default.Mood, "情绪分析", "预测情绪走势", onNavigateToEmotionForecast),
-                ToolItem(Icons.Default.Edit, "写作指纹", "分析写作风格特征", onNavigateToWritingFingerprint),
-                ToolItem(Icons.Default.Group, "关系追踪", "追踪人物关系变化", onNavigateToRelationshipTracking),
-                ToolItem(Icons.Default.Search, "语义搜索", "全文语义检索", onNavigateToSemanticSearch),
+                ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u62A5\u544A\u00B7\u5B63\u5EA6\u00B7\u5E74\u9274", onNavigateToStats),
+                ToolItem(Icons.Default.Favorite, "\u60C5\u7EEA\u5206\u6790", "\u60C5\u7EEA\u9884\u6D4B\u4E0E\u96F7\u8FBE\u56FE", onNavigateToEmotionForecast),
+                ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
+                ToolItem(Icons.Default.Group, "\u5173\u7CFB\u8FFD\u8E2A", "\u8FFD\u8E2A\u4EBA\u7269\u5173\u7CFB\u53D8\u5316", onNavigateToRelationshipTracking),
+                ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
             )
         ),
         ToolSection(
             key = "ai",
-            icon = Icons.Default.SmartToy,
-            title = "AI 智能",
-            subtitle = if (isAiConfigured) "已配置" else "未配置",
+            icon = Icons.Default.AutoStories,
+            title = "AI \u667A\u80FD",
+            subtitle = if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u672A\u914D\u7F6E",
             items = listOf(
-                ToolItem(Icons.Default.Key, "AI 配置", if (isAiConfigured) "已配置" else "配置 API 密钥", onNavigateToAiManagement),
-                ToolItem(Icons.Default.SmartToy, "AI 助手", "智能写作助手小墨", onNavigateToAiAssistant),
-                ToolItem(Icons.Default.AutoStories, "AI 传记", "生成个人传记", onNavigateToBiography),
-                ToolItem(Icons.Default.Forum, "与过去对话", "基于日记的 AI 对话", onNavigateToDiaryTalk),
+                ToolItem(Icons.Default.Key, "AI \u914D\u7F6E", if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u914D\u7F6E API \u5BC6\u94A5", onNavigateToAiManagement),
+                ToolItem(Icons.Default.Forum, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
+                ToolItem(Icons.Default.MenuBook, "AI \u4F20\u8BB0", "\u751F\u6210\u4E2A\u4EBA\u4F20\u8BB0", onNavigateToBiography),
             )
         ),
         ToolSection(
             key = "memory",
             icon = Icons.Default.History,
-            title = "回忆旅程",
-            subtitle = "倒数日·地图·环境音",
+            title = "\u56DE\u5FC6\u65C5\u7A0B",
+            subtitle = "\u5012\u6570\u65E5\u00B7\u5730\u56FE\u00B7\u73AF\u5883\u97F3",
             items = listOf(
-                ToolItem(Icons.Default.Timer, "倒数日", "重要日期倒计时", onNavigateToCountDown),
-                ToolItem(Icons.Default.MarkEmailUnread, "时间胶囊", "给未来的自己写信", onNavigateToTimeCapsule),
-                ToolItem(Icons.Default.Map, "日记地图", "足迹回顾与旅行", onNavigateToDiaryMap),
-                ToolItem(Icons.Default.Shuffle, "随机回顾", "重温旧日记", onNavigateToRandom),
-                ToolItem(Icons.Default.MusicNote, "场景环境音", "沉浸式写作背景音", onNavigateToAmbientSound),
+                ToolItem(Icons.Default.Schedule, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1\u4E0E\u5012\u6570\u65E5", onNavigateToTimeCapsule),
+                ToolItem(Icons.Default.Map, "\u65E5\u8BB0\u5730\u56FE", "\u8DB3\u8FF9\u56DE\u987E\u4E0E\u65C5\u884C\u65E5\u5FD7", onNavigateToDiaryMap),
+                ToolItem(Icons.Default.Bookmark, "\u8BB0\u5FC6\u951A\u70B9", "\u5730\u70B9\u89E6\u53D1\u56DE\u5FC6", onNavigateToMemoryAnchors),
+                ToolItem(Icons.Default.MusicNote, "\u573A\u666F\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
+                ToolItem(Icons.Default.Shuffle, "\u968F\u673A\u56DE\u987E", "\u91CD\u6E29\u65E7\u65E5\u8BB0", onNavigateToRandom),
             )
         ),
         ToolSection(
             key = "tools",
             icon = Icons.Default.Build,
-            title = "系统工具",
-            subtitle = "标签·阅读·成就",
+            title = "\u7CFB\u7EDF\u5DE5\u5177",
+            subtitle = "\u6807\u7B7E\u00B7\u5A92\u4F53\u00B7\u6210\u5C31",
             items = listOf(
-                ToolItem(Icons.Default.Label, "标签管理", "整理日记分类", onNavigateToTagManagement),
-                ToolItem(Icons.Default.Collections, "媒体库", "浏览图片和视频", onNavigateToMediaLibrary),
-                ToolItem(Icons.Default.MenuBook, "沉浸阅读", "阅读与专注模式", onNavigateToImmersiveReader),
-                ToolItem(Icons.Default.Star, "成就中心", "勋章·挑战·连续", onNavigateToAchievements),
-                ToolItem(Icons.Default.Delete, "回收站", "已删除的日记", onNavigateToTrash),
+                ToolItem(Icons.Default.Label, "\u6807\u7B7E\u7BA1\u7406", "\u6574\u7406\u65E5\u8BB0\u5206\u7C7B", onNavigateToTagManagement),
+                ToolItem(Icons.Default.Collections, "\u5A92\u4F53\u5E93", "\u6D4F\u89C8\u56FE\u7247\u548C\u89C6\u9891", onNavigateToMediaLibrary),
+                ToolItem(Icons.Default.Star, "\u76EE\u6807\u6210\u5C31", "\u76EE\u6807\u00B7\u52C7\u7AE0\u00B7\u6311\u6218", onNavigateToGoals),
+                ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u4E0E\u6C89\u6D78\u9605\u8BFB", onNavigateToFocusMode),
+                ToolItem(Icons.Default.Delete, "\u56DE\u6536\u7AD9", "\u5DF2\u5220\u9664\u7684\u65E5\u8BB0", onNavigateToTrash),
             )
         )
     )
@@ -258,7 +254,7 @@ fun ToolsScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "工具",
+                    text = "\u5DE5\u5177",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
@@ -325,7 +321,15 @@ private fun SectionCard(
                     .clickable(interactionSource = interaction, indication = null) { onToggle() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconCircle(icon = section.icon, bg = c.copy(alpha = 0.12f), tint = c)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(c.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = section.icon, contentDescription = null, tint = c, modifier = Modifier.size(20.dp))
+                }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(section.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
@@ -345,7 +349,9 @@ private fun SectionCard(
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
                     section.items.forEachIndexed { i, item ->
-                        if (i > 0) SettingDivider()
+                        if (i > 0) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
                         ToolRow(
                             icon = item.icon,
                             tint = c,
@@ -357,11 +363,11 @@ private fun SectionCard(
                         )
                     }
                     if (section.key == "ai") {
-                        SettingDivider()
+                        Spacer(modifier = Modifier.height(2.dp))
                         AiFeatureToggleRow(
                             icon = Icons.Default.Lightbulb,
-                            title = "AI 洞察卡片",
-                            subtitle = "首页偶现轻量 AI 提示",
+                            title = "AI \u6D1E\u5BDF\u5361\u7247",
+                            subtitle = "\u9996\u9875\u5076\u73B0\u8F7B\u91CF AI \u63D0\u793A",
                             checked = features.aiInsightCardEnabled && isAiConfigured,
                             enabled = isAiConfigured,
                             onCheckedChange = { app?.setAiInsightCardEnabled(it) }
@@ -394,7 +400,15 @@ private fun ToolRow(
             .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconCircle(icon = icon, bg = tint.copy(alpha = 0.12f), tint = tint)
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        }
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = textColor)

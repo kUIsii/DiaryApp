@@ -510,7 +510,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                         navController.navigate(Screen.MonthlyReport.createRoute(now.year, now.monthValue))
                     },
                     onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
-                    onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) }
+                    onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
+                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
                 )
             }
             composable(Screen.Profile.route) {
@@ -932,8 +933,30 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.EmotionRadar.route) { EmotionRadarScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.TextMicroscope.route) { TextMicroscopeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.MemoryAnchors.route) { MemoryAnchorsScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.WritingFingerprint.route) { WritingFingerprintScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.EmotionForecast.route) { EmotionForecastScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(
+                Screen.WritingFingerprint.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                WritingFingerprintScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTextMicroscope = { navController.navigate(Screen.TextMicroscope.route) }
+                )
+            }
+            composable(
+                Screen.EmotionForecast.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                EmotionForecastScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) }
+                )
+            }
             composable(Screen.RelationshipTracking.route) { RelationshipTrackingScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.DecisionAnalysis.route) { DecisionAnalysisScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.ValuesExtraction.route) { ValuesExtractionScreen(onNavigateBack = { navController.popBackStack() }) }
