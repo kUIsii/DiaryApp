@@ -266,6 +266,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
     object LocationMemories : Screen("location_memories", "地点触发回忆", Icons.Default.LocationOn)
     object EntryGraph : Screen("entry_graph", "条目关联图谱", Icons.Default.Favorite)
+    object PastSelf : Screen("past_self", "与过去的自己对话", Icons.Default.Schedule)
 }
 
 data class BottomNavItem(
@@ -1055,6 +1056,20 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 EntryGraphScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
+
+            composable(
+                route = Screen.PastSelf.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                val pastSelfViewModel: com.diary.app.ui.pastself.PastSelfViewModel = viewModel()
+                com.diary.app.ui.pastself.PastSelfScreen(
+                    viewModel = pastSelfViewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

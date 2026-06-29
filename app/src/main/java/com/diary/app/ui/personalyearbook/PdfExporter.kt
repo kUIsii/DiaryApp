@@ -9,6 +9,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 object PdfExporter {
 
@@ -34,10 +35,27 @@ object PdfExporter {
             val fileName = "diary_yearbook_${yearbook.year}.pdf"
             val file = File(context.cacheDir, fileName)
 
+            var pageNum = 1
             page1Cover(document, paint, titlePaint, yearbook)
+            pageNum++
             page2Stats(document, paint, statValuePaint, statLabelPaint, headerPaint, bodyPaint, yearbook)
+            pageNum++
             page3MonthlyChart(document, paint, headerPaint, bodyPaint, yearbook)
+            pageNum++
             page4MoodChart(document, paint, headerPaint, bodyPaint, yearbook)
+            pageNum++
+            if (yearbook.metaphor.isNotEmpty()) {
+                page5Metaphor(document, paint, headerPaint, bodyPaint, yearbook)
+                pageNum++
+            }
+            if (yearbook.arcs.isNotEmpty()) {
+                page6NarrativeArcs(document, paint, headerPaint, bodyPaint, yearbook)
+                pageNum++
+            }
+            if (yearbook.topPhotos.isNotEmpty()) {
+                page7Photos(document, paint, headerPaint, bodyPaint, yearbook)
+                pageNum++
+            }
 
             document.writeTo(file.outputStream())
             document.close()
@@ -69,17 +87,24 @@ object PdfExporter {
 
             titlePaint.textSize = 72f
             titlePaint.textAlign = Paint.Align.CENTER
-            canvas.drawText(yearbook.year.toString(), pageWidth / 2f, 320f, titlePaint)
+            canvas.drawText(yearbook.year.toString(), pageWidth / 2f, 280f, titlePaint)
 
             titlePaint.textSize = 36f
             titlePaint.color = Color.parseColor("#5D4037")
-            canvas.drawText("个人年鉴", pageWidth / 2f, 380f, titlePaint)
+            canvas.drawText("个人年鉴", pageWidth / 2f, 340f, titlePaint)
+
+            if (yearbook.metaphor.isNotEmpty()) {
+                paint.textSize = 18f
+                paint.textAlign = Paint.Align.CENTER
+                paint.color = Color.parseColor("#8D6E63")
+                canvas.drawText(yearbook.metaphor, pageWidth / 2f, 400f, paint)
+            }
 
             paint.textSize = 16f
             paint.textAlign = Paint.Align.CENTER
             paint.color = Color.parseColor("#8D6E63")
-            val subtitle = "${yearbook.totalEntries} 篇日记 · ${"%,d".format(yearbook.totalWords)} 字"
-            canvas.drawText(subtitle, pageWidth / 2f, 420f, paint)
+            val subtitle = "${yearbook.stats.totalEntries} 篇日记 · ${"%,d".format(yearbook.stats.totalWords)} 字"
+            canvas.drawText(subtitle, pageWidth / 2f, 440f, paint)
 
             finishPage(this)
         }
@@ -105,11 +130,11 @@ object PdfExporter {
             canvas.drawLine(margin, 72f, pageWidth - margin, 72f, paint)
 
             val stats = listOf(
-                "总日记数" to "${yearbook.totalEntries} 篇",
-                "总字数" to "%,d 字".format(yearbook.totalWords),
-                "最佳月份" to yearbook.bestMonth,
-                "最长连续" to "${yearbook.longestStreak} 天",
-                "最常情绪" to moodLabel(yearbook.topMood)
+                "总日记数" to "${yearbook.stats.totalEntries} 篇",
+                "总字数" to "%,d 字".format(yearbook.stats.totalWords),
+                "最佳月份" to yearbook.stats.bestMonth,
+                "最长连续" to "${yearbook.stats.longestStreak} 天",
+                "最常情绪" to moodLabel(yearbook.stats.topMood)
             )
 
             var y = 110f
@@ -152,7 +177,7 @@ object PdfExporter {
             paint.color = Color.parseColor("#E0E0E0")
             canvas.drawLine(margin, 72f, pageWidth - margin, 72f, paint)
 
-            val maxVal = max(yearbook.monthlyDistribution.maxOrNull() ?: 1, 1)
+            val maxVal = max(yearbook.stats.monthlyDistribution.maxOrNull() ?: 1, 1)
             val chartLeft = margin + 30f
             val chartTop = 110f
             val chartBottom = 550f
@@ -177,7 +202,7 @@ object PdfExporter {
             }
 
             for (i in 0 until 12) {
-                val count = yearbook.monthlyDistribution.getOrElse(i) { 0 }
+                val count = yearbook.stats.monthlyDistribution.getOrElse(i) { 0 }
                 val barHeight = if (maxVal > 0) (count.toFloat() / maxVal) * chartHeight else 0f
                 val left = chartLeft + i * barSpacing + (barSpacing - barWidth) / 2f
                 val top = chartBottom - barHeight
@@ -229,13 +254,13 @@ object PdfExporter {
                 4 to "#FFF59D", 5 to "#FFCC80", 6 to "#EF9A9A"
             )
 
-            val total = yearbook.moodDistribution.values.sum().toFloat()
+            val total = yearbook.stats.moodDistribution.values.sum().toFloat()
             var startAngle = -90f
             val cx = pageWidth / 2f
             val cy = 300f
             val radius = 150f
 
-            val sortedMoods = yearbook.moodDistribution.entries.sortedBy { it.key }
+            val sortedMoods = yearbook.stats.moodDistribution.entries.sortedBy { it.key }
             for ((mood, count) in sortedMoods) {
                 val sweep = if (total > 0) (count / total) * 360f else 0f
                 paint.color = Color.parseColor(moodColors[mood] ?: "#E0E0E0")
@@ -277,6 +302,155 @@ object PdfExporter {
                 canvas.drawText("${count} 次 (${"%.1f".format(pct)}%)", pageWidth - margin - 40f, legendY + 12f, bodyPaint)
 
                 legendY += 28f
+            }
+
+            finishPage(this)
+        }
+    }
+
+    private fun page5Metaphor(
+        document: PdfDocument,
+        paint: Paint,
+        headerPaint: Paint,
+        bodyPaint: Paint,
+        yearbook: YearbookData
+    ) {
+        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 5).create()
+        document.startPage(pageInfo).apply {
+            canvas.drawColor(Color.parseColor("#FFF8F0"))
+
+            headerPaint.textAlign = Paint.Align.CENTER
+            headerPaint.textSize = 28f
+            headerPaint.color = Color.parseColor("#5D4037")
+            canvas.drawText("年度隐喻", pageWidth / 2f, 120f, headerPaint)
+
+            headerPaint.textSize = 22f
+            headerPaint.color = Color.parseColor("#3E2723")
+            canvas.drawText(yearbook.metaphor, pageWidth / 2f, 200f, headerPaint)
+
+            if (yearbook.metaphorEvolution.isNotEmpty()) {
+                var y = 300f
+                paint.color = Color.parseColor("#E0E0E0")
+                canvas.drawLine(margin, y - 20f, pageWidth - margin, y - 20f, paint)
+
+                for (phase in yearbook.metaphorEvolution) {
+                    bodyPaint.textAlign = Paint.Align.LEFT
+                    bodyPaint.textSize = 16f
+                    bodyPaint.color = Color.parseColor("#8D6E63")
+                    bodyPaint.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                    canvas.drawText(phase.period, margin + 20f, y + 10f, bodyPaint)
+
+                    bodyPaint.textSize = 14f
+                    bodyPaint.color = Color.parseColor("#555555")
+                    bodyPaint.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                    canvas.drawText(phase.description, margin + 100f, y + 10f, bodyPaint)
+
+                    paint.color = Color.parseColor("#F5F5F5")
+                    paint.style = Paint.Style.FILL
+                    canvas.drawRoundRect(margin, y - 20f, pageWidth - margin, y + 40f, 8f, 8f, paint)
+
+                    y += 80f
+                }
+            }
+
+            finishPage(this)
+        }
+    }
+
+    private fun page6NarrativeArcs(
+        document: PdfDocument,
+        paint: Paint,
+        headerPaint: Paint,
+        bodyPaint: Paint,
+        yearbook: YearbookData
+    ) {
+        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 6).create()
+        document.startPage(pageInfo).apply {
+            canvas.drawColor(Color.WHITE)
+
+            headerPaint.textAlign = Paint.Align.LEFT
+            headerPaint.textSize = 24f
+            canvas.drawText("叙事脉络", margin, 60f, headerPaint)
+
+            paint.color = Color.parseColor("#E0E0E0")
+            canvas.drawLine(margin, 72f, pageWidth - margin, 72f, paint)
+
+            var y = 100f
+            for (arc in yearbook.arcs) {
+                paint.color = Color.parseColor("#3E2723")
+                paint.style = Paint.Style.FILL
+                canvas.drawRoundRect(margin, y, pageWidth - margin, y + 80f, 8f, 8f, paint)
+                paint.color = Color.parseColor("#8D6E63")
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 1f
+                canvas.drawRoundRect(margin, y, pageWidth - margin, y + 80f, 8f, 8f, paint)
+
+                bodyPaint.textAlign = Paint.Align.LEFT
+                bodyPaint.textSize = 16f
+                bodyPaint.color = Color.parseColor("#3E2723")
+                bodyPaint.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                canvas.drawText(arc.title, margin + 16f, y + 28f, bodyPaint)
+
+                bodyPaint.textSize = 12f
+                bodyPaint.color = Color.parseColor("#666666")
+                bodyPaint.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                canvas.drawText("${arc.entries.size} 篇 - ${arc.summary}", margin + 16f, y + 52f, bodyPaint)
+
+                y += 92f
+                if (y > 750f) break
+            }
+
+            finishPage(this)
+        }
+    }
+
+    private fun page7Photos(
+        document: PdfDocument,
+        paint: Paint,
+        headerPaint: Paint,
+        bodyPaint: Paint,
+        yearbook: YearbookData
+    ) {
+        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 7).create()
+        document.startPage(pageInfo).apply {
+            canvas.drawColor(Color.WHITE)
+
+            headerPaint.textAlign = Paint.Align.LEFT
+            headerPaint.textSize = 24f
+            canvas.drawText("年度照片精选", margin, 60f, headerPaint)
+
+            paint.color = Color.parseColor("#E0E0E0")
+            canvas.drawLine(margin, 72f, pageWidth - margin, 72f, paint)
+
+            bodyPaint.textAlign = Paint.Align.CENTER
+            bodyPaint.textSize = 14f
+            bodyPaint.color = Color.parseColor("#999999")
+            canvas.drawText("共 ${yearbook.topPhotos.size} 张精选照片", pageWidth / 2f, 100f, bodyPaint)
+
+            val cols = 3
+            val cellSize = (contentWidth - (cols - 1) * 8f) / cols
+            var x = margin
+            var y = 120f
+            var col = 0
+
+            for (i in 0 until minOf(yearbook.topPhotos.size, 12)) {
+                paint.color = Color.parseColor("#F5F5F5")
+                paint.style = Paint.Style.FILL
+                canvas.drawRoundRect(x, y, x + cellSize, y + cellSize, 4f, 4f, paint)
+
+                bodyPaint.textSize = 10f
+                bodyPaint.color = Color.parseColor("#BBBBBB")
+                bodyPaint.textAlign = Paint.Align.CENTER
+                canvas.drawText("照片 ${i + 1}", x + cellSize / 2f, y + cellSize / 2f + 4f, bodyPaint)
+
+                col++
+                if (col >= cols) {
+                    col = 0
+                    x = margin
+                    y += cellSize + 8f
+                } else {
+                    x += cellSize + 8f
+                }
             }
 
             finishPage(this)

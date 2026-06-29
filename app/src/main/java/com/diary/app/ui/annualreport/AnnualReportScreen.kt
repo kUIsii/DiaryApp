@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Collections
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.theme.DesignTokens
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -89,6 +91,7 @@ private val weatherIcon = mapOf(
 @Composable
 fun AnnualReportScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToStory: ((Int, AnnualReport) -> Unit)? = null,
     viewModel: AnnualReportViewModel = viewModel()
 ) {
     val report by viewModel.report.collectAsState()
@@ -145,7 +148,7 @@ fun AnnualReportScreen(
                     }
                 }
             } else {
-                val pagerState = rememberPagerState(pageCount = { 15 }) // 更新页数为15
+                val pagerState = rememberPagerState(pageCount = { 16 })
 
                 Box(
                     modifier = Modifier
@@ -172,6 +175,7 @@ fun AnnualReportScreen(
                             12 -> PhotoStoryCard(currentReport) // 新增：照片故事卡片
                             13 -> MilestoneCard(currentReport)
                             14 -> EndingCard(currentReport)
+                            15 -> StoryLaunchCard(currentReport, onNavigateToStory)
                         }
                     }
 
@@ -183,7 +187,7 @@ fun AnnualReportScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        repeat(15) { index ->
+                        repeat(16) { index ->
                             val isSelected by animateFloatAsState(
                                 targetValue = if (pagerState.currentPage == index) 1f else 0.4f,
                                 animationSpec = tween(300, easing = FastOutSlowInEasing),
@@ -1201,7 +1205,66 @@ private fun MilestoneRow(label: String, value: String) {
     }
 }
 
-// ==================== Card 11: Ending ====================
+// ==================== Card 15: Story Launch ====================
+@Composable
+private fun StoryLaunchCard(
+    report: AnnualReport,
+    onNavigateToStory: ((Int, AnnualReport) -> Unit)?
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+
+    Box(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        GlassCard(
+            cornerRadius = 20.dp,
+            innerPadding = 24.dp,
+            onClick = onNavigateToStory?.let { { it(report.year, report) } },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.AutoStories,
+                        contentDescription = null,
+                        tint = primary.copy(alpha = 0.4f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
+                    Text(
+                        text = "年度故事",
+                        fontSize = DesignTokens.FontHeadline,
+                        fontWeight = FontWeight.Light,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                    Text(
+                        text = "AI 为你讲述这一年的故事",
+                        fontSize = DesignTokens.FontBody,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingXxl))
+                    Surface(
+                        shape = RoundedCornerShape(DesignTokens.CornerLarge),
+                        color = primary.copy(alpha = 0.1f)
+                    ) {
+                        Text(
+                            text = "开始阅读",
+                            fontSize = DesignTokens.FontMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = primary,
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==================== Card 14: Ending ====================
 @Composable
 private fun EndingCard(report: AnnualReport) {
     val primary = MaterialTheme.colorScheme.primary

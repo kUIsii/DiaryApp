@@ -297,6 +297,28 @@ class AnnualReportViewModel(application: Application) : AndroidViewModel(applica
         val mostPhotosEntryDate: LocalDate?
     )
 
+    fun getPriorYearReport(year: Int): AnnualReport? = _priorYearReport.value
+
+    private val _priorYearReport = MutableStateFlow<AnnualReport?>(null)
+
+    fun loadPriorYearReport(year: Int) {
+        viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val allPreviews = dao.getAllPreviewsOnce()
+            val priorEntries = allPreviews.filter { entry ->
+                val date = Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate()
+                date.year == year - 1
+            }
+            if (priorEntries.isEmpty()) {
+                _priorYearReport.value = null
+                return@launch
+            }
+            val tagUsage = dao.getTagUsageOnce()
+            val photoStats = getPhotoStatsForYear(priorEntries, zone)
+            _priorYearReport.value = buildReport(year - 1, priorEntries, tagUsage, zone, photoStats)
+        }
+    }
+
     private fun computeLongestStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0
         val sorted = dates.sorted()
