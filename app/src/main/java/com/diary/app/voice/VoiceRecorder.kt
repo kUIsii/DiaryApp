@@ -185,6 +185,7 @@ class VoiceRecorder(private val context: Context) {
         _isTranscribing.value = true
         _transcription.value = ""
         
+        speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: android.os.Bundle?) {

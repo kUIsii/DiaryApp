@@ -18,6 +18,7 @@ class ModelScopeProvider(
         "Qwen/Qwen3.5-35B-A3B"
     )
 
+    override val defaultEndpoint = "https://api.modelscope.cn/v1/"
     override val connectTimeout = 15000
     override val readTimeout = 30000
 }

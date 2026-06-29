@@ -695,54 +695,8 @@ object BackupManager {
         return results.sortedByDescending { it.lastModified }
     }
 
-    fun scanDownloadsBackups(context: Context): List<DownloadBackupFile> {
-        return scanImportableBackupFiles(context)
-    }
 
-    /**
-     * 仅扫描 Downloads 目录中的备份文件（不含 Documents/DiaryApp/）
-     */
-    private fun scanDownloadsBackupFiles(context: Context): List<DownloadBackupFile> {
-        val results = mutableListOf<DownloadBackupFile>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val projection = arrayOf(
-                MediaStore.Downloads.DISPLAY_NAME,
-                MediaStore.Downloads.SIZE,
-                MediaStore.Downloads.DATE_MODIFIED
-            )
-            for (prefix in BACKUP_SCAN_PREFIXES) {
-                val selection = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
-                context.contentResolver.query(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, projection, selection, arrayOf("${prefix}%"),
-                    "${MediaStore.Downloads.DATE_MODIFIED} DESC"
-                )?.use { cursor ->
-                    val nameIdx = cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
-                    val sizeIdx = cursor.getColumnIndex(MediaStore.Downloads.SIZE)
-                    val dateIdx = cursor.getColumnIndex(MediaStore.Downloads.DATE_MODIFIED)
-                    while (cursor.moveToNext()) {
-                        val fileName = cursor.getString(nameIdx)
-                        if (BACKUP_SCAN_EXTENSIONS.any { ext -> fileName.endsWith(ext) } && results.none { it.fileName == fileName }) {
-                            results.add(DownloadBackupFile(fileName, cursor.getLong(sizeIdx), cursor.getLong(dateIdx) * 1000))
-                        }
-                    }
-                }
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (dir.exists()) {
-                dir.listFiles()?.filter {
-                    BACKUP_SCAN_PREFIXES.any { prefix -> it.name.startsWith(prefix) } &&
-                        BACKUP_SCAN_EXTENSIONS.any { ext -> it.name.endsWith(ext) }
-                }?.forEach {
-                    if (results.none { existing -> existing.fileName == it.name }) {
-                        results.add(DownloadBackupFile(it.name, it.length(), it.lastModified()))
-                    }
-                }
-            }
-        }
-        return results
-    }
+
 
     /**
      * 读取 Downloads 中某个备份文件的内容
@@ -1018,7 +972,7 @@ object BackupManager {
      */
     private fun migrateFromDownloads(context: Context) {
         try {
-            val oldFiles = scanDownloadsBackups(context)
+            val oldFiles = scanImportableBackupFiles(context)
             if (oldFiles.isEmpty()) return
 
             val dir = createBackupDir()

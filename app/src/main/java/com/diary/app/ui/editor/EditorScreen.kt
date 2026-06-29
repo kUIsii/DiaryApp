@@ -1154,7 +1154,7 @@ fun EditorScreen(
                             .clip(RoundedCornerShape(4.dp))
                             .clickable {
                                 entryTitle = currentTitleSuggestion
-                                viewModel.acceptTitleSuggestion(currentTitleSuggestion)
+                                viewModel.acceptTitleSuggestion()
                                 viewModel.markContentChanged()
                             }
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))

@@ -123,7 +123,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun acceptTitleSuggestion(title: String) {
+    fun acceptTitleSuggestion() {
         _titleSuggestion.value = null
     }
 

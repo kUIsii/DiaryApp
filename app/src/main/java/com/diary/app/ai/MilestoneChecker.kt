@@ -4,6 +4,7 @@ import android.content.Context
 import com.diary.app.data.DiaryDao
 import com.diary.app.data.NotificationEntity
 import com.diary.app.ui.components.formatWordCountWithUnit
+import com.diary.app.util.computeStreak
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -67,18 +68,8 @@ object MilestoneChecker {
         }
     }
 
-    private fun computeStreak(dates: Set<LocalDate>): Int {
-        if (dates.isEmpty()) return 0
-        var streak = 0
-        var current = dates.maxOrNull() ?: return 0
-        val today = LocalDate.now()
-        if (current.isAfter(today)) return 0
-        while (current in dates) {
-            streak++
-            current = current.minusDays(1)
-        }
-        return streak
-    }
+    @Suppress("RedundantOverride")
+    private fun computeStreak(dates: Set<LocalDate>): Int = com.diary.app.util.computeStreak(dates)
 
     private fun getStreakSubtitle(days: Int): String = when (days) {
         3 -> "三天打鱼的阶段已过，继续加油"

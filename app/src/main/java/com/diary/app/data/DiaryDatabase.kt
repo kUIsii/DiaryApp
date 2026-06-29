@@ -322,29 +322,7 @@ abstract class DiaryDatabase : RoomDatabase() {
         }
 
         val MIGRATION_21_22 = object : Migration(21, 22) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                val iconMap = mapOf(
-                    "first_entry" to "AutoFixHigh",
-                    "entries_10" to "HistoryEdu",
-                    "entries_50" to "MilitaryTech",
-                    "entries_100" to "Whatshot",
-                    "streak_7" to "TrendingUp",
-                    "streak_30" to "DateRange",
-                    "words_10000" to "TextSnippet",
-                    "words_100000" to "AutoStories",
-                    "moods_5" to "SentimentSatisfied",
-                    "all_weather" to "Thunderstorm",
-                    "night_writer" to "NightsStay",
-                    "early_bird" to "LightMode",
-                    "favorite_1" to "BookmarkAdded",
-                    "favorites_10" to "CollectionsBookmark",
-                    "tags_5" to "NewLabel",
-                    "images_10" to "PhotoLibrary"
-                )
-                iconMap.forEach { (key, iconName) ->
-                    db.execSQL("UPDATE achievements SET iconName = '$iconName' WHERE key = '$key'")
-                }
-            }
+            override fun migrate(db: SupportSQLiteDatabase) { }
         }
 
         val MIGRATION_22_23 = object : Migration(22, 23) {
@@ -1127,57 +1105,56 @@ abstract class DiaryDatabase : RoomDatabase() {
         }
 
         private fun backfillDiaryImages(db: SupportSQLiteDatabase, context: Context) {
-            val countCursor = db.query("SELECT COUNT(*) FROM diary_images")
-            val imageCount = if (countCursor.moveToFirst()) countCursor.getInt(0) else 0
-            countCursor.close()
-            if (imageCount > 0) return
+            db.query("SELECT COUNT(*) FROM diary_images").use { countCursor ->
+                val imageCount = if (countCursor.moveToFirst()) countCursor.getInt(0) else 0
+                if (imageCount > 0) return
+            }
 
             val mediaDir = java.io.File(context.filesDir, "diary_media")
             val thumbDir = java.io.File(mediaDir, "thumbs")
 
-            val cursor = db.query("SELECT id, content FROM diary_entries")
-            val idIdx = cursor.getColumnIndex("id")
-            val contentIdx = cursor.getColumnIndex("content")
+            db.query("SELECT id, content FROM diary_entries").use { cursor ->
+                val idIdx = cursor.getColumnIndex("id")
+                val contentIdx = cursor.getColumnIndex("content")
+                val now = System.currentTimeMillis()
+                var backfillCount = 0
 
-            val now = System.currentTimeMillis()
-            var backfillCount = 0
+                while (cursor.moveToNext()) {
+                    val entryId = cursor.getLong(idIdx)
+                    val content = cursor.getString(contentIdx) ?: continue
+                    if (content.isBlank()) continue
 
-            while (cursor.moveToNext()) {
-                val entryId = cursor.getLong(idIdx)
-                val content = cursor.getString(contentIdx) ?: continue
-                if (content.isBlank()) continue
+                    val names = linkedSetOf<String>()
+                    Regex("diary-media://([^\"'\\s}]+)").findAll(content).forEach {
+                        names.add(it.groupValues[1])
+                    }
+                    Regex("https://appassets/diary_media/((?!thumbs/)[^\"'\\s}]+)").findAll(content).forEach {
+                        names.add(it.groupValues[1])
+                    }
+                    Regex("file://([^\"']*diary_media[\\\\/]((?!thumbs[\\\\/])[^\"'\\\\/]+))").findAll(content).forEach {
+                        names.add(it.groupValues[2])
+                    }
 
-                val names = linkedSetOf<String>()
-                Regex("diary-media://([^\"'\\s}]+)").findAll(content).forEach {
-                    names.add(it.groupValues[1])
+                    names.forEachIndexed { index, mediaName ->
+                        val displayFile = java.io.File(mediaDir, mediaName)
+                        val thumbFile = java.io.File(thumbDir, mediaName)
+                        val localPath = displayFile.absolutePath
+                        val thumbPath = if (thumbFile.exists()) thumbFile.absolutePath else null
+
+                        db.execSQL(
+                            """INSERT OR IGNORE INTO diary_images
+                               (entryId, localPath, thumbPath, mediaName, mediaRef, mimeType, fileSize, sortOrder, createdAt)
+                               VALUES (?, ?, ?, ?, ?, 'image/jpeg', ?, ?, ?)""",
+                            arrayOf(entryId, localPath, thumbPath, mediaName, "diary-media://$mediaName",
+                                if (displayFile.exists()) displayFile.length() else 0L, index, now)
+                        )
+                        backfillCount++
+                    }
                 }
-                Regex("https://appassets/diary_media/((?!thumbs/)[^\"'\\s}]+)").findAll(content).forEach {
-                    names.add(it.groupValues[1])
-                }
-                Regex("file://([^\"']*diary_media[\\\\/]((?!thumbs[\\\\/])[^\"'\\\\/]+))").findAll(content).forEach {
-                    names.add(it.groupValues[2])
-                }
 
-                names.forEachIndexed { index, mediaName ->
-                    val displayFile = java.io.File(mediaDir, mediaName)
-                    val thumbFile = java.io.File(thumbDir, mediaName)
-                    val localPath = displayFile.absolutePath
-                    val thumbPath = if (thumbFile.exists()) thumbFile.absolutePath else null
-
-                    db.execSQL(
-                        """INSERT OR IGNORE INTO diary_images
-                           (entryId, localPath, thumbPath, mediaName, mediaRef, mimeType, fileSize, sortOrder, createdAt)
-                           VALUES (?, ?, ?, ?, ?, 'image/jpeg', ?, ?, ?)""",
-                        arrayOf(entryId, localPath, thumbPath, mediaName, "diary-media://$mediaName",
-                            if (displayFile.exists()) displayFile.length() else 0L, index, now)
-                    )
-                    backfillCount++
+                if (backfillCount > 0) {
+                    android.util.Log.d("DiaryDatabase", "Backfilled $backfillCount diary_images for existing entries")
                 }
-            }
-            cursor.close()
-
-            if (backfillCount > 0) {
-                android.util.Log.d("DiaryDatabase", "Backfilled $backfillCount diary_images for existing entries")
             }
         }
     }

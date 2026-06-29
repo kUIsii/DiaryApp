@@ -12,4 +12,5 @@ class AgnesProvider(
     override val displayName = "Agnes AI"
     override val defaultModel = "agnes-2.0-flash"
     override val availableModels = listOf("agnes-2.0-flash")
+    override val defaultEndpoint = "https://apihub.agnes-ai.com/v1/"
 }

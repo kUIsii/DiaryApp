@@ -15,6 +15,7 @@ abstract class BaseHttpProvider(
 
     protected val gson = Gson()
 
+    protected open val defaultEndpoint = "https://apihub.agnes-ai.com/v1/"
     protected open val connectTimeout = 10000
     protected open val readTimeout = 20000
 
@@ -25,7 +26,7 @@ abstract class BaseHttpProvider(
         if (!rateLimiter.canMakeRequest(model)) throw AiError.RateLimited
 
         val apiKey = configStore.getApiKey(context, id)
-        val endpoint = configStore.getEndpoint(context, id).ifBlank { "https://apihub.agnes-ai.com/v1/" }
+        val endpoint = configStore.getEndpoint(context, id).ifBlank { defaultEndpoint }
 
         return try {
             val response = makeRequest(endpoint, apiKey, request, model)
