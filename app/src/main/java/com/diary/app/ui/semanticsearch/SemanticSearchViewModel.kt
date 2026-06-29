@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.ln
 import kotlin.math.sqrt
 
@@ -20,12 +22,19 @@ data class SearchResult(
     val snippet: String
 )
 
+enum class SortOrder { RELEVANCE, DATE }
+
 data class SemanticSearchState(
     val query: String = "",
     val results: List<SearchResult> = emptyList(),
     val isSearching: Boolean = false,
     val isIndexing: Boolean = true,
-    val hasSearched: Boolean = false
+    val hasSearched: Boolean = false,
+    val sortOrder: SortOrder = SortOrder.RELEVANCE,
+    val searchTimeMs: Long = 0L,
+    val searchHistory: List<String> = emptyList(),
+    val groupedResults: Map<String, List<SearchResult>> = emptyMap(),
+    val groupByMonth: Boolean = false
 )
 
 class SemanticSearchViewModel(application: Application) : AndroidViewModel(application) {
@@ -35,6 +44,7 @@ class SemanticSearchViewModel(application: Application) : AndroidViewModel(appli
     val state: StateFlow<SemanticSearchState> = _state.asStateFlow()
 
     private var tfidfIndex: TfIdfIndex? = null
+    private var cachedRawResults: List<SearchResult> = emptyList()
 
     data class TfIdfIndex(
         val entries: List<DiaryPreview>,
@@ -80,17 +90,57 @@ class SemanticSearchViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun search(query: String) {
-        _state.value = _state.value.copy(query = query, hasSearched = true)
+        val currentHistory = _state.value.searchHistory.toMutableList()
+        if (query.isNotBlank() && !currentHistory.contains(query)) {
+            currentHistory.add(0, query)
+            if (currentHistory.size > 5) currentHistory.removeAt(5)
+        }
+        _state.value = _state.value.copy(query = query, hasSearched = true, searchHistory = currentHistory)
         if (query.isBlank()) {
-            _state.value = _state.value.copy(results = emptyList(), isSearching = false)
+            _state.value = _state.value.copy(results = emptyList(), isSearching = false, groupedResults = emptyMap())
             return
         }
 
         viewModelScope.launch {
             _state.value = _state.value.copy(isSearching = true)
+            val startTime = System.currentTimeMillis()
             val results = withContext(Dispatchers.Default) { computeSearch(query) }
-            _state.value = _state.value.copy(results = results, isSearching = false)
+            val elapsed = System.currentTimeMillis() - startTime
+            cachedRawResults = results
+            val stateVal = _state.value
+            val sorted = sortResults(results, stateVal.sortOrder)
+            val grouped = if (stateVal.groupByMonth) groupByMonth(sorted) else emptyMap()
+            _state.value = _state.value.copy(results = sorted, isSearching = false, searchTimeMs = elapsed, groupedResults = grouped)
         }
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        _state.value = _state.value.copy(sortOrder = order)
+        val sorted = sortResults(cachedRawResults, order)
+        val grouped = if (_state.value.groupByMonth) groupByMonth(sorted) else emptyMap()
+        _state.value = _state.value.copy(results = sorted, groupedResults = grouped)
+    }
+
+    fun setGroupByMonth(enabled: Boolean) {
+        _state.value = _state.value.copy(groupByMonth = enabled)
+        val grouped = if (enabled) groupByMonth(_state.value.results) else emptyMap()
+        _state.value = _state.value.copy(groupedResults = grouped)
+    }
+
+    fun searchFromHistory(query: String) {
+        search(query)
+    }
+
+    private fun sortResults(results: List<SearchResult>, order: SortOrder): List<SearchResult> {
+        return when (order) {
+            SortOrder.RELEVANCE -> results.sortedByDescending { it.score }
+            SortOrder.DATE -> results.sortedByDescending { it.entry.createdAt }
+        }
+    }
+
+    private fun groupByMonth(results: List<SearchResult>): Map<String, List<SearchResult>> {
+        val sdf = SimpleDateFormat("yyyy\u5E74MM\u6708", Locale.getDefault())
+        return results.groupBy { sdf.format(Date(it.entry.createdAt)) }
     }
 
     private fun computeSearch(query: String): List<SearchResult> {
@@ -131,8 +181,8 @@ class SemanticSearchViewModel(application: Application) : AndroidViewModel(appli
             val lowerQuery = query.lowercase()
             val idx = lowerText.indexOf(lowerQuery)
             if (idx >= 0) {
-                val start = (idx - 30).coerceAtLeast(0)
-                val end = (idx + query.length + 60).coerceAtMost(entry.plainText.length)
+                val start = (idx - 40).coerceAtLeast(0)
+                val end = (idx + query.length + 80).coerceAtMost(entry.plainText.length)
                 snippet = (if (start > 0) "..." else "") + entry.plainText.substring(start, end) + (if (end < entry.plainText.length) "..." else "")
             }
 

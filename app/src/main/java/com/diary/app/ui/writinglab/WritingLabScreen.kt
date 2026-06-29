@@ -37,9 +37,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Divider
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun WritingLabScreen(onNavigateBack: () -> Unit, viewModel: WritingLabViewModel = viewModel()) {
@@ -92,10 +106,57 @@ fun WritingLabScreen(onNavigateBack: () -> Unit, viewModel: WritingLabViewModel 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(exp.rules, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(progress = participations.size.toFloat() / 7f, modifier = Modifier.fillMaxWidth())
-                        Text("已完成 ${participations.size}/7 天", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp))
-                        if (participations.size < 7) {
+                        val totalDays = experimentPresets.find { it.title == exp.title }?.days ?: 7
+                        val progress = participations.size.toFloat() / totalDays.toFloat()
+                        
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val primaryColor = MaterialTheme.colorScheme.primary
+                            Canvas(modifier = Modifier.size(100.dp)) {
+                                val strokeWidth = 8.dp.toPx()
+                                val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
+                                drawArc(
+                                    color = Color.Gray.copy(alpha = 0.2f),
+                                    startAngle = -90f,
+                                    sweepAngle = 360f,
+                                    useCenter = false,
+                                    topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                                    size = arcSize,
+                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                )
+                                drawArc(
+                                    color = primaryColor,
+                                    startAngle = -90f,
+                                    sweepAngle = progress * 360f,
+                                    useCenter = false,
+                                    topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                                    size = arcSize,
+                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("已完成 ${participations.size}/${totalDays} 天", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${(progress * 100).toInt()}%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                        val hasWrittenToday = participations.any { p ->
+                            val cal = Calendar.getInstance()
+                            val partCal = Calendar.getInstance().apply { timeInMillis = p.completedAt }
+                            cal.get(Calendar.DAY_OF_YEAR) == partCal.get(Calendar.DAY_OF_YEAR) &&
+                            cal.get(Calendar.YEAR) == partCal.get(Calendar.YEAR)
+                        }
+                        if (!hasWrittenToday && participations.size < totalDays) {
+                            Text("今天还没有写作，记得来完成今日记录",
+                                fontSize = 12.sp, color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
+                        }
+                        if (participations.size < totalDays) {
                             Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(value = inputText, onValueChange = { inputText = it },
                                 placeholder = { Text("写下今天的实验记录...") },
@@ -105,8 +166,37 @@ fun WritingLabScreen(onNavigateBack: () -> Unit, viewModel: WritingLabViewModel 
                             Button(onClick = { if (inputText.isNotBlank()) { viewModel.logParticipation(inputText.trim()); inputText = "" } },
                                 modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("提交第${participations.size + 1}天记录") }
                         } else {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("全部完成！", fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            val totalChars = participations.sumOf { it.note.length }
+                            val firstDate = remember(participations) {
+                                SimpleDateFormat("MM月dd日", Locale.getDefault()).format(Date(participations.firstOrNull()?.completedAt ?: exp.startDate))
+                            }
+                            GlassCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                cornerRadius = 20.dp,
+                                innerPadding = 20.dp
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color(0xFFFFD700)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("恭喜完成实验！", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("获得「${exp.badgeName}」徽章", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Divider()
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("实验统计", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("写作天数：${participations.size} 天", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("总字数：${totalChars} 字", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("开始日期：$firstDate", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }

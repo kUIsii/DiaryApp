@@ -117,13 +117,13 @@ fun AchievementDetailSheet(item: AchievementItem, onDismiss: () -> Unit) {
                     )
                 }
 
-                AchievementArtwork(
+                AchievementBadge(
                     achievementKey = item.def.key,
                     category = item.def.category,
                     tier = item.def.tier,
-                    isUnlocked = item.isUnlocked,
+                    unlocked = item.isUnlocked,
                     modifier = Modifier.size(120.dp),
-                    cornerRadius = 24
+                    size = 120
                 )
             }
 

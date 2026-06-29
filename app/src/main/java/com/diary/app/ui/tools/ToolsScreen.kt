@@ -36,18 +36,15 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
@@ -149,7 +146,6 @@ fun ToolsScreen(
     onNavigateToMemoryAnchors: () -> Unit = {},
     onNavigateToWritingFingerprint: () -> Unit = {},
     onNavigateToEmotionForecast: () -> Unit = {},
-    onNavigateToRelationshipTracking: () -> Unit = {},
     onNavigateToDecisionAnalysis: () -> Unit = {},
     onNavigateToValuesExtraction: () -> Unit = {},
     onNavigateToWritingLab: () -> Unit = {},
@@ -168,7 +164,6 @@ fun ToolsScreen(
     onNavigateToPersonalYearbook: () -> Unit = {},
     onNavigateToTravelLog: () -> Unit = {},
     onNavigateToLocationMemories: () -> Unit = {},
-    onNavigateToDiaryTalk: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
@@ -191,7 +186,6 @@ fun ToolsScreen(
             title = "\u521B\u4F5C\u8BB0\u5F55",
             subtitle = "\u7B7E\u5230\u00B7\u8BED\u97F3\u00B7\u5199\u4F5C",
             items = listOf(
-                ToolItem(Icons.Default.EditNote, "\u5FEB\u901F\u7B7E\u5230", "\u60C5\u611F\u8BB0\u5F55\u4E0E\u5C0F\u786E\u5E78", onNavigateToQuickCheckin),
                 ToolItem(Icons.Default.Mic, "\u8BED\u97F3\u7EAA\u5F55", "\u5F55\u97F3\u5E76\u8F6C\u5199\u6587\u5B57", onNavigateToVoiceRecording),
                 ToolItem(Icons.Default.Lock, "\u9501\u5C4F\u5FEB\u5199", "\u4E0D\u89E3\u9501\u5FEB\u901F\u8BB0\u5F55", onNavigateToLockScreenQuickWrite),
                 ToolItem(Icons.Default.PanTool, "\u5FEB\u6377\u64CD\u4F5C", "\u81EA\u5B9A\u4E49\u624B\u52BF\u52A8\u4F5C", onNavigateToGestureQuickAction),
@@ -222,7 +216,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u62A5\u544A\u00B7\u5B63\u5EA6\u00B7\u5E74\u9274", onNavigateToStats),
                 ToolItem(Icons.Default.Favorite, "\u60C5\u7EEA\u5206\u6790", "\u60C5\u7EEA\u9884\u6D4B\u4E0E\u96F7\u8FBE\u56FE", onNavigateToEmotionForecast),
                 ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
-                ToolItem(Icons.Default.Group, "\u5173\u7CFB\u8FFD\u8E2A", "\u8FFD\u8E2A\u4EBA\u7269\u5173\u7CFB\u53D8\u5316", onNavigateToRelationshipTracking),
                 ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
                 ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
                 ToolItem(Icons.Default.Share, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
@@ -238,7 +231,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.Key, "AI \u914D\u7F6E", if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u914D\u7F6E API \u5BC6\u94A5", onNavigateToAiManagement),
                 ToolItem(Icons.Default.Forum, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
                 ToolItem(Icons.Default.Person, "AI \u4F20\u8BB0", "\u751F\u6210\u4E2A\u4EBA\u4F20\u8BB0", onNavigateToBiography),
-                ToolItem(Icons.Default.ChatBubbleOutline, "AI \u5BF9\u8BDD\u8FC7\u5F80", "\u4E0E\u8FC7\u53BB\u7684\u81EA\u5DF1\u5BF9\u8BDD", onNavigateToDiaryTalk),
             )
         ),
         ToolSection(

@@ -125,7 +125,6 @@ import com.diary.app.ui.textmicroscope.TextMicroscopeScreen
 import com.diary.app.ui.memoryanchors.MemoryAnchorsScreen
 import com.diary.app.ui.writingfingerprint.WritingFingerprintScreen
 import com.diary.app.ui.emotionforecast.EmotionForecastScreen
-import com.diary.app.ui.relationships.RelationshipTrackingScreen
 import com.diary.app.ui.decisions.DecisionAnalysisScreen
 import com.diary.app.ui.values.ValuesExtractionScreen
 import com.diary.app.ui.writinglab.WritingLabScreen
@@ -152,7 +151,6 @@ import com.diary.app.ui.adaptiveinterface.AdaptiveInterfaceScreen
 import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
 import com.diary.app.ui.travellog.TravelLogScreen
 import com.diary.app.ui.locationmemories.LocationMemoriesScreen
-import com.diary.app.ui.diarytalk.DiaryTalkScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
@@ -233,7 +231,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object MemoryAnchors : Screen("memory_anchors", "记忆锚点", Icons.Default.Label)
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
     object EmotionForecast : Screen("emotion_forecast", "情绪预报", Icons.Default.Home)
-    object RelationshipTracking : Screen("relationship_tracking", "关系追踪", Icons.Default.Person)
     object DecisionAnalysis : Screen("decision_analysis", "决策追踪", Icons.Default.CheckBox)
     object ValuesExtraction : Screen("values_extraction", "价值观", Icons.Default.Favorite)
     object WritingLab : Screen("writing_lab", "写作实验室", Icons.Default.Science)
@@ -265,7 +262,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object PersonalYearbook : Screen("personal_yearbook", "个人年鉴", Icons.Default.CalendarMonth)
     object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
     object LocationMemories : Screen("location_memories", "地点触发回忆", Icons.Default.LocationOn)
-    object DiaryTalk : Screen("diary_talk", "与过去的自己对话", Icons.Default.ChatBubbleOutline)
 }
 
 data class BottomNavItem(
@@ -455,7 +451,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToMemoryAnchors = { navController.navigate(Screen.MemoryAnchors.route) },
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
                     onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
-                    onNavigateToRelationshipTracking = { navController.navigate(Screen.RelationshipTracking.route) },
                     onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
                     onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
                     onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
@@ -474,7 +469,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
                     onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
                     onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) },
-                    onNavigateToDiaryTalk = { navController.navigate(Screen.DiaryTalk.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
@@ -961,7 +955,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) }
                 )
             }
-            composable(Screen.RelationshipTracking.route) { RelationshipTrackingScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.DecisionAnalysis.route) { DecisionAnalysisScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.ValuesExtraction.route) { ValuesExtractionScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.WritingLab.route) { WritingLabScreen(onNavigateBack = { navController.popBackStack() }) }
@@ -1054,12 +1047,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(route = Screen.LocationMemories.route) {
                 LocationMemoriesScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
-                )
-            }
-            composable(route = Screen.DiaryTalk.route) {
-                DiaryTalkScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )

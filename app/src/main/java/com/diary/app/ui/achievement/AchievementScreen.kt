@@ -115,11 +115,11 @@ fun AchievementScreen(
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Feature entry cards
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -439,16 +439,16 @@ private fun AchievementCompactCard(
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Artwork - uses gradient background + vector icon
-        AchievementArtwork(
+        // Artwork - uses gradient badge with Canvas
+        AchievementBadge(
             achievementKey = item.def.key,
             category = item.def.category,
             tier = item.def.tier,
-            isUnlocked = item.isUnlocked,
+            unlocked = item.isUnlocked,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f),
-            cornerRadius = 12
+            size = 96
         )
 
         Spacer(modifier = Modifier.height(5.dp))

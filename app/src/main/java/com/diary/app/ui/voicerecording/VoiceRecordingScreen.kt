@@ -26,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.VoiceMemo
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import android.media.MediaPlayer
+import androidx.compose.ui.text.style.TextOverflow
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,6 +44,40 @@ fun VoiceRecordingScreen(
     val isRecording by viewModel.voiceRecorder.isRecording.collectAsState()
     val isTranscribing by viewModel.voiceRecorder.isTranscribing.collectAsState()
     val transcription by viewModel.voiceRecorder.transcription.collectAsState()
+    
+    var playingMemoId by remember { mutableStateOf<Long?>(null) }
+    var editingMemoId by remember { mutableStateOf<Long?>(null) }
+    var editingText by remember { mutableStateOf("") }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.release()
+        }
+    }
+
+    val onPlayPause: (VoiceMemo) -> Unit = { memo ->
+        if (playingMemoId == memo.id) {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
+            playingMemoId = null
+        } else {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(memo.audioPath)
+                setOnPreparedListener { start() }
+                prepareAsync()
+                setOnCompletionListener {
+                    mediaPlayer?.release()
+                    mediaPlayer = null
+                    playingMemoId = null
+                }
+            }
+            playingMemoId = memo.id
+        }
+    }
     
     var hasPermission by remember {
         mutableStateOf(
@@ -247,21 +283,66 @@ fun VoiceRecordingScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             // Saved memos list
-            if (savedMemos.isNotEmpty()) {
-                Text(
-                    text = "已保存的备忘录",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-                
+            Text(
+                text = "已保存的备忘录",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            
+            if (savedMemos.isEmpty()) {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 12.dp,
+                    innerPadding = 24.dp
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "还没有录音，点击下方按钮开始录制",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(savedMemos) { memo ->
                         VoiceMemoCard(
                             memo = memo,
-                            onDelete = { viewModel.deleteMemo(memo.id) }
+                            isPlaying = playingMemoId == memo.id,
+                            editingMemoId = editingMemoId,
+                            editingText = editingText,
+                            onPlay = { onPlayPause(memo) },
+                            onEditStart = {
+                                editingMemoId = memo.id
+                                editingText = memo.transcript ?: ""
+                            },
+                            onEditChange = { editingText = it },
+                            onEditSave = {
+                                if (editingText.isNotBlank()) {
+                                    viewModel.updateTranscript(memo, editingText)
+                                }
+                                editingMemoId = null
+                                editingText = ""
+                            },
+                            onEditCancel = {
+                                editingMemoId = null
+                                editingText = ""
+                            },
+                            onDelete = { viewModel.deleteMemo(memo.id) },
+                            onCreateDiary = { viewModel.createDiaryFromTranscript(memo) }
                         )
                     }
                     item {
@@ -270,6 +351,20 @@ fun VoiceRecordingScreen(
                 }
             }
         }
+    }
+}
+
+private fun formatDuration(seconds: Int): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return if (m > 0) "${m}分${s}秒" else "${s}秒"
+}
+
+private fun formatFileSize(bytes: Long): String {
+    return when {
+        bytes < 1024 -> "${bytes}B"
+        bytes < 1024 * 1024 -> "${bytes / 1024}KB"
+        else -> String.format("%.1fMB", bytes / (1024.0 * 1024.0))
     }
 }
 
@@ -311,61 +406,122 @@ private fun RecordingAnimation() {
 @Composable
 private fun VoiceMemoCard(
     memo: VoiceMemo,
-    onDelete: () -> Unit
+    isPlaying: Boolean,
+    editingMemoId: Long?,
+    editingText: String,
+    onPlay: () -> Unit,
+    onEditStart: () -> Unit,
+    onEditChange: (String) -> Unit,
+    onEditSave: () -> Unit,
+    onEditCancel: () -> Unit,
+    onDelete: () -> Unit,
+    onCreateDiary: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    val fileSize = remember(memo.audioPath) { File(memo.audioPath).length() }
+    val isEditing = editingMemoId == memo.id
+    val transcriptText = memo.transcript
     
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 12.dp,
-        innerPadding = 12.dp
+        innerPadding = 12.dp,
+        onClick = { if (!isEditing) onPlay() }
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Mic,
-                        contentDescription = null,
+                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "暂停" else "播放",
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "${memo.durationSeconds}秒",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column {
+                        Text(
+                            text = formatDuration(memo.durationSeconds),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = formatFileSize(fileSize),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
                 
-                if (memo.transcript != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = memo.transcript,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
-                    )
+                Row {
+                    if (transcriptText != null && transcriptText.isNotBlank() && !isEditing) {
+                        IconButton(onClick = onCreateDiary) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "创建日记",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = dateFormat.format(Date(memo.createdAt)),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
             }
             
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+            if (isEditing) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editingText,
+                    onValueChange = onEditChange,
+                    modifier = Modifier.fillMaxWidth().height(100.dp)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onEditSave) {
+                        Text("保存")
+                    }
+                    OutlinedButton(onClick = onEditCancel) {
+                        Text("取消")
+                    }
+                }
+            } else if (transcriptText != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = transcriptText,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onEditStart) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "编辑转写",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = dateFormat.format(Date(memo.createdAt)),
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
         }
     }
 }

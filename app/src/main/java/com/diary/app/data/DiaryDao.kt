@@ -752,6 +752,9 @@ interface DiaryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertVoiceMemo(memo: VoiceMemo): Long
 
+    @Update
+    suspend fun updateVoiceMemo(memo: VoiceMemo)
+
     @Query("DELETE FROM voice_memos WHERE id = :id")
     suspend fun deleteVoiceMemo(id: Long)
 
@@ -788,26 +791,6 @@ interface DiaryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWritingFingerprint(fingerprint: WritingFingerprint): Long
-
-    // Tracked persons
-    @Query("SELECT * FROM tracked_persons ORDER BY mentionCount DESC")
-    fun getAllTrackedPersons(): Flow<List<TrackedPerson>>
-
-    @Query("SELECT * FROM tracked_persons WHERE name = :name LIMIT 1")
-    suspend fun getTrackedPersonByName(name: String): TrackedPerson?
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertTrackedPerson(person: TrackedPerson): Long
-
-    @Update
-    suspend fun updateTrackedPerson(person: TrackedPerson)
-
-    // Person mentions
-    @Query("SELECT * FROM person_mentions WHERE personId = :personId ORDER BY createdAt DESC")
-    fun getPersonMentions(personId: Long): Flow<List<PersonMention>>
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertPersonMention(mention: PersonMention): Long
 
     // Decisions
     @Query("SELECT * FROM decisions ORDER BY madeAt DESC")

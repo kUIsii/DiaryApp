@@ -27,6 +27,7 @@ enum class AmbientSoundType(
 
 class AmbientSoundPlayer private constructor() {
     private val players = mutableMapOf<AmbientSoundType, MediaPlayer>()
+    private val pendingPrepares = mutableMapOf<AmbientSoundType, MediaPlayer>()
     private val pendingDownloads = mutableSetOf<AmbientSoundType>()
     private var contextRef: Context? = null
     private var audioManager: AudioManager? = null
@@ -68,6 +69,7 @@ class AmbientSoundPlayer private constructor() {
         val ctx = contextRef ?: return
         synchronized(players) {
             if (players.containsKey(type)) return
+            if (pendingPrepares.containsKey(type)) return
         }
 
         val mp3 = File(ctx.cacheDir, "${type.key}.mp3")
@@ -108,6 +110,7 @@ class AmbientSoundPlayer private constructor() {
             Handler(Looper.getMainLooper()).post {
                 synchronized(players) {
                     if (players.containsKey(type)) return@post
+                    if (pendingPrepares.containsKey(type)) return@post
                 }
                 if (mp3.exists() && mp3.length() > 1000) playFile(type, volume, mp3)
                 else {
@@ -121,6 +124,7 @@ class AmbientSoundPlayer private constructor() {
     private fun playFile(type: AmbientSoundType, volume: Float, file: File) {
         synchronized(players) {
             if (players.containsKey(type)) return
+            if (pendingPrepares.containsKey(type)) return
         }
         ensureAudioFocus()
         val player = try {
@@ -131,13 +135,20 @@ class AmbientSoundPlayer private constructor() {
                 setDataSource(file.absolutePath)
                 isLooping = true
                 setOnPreparedListener {
-                    synchronized(players) { players[type] = this@apply }
+                    synchronized(players) {
+                        pendingPrepares.remove(type)
+                        players[type] = this@apply
+                    }
                     currentVolumes[type] = volume
                     fadeTo(type, volume, 200)
                     start()
                     playCallback?.invoke()
                 }
-                setOnErrorListener { _, _, _ -> true }
+                setOnErrorListener { mp, _, _ ->
+                    synchronized(players) { pendingPrepares.remove(type) }
+                    try { mp.release() } catch (_: Exception) {}
+                    true
+                }
                 prepareAsync()
                 setVolume(0f, 0f)
             }
@@ -145,19 +156,21 @@ class AmbientSoundPlayer private constructor() {
             Log.e("AmbientSoundPlayer", "Failed to create player for ${type.key}", e)
             return
         }
+        synchronized(players) { pendingPrepares[type] = player }
     }
 
     fun stop(type: AmbientSoundType) {
-        val p: MediaPlayer?
+        val ps = mutableListOf<MediaPlayer>()
         synchronized(players) {
-            p = players.remove(type)
+            players.remove(type)?.let { ps.add(it) }
+            pendingPrepares.remove(type)?.let { ps.add(it) }
         }
-        p?.apply {
-            try { if (isPlaying) stop() } catch (_: Exception) {}
-            release()
+        for (p in ps) {
+            try { if (p.isPlaying) p.stop() } catch (_: Exception) {}
+            p.release()
         }
         synchronized(currentVolumes) { currentVolumes.remove(type) }
-        synchronized(players) { if (players.isEmpty()) abandonAudioFocus() }
+        synchronized(players) { if (players.isEmpty() && pendingPrepares.isEmpty()) abandonAudioFocus() }
         stopCallback?.invoke()
     }
 
@@ -201,7 +214,7 @@ class AmbientSoundPlayer private constructor() {
 
     fun getActiveTypes(): Set<AmbientSoundType> = synchronized(players) { players.keys.toSet() }
     fun getVolume(type: AmbientSoundType): Float = synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }
-    fun hasActivePlayers(): Boolean = synchronized(players) { players.isNotEmpty() }
+    fun hasActivePlayers(): Boolean = synchronized(players) { players.isNotEmpty() || pendingPrepares.isNotEmpty() }
 
     fun setVolume(type: AmbientSoundType, volume: Float) {
         synchronized(currentVolumes) { currentVolumes[type] = volume }

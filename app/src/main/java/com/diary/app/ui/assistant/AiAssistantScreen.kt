@@ -240,6 +240,13 @@ fun AiAssistantScreen(
                     }
                 }
 
+                Text(
+                    text = "提示：你也可以和过去的自己对话——在对话中说'回顾2024年5月'即可",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier

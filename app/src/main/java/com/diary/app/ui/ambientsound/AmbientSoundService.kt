@@ -40,7 +40,15 @@ class AmbientSoundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        if (intent == null) {
+            if (player.hasActivePlayers()) {
+                try { startForeground(NOTIFICATION_ID, buildNotification()) } catch (e: Exception) { return START_NOT_STICKY }
+                updatePlaybackState()
+                return START_STICKY
+            }
+            return START_NOT_STICKY
+        }
+        when (intent.action) {
             ACTION_STOP_ALL -> {
                 player.stopAll()
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -69,7 +77,7 @@ class AmbientSoundService : Service() {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (e: Exception) { Log.w("AmbientSoundSvc", "startForeground failed", e); return START_NOT_STICKY }
         updatePlaybackState()
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onDestroy() {

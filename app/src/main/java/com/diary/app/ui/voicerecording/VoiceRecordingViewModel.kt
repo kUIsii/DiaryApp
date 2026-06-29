@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import com.diary.app.data.DiaryEntry
 import com.diary.app.data.VoiceMemo
 import com.diary.app.voice.VoiceRecorder
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +60,30 @@ class VoiceRecordingViewModel(application: Application) : AndroidViewModel(appli
                 dao.deleteVoiceMemo(memoId)
                 loadMemos()
             }
+        }
+    }
+
+    fun updateTranscript(memo: VoiceMemo, newTranscript: String) {
+        viewModelScope.launch {
+            dao.updateVoiceMemo(memo.copy(transcript = newTranscript))
+            loadMemos()
+        }
+    }
+
+    fun createDiaryFromTranscript(memo: VoiceMemo) {
+        viewModelScope.launch {
+            val transcript = memo.transcript ?: return@launch
+            val now = System.currentTimeMillis()
+            val entry = DiaryEntry(
+                title = transcript.take(50),
+                content = "{\"ops\":[{\"insert\":\"${transcript.replace("\"", "\\\"").replace("\n", "\\n")}\"}]}",
+                plainText = transcript,
+                createdAt = now,
+                updatedAt = now
+            )
+            val entryId = dao.insertEntry(entry)
+            dao.updateVoiceMemo(memo.copy(diaryId = entryId))
+            loadMemos()
         }
     }
     
