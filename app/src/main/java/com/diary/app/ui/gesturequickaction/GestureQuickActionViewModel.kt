@@ -23,7 +23,8 @@ data class GestureQuickActionState(
     val lastUsedDate: String = "",
     val mostUsedGesture: String = "",
     val aiSuggestions: List<AiSuggestion>? = null,
-    val isAiAnalyzing: Boolean = false
+    val isAiAnalyzing: Boolean = false,
+    val lastPreview: GestureExecutionPreview? = null
 )
 
 data class AiSuggestion(
@@ -117,7 +118,6 @@ class GestureQuickActionViewModel(application: Application) : AndroidViewModel(a
     fun setAction(gesture: String, action: String) {
         cachedMappings[gesture] = action
         prefs.edit().putString("gesture_$gesture", action).apply()
-        recordUsage(gesture)
         _state.value = _state.value.copy(aiSuggestions = null)
     }
 
@@ -130,14 +130,16 @@ class GestureQuickActionViewModel(application: Application) : AndroidViewModel(a
         updateStateFromCache()
     }
 
-    fun executeAction(actionName: String, context: Context) {
-        val msg = when (actionName) {
-            "新建日记" -> "将打开日记编辑器"
-            "快速签到" -> "将打开快速签到"
-            "打开搜索" -> "将打开搜索"
-            else -> "执行: $actionName"
+    fun executeAction(actionName: String, context: Context): GestureExecutionPreview {
+        val preview = resolveGestureExecutionPreview(actionName)
+        _state.value = _state.value.copy(lastPreview = preview)
+        val msg = if (preview.canExecute) {
+            "${preview.label} · ${preview.note}"
+        } else {
+            preview.note
         }
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        return preview
     }
 
     fun requestAiSuggestions() {

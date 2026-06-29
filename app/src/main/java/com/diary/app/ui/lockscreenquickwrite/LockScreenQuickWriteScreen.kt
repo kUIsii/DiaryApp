@@ -267,10 +267,8 @@ fun LockScreenQuickWriteScreen(
                     }
 
                     if (smartLinkSuggestion != null) {
-                        val (linkedId, linkText) = smartLinkSuggestion!!
-                        val quickWriteId = remember {
-                            notes.firstOrNull()?.id
-                        }
+                        val suggestion = smartLinkSuggestion!!
+                        val sourceNote = notes.firstOrNull { it.id == suggestion.quickWriteId }
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
                             cornerRadius = DesignTokens.CornerMedium,
@@ -278,10 +276,20 @@ fun LockScreenQuickWriteScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = linkText,
+                                    text = suggestion.message,
                                     fontSize = DesignTokens.FontBody,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (sourceNote != null) {
+                                    Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+                                    Text(
+                                        text = sourceNote.content,
+                                        fontSize = DesignTokens.FontCaption,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -296,9 +304,7 @@ fun LockScreenQuickWriteScreen(
                                     Spacer(modifier = Modifier.width(DesignTokens.SpacingSm))
                                     TextButton(
                                         onClick = {
-                                            if (quickWriteId != null) {
-                                                viewModel.acceptSmartLink(quickWriteId, linkedId)
-                                            }
+                                            viewModel.acceptSmartLink(suggestion.quickWriteId, suggestion.linkedEntryId)
                                         }
                                     ) {
                                         Text("关联")

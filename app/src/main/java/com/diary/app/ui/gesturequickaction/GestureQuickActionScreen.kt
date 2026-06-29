@@ -137,6 +137,46 @@ fun GestureQuickActionScreen(
                 }
 
                 item {
+                    state.lastPreview?.let { preview ->
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = 20.dp,
+                            innerPadding = 16.dp
+                        ) {
+                            Column {
+                                Text(
+                                    "最近一次测试预览",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    preview.label,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    preview.note,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (preview.route != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "目标页面: ${preview.route}",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "手势映射",

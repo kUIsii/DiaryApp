@@ -97,6 +97,27 @@ import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Colorize
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.TipsAndUpdates
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VolumeUp
 
 private data class ToolItem(
     val icon: ImageVector,
@@ -118,8 +139,8 @@ private fun sectionColor(index: Int): Color {
     val p = MaterialTheme.colorScheme.primary
     val s = MaterialTheme.colorScheme.secondary
     val t = MaterialTheme.colorScheme.tertiary
-    return when (index) {
-        0 -> p; 1 -> s; 2 -> t; 3 -> p; 4 -> s; else -> t
+    return when (index % 3) {
+        0 -> p; 1 -> s; else -> t
     }
 }
 
@@ -149,6 +170,8 @@ fun ToolsScreen(
     onNavigateToMemoryAnchors: () -> Unit = {},
     onNavigateToWritingFingerprint: () -> Unit = {},
     onNavigateToEmotionForecast: () -> Unit = {},
+    onNavigateToEmotionRadar: () -> Unit = {},
+    onNavigateToTextMicroscope: () -> Unit = {},
     onNavigateToDecisionAnalysis: () -> Unit = {},
     onNavigateToValuesExtraction: () -> Unit = {},
     onNavigateToWritingLab: () -> Unit = {},
@@ -185,64 +208,85 @@ fun ToolsScreen(
 
     val sections = listOf(
         ToolSection(
-            key = "create",
-            icon = Icons.Default.Create,
-            title = "\u521B\u4F5C\u8BB0\u5F55",
-            subtitle = "\u7B7E\u5230\u00B7\u8BED\u97F3\u00B7\u5199\u4F5C",
+            key = "quick",
+            icon = Icons.Default.FlashOn,
+            title = "\u5FEB\u901F\u8BB0\u5F55",
+            subtitle = "\u8BED\u97F3\u00B7\u7B7E\u5230\u00B7\u5FEB\u5199",
             items = listOf(
                 ToolItem(Icons.Default.Mic, "\u8BED\u97F3\u7EAA\u5F55", "\u5F55\u97F3\u5E76\u8F6C\u5199\u6587\u5B57", onNavigateToVoiceRecording),
                 ToolItem(Icons.Default.Lock, "\u9501\u5C4F\u5FEB\u5199", "\u4E0D\u89E3\u9501\u5FEB\u901F\u8BB0\u5F55", onNavigateToLockScreenQuickWrite),
+                ToolItem(Icons.Default.EditNote, "\u5FEB\u901F\u7B7E\u5230", "\u5FEB\u901F\u60C5\u7EEA\u4E0E\u6587\u5B57\u7B7E\u5230", onNavigateToQuickCheckin),
                 ToolItem(Icons.Default.PanTool, "\u5FEB\u6377\u64CD\u4F5C", "\u81EA\u5B9A\u4E49\u624B\u52BF\u52A8\u4F5C", onNavigateToGestureQuickAction),
-                ToolItem(Icons.Default.AutoFixHigh, "\u5199\u4F5C\u5DE5\u5177", "\u7075\u611F\u00B7\u6559\u7EC3\u00B7\u5B9E\u9A8C\u5BA4", onNavigateToWritingLab),
-                ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6559\u7EC3", "\u5199\u4F5C\u6559\u7EC3\u4E0E\u6307\u5BFC", onNavigateToWritingCoach),
+            )
+        ),
+        ToolSection(
+            key = "writing",
+            icon = Icons.Default.Colorize,
+            title = "\u5199\u4F5C\u5DE5\u574A",
+            subtitle = "\u7075\u611F\u00B7\u5DE5\u574A\u00B7\u5C0F\u786E\u5E78",
+            items = listOf(
+                ToolItem(Icons.Default.AutoFixHigh, "\u5199\u4F5C\u5DE5\u574A", "\u7075\u611F\u00B7\u6A21\u677F\u00B7\u5B9E\u9A8C\u5BA4", onNavigateToWritingLab),
+                ToolItem(Icons.Default.TipsAndUpdates, "\u5199\u4F5C\u7075\u611F", "\u5B9E\u65F6\u5199\u4F5C\u5EFA\u8BAE\u4E0E\u63D0\u793A", onNavigateToWritingHint),
                 ToolItem(Icons.Default.Favorite, "\u5C0F\u786E\u5E78", "\u8BB0\u5F55\u751F\u6D3B\u7684\u5C0F\u786E\u5E78", onNavigateToSmallWins),
             )
         ),
         ToolSection(
             key = "reading",
-            icon = Icons.Default.MenuBook,
+            icon = Icons.Default.LibraryBooks,
             title = "\u6C89\u6D78\u9605\u8BFB",
             subtitle = "\u9605\u8BFB\u00B7\u7EB2\u8981\u00B7\u4E3B\u9898",
             items = listOf(
-                ToolItem(Icons.Default.MenuBook, "\u6C89\u6D78\u9605\u8BFB", "\u4E13\u6CE8\u65E0\u5E72\u6270\u9605\u8BFB/\u7F16\u8F91", onNavigateToImmersiveReader),
-                ToolItem(Icons.Default.Info, "\u5199\u4F5C\u63D0\u793A", "\u5B9E\u65F6\u5199\u4F5C\u5EFA\u8BAE\u4E0E\u63D0\u793A", onNavigateToWritingHint),
-                ToolItem(Icons.Default.Collections, "\u7EB2\u8981\u89C6\u56FE", "\u6D4F\u89C8\u65E5\u8BB0\u7EB2\u8981\u00B7\u5FEB\u901F\u5BFC\u822A", onNavigateToOutlineView),
+                ToolItem(Icons.Default.Visibility, "\u6C89\u6D78\u9605\u8BFB", "\u4E13\u6CE8\u65E0\u5E72\u6270\u9605\u8BFB\u4F53\u9A8C", onNavigateToImmersiveReader),
+                ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
+                ToolItem(Icons.Default.FormatListBulleted, "\u5927\u7EB2\u89C6\u56FE", "\u6D4F\u89C8\u65E5\u8BB0\u7EB2\u8981\u00B7\u5FEB\u901F\u5BFC\u822A", onNavigateToOutlineView),
                 ToolItem(Icons.Default.Palette, "\u5C01\u9762\u4E3B\u9898", "\u81EA\u5B9A\u4E49\u65E5\u8BB0\u5C01\u9762\u98CE\u683C", onNavigateToCoverTheme),
-                ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u4E0E\u6C89\u6D78\u9605\u8BFB", onNavigateToFocusMode),
             )
         ),
         ToolSection(
             key = "analysis",
             icon = Icons.Default.TrendingUp,
-            title = "\u6570\u636E\u6D1E\u5BDF",
+            title = "\u6570\u636E\u5206\u6790",
             subtitle = "\u7EDF\u8BA1\u00B7\u60C5\u7EEA\u00B7\u8BED\u4E49",
             items = listOf(
                 ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u62A5\u544A\u00B7\u5B63\u5EA6\u00B7\u5E74\u9274", onNavigateToStats),
-                ToolItem(Icons.Default.Favorite, "\u60C5\u7EEA\u5206\u6790", "\u60C5\u7EEA\u9884\u6D4B\u4E0E\u96F7\u8FBE\u56FE", onNavigateToEmotionForecast),
+                ToolItem(Icons.Default.Mood, "\u60C5\u7EEA\u5206\u6790", "\u60C5\u7EEA\u9884\u6D4B\u4E0E\u96F7\u8FBE\u56FE", onNavigateToEmotionForecast),
+                ToolItem(Icons.Default.PieChart, "\u60C5\u7EEA\u96F7\u8FBE", "\u591A\u7EF4\u60C5\u7EEA\u53EF\u89C6\u5316\u5206\u6790", onNavigateToEmotionRadar),
                 ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
                 ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
+                ToolItem(Icons.Default.TextFields, "\u6587\u5B57\u663E\u5FAE\u955C", "\u8BED\u8A00\u7EDF\u8BA1\u4E0E\u9891\u7387\u5206\u6790", onNavigateToTextMicroscope),
                 ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
-                ToolItem(Icons.Default.Share, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
-                ToolItem(Icons.Default.Edit, "\u4EF7\u503C\u89C2\u63D0\u53D6", "\u4ECE\u65E5\u8BB0\u4E2D\u63D0\u53D6\u4E2A\u4EBA\u4EF7\u503C\u89C2", onNavigateToValuesExtraction),
-                ToolItem(Icons.Default.Share, "\u6761\u76EE\u5173\u8054\u56FE\u8C31", "\u65E5\u8BB0\u5173\u8054\u53EF\u89C6\u5316\u56FE\u8C31", onNavigateToEntryGraph),
+            )
+        ),
+        ToolSection(
+            key = "insight",
+            icon = Icons.Default.Psychology,
+            title = "\u6DF1\u5EA6\u6D1E\u5BDF",
+            subtitle = "\u51B3\u7B56\u00B7\u4EF7\u503C\u00B7\u5173\u8054",
+            items = listOf(
+                ToolItem(Icons.Default.AccountTree, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
+                ToolItem(Icons.Default.Verified, "\u4EF7\u503C\u89C2\u63D0\u53D6", "\u4ECE\u65E5\u8BB0\u4E2D\u63D0\u53D6\u4E2A\u4EBA\u4EF7\u503C\u89C2", onNavigateToValuesExtraction),
+                ToolItem(Icons.Default.Hub, "\u6761\u76EE\u5173\u8054\u56FE\u8C31", "\u65E5\u8BB0\u5173\u8054\u53EF\u89C6\u5316\u56FE\u8C31", onNavigateToEntryGraph),
+                ToolItem(Icons.Default.Shuffle, "\u968F\u673A\u56DE\u987E", "\u91CD\u6E29\u65E7\u65E5\u8BB0", onNavigateToRandom),
             )
         ),
         ToolSection(
             key = "ai",
-            icon = Icons.Default.AutoStories,
+            icon = Icons.Default.SmartToy,
             title = "AI \u667A\u80FD",
             subtitle = if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u672A\u914D\u7F6E",
             items = listOf(
                 ToolItem(Icons.Default.Key, "AI \u914D\u7F6E", if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u914D\u7F6E API \u5BC6\u94A5", onNavigateToAiManagement),
                 ToolItem(Icons.Default.Forum, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
+                ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6559\u7EC3", "\u5199\u4F5C\u7EDF\u8BA1\u4E0E AI \u6307\u5BFC", onNavigateToWritingCoach),
                 ToolItem(Icons.Default.Person, "AI \u4F20\u8BB0", "\u751F\u6210\u4E2A\u4EBA\u4F20\u8BB0", onNavigateToBiography),
+                ToolItem(Icons.Default.Settings, "\u81EA\u9002\u5E94\u754C\u9762", "AI \u81EA\u9002\u5E94\u754C\u9762\u5E03\u5C40", onNavigateToAdaptiveInterface),
             )
         ),
         ToolSection(
             key = "memory",
             icon = Icons.Default.History,
             title = "\u56DE\u5FC6\u65C5\u7A0B",
-            subtitle = "\u80F6\u56CA\u00B7\u5730\u56FE\u00B7\u5012\u6570\u65E5",
+            subtitle = "\u80F6\u56CA\u00B7\u5730\u56FE\u00B7\u951A\u70B9",
             items = listOf(
                 ToolItem(Icons.Default.AccessTime, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1", onNavigateToTimeCapsule),
                 ToolItem(Icons.Default.Schedule, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
@@ -250,29 +294,35 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.DirectionsWalk, "\u65C5\u884C\u65E5\u5FD7", "\u65C5\u9014\u4E2D\u7684\u89C1\u95FB\u4E0E\u8BB0\u5F55", onNavigateToTravelLog),
                 ToolItem(Icons.Default.Place, "\u5730\u70B9\u8BB0\u5FC6", "\u6BCF\u4E2A\u5730\u70B9\u627F\u8F7D\u7684\u56DE\u5FC6", onNavigateToLocationMemories),
                 ToolItem(Icons.Default.Bookmark, "\u8BB0\u5FC6\u951A\u70B9", "\u5730\u70B9\u89E6\u53D1\u56DE\u5FC6", onNavigateToMemoryAnchors),
+                ToolItem(Icons.Default.CalendarToday, "\u4E2A\u4EBA\u5E74\u9274", "\u4E00\u5E74\u7684\u56DE\u5FC6\u4E0E\u6210\u957F\u62A5\u544A", onNavigateToPersonalYearbook),
                 ToolItem(Icons.Default.MusicNote, "\u573A\u666F\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
-                ToolItem(Icons.Default.Shuffle, "\u968F\u673A\u56DE\u987E", "\u91CD\u6E29\u65E7\u65E5\u8BB0", onNavigateToRandom),
-                ToolItem(Icons.Default.DateRange, "\u4E2A\u4EBA\u5E74\u9274", "\u4E00\u5E74\u7684\u56DE\u5FC6\u4E0E\u6210\u957F\u62A5\u544A", onNavigateToPersonalYearbook),
+            )
+        ),
+        ToolSection(
+            key = "progress",
+            icon = Icons.Default.Flag,
+            title = "\u76EE\u6807\u7CFB\u7EDF",
+            subtitle = "\u76EE\u6807\u00B7\u6311\u6218\u00B7\u6210\u5C31",
+            items = listOf(
+                ToolItem(Icons.Default.Star, "\u76EE\u6807\u8FFD\u8E2A", "\u76EE\u6807\u00B7\u52C7\u7AE0\u00B7\u6311\u6218", onNavigateToGoals),
+                ToolItem(Icons.Default.Event, "\u6708\u5EA6\u6311\u6218", "\u6BCF\u6708\u5199\u4F5C\u6311\u6218\u4E0E\u76EE\u6807", onNavigateToMonthlyChallenge),
+                ToolItem(Icons.Default.Shield, "\u8FDE\u7EED\u4FDD\u62A4", "\u4FDD\u62A4\u8FDE\u7EED\u5199\u4F5C\u8BB0\u5F55", onNavigateToStreakShield),
+                ToolItem(Icons.Default.EmojiEvents, "\u6210\u5C31", "\u5DF2\u89E3\u9501\u7684\u80CC\u666F\u4E0E\u52C7\u7AE0\u5899", onNavigateToAchievements),
             )
         ),
         ToolSection(
             key = "tools",
             icon = Icons.Default.Build,
             title = "\u7CFB\u7EDF\u5DE5\u5177",
-            subtitle = "\u6807\u7B7E\u00B7\u5A92\u4F53\u00B7\u6210\u5C31",
+            subtitle = "\u6807\u7B7E\u00B7\u5A92\u4F53\u00B7\u5B58\u50A8",
             items = listOf(
                 ToolItem(Icons.Default.Label, "\u6807\u7B7E\u7BA1\u7406", "\u6574\u7406\u65E5\u8BB0\u5206\u7C7B", onNavigateToTagManagement),
                 ToolItem(Icons.Default.Collections, "\u5A92\u4F53\u5E93", "\u6D4F\u89C8\u56FE\u7247\u548C\u89C6\u9891", onNavigateToMediaLibrary),
-                ToolItem(Icons.Default.Star, "\u76EE\u6807\u00B7\u52C7\u7AE0", "\u76EE\u6807\u00B7\u52C7\u7AE0\u00B7\u6311\u6218", onNavigateToGoals),
-                ToolItem(Icons.Default.EmojiEvents, "\u6210\u5C31", "\u5DF2\u89E3\u9501\u7684\u80CC\u666F\u4E0E\u52C7\u7AE0\u5899", onNavigateToAchievements),
                 ToolItem(Icons.Default.Storage, "\u5B58\u50A8\u7BA1\u7406", "\u7F13\u5B58\u00B7\u6570\u636E\u00B7\u5907\u4EFD\u7BA1\u7406", onNavigateToStorage),
                 ToolItem(Icons.Default.Notifications, "\u901A\u77E5\u7BA1\u7406", "\u63A7\u5236\u5404\u7C7B\u63A8\u9001\u901A\u77E5", onNavigateToNotifications),
+                ToolItem(Icons.Default.VolumeUp, "\u6E29\u67D4\u901A\u77E5", "\u6E29\u67D4\u7684\u63D0\u9192\u65B9\u5F0F", onNavigateToGentleNotification),
                 ToolItem(Icons.Default.Delete, "\u56DE\u6536\u7AD9", "\u5DF2\u5220\u9664\u7684\u65E5\u8BB0", onNavigateToTrash),
-                ToolItem(Icons.Default.Star, "\u6708\u5EA6\u6311\u6218", "\u6BCF\u6708\u5199\u4F5C\u6311\u6218\u4E0E\u76EE\u6807", onNavigateToMonthlyChallenge),
-                ToolItem(Icons.Default.EmojiEvents, "\u8FDE\u7EED\u4FDD\u62A4", "\u4FDD\u62A4\u8FDE\u7EED\u5199\u4F5C\u8BB0\u5F55", onNavigateToStreakShield),
-                ToolItem(Icons.Default.Favorite, "\u9690\u85CF\u5F69\u86CB", "\u6709\u8DA3\u7684\u9690\u85CF\u529F\u80FD\u4E0E\u5F69\u86CB", onNavigateToEasterEggs),
-                ToolItem(Icons.Default.Notifications, "\u6E29\u67D4\u901A\u77E5", "\u6E29\u67D4\u7684\u63D0\u9192\u65B9\u5F0F", onNavigateToGentleNotification),
-                ToolItem(Icons.Default.Settings, "\u81EA\u9002\u5E94\u754C\u9762", "\u81EA\u5B9A\u4E49\u754C\u9762\u00B7\u9690\u85CF\u529F\u80FD", onNavigateToAdaptiveInterface),
+                ToolItem(Icons.Default.VideogameAsset, "\u9690\u85CF\u5F69\u86CB", "\u6709\u8DA3\u7684\u9690\u85CF\u529F\u80FD\u4E0E\u5F69\u86CB", onNavigateToEasterEggs),
             )
         )
     )

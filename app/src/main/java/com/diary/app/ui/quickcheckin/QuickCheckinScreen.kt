@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,8 +40,13 @@ fun QuickCheckinScreen(
     val selectedMood by viewModel.selectedMood.collectAsState()
     val text by viewModel.text.collectAsState()
     val photoUri by viewModel.photoUri.collectAsState()
+    val checkins by viewModel.checkins.collectAsState()
     
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val canSubmit = shouldEnableQuickCheckinSubmit(selectedMood, text, photoUri)
+    val historySummary = remember(checkins) { buildQuickCheckinHistorySummary(checkins) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
@@ -63,12 +70,13 @@ fun QuickCheckinScreen(
         cameraLauncher.launch(uri)
     }
 
-    GradientBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        GradientBackground {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -86,6 +94,28 @@ fun QuickCheckinScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 16.dp,
+                innerPadding = 16.dp
+            ) {
+                Column {
+                    Text(
+                        text = "签到概览",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = historySummary,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Mood selector
             GlassCard(
@@ -122,6 +152,7 @@ fun QuickCheckinScreen(
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                                     modifier = Modifier
                                         .clip(CircleShape)
+                                        .clickable { viewModel.setMood(level) }
                                         .background(
                                             if (selectedMood == level)
                                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -228,16 +259,29 @@ fun QuickCheckinScreen(
             // Submit button
             Button(
                 onClick = {
-                    viewModel.submit()
-                    onNavigateBack()
+                    viewModel.submit { success ->
+                        if (success) {
+                            onNavigateBack()
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("请至少选择心情、文字或照片中的一项")
+                            }
+                        }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedMood != null || text.isNotBlank()
+                enabled = canSubmit
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("完成签到")
             }
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }

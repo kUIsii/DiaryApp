@@ -7,6 +7,9 @@ import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryEntry
 import com.diary.app.data.VoiceMemo
 import com.diary.app.voice.VoiceRecorder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,13 +26,16 @@ class VoiceRecordingViewModel(application: Application) : AndroidViewModel(appli
     
     private val _currentMemo = MutableStateFlow<VoiceMemo?>(null)
     val currentMemo: StateFlow<VoiceMemo?> = _currentMemo
+
+    private var memoCollectorJob: Job? = null
     
     init {
-        loadMemos()
+        observeMemos()
     }
     
-    fun loadMemos() {
-        viewModelScope.launch {
+    private fun observeMemos() {
+        if (memoCollectorJob?.isActive == true) return
+        memoCollectorJob = viewModelScope.launch {
             dao.getAllVoiceMemos().collect { memos ->
                 _savedMemos.value = memos
             }
@@ -47,7 +53,6 @@ class VoiceRecordingViewModel(application: Application) : AndroidViewModel(appli
             )
             val id = dao.insertVoiceMemo(memo)
             _currentMemo.value = memo.copy(id = id)
-            loadMemos()
         }
     }
     
@@ -58,7 +63,6 @@ class VoiceRecordingViewModel(application: Application) : AndroidViewModel(appli
                 // 删除音频文件
                 File(it.audioPath).delete()
                 dao.deleteVoiceMemo(memoId)
-                loadMemos()
             }
         }
     }
@@ -66,24 +70,44 @@ class VoiceRecordingViewModel(application: Application) : AndroidViewModel(appli
     fun updateTranscript(memo: VoiceMemo, newTranscript: String) {
         viewModelScope.launch {
             dao.updateVoiceMemo(memo.copy(transcript = newTranscript))
-            loadMemos()
         }
     }
 
     fun createDiaryFromTranscript(memo: VoiceMemo) {
         viewModelScope.launch {
             val transcript = memo.transcript ?: return@launch
-            val now = System.currentTimeMillis()
-            val entry = DiaryEntry(
-                title = transcript.take(50),
-                content = "{\"ops\":[{\"insert\":\"${transcript.replace("\"", "\\\"").replace("\n", "\\n")}\"}]}",
-                plainText = transcript,
-                createdAt = now,
-                updatedAt = now
-            )
-            val entryId = dao.insertEntry(entry)
-            dao.updateVoiceMemo(memo.copy(diaryId = entryId))
-            loadMemos()
+            createDiaryFromTranscriptText(transcript) { entryId ->
+                if (entryId != null) {
+                    viewModelScope.launch {
+                        dao.updateVoiceMemo(memo.copy(diaryId = entryId))
+                    }
+                }
+            }
+        }
+    }
+
+    fun createDiaryFromTranscriptText(transcript: String, onComplete: (Long?) -> Unit = {}) {
+        viewModelScope.launch {
+            if (!shouldOfferDiaryCreation(transcript)) {
+                onComplete(null)
+                return@launch
+            }
+            val id = try {
+                val now = System.currentTimeMillis()
+                val entry = DiaryEntry(
+                    title = buildVoiceMemoTitle(transcript),
+                    content = buildVoiceMemoDiaryContent(transcript),
+                    plainText = transcript,
+                    createdAt = now,
+                    updatedAt = now
+                )
+                withContext(Dispatchers.IO) {
+                    dao.insertEntry(entry)
+                }
+            } catch (_: Exception) {
+                null
+            }
+            onComplete(id)
         }
     }
     

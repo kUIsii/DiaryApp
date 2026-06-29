@@ -64,8 +64,8 @@ class LockScreenQuickWriteViewModel(application: Application) : AndroidViewModel
     private val _followUpActionType = MutableStateFlow<String?>(null)
     val followUpActionType: StateFlow<String?> = _followUpActionType.asStateFlow()
 
-    private val _smartLinkSuggestion = MutableStateFlow<Pair<Long, String>?>(null)
-    val smartLinkSuggestion: StateFlow<Pair<Long, String>?> = _smartLinkSuggestion.asStateFlow()
+    private val _smartLinkSuggestion = MutableStateFlow<SmartLinkSuggestion?>(null)
+    val smartLinkSuggestion: StateFlow<SmartLinkSuggestion?> = _smartLinkSuggestion.asStateFlow()
 
     private var classifyJob: Job? = null
 
@@ -88,10 +88,11 @@ class LockScreenQuickWriteViewModel(application: Application) : AndroidViewModel
     fun addNote(content: String, category: String = "快速笔记"): Long? {
         if (content.isBlank()) return null
         val id = System.currentTimeMillis()
+        val effectiveCategory = _aiCategory.value?.takeIf { category == "快速笔记" } ?: category
         val entry = QuickWriteEntry(
             id = id,
             content = content.trim(),
-            category = category,
+            category = effectiveCategory,
             mood = 0f,
             linkedEntryId = null,
             followUpAction = if (_followUpActionType.value != null) _followUpActionType.value else null,
@@ -121,13 +122,15 @@ class LockScreenQuickWriteViewModel(application: Application) : AndroidViewModel
     fun syncToDiary(note: QuickWriteEntry, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                dao.insertEntry(DiaryEntry(
-                    title = note.content.take(50),
-                    content = "{\"ops\":[{\"insert\":\"${note.content.replace("\"", "\\\"").replace("\n", "\\n")}\"}]}",
-                    plainText = note.content,
-                    createdAt = note.createdAt,
-                    updatedAt = note.createdAt
-                ))
+                dao.insertEntry(
+                    DiaryEntry(
+                        title = note.content.take(50),
+                        content = buildDiaryContentFromQuickWrite(note.content),
+                        plainText = note.content,
+                        createdAt = note.createdAt,
+                        updatedAt = note.createdAt
+                    )
+                )
                 deleteNote(note)
                 onComplete(true)
             } catch (_: Exception) { onComplete(false) }
@@ -139,13 +142,15 @@ class LockScreenQuickWriteViewModel(application: Application) : AndroidViewModel
             try {
                 val current = _notes.value.toList()
                 for (note in current) {
-                    dao.insertEntry(DiaryEntry(
-                        title = note.content.take(50),
-                        content = "{\"ops\":[{\"insert\":\"${note.content.replace("\"", "\\\"").replace("\n", "\\n")}\"}]}",
-                        plainText = note.content,
-                        createdAt = note.createdAt,
-                        updatedAt = note.createdAt
-                    ))
+                    dao.insertEntry(
+                        DiaryEntry(
+                            title = note.content.take(50),
+                            content = buildDiaryContentFromQuickWrite(note.content),
+                            plainText = note.content,
+                            createdAt = note.createdAt,
+                            updatedAt = note.createdAt
+                        )
+                    )
                 }
                 _notes.value = emptyList()
                 prefs.edit().putString("notes", "[]").apply()
@@ -275,7 +280,11 @@ class LockScreenQuickWriteViewModel(application: Application) : AndroidViewModel
                 val id = response.filter { it.isDigit() }.toLongOrNull() ?: return@launch
                 val entry = recentEntries.find { it.id == id } ?: return@launch
                 val dayLabel = SimpleDateFormat("E", Locale.CHINESE).format(Date(entry.createdAt))
-                _smartLinkSuggestion.value = Pair(id, "这段内容和${dayLabel}的日记有关联，要放在一起吗？")
+                _smartLinkSuggestion.value = SmartLinkSuggestion(
+                    quickWriteId = newEntryId,
+                    linkedEntryId = id,
+                    message = "这段内容和${dayLabel}的日记有关联，要放在一起吗？"
+                )
             } catch (_: Exception) { }
         }
     }

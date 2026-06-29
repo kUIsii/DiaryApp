@@ -44,6 +44,7 @@ fun VoiceRecordingScreen(
     val isRecording by viewModel.voiceRecorder.isRecording.collectAsState()
     val isTranscribing by viewModel.voiceRecorder.isTranscribing.collectAsState()
     val transcription by viewModel.voiceRecorder.transcription.collectAsState()
+    val readyTranscription = transcription.trim()
     
     var playingMemoId by remember { mutableStateOf<Long?>(null) }
     var editingMemoId by remember { mutableStateOf<Long?>(null) }
@@ -237,7 +238,7 @@ fun VoiceRecordingScreen(
                             }
                         }
                         
-                        if (!isRecording && transcription.isNotBlank()) {
+                        if (!isRecording && !isTranscribing) {
                             OutlinedButton(
                                 onClick = {
                                     viewModel.voiceRecorder.startTranscription()
@@ -255,7 +256,7 @@ fun VoiceRecordingScreen(
                     }
                     
                     // Transcription display
-                    if (transcription.isNotBlank()) {
+                    if (readyTranscription.isNotBlank()) {
                         Spacer(modifier = Modifier.height(16.dp))
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -270,10 +271,20 @@ fun VoiceRecordingScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = transcription,
+                                    text = readyTranscription,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                if (shouldOfferDiaryCreation(readyTranscription)) {
+                                    Button(
+                                        onClick = {
+                                            viewModel.createDiaryFromTranscriptText(readyTranscription)
+                                        }
+                                    ) {
+                                        Text("转为日记")
+                                    }
+                                }
                             }
                         }
                     }
@@ -457,7 +468,7 @@ private fun VoiceMemoCard(
                 }
                 
                 Row {
-                    if (transcriptText != null && transcriptText.isNotBlank() && !isEditing) {
+                    if (transcriptText != null && transcriptText.isNotBlank() && !isEditing && memo.diaryId == null) {
                         IconButton(onClick = onCreateDiary) {
                             Icon(
                                 Icons.Default.Edit,
@@ -466,6 +477,12 @@ private fun VoiceMemoCard(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    } else if (memo.diaryId != null) {
+                        Text(
+                            text = "已转日记",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     IconButton(onClick = onDelete) {
                         Icon(

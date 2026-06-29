@@ -451,6 +451,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToMemoryAnchors = { navController.navigate(Screen.MemoryAnchors.route) },
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
                     onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
+                    onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) },
+                    onNavigateToTextMicroscope = { navController.navigate(Screen.TextMicroscope.route) },
                     onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
                     onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
                     onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
