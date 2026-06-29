@@ -1,12 +1,17 @@
 package com.diary.app.ui.personalyearbook
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 
@@ -29,6 +34,12 @@ class PersonalYearbookViewModel(application: Application) : AndroidViewModel(app
 
     private val _isGenerating = MutableStateFlow(false)
     val isGenerating: StateFlow<Boolean> = _isGenerating
+
+    private val _isExporting = MutableStateFlow(false)
+    val isExporting: StateFlow<Boolean> = _isExporting
+
+    private val _exportResult = MutableStateFlow<String?>(null)
+    val exportResult: StateFlow<String?> = _exportResult
 
     fun generate(year: Int) {
         viewModelScope.launch {
@@ -87,5 +98,42 @@ class PersonalYearbookViewModel(application: Application) : AndroidViewModel(app
 
             _isGenerating.value = false
         }
+    }
+
+    fun exportPDF() {
+        val data = _yearbook.value ?: return
+        viewModelScope.launch {
+            _isExporting.value = true
+            _exportResult.value = null
+            withContext(Dispatchers.IO) {
+                PdfExporter.export(getApplication<DiaryApplication>(), data) { success, message ->
+                    _exportResult.value = if (success) message else "导出失败: $message"
+                    _isExporting.value = false
+                }
+            }
+        }
+    }
+
+    fun sharePDF(context: Context) {
+        val filePath = _exportResult.value ?: return
+        val file = java.io.File(filePath)
+        if (!file.exists()) return
+
+        val uri = PdfExporter.getShareUri(context, filePath)
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(
+            Intent.createChooser(shareIntent, "分享年鉴 PDF").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
+    }
+
+    fun clearExportResult() {
+        _exportResult.value = null
     }
 }

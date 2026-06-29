@@ -167,6 +167,7 @@ fun ToolsScreen(
     onNavigateToPersonalYearbook: () -> Unit = {},
     onNavigateToTravelLog: () -> Unit = {},
     onNavigateToLocationMemories: () -> Unit = {},
+    onNavigateToEntryGraph: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
@@ -223,6 +224,7 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
                 ToolItem(Icons.Default.Share, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
                 ToolItem(Icons.Default.Edit, "\u4EF7\u503C\u89C2\u63D0\u53D6", "\u4ECE\u65E5\u8BB0\u4E2D\u63D0\u53D6\u4E2A\u4EBA\u4EF7\u503C\u89C2", onNavigateToValuesExtraction),
+                ToolItem(Icons.Default.Share, "\u6761\u76EE\u5173\u8054\u56FE\u8C31", "\u65E5\u8BB0\u5173\u8054\u53EF\u89C6\u5316\u56FE\u8C31", onNavigateToEntryGraph),
             )
         ),
         ToolSection(

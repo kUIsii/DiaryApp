@@ -112,7 +112,6 @@ fun AmbientSoundScreen(
     val state by viewModel.state.collectAsState()
     val primary = MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-    val surface = MaterialTheme.colorScheme.surface
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -123,14 +122,12 @@ fun AmbientSoundScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(AmbientSoundType.entries, key = { it }) { type ->
-                    val active = type in state.activeSounds
-                    val vol = state.volumes[type] ?: 0.5f
                     SoundRowCard(
                         type = type,
-                        active = active,
-                        volume = vol,
+                        active = type == state.activeType,
+                        volume = if (type == state.activeType) state.volume else 0.5f,
                         onToggle = { viewModel.toggle(type) },
-                        onVolume = { viewModel.setVolume(type, it) }
+                        onVolume = { viewModel.setVolume(it) }
                     )
                 }
             }
@@ -139,7 +136,7 @@ fun AmbientSoundScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 8.dp,
                 tonalElevation = 2.dp,
-                color = surface
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Row(
@@ -175,33 +172,22 @@ fun AmbientSoundScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
+                    val currentType = state.activeType
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text("总音量", fontSize = 11.sp, color = onSurfaceVariant, modifier = Modifier.width(36.dp))
-                        Slider(
-                            value = state.masterVolume,
-                            onValueChange = { viewModel.setMasterVolume(it) },
-                            modifier = Modifier.weight(1f).height(24.dp),
-                            colors = SliderDefaults.colors(thumbColor = primary, activeTrackColor = primary)
-                        )
-                        Text("${(state.masterVolume * 100).toInt()}%", fontSize = 10.sp, color = onSurfaceVariant, modifier = Modifier.width(32.dp))
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        FilterChip(
-                            selected = state.meanderEnabled,
-                            onClick = { viewModel.toggleMeander() },
-                            label = { Text("漫游", fontSize = 11.sp) },
-                            modifier = Modifier.height(28.dp)
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(if (state.activeSounds.isNotEmpty()) "播放中：${state.activeSounds.joinToString("、") { it.displayName }}" else "未播放",
-                            fontSize = 11.sp, color = onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false))
+                        if (currentType != null) {
+                            Text("播放中：${currentType.displayName}", fontSize = 12.sp,
+                                color = onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f))
+                        } else {
+                            Text("未播放", fontSize = 12.sp, color = onSurfaceVariant,
+                                modifier = Modifier.weight(1f))
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
-                            onClick = { viewModel.stopAll() },
+                            onClick = { viewModel.stop() },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.height(34.dp)
+                            modifier = Modifier.height(34.dp),
+                            enabled = currentType != null
                         ) {
                             Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -295,12 +281,16 @@ private fun SoundRowCard(
                 )
             }
 
-            Slider(
-                value = volume,
-                onValueChange = onVolume,
-                modifier = Modifier.weight(1f).height(24.dp),
-                colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color)
-            )
+            if (active) {
+                Slider(
+                    value = volume,
+                    onValueChange = onVolume,
+                    modifier = Modifier.weight(1f).height(24.dp),
+                    colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color)
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }

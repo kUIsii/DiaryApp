@@ -58,16 +58,6 @@ class AmbientSoundPlayer private constructor() {
     private var audioFocusHeld = false
     private var playCallback: (() -> Unit)? = null
     private var stopCallback: (() -> Unit)? = null
-    private var stateChangeCallback: (() -> Unit)? = null
-
-    var masterVolume: Float = 1f
-        private set
-    var meanderEnabled: Boolean = false
-        private set
-    private val meanderHandler = Handler(Looper.getMainLooper())
-    private var meanderRunnable: Runnable? = null
-
-    fun setOnStateChangeCallback(cb: () -> Unit) { stateChangeCallback = cb }
 
     fun setOnPlayCallback(cb: () -> Unit) { playCallback = cb }
     fun setOnStopCallback(cb: () -> Unit) { stopCallback = cb }
@@ -192,8 +182,6 @@ class AmbientSoundPlayer private constructor() {
     }
 
     fun stopAll() {
-        stopMeander()
-        meanderEnabled = false
         val active: List<AmbientSoundType>
         synchronized(players) { active = players.keys.toList() }
         active.forEach { stop(it) }
@@ -246,54 +234,9 @@ class AmbientSoundPlayer private constructor() {
 
     private fun applyVol(player: MediaPlayer, type: AmbientSoundType) {
         try {
-            val baseVol = (synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }).let { if (ducked) it * 0.3f else it }
-            val vol = baseVol * masterVolume
+            val vol = (synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }).let { if (ducked) it * 0.3f else it }
             player.setVolume(vol.coerceIn(0f, 1f), vol.coerceIn(0f, 1f))
         } catch (_: Exception) {}
-    }
-
-    fun setMasterVolume(v: Float) {
-        masterVolume = v.coerceIn(0f, 1f)
-        for (t in getActiveTypes()) { synchronized(players) { players[t] }?.let { applyVol(it, t) } }
-        stateChangeCallback?.invoke()
-    }
-
-    fun toggleMeander() {
-        meanderEnabled = !meanderEnabled
-        if (meanderEnabled) startMeander() else stopMeander()
-        stateChangeCallback?.invoke()
-    }
-
-    fun setMeanderEnabled(enabled: Boolean) {
-        if (meanderEnabled == enabled) return
-        meanderEnabled = enabled
-        if (enabled) startMeander() else stopMeander()
-        stateChangeCallback?.invoke()
-    }
-
-    private fun startMeander() {
-        stopMeander()
-        meanderRunnable = Runnable {
-            if (!meanderEnabled || synchronized(players) { players.isEmpty() }) { return@Runnable }
-            val now = System.currentTimeMillis()
-            val activeTypes = synchronized(players) { players.keys.toList() }
-            for (type in activeTypes) {
-                val phase = (now % 20000) / 20000f * 2f * kotlin.math.PI.toFloat()
-                val seed = type.ordinal * 137.5f
-                val factor = 0.5f + 0.5f * kotlin.math.sin(phase + seed)
-                val meanderVol = (synchronized(currentVolumes) { currentVolumes[type] ?: 0.5f }) * factor * masterVolume
-                synchronized(players) { players[type] }?.let { p ->
-                    try { p.setVolume(meanderVol.coerceIn(0f, 1f), meanderVol.coerceIn(0f, 1f)) } catch (_: Exception) {}
-                }
-            }
-            meanderHandler.postDelayed(meanderRunnable!!, 100)
-        }
-        meanderHandler.post(meanderRunnable!!)
-    }
-
-    private fun stopMeander() {
-        meanderRunnable?.let { meanderHandler.removeCallbacks(it) }
-        meanderRunnable = null
     }
 
     private var fadeHandler: Handler? = null

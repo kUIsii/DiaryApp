@@ -151,6 +151,7 @@ import com.diary.app.ui.gesturequickaction.GestureQuickActionScreen
 import com.diary.app.ui.lockscreenquickwrite.LockScreenQuickWriteScreen
 import com.diary.app.ui.adaptiveinterface.AdaptiveInterfaceScreen
 import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
+import com.diary.app.ui.entrygraph.EntryGraphScreen
 import com.diary.app.ui.travellog.TravelLogScreen
 import com.diary.app.ui.locationmemories.LocationMemoriesScreen
 import com.diary.app.update.ChangelogScreen
@@ -264,6 +265,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object PersonalYearbook : Screen("personal_yearbook", "个人年鉴", Icons.Default.CalendarMonth)
     object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
     object LocationMemories : Screen("location_memories", "地点触发回忆", Icons.Default.LocationOn)
+    object EntryGraph : Screen("entry_graph", "条目关联图谱", Icons.Default.Favorite)
 }
 
 data class BottomNavItem(
@@ -466,6 +468,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
                     onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
                     onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) },
+                    onNavigateToEntryGraph = { navController.navigate(Screen.EntryGraph.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
@@ -1048,14 +1051,22 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
+            composable(route = Screen.EntryGraph.route) {
+                EntryGraphScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                )
+            }
         }
 
         AmbientSoundMiniBar(
+            modifier = Modifier.align(Alignment.BottomCenter),
             onNavigateToFullScreen = { navController.navigate(Screen.AmbientSound.route) }
         )
         }
     }
 }
+
 
 @Composable
 private fun DiaryBottomNavigationBar(

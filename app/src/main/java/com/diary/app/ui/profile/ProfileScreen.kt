@@ -220,6 +220,7 @@ fun ProfileScreen(
     var weatherAlertsEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertsEnabled(context)) }
     var achievementsNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isAchievementsEnabled(context)) }
     var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isBiometricLockEnabled(context)) }
+    var screenshotProtectionEnabled by remember { mutableStateOf(ScreenshotProtectionHelper.isEnabled(context)) }
     val canUseBiometric = BiometricHelper.canAuthenticate(context)
     var pinLockEnabled by remember { mutableStateOf(BiometricHelper.isPinLockEnabled(context)) }
     var showPinDialog by remember { mutableStateOf(false) }
@@ -561,6 +562,19 @@ fun ProfileScreen(
                         checked = biometricLockEnabled,
                         onCheckedChange = { biometricLockEnabled = it; BiometricHelper.setLockEnabled(context, it) },
                         switchEnabled = canUseBiometric
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Security,
+                        iconBg = sectionIconBg(3),
+                        iconTint = sectionIconTint(3),
+                        title = stringResource(R.string.profile_screenshot_protection),
+                        subtitle = stringResource(R.string.profile_screenshot_protection_desc),
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = screenshotProtectionEnabled,
+                        onCheckedChange = { screenshotProtectionEnabled = it; ScreenshotProtectionHelper.setEnabled(context, it) }
                     )
                     SettingDivider()
                     Row(

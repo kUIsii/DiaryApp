@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.ai.AiInsight
+import com.diary.app.ui.SearchHistoryStore
 import com.diary.app.ai.InsightGenerator
 import com.diary.app.data.DiaryEntry
 import com.diary.app.weather.CurrentWeather
@@ -151,6 +152,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches
 
+    init {
+        _recentSearches.value = SearchHistoryStore.getHomeHistory(getApplication())
+    }
+
     private val _highlightRefreshNonce = MutableStateFlow(System.currentTimeMillis())
 
     private val allEntries: StateFlow<List<DiaryPreview>> = dao.getAllPreviews()
@@ -245,17 +250,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun commitSearch(query: String) {
-        val trimmed = query.trim()
-        if (trimmed.isBlank()) return
-        val current = _recentSearches.value.toMutableList()
-        current.remove(trimmed)
-        current.add(0, trimmed)
-        if (current.size > 5) current.removeAt(current.lastIndex)
+        val context = getApplication<DiaryApplication>()
+        val current = SearchHistoryStore.addToHistory(_recentSearches.value, query)
+        if (current != _recentSearches.value) {
+            SearchHistoryStore.setHomeHistory(context, current)
+        }
         _recentSearches.value = current
     }
 
     fun clearSearchHistory() {
         _recentSearches.value = emptyList()
+        SearchHistoryStore.setHomeHistory(getApplication(), emptyList())
     }
 
     fun refreshHomeHighlights() {

@@ -244,6 +244,8 @@
     <string name="profile_app_lock">应用锁</string>
     <string name="profile_biometric_desc">使用指纹或面部识别解锁</string>
     <string name="profile_no_biometric">设备不支持生物识别</string>
+    <string name="profile_screenshot_protection">防截屏保护</string>
+    <string name="profile_screenshot_protection_desc">开启后阻止其他应用截屏或录屏</string>
     <string name="profile_pin_lock">PIN码锁</string>
     <string name="profile_pin_set">已设置4位PIN码</string>
     <string name="profile_pin_set_desc">设置4位数字PIN码作为备选解锁方式</string>

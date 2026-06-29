@@ -38,6 +38,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
@@ -64,9 +66,23 @@ fun PersonalYearbookScreen(
     onNavigateToDetail: (Long) -> Unit = {},
     viewModel: PersonalYearbookViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     var selectedYear by remember { mutableStateOf(Year.now().value) }
     val yearbook by viewModel.yearbook.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
+    val isExporting by viewModel.isExporting.collectAsState()
+    val exportResult by viewModel.exportResult.collectAsState()
+
+    LaunchedEffect(exportResult) {
+        if (exportResult != null) {
+            if (exportResult!!.startsWith("导出失败")) {
+                android.widget.Toast.makeText(context, exportResult, android.widget.Toast.LENGTH_LONG).show()
+            } else {
+                viewModel.sharePDF(context)
+            }
+            viewModel.clearExportResult()
+        }
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -223,19 +239,24 @@ fun PersonalYearbookScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Button(
-                                    onClick = {},
+                                    onClick = { viewModel.exportPDF() },
                                     modifier = Modifier.weight(1f),
+                                    enabled = !isExporting,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        if (isExporting) Icons.Default.AutoAwesome else Icons.Default.Download,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("导出 PDF", fontSize = 13.sp)
+                                    Text(if (isExporting) "导出中..." else "导出 PDF", fontSize = 13.sp)
                                 }
                                 Button(
-                                    onClick = {},
+                                    onClick = { viewModel.sharePDF(context) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(

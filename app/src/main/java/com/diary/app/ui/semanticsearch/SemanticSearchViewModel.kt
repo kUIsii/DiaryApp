@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryPreview
+import com.diary.app.ui.SearchHistoryStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +55,9 @@ class SemanticSearchViewModel(application: Application) : AndroidViewModel(appli
     )
 
     init {
+        _state.value = _state.value.copy(
+            searchHistory = SearchHistoryStore.getSemanticHistory(getApplication())
+        )
         buildIndex()
     }
 
@@ -90,10 +94,10 @@ class SemanticSearchViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun search(query: String) {
-        val currentHistory = _state.value.searchHistory.toMutableList()
-        if (query.isNotBlank() && !currentHistory.contains(query)) {
-            currentHistory.add(0, query)
-            if (currentHistory.size > 5) currentHistory.removeAt(5)
+        val context = getApplication<DiaryApplication>()
+        val currentHistory = SearchHistoryStore.addToHistory(_state.value.searchHistory, query)
+        if (currentHistory != _state.value.searchHistory) {
+            SearchHistoryStore.setSemanticHistory(context, currentHistory)
         }
         _state.value = _state.value.copy(query = query, hasSearched = true, searchHistory = currentHistory)
         if (query.isBlank()) {

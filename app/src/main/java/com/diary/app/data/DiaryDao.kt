@@ -785,6 +785,19 @@ interface DiaryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAnchorRelation(relation: AnchorRelation): Long
 
+    // Tracked persons
+    @Query("SELECT * FROM tracked_persons ORDER BY mentionCount DESC")
+    suspend fun getAllTrackedPersonsOnce(): List<TrackedPerson>
+
+    @Query("SELECT * FROM person_mentions WHERE personId = :personId")
+    suspend fun getPersonMentions(personId: Long): List<PersonMention>
+
+    @Query("SELECT * FROM person_mentions WHERE diaryId = :diaryId")
+    suspend fun getPersonMentionsForDiary(diaryId: Long): List<PersonMention>
+
+    @Query("SELECT diaryId FROM person_mentions WHERE personId = :personId")
+    suspend fun getDiaryIdsForPerson(personId: Long): List<Long>
+
     // Writing fingerprints
     @Query("SELECT * FROM writing_fingerprints WHERE diaryId = :diaryId")
     suspend fun getWritingFingerprintForDiary(diaryId: Long): WritingFingerprint?
