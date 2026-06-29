@@ -30,7 +30,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,31 +46,18 @@ import com.diary.app.ui.components.PageHeader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private data class LocationMemoryItem(
-    val id: Int,
-    val name: String,
-    val address: String,
-    val diaryCount: Int,
-    val radius: Float,
-    val enabled: Boolean,
-    val createdAt: Long
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.data.LocationMemory
 
 @Composable
 fun LocationMemoriesScreen(
     onNavigateBack: () -> Unit = {},
-    onNavigateToDetail: (Long) -> Unit = {}
+    onNavigateToDetail: (Long) -> Unit = {},
+    viewModel: LocationMemoriesViewModel = viewModel()
 ) {
     var geoEnabled by remember { mutableStateOf(true) }
     var notifyRadius by remember { mutableStateOf(100f) }
-    val memories = remember {
-        mutableStateListOf(
-            LocationMemoryItem(1, "母校图书馆", "大学城路 100 号", 12, 100f, true, 1700000000000),
-            LocationMemoryItem(2, "咖啡店", "中山路 58 号", 5, 50f, true, 1700086400000),
-            LocationMemoryItem(3, "公司", "科技园区 A 座", 23, 200f, false, 1700268800000),
-        )
-    }
+    val memories by viewModel.memories.collectAsState()
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -184,7 +171,7 @@ fun LocationMemoriesScreen(
                                 }
                             } else {
                                 memories.forEach { memory ->
-                                    LocationMemoryCard(memory = memory)
+                                    LocationMemoryCard(memory = memory, onDelete = { viewModel.deleteMemory(it) })
                                 }
                             }
                         }
@@ -222,7 +209,7 @@ fun LocationMemoriesScreen(
 }
 
 @Composable
-private fun LocationMemoryCard(memory: LocationMemoryItem) {
+private fun LocationMemoryCard(memory: LocationMemory, onDelete: (Long) -> Unit = {}) {
     val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()) }
 
     Box(
@@ -250,18 +237,16 @@ private fun LocationMemoryCard(memory: LocationMemoryItem) {
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(memory.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
-                Text(memory.address, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${memory.diaryCount} 篇日记 · ${memory.radius.toInt()}m  ·  ${dateFormat.format(Date(memory.createdAt))}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                Text(memory.locationName ?: "未知", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
+                Text("${memory.radiusMeters.toInt()}m  ·  ${dateFormat.format(Date(memory.createdAt))}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
             }
-            Switch(
-                checked = memory.enabled,
-                onCheckedChange = { /* toggle */ },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            IconButton(onClick = { onDelete(memory.id) }) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.error
                 )
-            )
+            }
         }
     }
 }

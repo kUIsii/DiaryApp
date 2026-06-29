@@ -34,10 +34,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,20 +49,17 @@ import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
 
-private data class AdaptiveSuggestion(
-    val icon: ImageVector,
-    val title: String,
-    val description: String,
-    val reason: String
-)
-
 @Composable
 fun AdaptiveInterfaceScreen(
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    viewModel: AdaptiveInterfaceViewModel = viewModel()
 ) {
-    var adaptiveEnabled by remember { mutableStateOf(true) }
-    var autoNightMode by remember { mutableStateOf(false) }
-    var compactMode by remember { mutableStateOf(false) }
+    val adaptiveEnabled by viewModel.adaptiveEnabled.collectAsState()
+    val autoNightMode by viewModel.autoNightMode.collectAsState()
+    val compactMode by viewModel.compactMode.collectAsState()
+    val totalEntries by viewModel.totalEntries.collectAsState()
+    val thisMonthEntries by viewModel.thisMonthEntries.collectAsState()
+    val currentStreak by viewModel.currentStreak.collectAsState()
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -101,7 +97,7 @@ fun AdaptiveInterfaceScreen(
                             title = "启用自适应",
                             subtitle = "AI 自动调整界面布局和功能优先级",
                             checked = adaptiveEnabled,
-                            onCheckedChange = { adaptiveEnabled = it }
+                            onCheckedChange = { viewModel.setAdaptiveEnabled(it) }
                         )
                         AnimatedVisibility(visible = adaptiveEnabled) {
                             Column {
@@ -111,7 +107,7 @@ fun AdaptiveInterfaceScreen(
                                     title = "自动夜间模式",
                                     subtitle = "夜晚写作时自动切换暗色主题",
                                     checked = autoNightMode,
-                                    onCheckedChange = { autoNightMode = it }
+                                    onCheckedChange = { viewModel.setAutoNightMode(it) }
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 AdaptiveToggleRow(
@@ -119,7 +115,7 @@ fun AdaptiveInterfaceScreen(
                                     title = "精简模式",
                                     subtitle = "短写作时隐藏非必要 UI 元素",
                                     checked = compactMode,
-                                    onCheckedChange = { compactMode = it }
+                                    onCheckedChange = { viewModel.setCompactMode(it) }
                                 )
                             }
                         }
@@ -141,16 +137,7 @@ fun AdaptiveInterfaceScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            val suggestions = listOf(
-                                AdaptiveSuggestion(
-                                    Icons.Default.Schedule, "晚间写作偏好检测",
-                                    "你通常在 22:00-00:00 写作", "已自动启用夜间模式"
-                                ),
-                                AdaptiveSuggestion(
-                                    Icons.Default.Home, "快捷入口优化",
-                                    "快速签到使用频率最高", "建议移至首页快捷栏首位"
-                                ),
-                            )
+                            val suggestions by viewModel.suggestions.collectAsState()
 
                             suggestions.forEach { suggestion ->
                                 SuggestionCard(suggestion)
@@ -173,10 +160,9 @@ fun AdaptiveInterfaceScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         listOf(
-                            "本周写作天数" to "5 天",
-                            "常用写作时段" to "晚上 (22:00-00:00)",
-                            "平均写作时长" to "12 分钟",
-                            "最常用功能" to "快速签到"
+                            "总日记数" to "$totalEntries 篇",
+                            "本月日记" to "$thisMonthEntries 篇",
+                            "连续写作" to "连续 $currentStreak 天"
                         ).forEach { (label, value) ->
                             Row(
                                 modifier = Modifier

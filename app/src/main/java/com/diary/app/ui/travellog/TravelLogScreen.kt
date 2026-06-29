@@ -17,32 +17,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
@@ -50,99 +44,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private data class Trip(
-    val id: Int,
-    val name: String,
-    val destination: String,
-    val startDate: Long,
-    val endDate: Long,
-    val entryCount: Int = 0
-)
-
 @Composable
 fun TravelLogScreen(
     onNavigateBack: () -> Unit = {},
-    onNavigateToDetail: (Long) -> Unit = {}
+    onNavigateToDetail: (Long) -> Unit = {},
+    viewModel: TravelLogViewModel = viewModel()
 ) {
-    var showCreateDialog by remember { mutableStateOf(false) }
-    val trips = remember {
-        mutableStateListOf(
-            Trip(1, "云南之旅", "大理/丽江", 1700000000000, 1700086400000, 5),
-            Trip(2, "北京出差", "北京", 1700268800000, 1700432000000, 3),
-        )
-    }
-    var tripName by remember { mutableStateOf("") }
-    var tripDest by remember { mutableStateOf("") }
+    val trips by viewModel.trips.collectAsState()
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
             PageHeader(
                 title = "旅行日志",
-                onNavigateBack = onNavigateBack,
-                action = {
-                    Button(
-                        onClick = { showCreateDialog = true },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("新建旅行", fontSize = 13.sp)
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
-
-            if (showCreateDialog) {
-                androidx.compose.material3.AlertDialog(
-                    onDismissRequest = { showCreateDialog = false },
-                    title = { Text("新建旅行") },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = tripName,
-                                onValueChange = { tripName = it },
-                                label = { Text("旅行名称") },
-                                placeholder = { Text("如：云南之旅") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            OutlinedTextField(
-                                value = tripDest,
-                                onValueChange = { tripDest = it },
-                                label = { Text("目的地") },
-                                placeholder = { Text("如：大理/丽江") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                if (tripName.isNotBlank()) {
-                                    trips.add(0, Trip(
-                                        id = trips.size + 1,
-                                        name = tripName.trim(),
-                                        destination = tripDest.trim(),
-                                        startDate = System.currentTimeMillis(),
-                                        endDate = System.currentTimeMillis() + 86400000
-                                    ))
-                                    tripName = ""
-                                    tripDest = ""
-                                    showCreateDialog = false
-                                }
-                            }
-                        ) { Text("创建") }
-                    },
-                    dismissButton = {
-                        androidx.compose.material3.TextButton(onClick = { showCreateDialog = false }) { Text("取消") }
-                    }
-                )
-            }
 
             LazyColumn(
                 modifier = Modifier
@@ -174,8 +89,8 @@ fun TravelLogScreen(
                                     modifier = Modifier.size(48.dp)
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("还没有旅行记录", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("点击右上角新建旅行", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                Text("还没有带地点的日记", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("写日记时添加位置即可生成旅行日志", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                             }
                         }
                     }
@@ -192,7 +107,7 @@ fun TravelLogScreen(
 }
 
 @Composable
-private fun TripCard(trip: Trip) {
+private fun TripCard(trip: TripGroup) {
     val dateFormat = remember { SimpleDateFormat("MM/dd", Locale.getDefault()) }
 
     Card(
