@@ -62,7 +62,7 @@ import java.util.Locale
 fun FocusModeScreen(
     onNavigateBack: () -> Unit,
     onNavigateToReading: (Long?) -> Unit = {},
-    onNavigateToOutlineView: (Long?) -> Unit = {},
+
     viewModel: FocusModeViewModel = viewModel()
 ) {
     val app = LocalContext.current.applicationContext as DiaryApplication
@@ -301,11 +301,7 @@ fun FocusModeScreen(
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigateToReading(readingSession.diaryId) }
                     )
-                    ElevatedActionButton(
-                        label = "阅读复盘",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigateToOutlineView(readingSession.diaryId) }
-                    )
+
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

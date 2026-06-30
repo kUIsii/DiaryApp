@@ -48,7 +48,6 @@ fun ReadingCenterScreen(
     onNavigateBack: () -> Unit,
     onNavigateToImmersiveReader: (Long?) -> Unit = {},
     onNavigateToFocusMode: () -> Unit = {},
-    onNavigateToOutlineView: (Long?) -> Unit = {},
     viewModel: ReadingCenterViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -82,7 +81,6 @@ fun ReadingCenterScreen(
                             when (action.target) {
                                 ReadingCenterTarget.IMMERSIVE_READER -> onNavigateToImmersiveReader(state.session.diaryId)
                                 ReadingCenterTarget.FOCUS_MODE -> onNavigateToFocusMode()
-                                ReadingCenterTarget.OUTLINE_VIEW -> onNavigateToOutlineView(state.session.diaryId)
                             }
                         }
                     )
@@ -95,7 +93,6 @@ fun ReadingCenterScreen(
                             when (target) {
                                 ReadingCenterTarget.IMMERSIVE_READER -> onNavigateToImmersiveReader(state.session.diaryId)
                                 ReadingCenterTarget.FOCUS_MODE -> onNavigateToFocusMode()
-                                ReadingCenterTarget.OUTLINE_VIEW -> onNavigateToOutlineView(state.session.diaryId)
                             }
                         }
                     )
@@ -134,10 +131,6 @@ fun ReadingCenterScreen(
                             onContinue = {
                                 viewModel.prepareReadingEntry(preview)
                                 onNavigateToImmersiveReader(preview.id)
-                            },
-                            onReview = {
-                                viewModel.prepareReadingEntry(preview)
-                                onNavigateToOutlineView(preview.id)
                             }
                         )
                     }
@@ -211,7 +204,6 @@ private fun FeatureCard(
                 val icon = when (feature.target) {
                     ReadingCenterTarget.IMMERSIVE_READER -> Icons.Default.MenuBook
                     ReadingCenterTarget.FOCUS_MODE -> Icons.Default.Timer
-                    ReadingCenterTarget.OUTLINE_VIEW -> Icons.Default.Bookmark
                 }
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -285,8 +277,7 @@ private fun OverviewCard(items: List<ReadingCenterOverviewItem>) {
 private fun RecentEntryCard(
     preview: DiaryPreview,
     currentSessionId: Long?,
-    onContinue: () -> Unit,
-    onReview: () -> Unit
+    onContinue: () -> Unit
 ) {
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -318,12 +309,7 @@ private fun RecentEntryCard(
                 ) {
                     Text(if (preview.id == currentSessionId) "回到阅读" else "开始阅读")
                 }
-                ElevatedButton(
-                    onClick = onReview,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("阅读复盘")
-                }
+
             }
         }
     }

@@ -72,7 +72,7 @@ import java.util.Locale
 fun ImmersiveReaderScreen(
     onNavigateBack: () -> Unit,
     onNavigateToFocusMode: () -> Unit = {},
-    onNavigateToOutlineView: (Long?) -> Unit = {},
+
     onNavigateToReadingCenter: () -> Unit = {},
     initialDiaryId: Long? = null,
     viewModel: ImmersiveReaderViewModel = viewModel()
@@ -188,9 +188,6 @@ fun ImmersiveReaderScreen(
                             onCycleFontType = { viewModel.cycleFontType() },
                             onChangeFontSize = { dir -> viewModel.setFontSize(fontSize + dir) },
                             onNavigateToFocusMode = onNavigateToFocusMode,
-                            onNavigateToOutlineView = {
-                                onNavigateToOutlineView(entries.getOrNull(currentPage)?.id)
-                            },
                             onNavigateToReadingCenter = onNavigateToReadingCenter
                         )
 
@@ -395,7 +392,6 @@ private fun TopControls(
     onCycleFontType: () -> Unit,
     onChangeFontSize: (Int) -> Unit,
     onNavigateToFocusMode: () -> Unit,
-    onNavigateToOutlineView: () -> Unit,
     onNavigateToReadingCenter: () -> Unit
 ) {
     Row(
@@ -470,9 +466,6 @@ private fun TopControls(
             }
             IconButton(onClick = onNavigateToFocusMode) {
                 Icon(Icons.Default.Timer, contentDescription = "专注模式")
-            }
-            IconButton(onClick = onNavigateToOutlineView) {
-                Icon(Icons.Default.FormatListBulleted, contentDescription = "阅读复盘")
             }
             IconButton(onClick = onNavigateToReadingCenter) {
                 Icon(Icons.Default.MenuBook, contentDescription = "阅读中心")

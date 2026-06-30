@@ -2,8 +2,7 @@ package com.diary.app.ui.readingcenter
 
 enum class ReadingCenterTarget {
     IMMERSIVE_READER,
-    FOCUS_MODE,
-    OUTLINE_VIEW
+    FOCUS_MODE
 }
 
 data class ReadingSessionSnapshot(
@@ -61,8 +60,7 @@ fun buildReadingCenterContent(
     val heroActions = if (hasSession) {
         listOf(
             ReadingCenterHeroAction("继续阅读", "回到《$title》并接上当前进度", ReadingCenterTarget.IMMERSIVE_READER),
-            ReadingCenterHeroAction("进入专注", "围绕这篇内容开始一段安静阅读", ReadingCenterTarget.FOCUS_MODE),
-            ReadingCenterHeroAction("阅读复盘", "读完后回看结构和重点段落", ReadingCenterTarget.OUTLINE_VIEW)
+            ReadingCenterHeroAction("进入专注", "围绕这篇内容开始一段安静阅读", ReadingCenterTarget.FOCUS_MODE)
         )
     } else {
         listOf(
@@ -81,11 +79,6 @@ fun buildReadingCenterContent(
             title = "专注模式",
             summary = if (session.hasActiveFocus) "当前已有专注会话，回去继续即可" else "让倒计时围绕当前阅读内容工作",
             target = ReadingCenterTarget.FOCUS_MODE
-        ),
-        ReadingCenterFeatureItem(
-            title = "阅读复盘",
-            summary = "先看结构，再看重点段落和情绪变化",
-            target = ReadingCenterTarget.OUTLINE_VIEW
         )
     )
 

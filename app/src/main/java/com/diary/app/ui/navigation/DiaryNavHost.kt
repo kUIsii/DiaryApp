@@ -122,20 +122,14 @@ import com.diary.app.ui.voicerecording.VoiceRecordingScreen
 import com.diary.app.ui.diarysummary.DiarySummaryScreen
 import com.diary.app.ui.smallwins.SmallWinsScreen
 import com.diary.app.ui.quickcheckin.QuickCheckinScreen
-import com.diary.app.ui.goals.GoalsScreen
-
-
 import com.diary.app.ui.writingfingerprint.WritingFingerprintScreen
-import com.diary.app.ui.emotionforecast.EmotionForecastScreen
 import com.diary.app.ui.decisions.DecisionAnalysisScreen
 import com.diary.app.ui.values.ValuesExtractionScreen
 import com.diary.app.ui.writinglab.WritingLabScreen
 import com.diary.app.ui.monthlychallenge.MonthlyChallengeScreen
 
-
 import com.diary.app.ui.quietcompanion.QuietCompanionScreen
 import com.diary.app.ui.ambienttheme.AmbientThemeScreen
-import com.diary.app.ui.outline.OutlineViewScreen
 import com.diary.app.ui.focus.FocusModeScreen
 import com.diary.app.ui.immersive.ImmersiveReaderScreen
 import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
@@ -226,10 +220,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object SmallWins : Screen("small_wins", "小确幸", Icons.Default.Favorite)
     object WritingGrowthCenter : Screen("writing_growth_center", "写作成长中心", Icons.Default.AutoAwesome)
     object QuickCheckin : Screen("quick_checkin", "快速签到", Icons.Default.Edit)
-    object Goals : Screen("goals", "目标追踪", Icons.Default.BarChart)
 
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
-    object EmotionForecast : Screen("emotion_forecast", "情绪预报", Icons.Default.Home)
     object DecisionAnalysis : Screen("decision_analysis", "决策追踪", Icons.Default.CheckBox)
     object ValuesExtraction : Screen("values_extraction", "价值观", Icons.Default.Favorite)
     object WritingLab : Screen("writing_lab", "写作实验室", Icons.Default.Science)
@@ -240,10 +232,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object QuietCompanion : Screen("quiet_companion", "安静陪伴", Icons.Default.Home)
     object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
     object ReadingCenter : Screen("reading_center", "阅读中心", Icons.Default.LibraryBooks)
-    object OutlineView : Screen("outline_view?diaryId={diaryId}", "阅读复盘", Icons.Default.Article) {
-        fun createRoute(diaryId: Long? = null): String =
-            if (diaryId != null) "outline_view?diaryId=$diaryId" else "outline_view"
-    }
     object FocusMode : Screen("focus_mode", "专注模式", Icons.Default.Timer)
     object ImmersiveReader : Screen("immersive_reader?diaryId={diaryId}", "沉浸阅读", Icons.Default.Article) {
         fun createRoute(diaryId: Long? = null): String =
@@ -436,7 +424,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToSmallWins = { navController.navigate(Screen.SmallWins.route) },
                     onNavigateToWritingGrowthCenter = { navController.navigate(Screen.WritingGrowthCenter.route) },
                     onNavigateToQuickCheckin = { navController.navigate(Screen.QuickCheckin.route) },
-                    onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
                     onNavigateToVoiceRecording = { navController.navigate(Screen.VoiceRecording.route) },
                     onNavigateToReadingCenter = { navController.navigate(Screen.ReadingCenter.route) },
@@ -444,12 +431,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.createRoute()) },
                     onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
-                    onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
                     onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
                     onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
                     onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
                     onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
-                    onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.createRoute()) },
                     onNavigateToSemanticSearch = { navController.navigate(Screen.SemanticSearch.route) },
                     onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
                     onNavigateToAmbientSound = { navController.navigate(Screen.AmbientSound.route) },
@@ -914,20 +899,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
 
             composable(
-                route = Screen.Goals.route,
-                enterTransition = { subPageEnterTransition() },
-                exitTransition = { subPageExitTransition() },
-                popEnterTransition = { subPagePopEnterTransition() },
-                popExitTransition = { subPagePopExitTransition() }
-            ) {
-                GoalsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) }
-                )
-            }
-
-
-            composable(
                 Screen.WritingFingerprint.route,
                 enterTransition = { subPageEnterTransition() },
                 exitTransition = { subPageExitTransition() },
@@ -935,17 +906,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 WritingFingerprintScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable(
-                Screen.EmotionForecast.route,
-                enterTransition = { subPageEnterTransition() },
-                exitTransition = { subPageExitTransition() },
-                popEnterTransition = { subPagePopEnterTransition() },
-                popExitTransition = { subPagePopExitTransition() }
-            ) {
-                EmotionForecastScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -970,22 +930,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToImmersiveReader = { diaryId ->
                         navController.navigate(Screen.ImmersiveReader.createRoute(diaryId))
                     },
-                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
-                    onNavigateToOutlineView = { diaryId ->
-                        navController.navigate(Screen.OutlineView.createRoute(diaryId))
-                    }
-                )
-            }
-            composable(
-                route = Screen.OutlineView.route,
-                arguments = listOf(
-                    navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }
-                )
-            ) { backStackEntry ->
-                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
-                OutlineViewScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    diaryId = diaryId.takeIf { it != -1L }
+                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) }
                 )
             }
             composable(Screen.FocusMode.route) {
@@ -994,9 +939,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToReading = { diaryId ->
                         navController.navigate(Screen.ImmersiveReader.createRoute(diaryId))
                     },
-                    onNavigateToOutlineView = { diaryId ->
-                        navController.navigate(Screen.OutlineView.createRoute(diaryId))
-                    }
                 )
             }
             composable(
@@ -1009,9 +951,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 ImmersiveReaderScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
-                    onNavigateToOutlineView = { targetDiaryId ->
-                        navController.navigate(Screen.OutlineView.createRoute(targetDiaryId))
-                    },
                     onNavigateToReadingCenter = { navController.navigate(Screen.ReadingCenter.route) },
                     initialDiaryId = diaryId.takeIf { it != -1L }
                 )
