@@ -360,16 +360,7 @@ private fun FullscreenPlayer(
                 model = ImageRequest.Builder(context).data(backgroundImageUrl).crossfade(true).build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = painterResource(
-                    when (categoryId) {
-                        "sleep" -> R.drawable.ambient_bg_sleep
-                        "nature" -> R.drawable.ambient_bg_nature
-                        "reading" -> R.drawable.ambient_bg_reading
-                        "meditation" -> R.drawable.ambient_bg_meditation
-                        else -> R.drawable.ambient_bg_sleep
-                    }
-                )
+                contentScale = ContentScale.Crop
             )
         } else {
             Box(modifier = Modifier.fillMaxSize().background(
