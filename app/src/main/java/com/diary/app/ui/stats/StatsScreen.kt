@@ -29,11 +29,12 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
+import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Weekend
@@ -101,6 +102,7 @@ fun StatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val centerHome = state.centerHome
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEntries by remember { mutableStateOf<List<DiaryPreview>>(emptyList()) }
@@ -126,7 +128,7 @@ fun StatsScreen(
                 EmptyState(
                     icon = Icons.Default.SelfImprovement,
                     title = "还没有统计内容",
-                    subtitle = "开始记录几篇日记后，这里会出现写作趋势、心情和习惯摘要",
+                    subtitle = "开始记录几篇日记后，这里会出现总览、洞察和深挖入口",
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 24.dp)
@@ -142,7 +144,31 @@ fun StatsScreen(
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     item {
-                        StatsPageHeader(totalEntries = state.totalEntries)
+                        AnalysisCenterHeader(
+                            summary = centerHome.summary,
+                            totalEntries = state.totalEntries,
+                            currentStreak = state.currentStreak
+                        )
+                    }
+
+                    item {
+                        CenterMetricsRow(
+                            metrics = centerHome.keyMetrics
+                        )
+                    }
+
+                    item {
+                        InsightStrip(insights = centerHome.topInsights)
+                    }
+
+                    item {
+                        DeepDiveEntryGrid(
+                            groups = buildDeepDiveGroups(),
+                            onMonthly = onNavigateToMonthlyReport,
+                            onQuarterly = onNavigateToQuarterlyReview,
+                            onYearbook = onNavigateToPersonalYearbook,
+                            onAnnual = onNavigateToAnnualReport
+                        )
                     }
 
                     item {
@@ -162,50 +188,43 @@ fun StatsScreen(
                     }
 
                     item {
-                        StatsHeroSection(state = state)
-                    }
-
-                    if (state.heatmapData.isNotEmpty()) {
-                        item {
-                            StatsSectionCard(
-                                title = "记录热力图",
-                                subtitle = "查看最近 ${state.heatmapRange.days} 天的记录密度，点按某一天可查看当天日记"
+                        StatsSectionCard(
+                            title = "记录热力图",
+                            subtitle = "查看最近 ${state.heatmapRange.days} 天的记录密度，点按某一天可查看当天日记"
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Range selector inside the card
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    HeatmapRange.entries.forEach { range ->
-                                        val rangeLabel = when (range) {
-                                            HeatmapRange.ONE_MONTH -> "30天"
-                                            HeatmapRange.THREE_MONTHS -> "3月"
-                                            HeatmapRange.SIX_MONTHS -> "6月"
-                                            HeatmapRange.ONE_YEAR -> "1年"
-                                        }
-                                        RangeChip(
-                                            label = rangeLabel,
-                                            selected = state.heatmapRange == range,
-                                            onClick = { viewModel.setHeatmapRange(range) }
-                                        )
+                                HeatmapRange.entries.forEach { range ->
+                                    val rangeLabel = when (range) {
+                                        HeatmapRange.ONE_MONTH -> "30天"
+                                        HeatmapRange.THREE_MONTHS -> "3月"
+                                        HeatmapRange.SIX_MONTHS -> "6月"
+                                        HeatmapRange.ONE_YEAR -> "1年"
+                                    }
+                                    RangeChip(
+                                        label = rangeLabel,
+                                        selected = state.heatmapRange == range,
+                                        onClick = { viewModel.setHeatmapRange(range) }
+                                    )
+                                }
+                            }
+
+                            DiaryHeatmap(
+                                data = state.heatmapData,
+                                range = state.heatmapRange,
+                                onDayClick = { date ->
+                                    selectedDate = date
+                                    isLoadingEntries = true
+                                    scope.launch {
+                                        selectedEntries = viewModel.getEntriesForDate(date)
+                                        isLoadingEntries = false
                                     }
                                 }
-
-                                DiaryHeatmap(
-                                    data = state.heatmapData,
-                                    range = state.heatmapRange,
-                                    onDayClick = { date ->
-                                        selectedDate = date
-                                        isLoadingEntries = true
-                                        scope.launch {
-                                            selectedEntries = viewModel.getEntriesForDate(date)
-                                            isLoadingEntries = false
-                                        }
-                                    }
-                                )
-                            }
+                            )
                         }
                     }
 
@@ -486,7 +505,11 @@ private fun DayEntriesDialog(
 }
 
 @Composable
-private fun StatsPageHeader(totalEntries: Int) {
+private fun AnalysisCenterHeader(
+    summary: AnalysisCenterSummary,
+    totalEntries: Int,
+    currentStreak: Int
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -495,15 +518,21 @@ private fun StatsPageHeader(totalEntries: Int) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "统计",
+                text = "数据分析中心",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (totalEntries == 0) "记录你的写作轨迹" else "共 $totalEntries 篇日记",
+                text = summary.primaryInsight.text,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "共 $totalEntries 篇日记 · 连续 $currentStreak 天",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
         }
         Box(
@@ -519,6 +548,119 @@ private fun StatsPageHeader(totalEntries: Int) {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun CenterMetricsRow(
+    metrics: List<AnalysisCenterMetric>
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        metrics.forEach { metric ->
+            GlassCard(
+                modifier = Modifier.weight(1f),
+                cornerRadius = 18.dp,
+                innerPadding = 12.dp
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = metric.label,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = metric.value,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightStrip(insights: List<AnalysisCenterInsight>) {
+    if (insights.isEmpty()) return
+    StatsSectionCard(
+        title = "洞察",
+        subtitle = "先看最值得注意的变化"
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            insights.take(3).forEach { insight ->
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 14.dp
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = insight.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = insight.text,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeepDiveEntryGrid(
+    groups: List<DeepDiveGroup>,
+    onMonthly: () -> Unit,
+    onQuarterly: () -> Unit,
+    onYearbook: () -> Unit,
+    onAnnual: () -> Unit
+) {
+    StatsSectionCard(
+        title = "深挖入口",
+        subtitle = "按主题进入更细的分析"
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            groups.forEach { group ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = group.title,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        group.entries.take(3).forEach { entry ->
+                            val onClick = when (entry) {
+                                "月度报告" -> onMonthly
+                                "季度回顾" -> onQuarterly
+                                "个人年鉴" -> onYearbook
+                                "年度报告" -> onAnnual
+                                else -> onQuarterly
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(999.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                                modifier = Modifier.clickable(onClick = onClick)
+                            ) {
+                                Text(
+                                    text = entry,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

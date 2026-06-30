@@ -113,6 +113,8 @@ data class StatsState(
     val analysisQuery: String = "",
     val analysisResult: String? = null,
     val isAnalyzing: Boolean = false,
+    val centerSummary: AnalysisCenterSummary = defaultAnalysisCenterSummary(),
+    val centerHome: AnalysisCenterHome = defaultAnalysisCenterHome(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -220,6 +222,46 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         _analysisResult,
         _isAnalyzing
     ) { stats, wc, query, result, analyzing ->
+        val centerSummary = buildAnalysisCenterSummary(
+            totalEntries = stats.totalEntries,
+            currentStreak = stats.currentStreak,
+            thisMonthEntries = stats.thisMonthEntries,
+            moodTrend = stats.moodTrend?.let {
+                AnalysisMoodTrend(
+                    recent30Avg = it.recent30Avg,
+                    previous30Avg = it.previous30Avg,
+                    direction = it.direction
+                )
+            },
+            writingHabit = stats.writingHabit?.let {
+                AnalysisWritingHabit(
+                    avgPerWeek = it.avgPerWeek,
+                    mostActiveDay = it.mostActiveDay,
+                    mostActiveTime = it.mostActiveTime,
+                    avgWritingMinutes = it.avgWritingMinutes
+                )
+            },
+            moodWeatherInsight = stats.moodWeatherInsight?.let {
+                AnalysisMoodWeatherInsight(
+                    text = it.text,
+                    moodLevel = it.moodLevel,
+                    bestWeather = it.bestWeather,
+                    worstWeather = it.worstWeather,
+                    bestAvgMood = it.bestAvgMood,
+                    worstAvgMood = it.worstAvgMood,
+                    overallAvgMood = it.overallAvgMood,
+                    perWeatherAverages = it.perWeatherAverages
+                )
+            }
+        )
+        val centerHome = buildAnalysisCenterHome(
+            summary = centerSummary,
+            totalEntries = stats.totalEntries,
+            currentStreak = stats.currentStreak,
+            thisMonthEntries = stats.thisMonthEntries,
+            topInsights = listOf(centerSummary.primaryInsight) + centerSummary.secondaryInsights,
+            deepDiveEntries = buildDeepDiveGroups().flatMap { it.entries }
+        )
         stats.copy(
             topWords = wc.words,
             wordCloudPeriod = wc.period,
@@ -227,6 +269,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             analysisQuery = query,
             analysisResult = result,
             isAnalyzing = analyzing,
+            centerSummary = centerSummary,
+            centerHome = centerHome,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 
