@@ -28,14 +28,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.DiaryApplication
 import com.diary.app.data.CoverTheme
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.readingcenter.ReadingSessionSnapshot
+import com.diary.app.ui.readingcenter.buildReadingThemePreviewDescription
 import com.diary.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -47,6 +51,7 @@ fun CoverThemeScreen(
     onNavigateBack: () -> Unit,
     viewModel: CoverThemeViewModel = viewModel()
 ) {
+    val app = LocalContext.current.applicationContext as DiaryApplication
     val themes by viewModel.themes.collectAsState()
     val activeTheme by viewModel.activeTheme.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -55,6 +60,7 @@ fun CoverThemeScreen(
     val customThemes by viewModel.customThemes.collectAsState()
     val usageCounts by viewModel.usageCounts.collectAsState()
     val defaultThemeName by viewModel.defaultThemeName.collectAsState()
+    val readingSession by app.readingSessionStore.session.collectAsState()
 
     var showCustomEditor by remember { mutableStateOf(false) }
     var detailPreset by remember { mutableStateOf<PresetCover?>(null) }
@@ -83,7 +89,7 @@ fun CoverThemeScreen(
                 .fillMaxSize()
                 .padding(DesignTokens.SpacingLg)
         ) {
-            PageHeader(title = "封面主题", onNavigateBack = onNavigateBack)
+            PageHeader(title = "阅读主题", onNavigateBack = onNavigateBack)
 
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -92,6 +98,8 @@ fun CoverThemeScreen(
             } else {
                 CoverPreviewSection(
                     activeTheme = activeTheme,
+                    readingSession = readingSession,
+                    defaultThemeName = defaultThemeName,
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.4f)
@@ -243,6 +251,8 @@ fun CoverThemeScreen(
 @Composable
 private fun CoverPreviewSection(
     activeTheme: CoverTheme?,
+    readingSession: ReadingSessionSnapshot,
+    defaultThemeName: String?,
     modifier: Modifier = Modifier
 ) {
     var showMockCovers by remember { mutableStateOf(false) }
@@ -261,15 +271,15 @@ private fun CoverPreviewSection(
         targetState = previewKey,
         animationSpec = tween(DesignTokens.AnimationNormal)
     ) { key ->
-        Box(
-            modifier = modifier
-                .clip(RoundedCornerShape(DesignTokens.CornerLarge))
-                .background(previewTexture)
-                .border(1.dp, previewAccent.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.CornerLarge))
-                .padding(DesignTokens.SpacingLg)
-        ) {
-            Column {
-                Spacer(modifier = Modifier.weight(1f))
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(DesignTokens.CornerLarge))
+            .background(previewTexture)
+            .border(1.dp, previewAccent.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.CornerLarge))
+            .padding(DesignTokens.SpacingLg)
+    ) {
+        Column {
+            Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = SimpleDateFormat("yyyy年M月d日", Locale.CHINESE).format(Date()),
                     fontSize = DesignTokens.FontSmall,
@@ -277,10 +287,17 @@ private fun CoverPreviewSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "今日心情",
+                    text = readingSession.title ?: "沉浸阅读预览",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = previewAccent
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = readingSession.previewText ?: "主题切换后，这里展示的是实际阅读页的排版和正文气质，而不是抽象封面。",
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp,
+                    color = previewAccent.copy(alpha = 0.85f)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
@@ -300,7 +317,10 @@ private fun CoverPreviewSection(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "预览完整效果",
+                        text = buildReadingThemePreviewDescription(
+                            themeName = activeTheme?.name ?: (defaultThemeName ?: "默认主题"),
+                            isDefault = defaultThemeName == (activeTheme?.name ?: defaultThemeName)
+                        ),
                         fontSize = 11.sp,
                         color = previewAccent.copy(alpha = 0.7f),
                         modifier = Modifier.clickable { showMockCovers = !showMockCovers }

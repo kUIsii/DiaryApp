@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +24,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
@@ -50,11 +54,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.app.DiaryApplication
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GradientBackground
 import java.text.SimpleDateFormat
@@ -65,8 +72,12 @@ import java.util.Locale
 fun ImmersiveReaderScreen(
     onNavigateBack: () -> Unit,
     onNavigateToFocusMode: () -> Unit = {},
+    onNavigateToOutlineView: (Long?) -> Unit = {},
+    onNavigateToReadingCenter: () -> Unit = {},
+    initialDiaryId: Long? = null,
     viewModel: ImmersiveReaderViewModel = viewModel()
 ) {
+    val app = LocalContext.current.applicationContext as DiaryApplication
     val entries by viewModel.entries.collectAsState()
     val warmLightEnabled by viewModel.warmLightEnabled.collectAsState()
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsState()
@@ -74,12 +85,31 @@ fun ImmersiveReaderScreen(
     val fontType by viewModel.fontType.collectAsState()
     val sessionReadCount by viewModel.sessionReadCount.collectAsState()
     val elapsedSeconds by viewModel.elapsedSeconds.collectAsState()
+    val readingSession by app.readingSessionStore.session.collectAsState()
+    val topSummary = when {
+        readingSession.diaryId != null -> "正在继续《${readingSession.title ?: "未命名内容"}》"
+        else -> "从最近的内容开始继续阅读"
+    }
 
     var currentPage by remember { mutableIntStateOf(0) }
     var direction by remember { mutableIntStateOf(1) }
 
-    LaunchedEffect(currentPage) {
-        if (entries.isNotEmpty()) viewModel.trackPageRead()
+    LaunchedEffect(entries, initialDiaryId) {
+        if (entries.isNotEmpty()) {
+            val targetDiaryId = initialDiaryId ?: readingSession.diaryId ?: entries.first().id
+            val targetIndex = entries.indexOfFirst { it.id == targetDiaryId }.takeIf { it >= 0 } ?: 0
+            currentPage = targetIndex
+            viewModel.updateReadingSelection(entries[targetIndex], targetIndex, entries.size)
+        }
+    }
+
+    LaunchedEffect(currentPage, entries) {
+        if (entries.isNotEmpty()) {
+            viewModel.trackPageRead()
+            entries.getOrNull(currentPage)?.let { preview ->
+                viewModel.updateReadingSelection(preview, currentPage, entries.size)
+            }
+        }
     }
 
     val warmOverlay = Color(0xFFFFF3E0).copy(alpha = 0.3f)
@@ -148,16 +178,21 @@ fun ImmersiveReaderScreen(
 
                     TopControls(
                         onNavigateBack = onNavigateBack,
+                        topSummary = topSummary,
                         warmLightEnabled = warmLightEnabled,
                         darkModeEnabled = darkModeEnabled,
                         fontSize = fontSize,
                         fontType = fontType,
                         onToggleWarmLight = { viewModel.toggleWarmLight() },
                         onToggleDarkMode = { viewModel.toggleDarkMode() },
-                        onCycleFontType = { viewModel.cycleFontType() },
-                        onChangeFontSize = { dir -> viewModel.setFontSize(fontSize + dir) },
-                        onNavigateToFocusMode = onNavigateToFocusMode
-                    )
+                            onCycleFontType = { viewModel.cycleFontType() },
+                            onChangeFontSize = { dir -> viewModel.setFontSize(fontSize + dir) },
+                            onNavigateToFocusMode = onNavigateToFocusMode,
+                            onNavigateToOutlineView = {
+                                onNavigateToOutlineView(entries.getOrNull(currentPage)?.id)
+                            },
+                            onNavigateToReadingCenter = onNavigateToReadingCenter
+                        )
 
                     NavButtons(
                         currentPage = currentPage,
@@ -235,9 +270,19 @@ private fun PageContent(
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(currentPage) {
+                var dragTotal = 0f
                 detectHorizontalDragGestures(
-                    onDragEnd = {},
-                    onHorizontalDrag = { _, _ -> }
+                    onDragStart = { dragTotal = 0f },
+                    onHorizontalDrag = { change, dragAmount ->
+                        dragTotal += dragAmount
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        when {
+                            dragTotal <= -48f -> onSwipeLeft()
+                            dragTotal >= 48f -> onSwipeRight()
+                        }
+                    }
                 )
             }
     ) { page ->
@@ -340,6 +385,7 @@ private fun DiaryPage(
 @Composable
 private fun TopControls(
     onNavigateBack: () -> Unit,
+    topSummary: String,
     warmLightEnabled: Boolean,
     darkModeEnabled: Boolean,
     fontSize: Int,
@@ -348,20 +394,38 @@ private fun TopControls(
     onToggleDarkMode: () -> Unit,
     onCycleFontType: () -> Unit,
     onChangeFontSize: (Int) -> Unit,
-    onNavigateToFocusMode: () -> Unit
+    onNavigateToFocusMode: () -> Unit,
+    onNavigateToOutlineView: () -> Unit,
+    onNavigateToReadingCenter: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onNavigateBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+                text = topSummary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+            Text(
+                text = if (darkModeEnabled) "深色阅读已开启" else "阅读设置可随时调整",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
-        Row {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+            }
             IconButton(onClick = onToggleWarmLight) {
                 Icon(
                     Icons.Default.Lightbulb,
@@ -406,6 +470,12 @@ private fun TopControls(
             }
             IconButton(onClick = onNavigateToFocusMode) {
                 Icon(Icons.Default.Timer, contentDescription = "专注模式")
+            }
+            IconButton(onClick = onNavigateToOutlineView) {
+                Icon(Icons.Default.FormatListBulleted, contentDescription = "阅读复盘")
+            }
+            IconButton(onClick = onNavigateToReadingCenter) {
+                Icon(Icons.Default.MenuBook, contentDescription = "阅读中心")
             }
         }
     }
@@ -461,25 +531,25 @@ private fun NavButtons(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 48.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
         if (currentPage > 0) {
-            Button(
-                onClick = onPrev,
+                Button(
+                    onClick = onPrev,
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 ),
                 modifier = Modifier.size(width = 100.dp, height = 48.dp)
-            ) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "上一页", modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("上页", fontSize = 13.sp)
-            }
+                ) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "上一页", modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("上页", fontSize = 13.sp)
+                }
         } else {
             Spacer(modifier = Modifier.size(width = 100.dp, height = 48.dp))
         }

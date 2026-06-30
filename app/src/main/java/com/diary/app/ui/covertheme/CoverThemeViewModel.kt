@@ -56,6 +56,7 @@ val textureOptions = listOf(
 class CoverThemeViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as DiaryApplication
     private val dao = app.database.diaryDao()
+    private val sessionStore = app.readingSessionStore
     private val sp = application.getSharedPreferences("cover_theme", Context.MODE_PRIVATE)
     private val gson = Gson()
 
@@ -166,6 +167,7 @@ class CoverThemeViewModel(application: Application) : AndroidViewModel(applicati
                 )
                 if (setAsDefault) setDefaultThemeName(preset.name)
             }
+            sessionStore.setTheme(preset.name)
             incrementUsage(preset.name)
         }
     }
@@ -196,6 +198,7 @@ class CoverThemeViewModel(application: Application) : AndroidViewModel(applicati
             }
             _customThemes.value = updated
             saveCustomThemes(updated)
+            sessionStore.setTheme(theme.name)
             incrementUsage(theme.name)
         }
     }
@@ -205,6 +208,7 @@ class CoverThemeViewModel(application: Application) : AndroidViewModel(applicati
             dao.deactivateAllCoverThemes()
             dao.activateCoverTheme(theme.id)
             if (setAsDefault) setDefaultThemeName(theme.name)
+            sessionStore.setTheme(theme.name)
             incrementUsage(theme.name)
         }
     }

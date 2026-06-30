@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.components.PageHeader
+import com.diary.app.ui.readingcenter.buildReadingReviewSummary
 import com.diary.app.ui.theme.DesignTokens
 import java.time.Instant
 import java.time.ZoneId
@@ -70,7 +71,11 @@ fun OutlineViewScreen(
     val context = LocalContext.current
 
     LaunchedEffect(diaryId) {
-        diaryId?.let { viewModel.loadDiary(it) }
+        if (diaryId != null) {
+            viewModel.loadDiary(diaryId)
+        } else {
+            viewModel.loadCurrentSessionDiaryIfNeeded()
+        }
     }
 
     GradientBackground {
@@ -78,7 +83,7 @@ fun OutlineViewScreen(
             modifier = Modifier.fillMaxSize().padding(DesignTokens.SpacingLg)
         ) {
             PageHeader(
-                title = "大纲视图",
+                title = "阅读复盘",
                 onNavigateBack = onNavigateBack,
                 action = {
                     IconButton(onClick = { viewModel.toggleExportDialog() }) {
@@ -92,6 +97,21 @@ fun OutlineViewScreen(
                 onModeSelected = { viewModel.setMode(it) }
             )
             Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            outline?.let { data ->
+                GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                    Text(
+                        text = buildReadingReviewSummary(
+                            totalWords = data.totalWords,
+                            paragraphCount = data.paragraphCount,
+                            headingCount = data.items.size
+                        ),
+                        fontSize = DesignTokens.FontBody,
+                        lineHeight = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            }
             when (mode) {
                 OutlineMode.SINGLE -> {
                     if (outline == null && bodyContent == null) {

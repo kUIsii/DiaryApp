@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -155,6 +156,7 @@ import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
 import com.diary.app.ui.entrygraph.EntryGraphScreen
 import com.diary.app.ui.travellog.TravelLogScreen
 import com.diary.app.ui.locationmemories.LocationMemoriesScreen
+import com.diary.app.ui.readingcenter.ReadingCenterScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
@@ -247,9 +249,16 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object QuietCompanion : Screen("quiet_companion", "安静陪伴", Icons.Default.Home)
     object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
     object GentleNotification : Screen("gentle_notification", "温柔通知", Icons.Default.Notifications)
-    object OutlineView : Screen("outline_view", "大纲视图", Icons.Default.Article)
+    object ReadingCenter : Screen("reading_center", "阅读中心", Icons.Default.LibraryBooks)
+    object OutlineView : Screen("outline_view?diaryId={diaryId}", "阅读复盘", Icons.Default.Article) {
+        fun createRoute(diaryId: Long? = null): String =
+            if (diaryId != null) "outline_view?diaryId=$diaryId" else "outline_view"
+    }
     object FocusMode : Screen("focus_mode", "专注模式", Icons.Default.Timer)
-    object ImmersiveReader : Screen("immersive_reader", "沉浸阅读", Icons.Default.Article)
+    object ImmersiveReader : Screen("immersive_reader?diaryId={diaryId}", "沉浸阅读", Icons.Default.Article) {
+        fun createRoute(diaryId: Long? = null): String =
+            if (diaryId != null) "immersive_reader?diaryId=$diaryId" else "immersive_reader"
+    }
     object QuarterlyReview : Screen("quarterly_review", "季度回顾", Icons.Default.CalendarMonth)
     object EmotionArc : Screen("emotion_arc/{diaryId}", "情绪弧线", Icons.Default.BarChart) {
         fun createRoute(diaryId: Long) = "emotion_arc/$diaryId"
@@ -448,8 +457,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
                     onNavigateToVoiceRecording = { navController.navigate(Screen.VoiceRecording.route) },
+                    onNavigateToReadingCenter = { navController.navigate(Screen.ReadingCenter.route) },
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
-                    onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.route) },
+                    onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.createRoute()) },
                     onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
                     onNavigateToMemoryAnchors = { navController.navigate(Screen.MemoryAnchors.route) },
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
@@ -463,7 +473,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
                     onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) },
                     onNavigateToGentleNotification = { navController.navigate(Screen.GentleNotification.route) },
-                    onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.route) },
+                    onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.createRoute()) },
                     onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) },
                     onNavigateToSemanticSearch = { navController.navigate(Screen.SemanticSearch.route) },
                     onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
@@ -988,12 +998,63 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.QuietCompanion.route) { QuietCompanionScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.AmbientTheme.route) { AmbientThemeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.OutlineView.route) { OutlineViewScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.FocusMode.route) { FocusModeScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.ImmersiveReader.route) {
+            composable(
+                route = Screen.ReadingCenter.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                ReadingCenterScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToImmersiveReader = { diaryId ->
+                        navController.navigate(Screen.ImmersiveReader.createRoute(diaryId))
+                    },
+                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
+                    onNavigateToOutlineView = { diaryId ->
+                        navController.navigate(Screen.OutlineView.createRoute(diaryId))
+                    },
+                    onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) }
+                )
+            }
+            composable(
+                route = Screen.OutlineView.route,
+                arguments = listOf(
+                    navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) { backStackEntry ->
+                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
+                OutlineViewScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    diaryId = diaryId.takeIf { it != -1L }
+                )
+            }
+            composable(Screen.FocusMode.route) {
+                FocusModeScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReading = { diaryId ->
+                        navController.navigate(Screen.ImmersiveReader.createRoute(diaryId))
+                    },
+                    onNavigateToOutlineView = { diaryId ->
+                        navController.navigate(Screen.OutlineView.createRoute(diaryId))
+                    }
+                )
+            }
+            composable(
+                route = Screen.ImmersiveReader.route,
+                arguments = listOf(
+                    navArgument("diaryId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) { backStackEntry ->
+                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
                 ImmersiveReaderScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) }
+                    onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
+                    onNavigateToOutlineView = { targetDiaryId ->
+                        navController.navigate(Screen.OutlineView.createRoute(targetDiaryId))
+                    },
+                    onNavigateToReadingCenter = { navController.navigate(Screen.ReadingCenter.route) },
+                    initialDiaryId = diaryId.takeIf { it != -1L }
                 )
             }
             composable(Screen.QuarterlyReview.route) { QuarterlyReviewScreen(onNavigateBack = { navController.popBackStack() }) }

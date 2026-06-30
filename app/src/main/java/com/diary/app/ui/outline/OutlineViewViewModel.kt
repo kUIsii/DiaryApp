@@ -49,8 +49,10 @@ data class WordFreq(
 )
 
 class OutlineViewViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = (application as DiaryApplication).database.diaryDao()
-    private val aiService = (application as DiaryApplication).aiService
+    private val app = application as DiaryApplication
+    private val dao = app.database.diaryDao()
+    private val aiService = app.aiService
+    private val sessionStore = app.readingSessionStore
     private val gson = Gson()
     private val sp = application.getSharedPreferences("outline_ai_cache", Context.MODE_PRIVATE)
     private val tagSp = application.getSharedPreferences("outline_ai_tags", Context.MODE_PRIVATE)
@@ -109,9 +111,18 @@ class OutlineViewViewModel(application: Application) : AndroidViewModel(applicat
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             val entry = dao.getEntryById(diaryId) ?: return@launch
+            val preview = dao.getPreviewById(diaryId)
             _bodyContent.value = entry.plainText
             processText(entry.plainText)
             loadAiTags(diaryId, entry.plainText)
+            preview?.let { sessionStore.setEntry(it) }
+        }
+    }
+
+    fun loadCurrentSessionDiaryIfNeeded() {
+        val sessionDiaryId = sessionStore.session.value.diaryId ?: return
+        if (currentDiaryId == null) {
+            loadDiary(sessionDiaryId)
         }
     }
 
@@ -320,6 +331,7 @@ class OutlineViewViewModel(application: Application) : AndroidViewModel(applicat
         for ((index, p) in paragraphs.withIndex()) {
             if (charOffset in current..(current + p.length)) {
                 _highlightParagraph.value = index
+                sessionStore.setParagraph(index)
                 return
             }
             current += p.length + 2

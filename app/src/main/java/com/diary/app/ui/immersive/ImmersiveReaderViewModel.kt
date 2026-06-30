@@ -20,7 +20,9 @@ enum class FontType(val displayName: String) {
 }
 
 class ImmersiveReaderViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = (application as DiaryApplication).database.diaryDao()
+    private val app = application as DiaryApplication
+    private val dao = app.database.diaryDao()
+    private val sessionStore = app.readingSessionStore
 
     private val _entries = MutableStateFlow<List<DiaryPreview>>(emptyList())
     val entries: StateFlow<List<DiaryPreview>> = _entries
@@ -69,6 +71,11 @@ class ImmersiveReaderViewModel(application: Application) : AndroidViewModel(appl
                 _entries.value = list
             }
         }
+    }
+
+    fun updateReadingSelection(preview: DiaryPreview, pageIndex: Int, totalPages: Int) {
+        sessionStore.setEntry(preview, requestedPage = pageIndex)
+        sessionStore.updatePage(pageIndex, totalPages)
     }
 
     fun toggleWarmLight() {

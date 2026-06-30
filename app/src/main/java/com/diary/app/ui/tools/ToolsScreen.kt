@@ -165,6 +165,7 @@ fun ToolsScreen(
     onNavigateToGoals: () -> Unit = {},
     onNavigateToWritingCoach: () -> Unit = {},
     onNavigateToVoiceRecording: () -> Unit = {},
+    onNavigateToReadingCenter: () -> Unit = {},
     onNavigateToFocusMode: () -> Unit = {},
     onNavigateToImmersiveReader: () -> Unit = {},
     onNavigateToQuarterlyReview: () -> Unit = {},
@@ -235,9 +236,10 @@ fun ToolsScreen(
         ToolSection(
             key = "reading",
             icon = Icons.Default.LibraryBooks,
-            title = "\u6C89\u6D78\u9605\u8BFB",
-            subtitle = "\u9605\u8BFB\u00B7\u7EB2\u8981\u00B7\u4E3B\u9898",
+            title = "\u9605\u8BFB\u4E2D\u5FC3",
+            subtitle = "\u7EED\u8BFB\u00B7\u4E13\u6CE8\u00B7\u590D\u76D8\u00B7\u4E3B\u9898",
             items = listOf(
+                ToolItem(Icons.Default.MenuBook, "\u9605\u8BFB\u4E2D\u5FC3", "\u7EED\u8BFB\u3001\u4E13\u6CE8\u3001\u590D\u76D8\u4E0E\u4E3B\u9898\u7684\u7EDF\u4E00\u5165\u53E3", onNavigateToReadingCenter),
                 ToolItem(Icons.Default.Visibility, "\u6C89\u6D78\u9605\u8BFB", "\u4E13\u6CE8\u65E0\u5E72\u6270\u9605\u8BFB\u4F53\u9A8C", onNavigateToImmersiveReader),
                 ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
                 ToolItem(Icons.Default.FormatListBulleted, "\u5927\u7EB2\u89C6\u56FE", "\u6D4F\u89C8\u65E5\u8BB0\u7EB2\u8981\u00B7\u5FEB\u901F\u5BFC\u822A", onNavigateToOutlineView),
