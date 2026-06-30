@@ -24,10 +24,10 @@ class AmbientSoundService : Service() {
         createNotificationChannel()
         mediaSession = MediaSession(this, "AmbientSound").apply {
             setCallback(object : MediaSession.Callback() {
-                override fun onPlay() { player.resumeAll(); updateNotification(); updatePlaybackState() }
-                override fun onPause() { player.pauseAll(); updateNotification(); updatePlaybackState() }
+                override fun onPlay() { player.resume(); updateNotification(); updatePlaybackState() }
+                override fun onPause() { player.pause(); updateNotification(); updatePlaybackState() }
                 override fun onStop() {
-                    player.stopAll()
+                    player.stop()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -41,7 +41,7 @@ class AmbientSoundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            if (player.hasActivePlayers()) {
+            if (player.hasSession) {
                 try { startForeground(NOTIFICATION_ID, buildNotification()) } catch (e: Exception) { return START_NOT_STICKY }
                 updatePlaybackState()
                 return START_STICKY
@@ -50,25 +50,25 @@ class AmbientSoundService : Service() {
         }
         when (intent.action) {
             ACTION_STOP_ALL -> {
-                player.stopAll()
+                player.stop()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return START_NOT_STICKY
             }
             ACTION_PAUSE -> {
-                player.pauseAll()
+                player.pause()
                 updateNotification()
                 updatePlaybackState()
                 return START_NOT_STICKY
             }
             ACTION_RESUME -> {
-                player.resumeAll()
+                player.resume()
                 updateNotification()
                 updatePlaybackState()
                 return START_NOT_STICKY
             }
         }
-        if (!player.hasActivePlayers()) {
+        if (!player.hasSession) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -94,8 +94,8 @@ class AmbientSoundService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-        val activeText = player.getActiveTypes().joinToString("\u3001") { it.displayName }
-        val paused = player.isPaused
+        val trackName = player.currentTrack?.name ?: ""
+        val paused = player.isPausedState
 
         val playPauseAction = if (paused)
             NotificationCompat.Action(android.R.drawable.ic_media_play, "\u64AD\u653E",
@@ -115,7 +115,7 @@ class AmbientSoundService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("\u573A\u666F\u73AF\u5883\u97F3")
-            .setContentText(if (paused) "\u5DF2\u6682\u505C\uFF1A$activeText" else "\u6B63\u5728\u64AD\u653E\uFF1A$activeText")
+            .setContentText(if (paused) "\u5DF2\u6682\u505C\uFF1A$trackName" else "\u6B63\u5728\u64AD\u653E\uFF1A$trackName")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentIntent(openIntent)
             .addAction(playPauseAction)
@@ -145,8 +145,8 @@ class AmbientSoundService : Service() {
 
     private fun updatePlaybackState() {
         val state = when {
-            player.isAnyPlaying -> PlaybackState.STATE_PLAYING
-            player.isPaused -> PlaybackState.STATE_PAUSED
+            player.isPlaying -> PlaybackState.STATE_PLAYING
+            player.isPausedState -> PlaybackState.STATE_PAUSED
             else -> PlaybackState.STATE_NONE
         }
         try { mediaSession?.setPlaybackState(PlaybackState.Builder().setState(state, 0, 1f).build()) } catch (e: Exception) { Log.w("AmbientSoundSvc", "updatePlaybackState failed", e) }

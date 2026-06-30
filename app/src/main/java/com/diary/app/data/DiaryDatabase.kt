@@ -14,13 +14,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NotificationEntity::class, ChatMessageEntity::class, ChatConversationEntity::class, 
         Achievement::class, TitleDefinition::class, UserTitle::class, TitleProfile::class,
         SmallWin::class, QuickCheckin::class, Goal::class, DiarySummary::class,
-        FocusSession::class, CoverTheme::class, DiaryEmbedding::class, LocationMemory::class,
+        FocusSession::class, CoverTheme::class, DiaryEmbedding::class,
         VoiceMemo::class, EmotionRadar::class, MemoryAnchor::class, AnchorRelation::class,
         WritingFingerprint::class, TrackedPerson::class, PersonMention::class, Decision::class,
         ExtractedValue::class, WritingExperiment::class, ExperimentParticipation::class,
-        MonthlyChallenge::class, ChallengeDailyLog::class, StreakShield::class, EasterEgg::class
+        MonthlyChallenge::class, ChallengeDailyLog::class, StreakShield::class
     ],
-    version = 35,
+    version = 36,
     exportSchema = false
 )
 abstract class DiaryDatabase : RoomDatabase() {
@@ -1043,6 +1043,13 @@ abstract class DiaryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS location_memories")
+                db.execSQL("DROP TABLE IF EXISTS easter_eggs")
+            }
+        }
+
         fun getDatabase(context: Context): DiaryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val allMigrations = arrayOf(
@@ -1053,7 +1060,8 @@ abstract class DiaryDatabase : RoomDatabase() {
                     MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                     MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
-                    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35
+                    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
+                    MIGRATION_35_36
                 )
                 val callback = object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {

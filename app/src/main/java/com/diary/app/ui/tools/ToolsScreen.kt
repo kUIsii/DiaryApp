@@ -161,6 +161,7 @@ fun ToolsScreen(
     onNavigateToAiManagement: () -> Unit = {},
     onNavigateToSmallWins: () -> Unit = {},
     onNavigateToWritingGrowthCenter: () -> Unit = {},
+    onNavigateToWritingLab: () -> Unit = {},
     onNavigateToQuickCheckin: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToWritingCoach: () -> Unit = {},
@@ -176,23 +177,15 @@ fun ToolsScreen(
     onNavigateToTextMicroscope: () -> Unit = {},
     onNavigateToDecisionAnalysis: () -> Unit = {},
     onNavigateToValuesExtraction: () -> Unit = {},
-    onNavigateToWritingLab: () -> Unit = {},
-    onNavigateToEasterEggs: () -> Unit = {},
     onNavigateToMonthlyChallenge: () -> Unit = {},
     onNavigateToStreakShield: () -> Unit = {},
-    onNavigateToGentleNotification: () -> Unit = {},
     onNavigateToOutlineView: () -> Unit = {},
     onNavigateToCoverTheme: () -> Unit = {},
     onNavigateToSemanticSearch: () -> Unit = {},
     onNavigateToWritingHint: () -> Unit = {},
     onNavigateToAmbientSound: () -> Unit = {},
-    onNavigateToGestureQuickAction: () -> Unit = {},
-    onNavigateToLockScreenQuickWrite: () -> Unit = {},
-    onNavigateToAdaptiveInterface: () -> Unit = {},
     onNavigateToPersonalYearbook: () -> Unit = {},
     onNavigateToTravelLog: () -> Unit = {},
-    onNavigateToLocationMemories: () -> Unit = {},
-    onNavigateToEntryGraph: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
@@ -212,13 +205,11 @@ fun ToolsScreen(
         ToolSection(
             key = "quick",
             icon = Icons.Default.FlashOn,
-            title = "\u5FEB\u901F\u8BB0\u5F55",
-            subtitle = "\u8BED\u97F3\u00B7\u7B7E\u5230\u00B7\u5FEB\u5199",
+            title = "快速记录",
+            subtitle = "语音·签到",
             items = listOf(
-                ToolItem(Icons.Default.Mic, "\u8BED\u97F3\u7EAA\u5F55", "\u5F55\u97F3\u5E76\u8F6C\u5199\u6587\u5B57", onNavigateToVoiceRecording),
-                ToolItem(Icons.Default.Lock, "\u9501\u5C4F\u5FEB\u5199", "\u4E0D\u89E3\u9501\u5FEB\u901F\u8BB0\u5F55", onNavigateToLockScreenQuickWrite),
-                ToolItem(Icons.Default.EditNote, "\u5FEB\u901F\u7B7E\u5230", "\u5FEB\u901F\u60C5\u7EEA\u4E0E\u6587\u5B57\u7B7E\u5230", onNavigateToQuickCheckin),
-                ToolItem(Icons.Default.PanTool, "\u5FEB\u6377\u64CD\u4F5C", "\u81EA\u5B9A\u4E49\u624B\u52BF\u52A8\u4F5C", onNavigateToGestureQuickAction),
+                ToolItem(Icons.Default.Mic, "语音记录", "录音并转写文字", onNavigateToVoiceRecording),
+                ToolItem(Icons.Default.EditNote, "快速签到", "快速情绪与文字签到", onNavigateToQuickCheckin),
             )
         ),
         ToolSection(
@@ -257,7 +248,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.PieChart, "\u60C5\u7EEA\u96F7\u8FBE", "\u591A\u7EF4\u60C5\u7EEA\u53EF\u89C6\u5316\u5206\u6790", onNavigateToEmotionRadar),
                 ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
                 ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
-                ToolItem(Icons.Default.TextFields, "\u6587\u5B57\u663E\u5FAE\u955C", "\u8BED\u8A00\u7EDF\u8BA1\u4E0E\u9891\u7387\u5206\u6790", onNavigateToTextMicroscope),
                 ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
             )
         ),
@@ -269,7 +259,6 @@ fun ToolsScreen(
             items = listOf(
                 ToolItem(Icons.Default.AccountTree, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
                 ToolItem(Icons.Default.Verified, "\u4EF7\u503C\u89C2\u63D0\u53D6", "\u4ECE\u65E5\u8BB0\u4E2D\u63D0\u53D6\u4E2A\u4EBA\u4EF7\u503C\u89C2", onNavigateToValuesExtraction),
-                ToolItem(Icons.Default.Hub, "\u6761\u76EE\u5173\u8054\u56FE\u8C31", "\u65E5\u8BB0\u5173\u8054\u53EF\u89C6\u5316\u56FE\u8C31", onNavigateToEntryGraph),
                 ToolItem(Icons.Default.Shuffle, "\u968F\u673A\u56DE\u987E", "\u91CD\u6E29\u65E7\u65E5\u8BB0", onNavigateToRandom),
             )
         ),
@@ -283,7 +272,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.Forum, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
                 ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6559\u7EC3", "\u5199\u4F5C\u7EDF\u8BA1\u4E0E AI \u6307\u5BFC", onNavigateToWritingCoach),
                 ToolItem(Icons.Default.Person, "AI \u4F20\u8BB0", "\u751F\u6210\u4E2A\u4EBA\u4F20\u8BB0", onNavigateToBiography),
-                ToolItem(Icons.Default.Settings, "\u81EA\u9002\u5E94\u754C\u9762", "AI \u81EA\u9002\u5E94\u754C\u9762\u5E03\u5C40", onNavigateToAdaptiveInterface),
             )
         ),
         ToolSection(
@@ -296,7 +284,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.Schedule, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
                 ToolItem(Icons.Default.Map, "\u65E5\u8BB0\u5730\u56FE", "\u8DB3\u8FF9\u56DE\u987E\u4E0E\u65C5\u884C", onNavigateToDiaryMap),
                 ToolItem(Icons.Default.DirectionsWalk, "\u65C5\u884C\u65E5\u5FD7", "\u65C5\u9014\u4E2D\u7684\u89C1\u95FB\u4E0E\u8BB0\u5F55", onNavigateToTravelLog),
-                ToolItem(Icons.Default.Place, "\u5730\u70B9\u8BB0\u5FC6", "\u6BCF\u4E2A\u5730\u70B9\u627F\u8F7D\u7684\u56DE\u5FC6", onNavigateToLocationMemories),
                 ToolItem(Icons.Default.Bookmark, "\u8BB0\u5FC6\u951A\u70B9", "\u5730\u70B9\u89E6\u53D1\u56DE\u5FC6", onNavigateToMemoryAnchors),
                 ToolItem(Icons.Default.CalendarToday, "\u4E2A\u4EBA\u5E74\u9274", "\u4E00\u5E74\u7684\u56DE\u5FC6\u4E0E\u6210\u957F\u62A5\u544A", onNavigateToPersonalYearbook),
                 ToolItem(Icons.Default.MusicNote, "\u573A\u666F\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
@@ -324,9 +311,7 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.Collections, "\u5A92\u4F53\u5E93", "\u6D4F\u89C8\u56FE\u7247\u548C\u89C6\u9891", onNavigateToMediaLibrary),
                 ToolItem(Icons.Default.Storage, "\u5B58\u50A8\u7BA1\u7406", "\u7F13\u5B58\u00B7\u6570\u636E\u00B7\u5907\u4EFD\u7BA1\u7406", onNavigateToStorage),
                 ToolItem(Icons.Default.Notifications, "\u901A\u77E5\u7BA1\u7406", "\u63A7\u5236\u5404\u7C7B\u63A8\u9001\u901A\u77E5", onNavigateToNotifications),
-                ToolItem(Icons.Default.VolumeUp, "\u6E29\u67D4\u901A\u77E5", "\u6E29\u67D4\u7684\u63D0\u9192\u65B9\u5F0F", onNavigateToGentleNotification),
                 ToolItem(Icons.Default.Delete, "\u56DE\u6536\u7AD9", "\u5DF2\u5220\u9664\u7684\u65E5\u8BB0", onNavigateToTrash),
-                ToolItem(Icons.Default.VideogameAsset, "\u9690\u85CF\u5F69\u86CB", "\u6709\u8DA3\u7684\u9690\u85CF\u529F\u80FD\u4E0E\u5F69\u86CB", onNavigateToEasterEggs),
             )
         )
     )

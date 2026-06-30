@@ -124,38 +124,29 @@ import com.diary.app.ui.smallwins.SmallWinsScreen
 import com.diary.app.ui.quickcheckin.QuickCheckinScreen
 import com.diary.app.ui.goals.GoalsScreen
 import com.diary.app.ui.emotionradar.EmotionRadarScreen
-import com.diary.app.ui.textmicroscope.TextMicroscopeScreen
 import com.diary.app.ui.memoryanchors.MemoryAnchorsScreen
 import com.diary.app.ui.writingfingerprint.WritingFingerprintScreen
 import com.diary.app.ui.emotionforecast.EmotionForecastScreen
 import com.diary.app.ui.decisions.DecisionAnalysisScreen
 import com.diary.app.ui.values.ValuesExtractionScreen
 import com.diary.app.ui.writinglab.WritingLabScreen
-import com.diary.app.ui.eastereggs.EasterEggsScreen
 import com.diary.app.ui.monthlychallenge.MonthlyChallengeScreen
 import com.diary.app.ui.streakshield.StreakShieldScreen
 import com.diary.app.ui.quietcompanion.QuietCompanionScreen
 import com.diary.app.ui.ambienttheme.AmbientThemeScreen
-import com.diary.app.ui.gentlenotification.GentleNotificationScreen
 import com.diary.app.ui.outline.OutlineViewScreen
 import com.diary.app.ui.focus.FocusModeScreen
 import com.diary.app.ui.immersive.ImmersiveReaderScreen
 import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
 import com.diary.app.ui.emotionarc.EmotionArcScreen
-import com.diary.app.ui.memoryart.MemoryArtScreen
 import com.diary.app.ui.tools.ToolsScreen
 import com.diary.app.ui.covertheme.CoverThemeScreen
 import com.diary.app.ui.semanticsearch.SemanticSearchScreen
 import com.diary.app.ui.writinghint.WritingHintScreen
 import com.diary.app.ui.ambientsound.AmbientSoundMiniBar
 import com.diary.app.ui.ambientsound.AmbientSoundScreen
-import com.diary.app.ui.gesturequickaction.GestureQuickActionScreen
-import com.diary.app.ui.lockscreenquickwrite.LockScreenQuickWriteScreen
-import com.diary.app.ui.adaptiveinterface.AdaptiveInterfaceScreen
 import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
-import com.diary.app.ui.entrygraph.EntryGraphScreen
 import com.diary.app.ui.travellog.TravelLogScreen
-import com.diary.app.ui.locationmemories.LocationMemoriesScreen
 import com.diary.app.ui.readingcenter.ReadingCenterScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -234,7 +225,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object QuickCheckin : Screen("quick_checkin", "快速签到", Icons.Default.Edit)
     object Goals : Screen("goals", "目标追踪", Icons.Default.BarChart)
     object EmotionRadar : Screen("emotion_radar", "情绪雷达", Icons.Default.BarChart)
-    object TextMicroscope : Screen("text_microscope", "文字显微镜", Icons.Default.Article)
     object MemoryAnchors : Screen("memory_anchors", "记忆锚点", Icons.Default.Label)
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
     object EmotionForecast : Screen("emotion_forecast", "情绪预报", Icons.Default.Home)
@@ -243,12 +233,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object WritingLab : Screen("writing_lab", "写作实验室", Icons.Default.Science)
     object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
     object VoiceRecording : Screen("voice_recording", "语音备忘录", Icons.Default.Mic)
-    object EasterEggs : Screen("easter_eggs", "隐藏彩蛋", Icons.Default.EmojiEvents)
     object MonthlyChallenge : Screen("monthly_challenge", "月度挑战", Icons.Default.CalendarMonth)
     object StreakShield : Screen("streak_shield", "连续保护罩", Icons.Default.EmojiEvents)
     object QuietCompanion : Screen("quiet_companion", "安静陪伴", Icons.Default.Home)
     object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
-    object GentleNotification : Screen("gentle_notification", "温柔通知", Icons.Default.Notifications)
     object ReadingCenter : Screen("reading_center", "阅读中心", Icons.Default.LibraryBooks)
     object OutlineView : Screen("outline_view?diaryId={diaryId}", "阅读复盘", Icons.Default.Article) {
         fun createRoute(diaryId: Long? = null): String =
@@ -263,20 +251,12 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object EmotionArc : Screen("emotion_arc/{diaryId}", "情绪弧线", Icons.Default.BarChart) {
         fun createRoute(diaryId: Long) = "emotion_arc/$diaryId"
     }
-    object MemoryArt : Screen("memory_art/{diaryId}", "记忆艺术", Icons.Default.Image) {
-        fun createRoute(diaryId: Long) = "memory_art/$diaryId"
-    }
     object CoverTheme : Screen("cover_theme", "封面主题", Icons.Default.Image)
     object SemanticSearch : Screen("semantic_search", "语义搜索", Icons.Default.Search)
     object WritingHint : Screen("writing_hint", "写作灵感", Icons.Default.AutoAwesome)
     object AmbientSound : Screen("ambient_sound", "场景环境音", Icons.Default.MusicNote)
-    object GestureQuickAction : Screen("gesture_quick_action", "手势快捷操作", Icons.Default.PanTool)
-    object LockScreenQuickWrite : Screen("lock_screen_quick_write", "锁屏快写", Icons.Default.Lock)
-    object AdaptiveInterface : Screen("adaptive_interface", "自适应界面", Icons.Default.AutoAwesome)
     object PersonalYearbook : Screen("personal_yearbook", "个人年鉴", Icons.Default.CalendarMonth)
     object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
-    object LocationMemories : Screen("location_memories", "地点触发回忆", Icons.Default.LocationOn)
-    object EntryGraph : Screen("entry_graph", "条目关联图谱", Icons.Default.Favorite)
     object PastSelf : Screen("past_self", "与过去的自己对话", Icons.Default.Schedule)
 }
 
@@ -465,26 +445,18 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
                     onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
                     onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) },
-                    onNavigateToTextMicroscope = { navController.navigate(Screen.TextMicroscope.route) },
                     onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
                     onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
                     onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
-                    onNavigateToEasterEggs = { navController.navigate(Screen.EasterEggs.route) },
                     onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
                     onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) },
-                    onNavigateToGentleNotification = { navController.navigate(Screen.GentleNotification.route) },
                     onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.createRoute()) },
                     onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) },
                     onNavigateToSemanticSearch = { navController.navigate(Screen.SemanticSearch.route) },
                     onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
                     onNavigateToAmbientSound = { navController.navigate(Screen.AmbientSound.route) },
-                    onNavigateToGestureQuickAction = { navController.navigate(Screen.GestureQuickAction.route) },
-                    onNavigateToLockScreenQuickWrite = { navController.navigate(Screen.LockScreenQuickWrite.route) },
-                    onNavigateToAdaptiveInterface = { navController.navigate(Screen.AdaptiveInterface.route) },
                     onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
                     onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
-                    onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) },
-                    onNavigateToEntryGraph = { navController.navigate(Screen.EntryGraph.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
@@ -755,8 +727,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 DiaryMapScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
-                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
-                    onNavigateToLocationMemories = { navController.navigate(Screen.LocationMemories.route) }
+                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) }
                 )
             }
             composable(
@@ -961,7 +932,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
 
             composable(Screen.EmotionRadar.route) { EmotionRadarScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.TextMicroscope.route) { TextMicroscopeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.MemoryAnchors.route) { MemoryAnchorsScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(
                 Screen.WritingFingerprint.route,
@@ -971,8 +941,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 WritingFingerprintScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToTextMicroscope = { navController.navigate(Screen.TextMicroscope.route) }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(
@@ -992,12 +961,10 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.WritingLab.route) { WritingLabScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.WritingCoach.route) { WritingCoachScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.VoiceRecording.route) { VoiceRecordingScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.EasterEggs.route) { EasterEggsScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.MonthlyChallenge.route) { MonthlyChallengeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.StreakShield.route) { StreakShieldScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.QuietCompanion.route) { QuietCompanionScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.AmbientTheme.route) { AmbientThemeScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.GentleNotification.route) { GentleNotificationScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(
                 route = Screen.ReadingCenter.route,
                 enterTransition = { subPageEnterTransition() },
@@ -1068,16 +1035,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(
-                route = Screen.MemoryArt.route,
-                arguments = listOf(navArgument("diaryId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
-                MemoryArtScreen(
-                    diaryId = diaryId,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
             composable(route = Screen.CoverTheme.route) {
                 CoverThemeScreen(
                     onNavigateBack = { navController.popBackStack() }
@@ -1102,21 +1059,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(route = Screen.GestureQuickAction.route) {
-                GestureQuickActionScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable(route = Screen.LockScreenQuickWrite.route) {
-                LockScreenQuickWriteScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable(route = Screen.AdaptiveInterface.route) {
-                AdaptiveInterfaceScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
             composable(route = Screen.PersonalYearbook.route) {
                 PersonalYearbookScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -1125,18 +1067,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(route = Screen.TravelLog.route) {
                 TravelLogScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
-                )
-            }
-            composable(route = Screen.LocationMemories.route) {
-                LocationMemoriesScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
-                )
-            }
-            composable(route = Screen.EntryGraph.route) {
-                EntryGraphScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )

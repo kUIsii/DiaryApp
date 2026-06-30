@@ -41,7 +41,6 @@ import kotlin.math.sin
 @Composable
 fun WritingFingerprintScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToTextMicroscope: () -> Unit = {},
     viewModel: WritingFingerprintViewModel = viewModel()
 ) {
     val analysis by viewModel.analysis.collectAsState()
@@ -294,41 +293,6 @@ fun WritingFingerprintScreen(
                                         isLast = index == data.stylePeriods.lastIndex
                                     )
                                 }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
-
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Column {
-                            Text(
-                                text = "\u6587\u5B57\u663E\u5FAE\u955C",
-                                fontSize = DesignTokens.FontMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
-                            Text(
-                                text = "\u6DF1\u5EA6\u5206\u6790\u6587\u5B57\u8BCD\u6C47\u4E0E\u8BED\u6CD5\u7279\u5F81",
-                                fontSize = DesignTokens.FontSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(DesignTokens.CornerMedium))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                    .clickable(onClick = onNavigateToTextMicroscope)
-                                    .padding(DesignTokens.SpacingMd),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "\u6253\u5F00\u6587\u5B57\u663E\u5FAE\u955C",
-                                    fontSize = DesignTokens.FontBody,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
                             }
                         }
                     }

@@ -87,8 +87,7 @@ fun buildDeepDiveGroups(): List<DeepDiveGroup> {
     return listOf(
         DeepDiveGroup("时间报告", listOf("月度报告", "季度回顾", "年度报告", "个人年鉴")),
         DeepDiveGroup("心情洞察", listOf("情绪分析", "情绪雷达", "情绪预报")),
-        DeepDiveGroup("文本洞察", listOf("写作分析", "文字显微镜")),
-        DeepDiveGroup("结构关联", listOf("条目图谱"))
+        DeepDiveGroup("文本洞察", listOf("写作分析"))
     )
 }
 

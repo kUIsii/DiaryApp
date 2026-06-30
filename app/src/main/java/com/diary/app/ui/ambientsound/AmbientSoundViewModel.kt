@@ -1,9 +1,14 @@
 package com.diary.app.ui.ambientsound
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.diary.app.data.ambientsound.AmbientSoundDatabase
+import com.diary.app.data.ambientsound.AudioCacheManager
+import com.diary.app.data.ambientsound.AudioRepository
+import com.diary.app.data.ambientsound.AudioTrack
+import com.diary.app.data.ambientsound.FavoriteEntity
+import com.diary.app.data.ambientsound.RecentEntity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,113 +16,164 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class TimerOption(val minutes: Int, val label: String) {
-    OFF(0, "关闭"), MIN_15(15, "15分"), MIN_30(30, "30分"), MIN_60(60, "60分"), MIN_90(90, "90分")
-}
-
 data class AmbientSoundState(
-    val activeType: AmbientSoundType? = null,
+    val selectedCategoryId: String = "sleep",
+    val currentTrack: AudioTrack? = null,
+    val isPlaying: Boolean = false,
     val volume: Float = 0.5f,
-    val timerOption: TimerOption = TimerOption.OFF,
-    val remainingSeconds: Int = 0,
-    val isSleepFading: Boolean = false
+    val progress: Int = 0,
+    val duration: Int = 0,
+    val sleepRemainingSeconds: Int = 0,
+    val favoriteIds: Set<String> = emptySet(),
+    val recentIds: List<String> = emptyList(),
+    val isDownloading: Boolean = false
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
     private val player = AmbientSoundPlayer.getInstance().also {
-        it.init(application)
-        it.setOnPlayCallback { updateService() }
-        it.setOnStopCallback { updateService() }
+        it.setOnPlayCallback { onPlaybackChanged() }
+        it.setOnStopCallback { onPlaybackChanged() }
     }
+    private val cacheManager = AudioCacheManager(application)
+    private val dao = AmbientSoundDatabase.getInstance(application).dao()
     private val ctx = application
-    private val prefs = application.getSharedPreferences("ambient_sound", Context.MODE_PRIVATE)
 
     private val _state = MutableStateFlow(AmbientSoundState())
     val state: StateFlow<AmbientSoundState> = _state.asStateFlow()
-    private var timerJob: Job? = null
 
     init {
-        restoreState()
-    }
-
-    private fun restoreState() {
-        val savedKey = prefs.getString("active_key", null) ?: return
-        val type = AmbientSoundType.entries.find { it.key == savedKey } ?: return
-        val savedVol = prefs.getFloat("volume", 0.5f)
-        player.play(type, savedVol)
-        _state.value = AmbientSoundState(activeType = type, volume = savedVol)
-        updateService()
-    }
-
-    fun toggle(type: AmbientSoundType) {
-        val cur = _state.value
-        if (cur.activeType == type) {
-            player.stop(type)
-            _state.value = AmbientSoundState()
-            updateService()
-        } else {
-            cur.activeType?.let { player.stop(it) }
-            val vol = if (cur.activeType == type) cur.volume else 0.5f
-            player.play(type, vol)
-            _state.value = AmbientSoundState(activeType = type, volume = vol)
-            updateService()
+        viewModelScope.launch {
+            val favIds = dao.getFavoriteIds().toSet()
+            val recentIds = dao.getRecentIds()
+            _state.value = _state.value.copy(favoriteIds = favIds, recentIds = recentIds)
         }
     }
 
-    fun setVolume(volume: Float) {
-        val type = _state.value.activeType ?: return
-        player.setVolume(type, volume)
-        _state.value = _state.value.copy(volume = volume)
+    private fun onPlaybackChanged() {
+        _state.value = _state.value.copy(
+            isPlaying = player.isPlaying,
+            currentTrack = player.currentTrack
+        )
+        if (player.hasSession) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
+    }
+
+    fun selectCategory(categoryId: String) {
+        _state.value = _state.value.copy(selectedCategoryId = categoryId)
+    }
+
+    fun play(track: AudioTrack) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isDownloading = true)
+            val result = cacheManager.download(track.id, track.audioUrl)
+            _state.value = _state.value.copy(isDownloading = false)
+
+            result.onSuccess { file ->
+                player.play(ctx, track, file)
+                dao.addRecent(RecentEntity(track.id))
+                val recentIds = dao.getRecentIds()
+                _state.value = _state.value.copy(
+                    currentTrack = track,
+                    isPlaying = true,
+                    recentIds = recentIds,
+                    progress = 0,
+                    duration = player.duration
+                )
+            }
+        }
+    }
+
+    fun togglePlay(track: AudioTrack) {
+        val cur = _state.value.currentTrack
+        if (cur == track && player.hasSession) {
+            if (player.isPlaying) {
+                player.pause()
+            } else {
+                player.resume()
+            }
+            _state.value = _state.value.copy(isPlaying = player.isPlaying)
+        } else {
+            play(track)
+        }
     }
 
     fun stop() {
-        timerJob?.cancel()
-        player.stopAll()
-        _state.value = AmbientSoundState()
+        player.stop()
+        _state.value = _state.value.copy(
+            currentTrack = null,
+            isPlaying = false,
+            sleepRemainingSeconds = 0
+        )
         AmbientSoundService.stop(ctx)
     }
 
-    fun setTimer(option: TimerOption) {
-        timerJob?.cancel()
-        if (option == TimerOption.OFF) {
-            _state.value = _state.value.copy(timerOption = TimerOption.OFF, remainingSeconds = 0, isSleepFading = false)
-            return
-        }
-        val totalSec = option.minutes * 60
-        _state.value = _state.value.copy(timerOption = option, remainingSeconds = totalSec, isSleepFading = false)
-        timerJob = viewModelScope.launch {
-            var remaining = totalSec
-            while (remaining > 0) {
-                delay(1000); remaining--
-                val fading = remaining <= 120 && remaining > 0
-                if (fading) {
-                    val t = _state.value.activeType ?: return@launch
-                    val fraction = remaining.toFloat() / 120f
-                    player.setVolume(t, _state.value.volume * fraction)
-                }
-                _state.value = _state.value.copy(remainingSeconds = remaining, isSleepFading = fading)
+    fun setVolume(volume: Float) {
+        player.setVolume(volume)
+        _state.value = _state.value.copy(volume = volume)
+    }
+
+    fun seekTo(position: Int) {
+        player.seekTo(position)
+    }
+
+    fun toggleFavorite(trackId: String) {
+        viewModelScope.launch {
+            val favs = _state.value.favoriteIds
+            if (trackId in favs) {
+                dao.removeFavorite(trackId)
+                _state.value = _state.value.copy(favoriteIds = favs - trackId)
+            } else {
+                dao.addFavorite(FavoriteEntity(trackId))
+                _state.value = _state.value.copy(favoriteIds = favs + trackId)
             }
-            stop()
         }
     }
 
-    private fun updateService() {
-        if (player.isAnyPlaying) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
+    fun startSleepTimer(minutes: Int) {
+        if (minutes <= 0) {
+            player.cancelSleepTimer()
+            _state.value = _state.value.copy(sleepRemainingSeconds = 0)
+            return
+        }
+        player.startSleepTimer(minutes)
+        viewModelScope.launch {
+            while (player.sleepRemainingSeconds() > 0) {
+                _state.value = _state.value.copy(sleepRemainingSeconds = player.sleepRemainingSeconds())
+                delay(1000)
+            }
+            if (player.isSleepExpired()) {
+                stop()
+            }
+        }
+    }
+
+    fun cancelSleepTimer() {
+        player.cancelSleepTimer()
+        _state.value = _state.value.copy(sleepRemainingSeconds = 0)
+    }
+
+    var progressUpdateJob: Job? = null
+
+    fun startProgressUpdates() {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = viewModelScope.launch {
+            while (true) {
+                if (player.isPlaying) {
+                    _state.value = _state.value.copy(
+                        progress = player.currentPosition,
+                        duration = player.duration
+                    )
+                }
+                delay(500)
+            }
+        }
+    }
+
+    fun stopProgressUpdates() {
+        progressUpdateJob?.cancel()
     }
 
     override fun onCleared() {
         super.onCleared()
-        timerJob?.cancel()
-        val s = _state.value
-        prefs.edit().apply {
-            if (s.activeType != null) {
-                putString("active_key", s.activeType.key)
-                putFloat("volume", s.volume)
-            } else {
-                remove("active_key")
-                remove("volume")
-            }
-            apply()
-        }
+        stopProgressUpdates()
     }
 }

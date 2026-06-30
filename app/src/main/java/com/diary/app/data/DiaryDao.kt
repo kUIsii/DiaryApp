@@ -729,19 +729,6 @@ interface DiaryDao {
     @Query("SELECT * FROM diary_embeddings")
     suspend fun getAllDiaryEmbeddings(): List<DiaryEmbedding>
 
-    // Location memories
-    @Query("SELECT * FROM location_memories ORDER BY createdAt DESC")
-    fun getAllLocationMemories(): Flow<List<LocationMemory>>
-
-    @Query("SELECT * FROM location_memories WHERE diaryId = :diaryId")
-    suspend fun getLocationMemoriesForDiary(diaryId: Long): List<LocationMemory>
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertLocationMemory(memory: LocationMemory): Long
-
-    @Query("DELETE FROM location_memories WHERE id = :id")
-    suspend fun deleteLocationMemory(id: Long)
-
     // Voice memos
     @Query("SELECT * FROM voice_memos ORDER BY createdAt DESC")
     fun getAllVoiceMemos(): Flow<List<VoiceMemo>>
@@ -884,15 +871,6 @@ interface DiaryDao {
     @Update
     suspend fun updateStreakShield(shield: StreakShield)
 
-    // Easter eggs
-    @Query("SELECT * FROM easter_eggs ORDER BY triggeredAt DESC")
-    fun getAllEasterEggs(): Flow<List<EasterEgg>>
-
-    @Query("SELECT * FROM easter_eggs WHERE eggId = :eggId LIMIT 1")
-    suspend fun getEasterEgg(eggId: String): EasterEgg?
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertEasterEgg(egg: EasterEgg): Long
 }
 
 // Lightweight projection without content field - used for list views to avoid OOM

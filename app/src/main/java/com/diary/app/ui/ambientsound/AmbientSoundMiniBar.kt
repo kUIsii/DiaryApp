@@ -3,7 +3,6 @@ package com.diary.app.ui.ambientsound
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Stop
@@ -29,12 +27,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 
 @Composable
 fun AmbientSoundMiniBar(
@@ -42,19 +38,8 @@ fun AmbientSoundMiniBar(
     onNavigateToFullScreen: () -> Unit
 ) {
     val player = AmbientSoundPlayer.getInstance()
-    var visible by mutableStateOf(false)
-    var activeText by mutableStateOf("")
-
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        while (true) {
-            delay(500)
-            val hasActive = player.hasActivePlayers()
-            visible = hasActive
-            if (hasActive) {
-                activeText = player.getActiveTypes().joinToString("、") { it.displayName }
-            }
-        }
-    }
+    val visible = player.hasSession
+    val trackName = player.currentTrack?.name ?: ""
 
     AnimatedVisibility(
         visible = visible,
@@ -75,7 +60,7 @@ fun AmbientSoundMiniBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "♫ $activeText",
+                    trackName,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary,
@@ -85,16 +70,16 @@ fun AmbientSoundMiniBar(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { player.stopAll() },
+                    onClick = { player.stop() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.height(28.dp)
                 ) {
                     Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("停止", fontSize = 11.sp)
+                    Text("\u505C\u6B62", fontSize = 11.sp)
                 }
                 IconButton(onClick = onNavigateToFullScreen, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "展开", modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "\u5C55\u5F00", modifier = Modifier.size(18.dp))
                 }
             }
         }
