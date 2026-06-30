@@ -69,7 +69,7 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     fun play(track: AudioTrack) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isPreparing = true, errorMessage = null)
-            val result = cacheManager.prepare(track.id)
+            val result = cacheManager.prepare(track.id, track.audioUrl)
             _state.value = _state.value.copy(isPreparing = false)
 
             result.onSuccess { file ->
