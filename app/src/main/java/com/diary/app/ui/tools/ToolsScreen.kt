@@ -170,22 +170,16 @@ fun ToolsScreen(
     onNavigateToFocusMode: () -> Unit = {},
     onNavigateToImmersiveReader: () -> Unit = {},
     onNavigateToQuarterlyReview: () -> Unit = {},
-    onNavigateToMemoryAnchors: () -> Unit = {},
     onNavigateToWritingFingerprint: () -> Unit = {},
     onNavigateToEmotionForecast: () -> Unit = {},
-    onNavigateToEmotionRadar: () -> Unit = {},
-    onNavigateToTextMicroscope: () -> Unit = {},
     onNavigateToDecisionAnalysis: () -> Unit = {},
     onNavigateToValuesExtraction: () -> Unit = {},
     onNavigateToMonthlyChallenge: () -> Unit = {},
-    onNavigateToStreakShield: () -> Unit = {},
     onNavigateToOutlineView: () -> Unit = {},
-    onNavigateToCoverTheme: () -> Unit = {},
     onNavigateToSemanticSearch: () -> Unit = {},
     onNavigateToWritingHint: () -> Unit = {},
     onNavigateToAmbientSound: () -> Unit = {},
     onNavigateToPersonalYearbook: () -> Unit = {},
-    onNavigateToTravelLog: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
@@ -234,7 +228,6 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.Visibility, "\u6C89\u6D78\u9605\u8BFB", "\u4E13\u6CE8\u65E0\u5E72\u6270\u9605\u8BFB\u4F53\u9A8C", onNavigateToImmersiveReader),
                 ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
                 ToolItem(Icons.Default.FormatListBulleted, "\u5927\u7EB2\u89C6\u56FE", "\u6D4F\u89C8\u65E5\u8BB0\u7EB2\u8981\u00B7\u5FEB\u901F\u5BFC\u822A", onNavigateToOutlineView),
-                ToolItem(Icons.Default.Palette, "\u5C01\u9762\u4E3B\u9898", "\u81EA\u5B9A\u4E49\u65E5\u8BB0\u5C01\u9762\u98CE\u683C", onNavigateToCoverTheme),
             )
         ),
         ToolSection(
@@ -245,7 +238,6 @@ fun ToolsScreen(
             items = listOf(
                 ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u62A5\u544A\u00B7\u5B63\u5EA6\u00B7\u5E74\u9274", onNavigateToStats),
                 ToolItem(Icons.Default.Mood, "\u60C5\u7EEA\u5206\u6790", "\u60C5\u7EEA\u9884\u6D4B\u4E0E\u96F7\u8FBE\u56FE", onNavigateToEmotionForecast),
-                ToolItem(Icons.Default.PieChart, "\u60C5\u7EEA\u96F7\u8FBE", "\u591A\u7EF4\u60C5\u7EEA\u53EF\u89C6\u5316\u5206\u6790", onNavigateToEmotionRadar),
                 ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
                 ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
                 ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
@@ -283,8 +275,7 @@ fun ToolsScreen(
                 ToolItem(Icons.Default.AccessTime, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1", onNavigateToTimeCapsule),
                 ToolItem(Icons.Default.Schedule, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
                 ToolItem(Icons.Default.Map, "\u65E5\u8BB0\u5730\u56FE", "\u8DB3\u8FF9\u56DE\u987E\u4E0E\u65C5\u884C", onNavigateToDiaryMap),
-                ToolItem(Icons.Default.DirectionsWalk, "\u65C5\u884C\u65E5\u5FD7", "\u65C5\u9014\u4E2D\u7684\u89C1\u95FB\u4E0E\u8BB0\u5F55", onNavigateToTravelLog),
-                ToolItem(Icons.Default.Bookmark, "\u8BB0\u5FC6\u951A\u70B9", "\u5730\u70B9\u89E6\u53D1\u56DE\u5FC6", onNavigateToMemoryAnchors),
+
                 ToolItem(Icons.Default.CalendarToday, "\u4E2A\u4EBA\u5E74\u9274", "\u4E00\u5E74\u7684\u56DE\u5FC6\u4E0E\u6210\u957F\u62A5\u544A", onNavigateToPersonalYearbook),
                 ToolItem(Icons.Default.MusicNote, "\u573A\u666F\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
             )
@@ -297,7 +288,7 @@ fun ToolsScreen(
             items = listOf(
                 ToolItem(Icons.Default.Star, "\u76EE\u6807\u8FFD\u8E2A", "\u76EE\u6807\u00B7\u52C7\u7AE0\u00B7\u6311\u6218", onNavigateToGoals),
                 ToolItem(Icons.Default.Event, "\u6708\u5EA6\u6311\u6218", "\u6BCF\u6708\u5199\u4F5C\u6311\u6218\u4E0E\u76EE\u6807", onNavigateToMonthlyChallenge),
-                ToolItem(Icons.Default.Shield, "\u8FDE\u7EED\u4FDD\u62A4", "\u4FDD\u62A4\u8FDE\u7EED\u5199\u4F5C\u8BB0\u5F55", onNavigateToStreakShield),
+
                 ToolItem(Icons.Default.EmojiEvents, "\u6210\u5C31", "\u5DF2\u89E3\u9501\u7684\u80CC\u666F\u4E0E\u52C7\u7AE0\u5899", onNavigateToAchievements),
             )
         ),

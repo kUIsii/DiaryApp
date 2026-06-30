@@ -108,7 +108,7 @@ class AmbientSoundService : Service() {
                     Intent(this, AmbientSoundService::class.java).setAction(ACTION_PAUSE),
                     PendingIntent.FLAG_IMMUTABLE))
 
-        val stopAction = NotificationCompat.Action(android.R.drawable.ic_media_pause, "\u505C\u6B62",
+        val stopAction = NotificationCompat.Action(android.R.drawable.ic_menu_close_clear_cancel, "\u505C\u6B62",
             PendingIntent.getService(this, 1,
                 Intent(this, AmbientSoundService::class.java).setAction(ACTION_STOP_ALL),
                 PendingIntent.FLAG_IMMUTABLE))

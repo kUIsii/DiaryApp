@@ -3,8 +3,7 @@ package com.diary.app.ui.readingcenter
 enum class ReadingCenterTarget {
     IMMERSIVE_READER,
     FOCUS_MODE,
-    OUTLINE_VIEW,
-    COVER_THEME
+    OUTLINE_VIEW
 }
 
 data class ReadingSessionSnapshot(
@@ -87,11 +86,6 @@ fun buildReadingCenterContent(
             title = "阅读复盘",
             summary = "先看结构，再看重点段落和情绪变化",
             target = ReadingCenterTarget.OUTLINE_VIEW
-        ),
-        ReadingCenterFeatureItem(
-            title = "阅读主题",
-            summary = "主题会立即反馈到真实阅读页，而不是停留在封面预览",
-            target = ReadingCenterTarget.COVER_THEME
         )
     )
 

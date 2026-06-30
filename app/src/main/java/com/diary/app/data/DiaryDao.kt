@@ -697,28 +697,6 @@ interface DiaryDao {
     @Query("UPDATE focus_sessions SET endTime = :endTime, completedAt = :completedAt WHERE id = :id")
     suspend fun completeFocusSession(id: Long, endTime: Long, completedAt: Long)
 
-    // Cover themes
-    @Query("SELECT * FROM cover_themes ORDER BY createdAt DESC")
-    fun getAllCoverThemes(): Flow<List<CoverTheme>>
-
-    @Query("SELECT * FROM cover_themes WHERE isActive = 1 LIMIT 1")
-    suspend fun getActiveCoverTheme(): CoverTheme?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCoverTheme(theme: CoverTheme): Long
-
-    @Query("UPDATE cover_themes SET isActive = 0")
-    suspend fun deactivateAllCoverThemes()
-
-    @Query("UPDATE cover_themes SET isActive = 1 WHERE id = :id")
-    suspend fun activateCoverTheme(id: Long)
-
-    @Update
-    suspend fun updateCoverTheme(theme: CoverTheme)
-
-    @Query("DELETE FROM cover_themes WHERE id = :id")
-    suspend fun deleteCoverThemeById(id: Long)
-
     // Diary embeddings
     @Query("SELECT * FROM diary_embeddings WHERE diaryId = :diaryId")
     suspend fun getEmbeddingForDiary(diaryId: Long): DiaryEmbedding?
@@ -744,33 +722,6 @@ interface DiaryDao {
 
     @Query("DELETE FROM voice_memos WHERE id = :id")
     suspend fun deleteVoiceMemo(id: Long)
-
-    // Emotion radar
-    @Query("SELECT * FROM emotion_radar WHERE diaryId = :diaryId")
-    suspend fun getEmotionRadarForDiary(diaryId: Long): EmotionRadar?
-
-    @Query("SELECT * FROM emotion_radar ORDER BY createdAt DESC")
-    fun getAllEmotionRadars(): Flow<List<EmotionRadar>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEmotionRadar(radar: EmotionRadar): Long
-
-    // Memory anchors
-    @Query("SELECT * FROM memory_anchors ORDER BY createdAt DESC")
-    fun getAllMemoryAnchors(): Flow<List<MemoryAnchor>>
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertMemoryAnchor(anchor: MemoryAnchor): Long
-
-    @Query("DELETE FROM memory_anchors WHERE id = :id")
-    suspend fun deleteMemoryAnchor(id: Long)
-
-    // Anchor relations
-    @Query("SELECT * FROM anchor_relations WHERE anchorId = :anchorId ORDER BY createdAt DESC")
-    fun getAnchorRelations(anchorId: Long): Flow<List<AnchorRelation>>
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertAnchorRelation(relation: AnchorRelation): Long
 
     // Tracked persons
     @Query("SELECT * FROM tracked_persons ORDER BY mentionCount DESC")
@@ -860,16 +811,6 @@ interface DiaryDao {
 
     @Update
     suspend fun updateChallengeDailyLog(log: ChallengeDailyLog)
-
-    // Streak shields
-    @Query("SELECT * FROM streak_shields WHERE month = :month LIMIT 1")
-    suspend fun getStreakShieldForMonth(month: String): StreakShield?
-
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertStreakShield(shield: StreakShield): Long
-
-    @Update
-    suspend fun updateStreakShield(shield: StreakShield)
 
 }
 

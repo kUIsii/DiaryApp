@@ -38,7 +38,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EmotionForecastScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToEmotionRadar: () -> Unit = {},
+    
     viewModel: EmotionForecastViewModel = viewModel()
 ) {
     val forecast by viewModel.forecast.collectAsState()
@@ -297,7 +297,7 @@ fun EmotionForecastScreen(
                         Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
 
                         GlassCard(
-                            modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToEmotionRadar),
+                            modifier = Modifier.fillMaxWidth(),
                             innerPadding = DesignTokens.SpacingMd
                         ) {
                             Column {

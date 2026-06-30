@@ -49,7 +49,6 @@ fun ReadingCenterScreen(
     onNavigateToImmersiveReader: (Long?) -> Unit = {},
     onNavigateToFocusMode: () -> Unit = {},
     onNavigateToOutlineView: (Long?) -> Unit = {},
-    onNavigateToCoverTheme: () -> Unit = {},
     viewModel: ReadingCenterViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -84,7 +83,6 @@ fun ReadingCenterScreen(
                                 ReadingCenterTarget.IMMERSIVE_READER -> onNavigateToImmersiveReader(state.session.diaryId)
                                 ReadingCenterTarget.FOCUS_MODE -> onNavigateToFocusMode()
                                 ReadingCenterTarget.OUTLINE_VIEW -> onNavigateToOutlineView(state.session.diaryId)
-                                ReadingCenterTarget.COVER_THEME -> onNavigateToCoverTheme()
                             }
                         }
                     )
@@ -98,7 +96,6 @@ fun ReadingCenterScreen(
                                 ReadingCenterTarget.IMMERSIVE_READER -> onNavigateToImmersiveReader(state.session.diaryId)
                                 ReadingCenterTarget.FOCUS_MODE -> onNavigateToFocusMode()
                                 ReadingCenterTarget.OUTLINE_VIEW -> onNavigateToOutlineView(state.session.diaryId)
-                                ReadingCenterTarget.COVER_THEME -> onNavigateToCoverTheme()
                             }
                         }
                     )
@@ -215,7 +212,6 @@ private fun FeatureCard(
                     ReadingCenterTarget.IMMERSIVE_READER -> Icons.Default.MenuBook
                     ReadingCenterTarget.FOCUS_MODE -> Icons.Default.Timer
                     ReadingCenterTarget.OUTLINE_VIEW -> Icons.Default.Bookmark
-                    ReadingCenterTarget.COVER_THEME -> Icons.Default.Tune
                 }
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),

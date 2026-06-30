@@ -70,7 +70,6 @@ import com.diary.app.ui.components.GradientBackground
 fun DiaryMapScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToDetail: (Long) -> Unit = {},
-    onNavigateToTravelLog: () -> Unit = {},
     viewModel: MapViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -167,8 +166,7 @@ fun DiaryMapScreen(
                         },
                         onEntryClick = { entryId ->
                             onNavigateToDetail(entryId)
-                        },
-                        onNavigateToTravelLog = onNavigateToTravelLog
+                        }
                     )
                 }
             }
@@ -274,8 +272,7 @@ private fun DiaryMapHeader(
 private fun LocationList(
     locations: List<LocationGroup>,
     onLocationClick: (LocationGroup) -> Unit,
-    onEntryClick: (Long) -> Unit,
-    onNavigateToTravelLog: () -> Unit = {}
+    onEntryClick: (Long) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -284,51 +281,6 @@ private fun LocationList(
     ) {
         item {
             LocationOverviewCard(locations = locations)
-        }
-
-        // TravelLog link
-        item {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onNavigateToTravelLog),
-                cornerRadius = 16.dp,
-                innerPadding = 14.dp
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Explore,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(8.dp).size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "旅行日志",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "旅途中的见闻与路线记录",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.Explore,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
         }
 
         items(locations) { location ->

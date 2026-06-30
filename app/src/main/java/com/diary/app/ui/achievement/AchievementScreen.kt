@@ -57,8 +57,7 @@ fun AchievementScreen(
     viewModel: AchievementViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToDetail: (String) -> Unit = {},
-    onNavigateToMonthlyChallenge: () -> Unit = {},
-    onNavigateToStreakShield: () -> Unit = {}
+    onNavigateToMonthlyChallenge: () -> Unit = {}
 ) {
     val stats by viewModel.stats.collectAsState()
     val galleryState by viewModel.galleryState.collectAsState()
@@ -96,8 +95,7 @@ fun AchievementScreen(
                 // Feature entry cards
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     AchievementFeatureCards(
-                        onNavigateToMonthlyChallenge = onNavigateToMonthlyChallenge,
-                        onNavigateToStreakShield = onNavigateToStreakShield
+                        onNavigateToMonthlyChallenge = onNavigateToMonthlyChallenge
                     )
                 }
 
@@ -219,8 +217,7 @@ fun AchievementScreen(
 
 @Composable
 private fun AchievementFeatureCards(
-    onNavigateToMonthlyChallenge: () -> Unit,
-    onNavigateToStreakShield: () -> Unit
+    onNavigateToMonthlyChallenge: () -> Unit
 ) {
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
@@ -247,47 +244,13 @@ private fun AchievementFeatureCards(
                 )
                 Column {
                     Text(
-                        text = "月度挑战",
+                        text = "\u6708\u5EA6\u6311\u6218",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "每月新目标",
-                        fontSize = 11.sp,
-                        color = textSecondary
-                    )
-                }
-            }
-        }
-
-        GlassCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onNavigateToStreakShield),
-            cornerRadius = 16.dp,
-            innerPadding = 14.dp
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Icon(
-                    Icons.Default.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(22.dp)
-                )
-                Column {
-                    Text(
-                        text = "连续保护罩",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "保持记录习惯",
+                        text = "\u6BCF\u6708\u65B0\u76EE\u6807",
                         fontSize = 11.sp,
                         color = textSecondary
                     )

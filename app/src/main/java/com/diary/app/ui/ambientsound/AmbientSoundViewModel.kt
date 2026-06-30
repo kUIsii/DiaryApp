@@ -134,8 +134,9 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
             _state.value = _state.value.copy(sleepRemainingSeconds = 0)
             return
         }
+        sleepTimerJob?.cancel()
         player.startSleepTimer(minutes)
-        viewModelScope.launch {
+        sleepTimerJob = viewModelScope.launch {
             while (player.sleepRemainingSeconds() > 0) {
                 _state.value = _state.value.copy(sleepRemainingSeconds = player.sleepRemainingSeconds())
                 delay(1000)
@@ -147,11 +148,13 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
         player.cancelSleepTimer()
         _state.value = _state.value.copy(sleepRemainingSeconds = 0)
     }
 
     var progressUpdateJob: Job? = null
+    private var sleepTimerJob: Job? = null
 
     fun startProgressUpdates() {
         progressUpdateJob?.cancel()

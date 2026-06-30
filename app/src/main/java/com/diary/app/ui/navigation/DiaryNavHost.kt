@@ -123,15 +123,16 @@ import com.diary.app.ui.diarysummary.DiarySummaryScreen
 import com.diary.app.ui.smallwins.SmallWinsScreen
 import com.diary.app.ui.quickcheckin.QuickCheckinScreen
 import com.diary.app.ui.goals.GoalsScreen
-import com.diary.app.ui.emotionradar.EmotionRadarScreen
-import com.diary.app.ui.memoryanchors.MemoryAnchorsScreen
+
+
 import com.diary.app.ui.writingfingerprint.WritingFingerprintScreen
 import com.diary.app.ui.emotionforecast.EmotionForecastScreen
 import com.diary.app.ui.decisions.DecisionAnalysisScreen
 import com.diary.app.ui.values.ValuesExtractionScreen
 import com.diary.app.ui.writinglab.WritingLabScreen
 import com.diary.app.ui.monthlychallenge.MonthlyChallengeScreen
-import com.diary.app.ui.streakshield.StreakShieldScreen
+
+
 import com.diary.app.ui.quietcompanion.QuietCompanionScreen
 import com.diary.app.ui.ambienttheme.AmbientThemeScreen
 import com.diary.app.ui.outline.OutlineViewScreen
@@ -140,13 +141,15 @@ import com.diary.app.ui.immersive.ImmersiveReaderScreen
 import com.diary.app.ui.quarterlyreview.QuarterlyReviewScreen
 import com.diary.app.ui.emotionarc.EmotionArcScreen
 import com.diary.app.ui.tools.ToolsScreen
-import com.diary.app.ui.covertheme.CoverThemeScreen
+
+
 import com.diary.app.ui.semanticsearch.SemanticSearchScreen
 import com.diary.app.ui.writinghint.WritingHintScreen
 import com.diary.app.ui.ambientsound.AmbientSoundMiniBar
 import com.diary.app.ui.ambientsound.AmbientSoundScreen
 import com.diary.app.ui.personalyearbook.PersonalYearbookScreen
-import com.diary.app.ui.travellog.TravelLogScreen
+
+
 import com.diary.app.ui.readingcenter.ReadingCenterScreen
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
@@ -224,8 +227,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object WritingGrowthCenter : Screen("writing_growth_center", "写作成长中心", Icons.Default.AutoAwesome)
     object QuickCheckin : Screen("quick_checkin", "快速签到", Icons.Default.Edit)
     object Goals : Screen("goals", "目标追踪", Icons.Default.BarChart)
-    object EmotionRadar : Screen("emotion_radar", "情绪雷达", Icons.Default.BarChart)
-    object MemoryAnchors : Screen("memory_anchors", "记忆锚点", Icons.Default.Label)
+
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
     object EmotionForecast : Screen("emotion_forecast", "情绪预报", Icons.Default.Home)
     object DecisionAnalysis : Screen("decision_analysis", "决策追踪", Icons.Default.CheckBox)
@@ -234,7 +236,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
     object VoiceRecording : Screen("voice_recording", "语音备忘录", Icons.Default.Mic)
     object MonthlyChallenge : Screen("monthly_challenge", "月度挑战", Icons.Default.CalendarMonth)
-    object StreakShield : Screen("streak_shield", "连续保护罩", Icons.Default.EmojiEvents)
+
     object QuietCompanion : Screen("quiet_companion", "安静陪伴", Icons.Default.Home)
     object AmbientTheme : Screen("ambient_theme", "环境感知主题", Icons.Default.Image)
     object ReadingCenter : Screen("reading_center", "阅读中心", Icons.Default.LibraryBooks)
@@ -251,12 +253,12 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object EmotionArc : Screen("emotion_arc/{diaryId}", "情绪弧线", Icons.Default.BarChart) {
         fun createRoute(diaryId: Long) = "emotion_arc/$diaryId"
     }
-    object CoverTheme : Screen("cover_theme", "封面主题", Icons.Default.Image)
+
     object SemanticSearch : Screen("semantic_search", "语义搜索", Icons.Default.Search)
     object WritingHint : Screen("writing_hint", "写作灵感", Icons.Default.AutoAwesome)
     object AmbientSound : Screen("ambient_sound", "场景环境音", Icons.Default.MusicNote)
     object PersonalYearbook : Screen("personal_yearbook", "个人年鉴", Icons.Default.CalendarMonth)
-    object TravelLog : Screen("travel_log", "旅行日志", Icons.Default.Flight)
+
     object PastSelf : Screen("past_self", "与过去的自己对话", Icons.Default.Schedule)
 }
 
@@ -441,22 +443,17 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
                     onNavigateToImmersiveReader = { navController.navigate(Screen.ImmersiveReader.createRoute()) },
                     onNavigateToQuarterlyReview = { navController.navigate(Screen.QuarterlyReview.route) },
-                    onNavigateToMemoryAnchors = { navController.navigate(Screen.MemoryAnchors.route) },
                     onNavigateToWritingFingerprint = { navController.navigate(Screen.WritingFingerprint.route) },
                     onNavigateToEmotionForecast = { navController.navigate(Screen.EmotionForecast.route) },
-                    onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) },
                     onNavigateToDecisionAnalysis = { navController.navigate(Screen.DecisionAnalysis.route) },
                     onNavigateToValuesExtraction = { navController.navigate(Screen.ValuesExtraction.route) },
                     onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
                     onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
-                    onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) },
                     onNavigateToOutlineView = { navController.navigate(Screen.OutlineView.createRoute()) },
-                    onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) },
                     onNavigateToSemanticSearch = { navController.navigate(Screen.SemanticSearch.route) },
                     onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
                     onNavigateToAmbientSound = { navController.navigate(Screen.AmbientSound.route) },
                     onNavigateToPersonalYearbook = { navController.navigate(Screen.PersonalYearbook.route) },
-                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
@@ -726,8 +723,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             ) {
                 DiaryMapScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
-                    onNavigateToTravelLog = { navController.navigate(Screen.TravelLog.route) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
             composable(
@@ -756,8 +752,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { key ->
                         navController.navigate(Screen.AchievementDetail.createRoute(key))
                     },
-                    onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) },
-                    onNavigateToStreakShield = { navController.navigate(Screen.StreakShield.route) }
+                    onNavigateToMonthlyChallenge = { navController.navigate(Screen.MonthlyChallenge.route) }
                 )
             }
 
@@ -931,8 +926,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
 
-            composable(Screen.EmotionRadar.route) { EmotionRadarScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.MemoryAnchors.route) { MemoryAnchorsScreen(onNavigateBack = { navController.popBackStack() }) }
+
             composable(
                 Screen.WritingFingerprint.route,
                 enterTransition = { subPageEnterTransition() },
@@ -952,8 +946,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 EmotionForecastScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEmotionRadar = { navController.navigate(Screen.EmotionRadar.route) }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.DecisionAnalysis.route) { DecisionAnalysisScreen(onNavigateBack = { navController.popBackStack() }) }
@@ -962,7 +955,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             composable(Screen.WritingCoach.route) { WritingCoachScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.VoiceRecording.route) { VoiceRecordingScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.MonthlyChallenge.route) { MonthlyChallengeScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.StreakShield.route) { StreakShieldScreen(onNavigateBack = { navController.popBackStack() }) }
+
             composable(Screen.QuietCompanion.route) { QuietCompanionScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.AmbientTheme.route) { AmbientThemeScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(
@@ -980,8 +973,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToFocusMode = { navController.navigate(Screen.FocusMode.route) },
                     onNavigateToOutlineView = { diaryId ->
                         navController.navigate(Screen.OutlineView.createRoute(diaryId))
-                    },
-                    onNavigateToCoverTheme = { navController.navigate(Screen.CoverTheme.route) }
+                    }
                 )
             }
             composable(
@@ -1035,11 +1027,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(route = Screen.CoverTheme.route) {
-                CoverThemeScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
             composable(route = Screen.SemanticSearch.route) {
                 SemanticSearchScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -1065,13 +1052,6 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
                 )
             }
-            composable(route = Screen.TravelLog.route) {
-                TravelLogScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
-                )
-            }
-
             composable(
                 route = Screen.PastSelf.route,
                 enterTransition = { subPageEnterTransition() },

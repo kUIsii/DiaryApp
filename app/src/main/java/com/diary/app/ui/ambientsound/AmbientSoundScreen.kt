@@ -2,9 +2,6 @@
 
 package com.diary.app.ui.ambientsound
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +28,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
@@ -217,13 +212,19 @@ private fun TrackCard(
                 if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
             )
-            .clickable { onClick() }
     ) {
-        Box {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .clickable { onClick() }
+        ) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(track.imageUrl).crossfade(true).build(),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
             Box(
@@ -381,8 +382,7 @@ private fun FullscreenPlayer(
                 )
             )
             Text(
-                "${progress / 60000}:${(progress / 1000) % 60}/" +
-                        "${duration / 60000}:${(duration / 1000) % 60}",
+                "${formatDuration(progress)}/${formatDuration(duration)}",
                 fontSize = 11.sp,
                 color = Color(0xFF9A8579)
             )
@@ -427,7 +427,7 @@ private fun FullscreenPlayer(
                     Icon(Icons.Default.Timer, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        if (sleepRemaining > 0) "${sleepRemaining / 60}:${sleepRemaining % 60}" else "\u7761\u7720\u5B9A\u65F6",
+                        if (sleepRemaining > 0) "${sleepRemaining / 60}:${(sleepRemaining % 60).toString().padStart(2, '0')}" else "\u7761\u7720\u5B9A\u65F6",
                         fontSize = 12.sp,
                         color = accent
                     )
@@ -442,12 +442,7 @@ private fun FullscreenPlayer(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = null, tint = Color(0xFFF2E3DA), modifier = Modifier.size(28.dp))
-                }
+                Spacer(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.width(24.dp))
                 Button(
                     onClick = onTogglePlay,
@@ -463,16 +458,16 @@ private fun FullscreenPlayer(
                     )
                 }
                 Spacer(modifier = Modifier.width(24.dp))
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(Icons.Default.SkipNext, contentDescription = null, tint = Color(0xFFF2E3DA), modifier = Modifier.size(28.dp))
-                }
+                Spacer(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+private fun formatDuration(ms: Int): String {
+    val totalSec = ms / 1000
+    return "${totalSec / 60}:${(totalSec % 60).toString().padStart(2, '0')}"
 }

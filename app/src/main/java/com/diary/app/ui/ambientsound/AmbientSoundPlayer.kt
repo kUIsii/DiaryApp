@@ -7,17 +7,21 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.diary.app.data.ambientsound.AudioTrack
 import java.io.File
 
 class AmbientSoundPlayer private constructor() {
     private var player: MediaPlayer? = null
-    private var track: AudioTrack? = null
-    private var paused = false
+    private var track by mutableStateOf<AudioTrack?>(null)
+    private var paused by mutableStateOf(false)
     private var vol = 0.5f
     private var sleepEndTime = 0L
     private var sleepActive = false
     private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusHeld = false
     private var ducked = false
     private var playCallback: (() -> Unit)? = null
@@ -73,7 +77,13 @@ class AmbientSoundPlayer private constructor() {
             setDataSource(audioFile.absolutePath)
             isLooping = true
             setVolume(vol, vol)
-            prepare()
+            try {
+                prepare()
+            } catch (e: Exception) {
+                release()
+                playCallback?.invoke()
+                return
+            }
             start()
             playCallback?.invoke()
         }
@@ -82,6 +92,7 @@ class AmbientSoundPlayer private constructor() {
     fun resume() {
         player?.let {
             if (!it.isPlaying) {
+                ensureAudioFocus()
                 it.start()
                 paused = false
                 playCallback?.invoke()
@@ -168,6 +179,7 @@ class AmbientSoundPlayer private constructor() {
                 )
                 .setOnAudioFocusChangeListener(focusChangeListener, Handler(Looper.getMainLooper()))
                 .build()
+            audioFocusRequest = request
             audioFocusHeld = am.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         } else {
             audioFocusHeld = am.requestAudioFocus(
@@ -179,18 +191,8 @@ class AmbientSoundPlayer private constructor() {
     private fun abandonAudioFocus() {
         val am = audioManager ?: return
         if (android.os.Build.VERSION.SDK_INT >= 26) {
-            try {
-                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                    .setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-                    )
-                    .setOnAudioFocusChangeListener(focusChangeListener, Handler(Looper.getMainLooper()))
-                    .build()
-                am.abandonAudioFocusRequest(request)
-            } catch (_: Exception) {}
+            audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+            audioFocusRequest = null
         } else {
             am.abandonAudioFocus(focusChangeListener)
         }
