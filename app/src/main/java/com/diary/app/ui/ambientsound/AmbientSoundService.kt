@@ -160,6 +160,8 @@ class AmbientSoundService : Service() {
         const val ACTION_RESUME = "com.diary.app.ambientsound.RESUME"
 
         fun start(ctx: Context) { ctx.startForegroundService(Intent(ctx, AmbientSoundService::class.java)) }
-        fun stop(ctx: Context) { ctx.startService(Intent(ctx, AmbientSoundService::class.java).setAction(ACTION_STOP_ALL)) }
+        fun stop(ctx: Context) {
+            ctx.startService(Intent(ctx, AmbientSoundService::class.java).setAction(ACTION_STOP_ALL))
+        }
     }
 }

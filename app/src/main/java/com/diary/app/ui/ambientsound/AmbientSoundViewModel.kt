@@ -26,7 +26,8 @@ data class AmbientSoundState(
     val sleepRemainingSeconds: Int = 0,
     val favoriteIds: Set<String> = emptySet(),
     val recentIds: List<String> = emptyList(),
-    val isDownloading: Boolean = false
+    val isPreparing: Boolean = false,
+    val errorMessage: String? = null
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,15 +58,19 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         if (player.hasSession) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
     }
 
+    fun clearError() {
+        _state.value = _state.value.copy(errorMessage = null)
+    }
+
     fun selectCategory(categoryId: String) {
         _state.value = _state.value.copy(selectedCategoryId = categoryId)
     }
 
     fun play(track: AudioTrack) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isDownloading = true)
-            val result = cacheManager.download(track.id, track.audioUrl)
-            _state.value = _state.value.copy(isDownloading = false)
+            _state.value = _state.value.copy(isPreparing = true, errorMessage = null)
+            val result = cacheManager.prepare(track.id)
+            _state.value = _state.value.copy(isPreparing = false)
 
             result.onSuccess { file ->
                 player.play(ctx, track, file)
@@ -77,6 +82,10 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
                     recentIds = recentIds,
                     progress = 0,
                     duration = player.duration
+                )
+            }.onFailure { e ->
+                _state.value = _state.value.copy(
+                    errorMessage = "无法加载音频，请重试"
                 )
             }
         }

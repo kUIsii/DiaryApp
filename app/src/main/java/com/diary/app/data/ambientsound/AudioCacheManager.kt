@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
 
 class AudioCacheManager(private val context: Context) {
     private val cacheDir: File
@@ -15,34 +14,17 @@ class AudioCacheManager(private val context: Context) {
 
     fun getFile(trackId: String): File = File(cacheDir, "${trackId}.mp3")
 
-    suspend fun download(
-        trackId: String,
-        url: String,
-        onProgress: ((Float) -> Unit)? = null
-    ): Result<File> = withContext(Dispatchers.IO) {
+    suspend fun prepare(trackId: String): Result<File> = withContext(Dispatchers.IO) {
         try {
             val file = getFile(trackId)
             if (file.exists()) return@withContext Result.success(file)
 
-            val connection = URL(url).openConnection()
-            connection.connect()
-            val contentLength = connection.contentLength
-            val input = connection.getInputStream()
-            val output = FileOutputStream(file)
-            val buffer = ByteArray(8192)
-            var bytesRead: Int
-            var totalRead = 0L
-
-            while (input.read(buffer).also { bytesRead = it } != -1) {
-                output.write(buffer, 0, bytesRead)
-                totalRead += bytesRead
-                if (contentLength > 0) {
-                    onProgress?.invoke(totalRead.toFloat() / contentLength)
+            val assetPath = "ambient_sounds/${trackId}.mp3"
+            context.assets.open(assetPath).use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
                 }
             }
-
-            output.close()
-            input.close()
             Result.success(file)
         } catch (e: Exception) {
             Result.failure(e)

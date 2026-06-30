@@ -117,6 +117,8 @@ class AmbientSoundPlayer private constructor() {
         player = null
         track = null
         paused = false
+        sleepActive = false
+        sleepEndTime = 0L
         abandonAudioFocus()
         stopCallback?.invoke()
     }

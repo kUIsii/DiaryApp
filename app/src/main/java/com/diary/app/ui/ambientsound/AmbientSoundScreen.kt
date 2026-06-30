@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
@@ -33,13 +34,17 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -54,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.diary.app.R
 import com.diary.app.data.ambientsound.AudioCategory
 import com.diary.app.data.ambientsound.AudioRepository
 import com.diary.app.data.ambientsound.AudioTrack
@@ -75,6 +82,14 @@ fun AmbientSoundScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     var showFullPlayer by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearError()
+        }
+    }
 
     val categories = AudioRepository.categories
     val tracks = AudioRepository.getTracks(state.selectedCategoryId)
@@ -104,6 +119,7 @@ fun AmbientSoundScreen(
                 sleepRemaining = state.sleepRemainingSeconds,
                 isFavorite = state.currentTrack!!.id in state.favoriteIds,
                 backgroundImageUrl = category?.backgroundImageUrl,
+                categoryId = category?.id,
                 onTogglePlay = { viewModel.togglePlay(state.currentTrack!!) },
                 onStop = { viewModel.stop(); showFullPlayer = false },
                 onSeek = { viewModel.seekTo(it) },
@@ -121,12 +137,13 @@ fun AmbientSoundScreen(
                 currentTrack = state.currentTrack,
                 isPlaying = state.isPlaying,
                 favoriteIds = state.favoriteIds,
-                isDownloading = state.isDownloading,
+                isPreparing = state.isPreparing,
                 onSelectCategory = { viewModel.selectCategory(it) },
                 onTogglePlay = { viewModel.togglePlay(it) },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                 onTrackClick = { showFullPlayer = true },
-                onNavigateBack = onNavigateBack
+                onNavigateBack = onNavigateBack,
+                snackbarHostState = snackbarHostState
             )
         }
     }
@@ -140,53 +157,58 @@ private fun BrowseView(
     currentTrack: AudioTrack?,
     isPlaying: Boolean,
     favoriteIds: Set<String>,
-    isDownloading: Boolean,
+    isPreparing: Boolean,
     onSelectCategory: (String) -> Unit,
     onTogglePlay: (AudioTrack) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onTrackClick: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        PageHeader(
-            title = "\u573A\u666F\u73AF\u5883\u97F3",
-            onNavigateBack = onNavigateBack
-        )
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            PageHeader(
+                title = "\u573A\u666F\u73AF\u5883\u97F3",
+                onNavigateBack = onNavigateBack
+            )
 
-        LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(categories, key = { it.id }) { cat ->
-                FilterChip(
-                    selected = cat.id == selectedCategoryId,
-                    onClick = { onSelectCategory(cat.id) },
-                    label = { Text(cat.name) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categories, key = { it.id }) { cat ->
+                    FilterChip(
+                        selected = cat.id == selectedCategoryId,
+                        onClick = { onSelectCategory(cat.id) },
+                        label = { Text(cat.name) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
                     )
-                )
+                }
             }
-        }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(tracks, key = { it.id }) { track ->
-                TrackCard(
-                    track = track,
-                    isActive = track.id == currentTrack?.id,
-                    isPlaying = isPlaying && track.id == currentTrack?.id,
-                    isFavorite = track.id in favoriteIds,
-                    isDownloading = isDownloading && track.id == currentTrack?.id,
-                    onPlay = { onTogglePlay(track) },
-                    onFavorite = { onToggleFavorite(track.id) },
-                    onClick = { if (track.id == currentTrack?.id) onTrackClick() }
-                )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(tracks, key = { it.id }) { track ->
+                    TrackCard(
+                        track = track,
+                        isActive = track.id == currentTrack?.id,
+                        isPlaying = isPlaying && track.id == currentTrack?.id,
+                        isFavorite = track.id in favoriteIds,
+                        isPreparing = isPreparing && track.id == currentTrack?.id,
+                        onPlay = { onTogglePlay(track) },
+                        onFavorite = { onToggleFavorite(track.id) },
+                        onClick = { if (track.id == currentTrack?.id) onTrackClick() }
+                    )
+                }
             }
         }
     }
@@ -198,7 +220,7 @@ private fun TrackCard(
     isActive: Boolean,
     isPlaying: Boolean,
     isFavorite: Boolean,
-    isDownloading: Boolean,
+    isPreparing: Boolean,
     onPlay: () -> Unit,
     onFavorite: () -> Unit,
     onClick: () -> Unit
@@ -221,19 +243,29 @@ private fun TrackCard(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .clickable { onClick() }
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context).data(track.imageUrl).crossfade(true).build(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
+            if (track.imageUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(track.imageUrl).crossfade(true).build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(modifier = Modifier.matchParentSize().background(Color(0x661C1511)))
+            } else {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.size(40.dp))
+                }
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .background(Color.Black.copy(alpha = 0.5f))
                     .clickable { onFavorite() },
                 contentAlignment = Alignment.Center
             ) {
@@ -261,6 +293,12 @@ private fun TrackCard(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            } else if (isPreparing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center).size(32.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.dp
+                )
             }
         }
         Row(
@@ -302,6 +340,7 @@ private fun FullscreenPlayer(
     sleepRemaining: Int,
     isFavorite: Boolean,
     backgroundImageUrl: String?,
+    categoryId: String?,
     onTogglePlay: () -> Unit,
     onStop: () -> Unit,
     onSeek: (Int) -> Unit,
@@ -321,8 +360,27 @@ private fun FullscreenPlayer(
                 model = ImageRequest.Builder(context).data(backgroundImageUrl).crossfade(true).build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(
+                    when (categoryId) {
+                        "sleep" -> R.drawable.ambient_bg_sleep
+                        "nature" -> R.drawable.ambient_bg_nature
+                        "reading" -> R.drawable.ambient_bg_reading
+                        "meditation" -> R.drawable.ambient_bg_meditation
+                        else -> R.drawable.ambient_bg_sleep
+                    }
+                )
             )
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(
+                when (categoryId) {
+                    "sleep" -> Color(0xFF1A0F32)
+                    "nature" -> Color(0xFF1E3D28)
+                    "reading" -> Color(0xFF3D2B1F)
+                    "meditation" -> Color(0xFF2A1B3D)
+                    else -> Color(0xFF1A0F32)
+                }
+            ))
         }
         Box(modifier = Modifier.fillMaxSize().background(bgOverlay))
 
@@ -348,12 +406,23 @@ private fun FullscreenPlayer(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            AsyncImage(
-                model = ImageRequest.Builder(context).data(track.imageUrl).crossfade(true).build(),
-                contentDescription = null,
-                modifier = Modifier.size(240.dp).clip(RoundedCornerShape(20.dp)),
-                contentScale = ContentScale.Crop
-            )
+            if (track.imageUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(track.imageUrl).crossfade(true).build(),
+                    contentDescription = null,
+                    modifier = Modifier.size(240.dp).clip(RoundedCornerShape(20.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier.size(240.dp).clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF2A2018)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null,
+                        tint = Color(0xFF9A8579), modifier = Modifier.size(72.dp))
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
