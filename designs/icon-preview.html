@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图标对比 - 含艺术风格</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #F2F2F7; padding: 32px; color: #1C1C1E;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #8E8E93; margin-bottom: 36px; font-size: 14px; }
+  .section { margin-bottom: 36px; }
+  .section-title {
+    font-size: 12px; font-weight: 600; color: #8E8E93;
+    letter-spacing: 1px; margin-bottom: 12px; padding-left: 4px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(680px, 1fr)); gap: 8px; }
+  .card {
+    background: white; border-radius: 12px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .tool-name { font-size: 14px; font-weight: 500; min-width: 70px; }
+  .icons { display: flex; align-items: center; gap: 0; flex: 1; overflow-x: auto; }
+  .col {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 10px; border-right: 1px solid #E8E8ED;
+    flex-shrink: 0;
+  }
+  .col:last-child { border-right: none; }
+  .col .lib { font-size: 10px; color: #8E8E93; min-width: 42px; text-align: right; }
+  .col img { width: 26px; height: 26px; object-fit: contain; }
+  .footer { margin-top: 40px; color: #8E8E93; font-size: 12px; line-height: 1.8; }
+  .label-art { background: #FFD60A20; color: #8A6D00; font-size: 9px; padding: 1px 6px; border-radius: 6px; margin-left: 12px; }
+</style>
+</head>
+<body>
+<h1>图标对比 — 含 3 套艺术风格 + 2 套线条风格</h1>
+<p class="subtitle">左到右：Lucide · Remix Line · 手绘涂鸦 · 虚线涂鸦 · 圆润线条</p>
+
+<div id="app"></div>
+
+<div class="footer">
+  <strong>风格说明：</strong><br>
+  🖌 <strong>手绘涂鸦</strong> = Icons8 Doodle — 手绘感，不完美线条<br>
+  ✏️ <strong>虚线涂鸦</strong> = Icons8 Dotted — 铅笔素描效果<br>
+  🔵 <strong>圆润线条</strong> = Icons8 Puffy Outline — 厚圆角可爱风格<br><br>
+  ※ 艺术图标来自 Icons8 CDN，免费使用需标注来源<br>
+  ※ 若图片加载失败，可能是图标名需调整
+</div>
+
+<script>
+const tools = [
+  { category: "数据分析", items: [
+    { name: "数据总览", l: "chart-bar", rx: "ri-bar-chart-line", d: "chart", dt: "chart", pf: "chart" },
+    { name: "写作分析", l: "text-search", rx: "ri-file-text-line", d: "search", dt: "search", pf: "search" },
+    { name: "随机回顾", l: "shuffle", rx: "ri-shuffle-line", d: "shuffle", dt: "shuffle", pf: "shuffle" },
+    { name: "成就", l: "trophy", rx: "ri-trophy-line", d: "trophy", dt: "trophy", pf: "trophy" },
+  ]},
+  { category: "AI 智能", items: [
+    { name: "AI 配置", l: "key-round", rx: "ri-key-2-line", d: "key", dt: "key", pf: "key" },
+    { name: "AI 对话", l: "message-circle", rx: "ri-chat-1-line", d: "chat", dt: "chat", pf: "chat" },
+    { name: "写作教练", l: "graduation-cap", rx: "ri-graduation-cap-line", d: "graduation-cap", dt: "graduation-cap", pf: "graduation-cap" },
+    { name: "AI 传记", l: "book-user", rx: "ri-user-heart-line", d: "user", dt: "user", pf: "user" },
+  ]},
+  { category: "回忆旅程", items: [
+    { name: "时间胶囊", l: "clock", rx: "ri-time-line", d: "clock", dt: "clock", pf: "clock" },
+    { name: "倒计时", l: "timer", rx: "ri-timer-2-line", d: "timer", dt: "timer", pf: "timer" },
+    { name: "日记地图", l: "map-pinned", rx: "ri-map-pin-line", d: "map-pin", dt: "map-pin", pf: "map-pin" },
+  ]},
+  { category: "沉浸", items: [
+    { name: "专注模式", l: "crosshair", rx: "ri-crosshair-line", d: "crosshair", dt: "crosshair", pf: "target" },
+    { name: "舒缓环境音", l: "headphones", rx: "ri-headphone-line", d: "headphones", dt: "headphones", pf: "headphones" },
+  ]},
+  { category: "系统工具", items: [
+    { name: "标签管理", l: "tags", rx: "ri-price-tag-3-line", d: "tag", dt: "tag", pf: "tag" },
+    { name: "媒体库", l: "images", rx: "ri-image-line", d: "image", dt: "image", pf: "image" },
+    { name: "存储管理", l: "hard-drive", rx: "ri-database-line", d: "database", dt: "database", pf: "database" },
+    { name: "通知管理", l: "bell", rx: "ri-notification-line", d: "notification", dt: "notification", pf: "notification" },
+    { name: "回收站", l: "trash-2", rx: "ri-delete-bin-line", d: "trash", dt: "trash", pf: "trash" },
+  ]},
+];
+
+const app = document.getElementById('app');
+for (const s of tools) {
+  const sec = document.createElement('div'); sec.className = 'section';
+  sec.innerHTML = `<div class="section-title">${s.category}</div><div class="grid"></div>`;
+  const grid = sec.querySelector('.grid');
+  for (const t of s.items) {
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `
+      <div class="tool-name">${t.name}</div>
+      <div class="icons">
+        <div class="col">
+          <span class="lib">Lucide</span>
+          <i data-lucide="${t.l}"></i>
+        </div>
+        <div class="col">
+          <span class="lib">Remix</span>
+          <i class="ri ${t.rx}"></i>
+        </div>
+        <div class="col">
+          <span class="lib">🖌手绘</span>
+          <img src="https://img.icons8.com/doodle/48/${t.d}.png" alt="${t.d}" loading="lazy">
+        </div>
+        <div class="col">
+          <span class="lib">✏️虚线</span>
+          <img src="https://img.icons8.com/dotted/48/${t.dt}.png" alt="${t.dt}" loading="lazy">
+        </div>
+        <div class="col">
+          <span class="lib">🔵圆润</span>
+          <img src="https://img.icons8.com/puffy-outline/48/${t.pf}.png" alt="${t.pf}" loading="lazy">
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+  app.appendChild(sec);
+}
+
+// Load Lucide
+const s = document.createElement('script');
+s.src = 'https://unpkg.com/lucide@latest';
+s.onload = () => lucide.createIcons();
+document.head.appendChild(s);
+
+// Load Remix
+const l = document.createElement('link');
+l.rel = 'stylesheet';
+l.href = 'https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css';
+document.head.appendChild(l);
+</script>
+</body>
+</html>

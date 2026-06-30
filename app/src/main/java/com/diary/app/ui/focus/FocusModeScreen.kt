@@ -33,7 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,7 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.readingcenter.buildReadingFocusSummary
+
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,7 +61,6 @@ import java.util.Locale
 @Composable
 fun FocusModeScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToReading: (Long?) -> Unit = {},
 
     viewModel: FocusModeViewModel = viewModel()
 ) {
@@ -71,11 +70,9 @@ fun FocusModeScreen(
     val selectedDuration by viewModel.selectedDuration.collectAsState()
     val selectedSound by viewModel.selectedSound.collectAsState()
     val completedSessions by viewModel.completedSessions.collectAsState()
-    val readingSession by app.readingSessionStore.session.collectAsState()
 
     val minutes = remainingSeconds / 60
     val seconds = remainingSeconds % 60
-    val focusSummary = buildReadingFocusSummary(readingSession, selectedDuration)
 
     GradientBackground {
         Column(
@@ -189,34 +186,7 @@ fun FocusModeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 18.dp,
-                innerPadding = 16.dp
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "当前阅读",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = focusSummary,
-                        fontSize = 13.sp,
-                        lineHeight = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (readingSession.diaryId != null) {
-                        TextButton(onClick = { onNavigateToReading(readingSession.diaryId) }) {
-                            Text("直接返回阅读")
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Duration selection
             GlassCard(
@@ -290,22 +260,6 @@ fun FocusModeScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            if (readingSession.diaryId != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ElevatedActionButton(
-                        label = "返回阅读",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigateToReading(readingSession.diaryId) }
-                    )
-
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
             // Session history
             if (completedSessions.isNotEmpty()) {

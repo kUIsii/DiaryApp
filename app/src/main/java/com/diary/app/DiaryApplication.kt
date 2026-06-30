@@ -18,7 +18,7 @@ import com.diary.app.data.TrashCleanupWorker
 import com.diary.app.weather.WeatherWorker
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
-import com.diary.app.ui.readingcenter.ReadingSessionStore
+
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.ThemePreferences
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +33,7 @@ class DiaryApplication : Application() {
     val database by lazy { DiaryDatabase.getDatabase(this) }
     val container by lazy { AppContainer(this) }
     val aiService by lazy { AiServiceManager(this) }
-    val readingSessionStore by lazy { ReadingSessionStore(this) }
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _coreDataWarm = MutableStateFlow(false)
     val coreDataWarm: StateFlow<Boolean> = _coreDataWarm.asStateFlow()

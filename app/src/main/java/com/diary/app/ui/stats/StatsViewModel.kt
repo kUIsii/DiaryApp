@@ -259,8 +259,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             totalEntries = stats.totalEntries,
             currentStreak = stats.currentStreak,
             thisMonthEntries = stats.thisMonthEntries,
-            topInsights = listOf(centerSummary.primaryInsight) + centerSummary.secondaryInsights,
-            deepDiveEntries = buildDeepDiveGroups().flatMap { it.entries }
+            topInsights = listOf(centerSummary.primaryInsight) + centerSummary.secondaryInsights
         )
         stats.copy(
             topWords = wc.words,

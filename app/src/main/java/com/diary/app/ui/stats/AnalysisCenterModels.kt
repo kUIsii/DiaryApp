@@ -21,12 +21,6 @@ data class AnalysisCenterHome(
     val sectionOrder: List<String>,
     val keyMetrics: List<AnalysisCenterMetric>,
     val topInsights: List<AnalysisCenterInsight>,
-    val deepDiveEntries: List<String>,
-)
-
-data class DeepDiveGroup(
-    val title: String,
-    val entries: List<String>,
 )
 
 data class AnalysisMoodTrend(

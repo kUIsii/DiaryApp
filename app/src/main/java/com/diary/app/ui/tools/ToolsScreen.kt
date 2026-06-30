@@ -1,13 +1,5 @@
 package com.diary.app.ui.tools
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -30,62 +22,34 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Label
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -97,27 +61,6 @@ import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Colorize
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.LibraryBooks
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.TipsAndUpdates
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.VideogameAsset
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VolumeUp
 
 private data class ToolItem(
     val icon: ImageVector,
@@ -127,22 +70,10 @@ private data class ToolItem(
 )
 
 private data class ToolSection(
-    val key: String,
-    val icon: ImageVector,
     val title: String,
-    val subtitle: String,
+    val accentColor: Color,
     val items: List<ToolItem>
 )
-
-@Composable
-private fun sectionColor(index: Int): Color {
-    val p = MaterialTheme.colorScheme.primary
-    val s = MaterialTheme.colorScheme.secondary
-    val t = MaterialTheme.colorScheme.tertiary
-    return when (index % 3) {
-        0 -> p; 1 -> s; else -> t
-    }
-}
 
 @Composable
 fun ToolsScreen(
@@ -159,27 +90,10 @@ fun ToolsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToAiManagement: () -> Unit = {},
-    onNavigateToSmallWins: () -> Unit = {},
-    onNavigateToWritingGrowthCenter: () -> Unit = {},
-    onNavigateToWritingLab: () -> Unit = {},
-    onNavigateToQuickCheckin: () -> Unit = {},
-
     onNavigateToWritingCoach: () -> Unit = {},
-    onNavigateToVoiceRecording: () -> Unit = {},
-    onNavigateToReadingCenter: () -> Unit = {},
-    onNavigateToFocusMode: () -> Unit = {},
-    onNavigateToImmersiveReader: () -> Unit = {},
-    onNavigateToQuarterlyReview: () -> Unit = {},
     onNavigateToWritingFingerprint: () -> Unit = {},
-
-    onNavigateToDecisionAnalysis: () -> Unit = {},
-    onNavigateToValuesExtraction: () -> Unit = {},
-    onNavigateToMonthlyChallenge: () -> Unit = {},
-
-    onNavigateToSemanticSearch: () -> Unit = {},
-    onNavigateToWritingHint: () -> Unit = {},
+    onNavigateToFocusMode: () -> Unit = {},
     onNavigateToAmbientSound: () -> Unit = {},
-    onNavigateToPersonalYearbook: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
@@ -187,112 +101,52 @@ fun ToolsScreen(
     val app = context.applicationContext as? DiaryApplication
     val textColor = MaterialTheme.colorScheme.onBackground
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val textTertiary = textSecondary.copy(alpha = 0.82f)
 
     val featuresState = app?.experimentalFeatures?.collectAsState()
     val features = featuresState?.value ?: ExperimentalFeaturesState()
     val isAiConfigured = com.diary.app.ai.AiConfigStore.isConfigured(context)
 
-    var expandedSection by remember { mutableStateOf<String?>(null) }
-
     val sections = listOf(
         ToolSection(
-            key = "quick",
-            icon = Icons.Default.FlashOn,
-            title = "快速记录",
-            subtitle = "语音·签到",
-            items = listOf(
-                ToolItem(Icons.Default.Mic, "语音记录", "录音并转写文字", onNavigateToVoiceRecording),
-                ToolItem(Icons.Default.EditNote, "快速签到", "快速情绪与文字签到", onNavigateToQuickCheckin),
-            )
-        ),
-        ToolSection(
-            key = "writing",
-            icon = Icons.Default.Colorize,
-            title = "\u5199\u4F5C\u5DE5\u574A",
-            subtitle = "\u7075\u611F\u00B7\u5DE5\u574A\u00B7\u5C0F\u786E\u5E78",
-            items = listOf(
-                ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6210\u957F\u4E2D\u5FC3", "\u5165\u53E3\u00B7\u8BAD\u7EC3\u00B7\u590D\u76D8\u4E00\u4F53", onNavigateToWritingGrowthCenter),
-                ToolItem(Icons.Default.AutoFixHigh, "\u5199\u4F5C\u5DE5\u574A", "\u7075\u611F\u00B7\u6A21\u677F\u00B7\u5B9E\u9A8C\u5BA4", onNavigateToWritingLab),
-                ToolItem(Icons.Default.TipsAndUpdates, "\u5199\u4F5C\u7075\u611F", "\u5B9E\u65F6\u5199\u4F5C\u5EFA\u8BAE\u4E0E\u63D0\u793A", onNavigateToWritingHint),
-                ToolItem(Icons.Default.Favorite, "\u5C0F\u786E\u5E78", "\u8BB0\u5F55\u751F\u6D3B\u7684\u5C0F\u786E\u5E78", onNavigateToSmallWins),
-            )
-        ),
-        ToolSection(
-            key = "reading",
-            icon = Icons.Default.LibraryBooks,
-            title = "\u9605\u8BFB\u4E2D\u5FC3",
-            subtitle = "\u7EED\u8BFB\u00B7\u4E13\u6CE8\u00B7\u590D\u76D8\u00B7\u4E3B\u9898",
-            items = listOf(
-                ToolItem(Icons.Default.MenuBook, "\u9605\u8BFB\u4E2D\u5FC3", "\u7EED\u8BFB\u3001\u4E13\u6CE8\u3001\u590D\u76D8\u4E0E\u4E3B\u9898\u7684\u7EDF\u4E00\u5165\u53E3", onNavigateToReadingCenter),
-                ToolItem(Icons.Default.Visibility, "\u6C89\u6D78\u9605\u8BFB", "\u4E13\u6CE8\u65E0\u5E72\u6270\u9605\u8BFB\u4F53\u9A8C", onNavigateToImmersiveReader),
-                ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
-            )
-        ),
-        ToolSection(
-            key = "analysis",
-            icon = Icons.Default.TrendingUp,
             title = "\u6570\u636E\u5206\u6790",
-            subtitle = "\u7EDF\u8BA1\u00B7\u60C5\u7EEA\u00B7\u8BED\u4E49",
+            accentColor = MaterialTheme.colorScheme.primary,
             items = listOf(
-                ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u62A5\u544A\u00B7\u5B63\u5EA6\u00B7\u5E74\u9274", onNavigateToStats),
-                ToolItem(Icons.Default.Edit, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
-                ToolItem(Icons.Default.Search, "\u8BED\u4E49\u641C\u7D22", "\u5168\u6587\u8BED\u4E49\u68C0\u7D22", onNavigateToSemanticSearch),
-                ToolItem(Icons.Default.DateRange, "\u5B63\u5EA6\u56DE\u987E", "\u5B63\u5EA6\u5199\u4F5C\u62A5\u544A\u4E0E\u56DE\u987E", onNavigateToQuarterlyReview),
-            )
-        ),
-        ToolSection(
-            key = "insight",
-            icon = Icons.Default.Psychology,
-            title = "\u6DF1\u5EA6\u6D1E\u5BDF",
-            subtitle = "\u51B3\u7B56\u00B7\u4EF7\u503C\u00B7\u5173\u8054",
-            items = listOf(
-                ToolItem(Icons.Default.AccountTree, "\u51B3\u7B56\u5206\u6790", "\u91CD\u5927\u51B3\u7B56\u56DE\u987E\u4E0E\u5206\u6790", onNavigateToDecisionAnalysis),
-                ToolItem(Icons.Default.Verified, "\u4EF7\u503C\u89C2\u63D0\u53D6", "\u4ECE\u65E5\u8BB0\u4E2D\u63D0\u53D6\u4E2A\u4EBA\u4EF7\u503C\u89C2", onNavigateToValuesExtraction),
+                ToolItem(Icons.Default.BarChart, "\u6570\u636E\u603B\u89C8", "\u7EDF\u8BA1\u3001\u70ED\u529B\u56FE\u4E0E\u5199\u4F5C\u5206\u6790", onNavigateToStats),
+                ToolItem(Icons.Default.Spellcheck, "\u5199\u4F5C\u5206\u6790", "\u98CE\u683C\u7279\u5F81\u4E0E\u6587\u5B57\u663E\u5FAE\u955C", onNavigateToWritingFingerprint),
+                ToolItem(Icons.Default.EmojiEvents, "\u6210\u5C31", "\u5DF2\u89E3\u9501\u7684\u80CC\u666F\u4E0E\u52C7\u7AE0\u5899", onNavigateToAchievements),
                 ToolItem(Icons.Default.Shuffle, "\u968F\u673A\u56DE\u987E", "\u91CD\u6E29\u65E7\u65E5\u8BB0", onNavigateToRandom),
             )
         ),
         ToolSection(
-            key = "ai",
-            icon = Icons.Default.SmartToy,
             title = "AI \u667A\u80FD",
-            subtitle = if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u672A\u914D\u7F6E",
+            accentColor = MaterialTheme.colorScheme.secondary,
             items = listOf(
                 ToolItem(Icons.Default.Key, "AI \u914D\u7F6E", if (isAiConfigured) "\u5DF2\u914D\u7F6E" else "\u914D\u7F6E API \u5BC6\u94A5", onNavigateToAiManagement),
-                ToolItem(Icons.Default.Forum, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
-                ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6559\u7EC3", "\u5199\u4F5C\u7EDF\u8BA1\u4E0E AI \u6307\u5BFC", onNavigateToWritingCoach),
+                ToolItem(Icons.Default.Chat, "AI \u5BF9\u8BDD", "\u667A\u80FD\u52A9\u624B\u4E0E\u8FC7\u53BB\u5BF9\u8BDD", onNavigateToAiAssistant),
+                ToolItem(Icons.Default.School, "\u5199\u4F5C\u6559\u7EC3", "\u5199\u4F5C\u7EDF\u8BA1\u4E0E AI \u6307\u5BFC", onNavigateToWritingCoach),
                 ToolItem(Icons.Default.Person, "AI \u4F20\u8BB0", "\u751F\u6210\u4E2A\u4EBA\u4F20\u8BB0", onNavigateToBiography),
             )
         ),
         ToolSection(
-            key = "memory",
-            icon = Icons.Default.History,
             title = "\u56DE\u5FC6\u65C5\u7A0B",
-            subtitle = "\u80F6\u56CA\u00B7\u5730\u56FE\u00B7\u951A\u70B9",
+            accentColor = Color(0xFFE67E22),
             items = listOf(
-                ToolItem(Icons.Default.AccessTime, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1", onNavigateToTimeCapsule),
-                ToolItem(Icons.Default.Schedule, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
+                ToolItem(Icons.Default.Timer, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1", onNavigateToTimeCapsule),
+                ToolItem(Icons.Default.CalendarMonth, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
                 ToolItem(Icons.Default.Map, "\u65E5\u8BB0\u5730\u56FE", "\u8DB3\u8FF9\u56DE\u987E\u4E0E\u65C5\u884C", onNavigateToDiaryMap),
-
-                ToolItem(Icons.Default.CalendarToday, "\u4E2A\u4EBA\u5E74\u9274", "\u4E00\u5E74\u7684\u56DE\u5FC6\u4E0E\u6210\u957F\u62A5\u544A", onNavigateToPersonalYearbook),
-                ToolItem(Icons.Default.MusicNote, "\u573A\u666F\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
             )
         ),
         ToolSection(
-            key = "progress",
-            icon = Icons.Default.Flag,
-            title = "\u6210\u5C31\u7CFB\u7EDF",
-            subtitle = "\u6311\u6218\u00B7\u52C7\u7AE0\u5899",
+            title = "\u6C89\u6D78",
+            accentColor = Color(0xFF3498DB),
             items = listOf(
-                ToolItem(Icons.Default.Event, "\u6708\u5EA6\u6311\u6218", "\u6BCF\u6708\u5199\u4F5C\u6311\u6218\u4E0E\u76EE\u6807", onNavigateToMonthlyChallenge),
-                ToolItem(Icons.Default.EmojiEvents, "\u6210\u5C31", "\u5DF2\u89E3\u9501\u7684\u80CC\u666F\u4E0E\u52C7\u7AE0\u5899", onNavigateToAchievements),
+                ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
+                ToolItem(Icons.Default.Headphones, "\u8212\u7F13\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
             )
         ),
         ToolSection(
-            key = "tools",
-            icon = Icons.Default.Build,
             title = "\u7CFB\u7EDF\u5DE5\u5177",
-            subtitle = "\u6807\u7B7E\u00B7\u5A92\u4F53\u00B7\u5B58\u50A8",
+            accentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             items = listOf(
                 ToolItem(Icons.Default.Label, "\u6807\u7B7E\u7BA1\u7406", "\u6574\u7406\u65E5\u8BB0\u5206\u7C7B", onNavigateToTagManagement),
                 ToolItem(Icons.Default.Collections, "\u5A92\u4F53\u5E93", "\u6D4F\u89C8\u56FE\u7247\u548C\u89C6\u9891", onNavigateToMediaLibrary),
@@ -332,20 +186,14 @@ fun ToolsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     items(sections) { section ->
                         SectionCard(
                             section = section,
-                            isExpanded = expandedSection == section.key,
-                            onToggle = {
-                                expandedSection = if (expandedSection == section.key) null else section.key
-                            },
                             textColor = textColor,
                             textSecondary = textSecondary,
-                            textTertiary = textTertiary,
-                            sectionIndex = sections.indexOf(section),
                             isAiConfigured = isAiConfigured,
                             features = features,
                             app = app
@@ -360,97 +208,52 @@ fun ToolsScreen(
 @Composable
 private fun SectionCard(
     section: ToolSection,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
     textColor: Color,
     textSecondary: Color,
-    textTertiary: Color,
-    sectionIndex: Int,
     isAiConfigured: Boolean,
     features: ExperimentalFeaturesState,
     app: DiaryApplication?
 ) {
-    val c = sectionColor(sectionIndex)
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        label = "arrowRotation"
-    )
+    val c = section.accentColor
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 20.dp,
-        innerPadding = 16.dp
+        innerPadding = 14.dp
     ) {
         Column {
-            val interaction = remember { MutableInteractionSource() }
-            val pressed by interaction.collectIsPressedAsState()
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (pressed) c.copy(alpha = 0.06f) else Color.Transparent)
-                    .clickable(interactionSource = interaction, indication = null) { onToggle() },
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(6.dp)
                         .clip(CircleShape)
-                        .background(c.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(imageVector = section.icon, contentDescription = null, tint = c, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(section.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor)
-                    Text(section.subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
-                }
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) "收起" else "展开",
-                    modifier = Modifier.size(24.dp).rotate(arrowRotation),
-                    tint = textSecondary
+                        .background(c)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = section.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c
                 )
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-                ) + fadeIn(animationSpec = tween(250, delayMillis = 50)),
-                exit = shrinkVertically(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
-                ) + fadeOut(animationSpec = tween(200))
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    section.items.forEachIndexed { i, item ->
-                        if (i > 0) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                        }
-                        ToolRow(
-                            icon = item.icon,
-                            tint = c,
-                            title = item.title,
-                            subtitle = item.subtitle,
-                            textColor = textColor,
-                            textTertiary = textTertiary,
-                            onClick = item.onClick
-                        )
-                    }
-                    if (section.key == "ai") {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        AiFeatureToggleRow(
-                            icon = Icons.Default.Lightbulb,
-                            title = "AI \u6D1E\u5BDF\u5361\u7247",
-                            subtitle = "\u9996\u9875\u5076\u73B0\u8F7B\u91CF AI \u63D0\u793A",
-                            checked = features.aiInsightCardEnabled && isAiConfigured,
-                            enabled = isAiConfigured,
-                            onCheckedChange = { app?.setAiInsightCardEnabled(it) }
-                        )
-                    }
+            section.items.forEachIndexed { i, item ->
+                if (i > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
+                ToolRow(
+                    icon = item.icon,
+                    tint = c,
+                    title = item.title,
+                    subtitle = item.subtitle,
+                    textColor = textColor,
+                    textSecondary = textSecondary,
+                    onClick = item.onClick
+                )
             }
         }
     }
@@ -463,7 +266,7 @@ private fun ToolRow(
     title: String,
     subtitle: String,
     textColor: Color,
-    textTertiary: Color,
+    textSecondary: Color,
     onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -484,51 +287,17 @@ private fun ToolRow(
                 .background(tint.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(18.dp)
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = textColor)
-            Text(subtitle, fontSize = 11.sp, color = textTertiary, modifier = Modifier.padding(top = 1.dp))
+            Text(subtitle, fontSize = 11.sp, color = textSecondary, modifier = Modifier.padding(top = 1.dp))
         }
-    }
-}
-
-@Composable
-private fun AiFeatureToggleRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
-        }
-        Spacer(modifier = Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, color = if (enabled) textColor else textColor.copy(alpha = 0.5f), fontWeight = FontWeight.Medium)
-            Text(subtitle, fontSize = 12.sp, color = if (enabled) textSecondary else textSecondary.copy(alpha = 0.5f), lineHeight = 18.sp, modifier = Modifier.padding(top = 3.dp, end = 8.dp))
-        }
-        Switch(checked = checked, onCheckedChange = if (enabled) onCheckedChange else null,
-            colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary, checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
-        )
     }
 }

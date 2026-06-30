@@ -67,27 +67,17 @@ fun buildAnalysisCenterHome(
     totalEntries: Int,
     currentStreak: Int,
     thisMonthEntries: Int,
-    topInsights: List<AnalysisCenterInsight>,
-    deepDiveEntries: List<String>
+    topInsights: List<AnalysisCenterInsight>
 ): AnalysisCenterHome {
     return AnalysisCenterHome(
         summary = summary,
-        sectionOrder = listOf("摘要", "关键指标", "洞察", "深挖入口"),
+        sectionOrder = listOf("摘要", "关键指标", "洞察"),
         keyMetrics = listOf(
             AnalysisCenterMetric("总记录", totalEntries.toString()),
             AnalysisCenterMetric("连续天数", currentStreak.toString()),
             AnalysisCenterMetric("本月记录", thisMonthEntries.toString())
         ),
-        topInsights = topInsights,
-        deepDiveEntries = deepDiveEntries
-    )
-}
-
-fun buildDeepDiveGroups(): List<DeepDiveGroup> {
-    return listOf(
-        DeepDiveGroup("时间报告", listOf("月度报告", "季度回顾", "年度报告", "个人年鉴")),
-        DeepDiveGroup("心情洞察", listOf("情绪分析", "情绪雷达", "情绪预报")),
-        DeepDiveGroup("文本洞察", listOf("写作分析"))
+        topInsights = topInsights
     )
 }
 
@@ -105,9 +95,8 @@ fun defaultAnalysisCenterSummary(): AnalysisCenterSummary {
 fun defaultAnalysisCenterHome(): AnalysisCenterHome {
     return AnalysisCenterHome(
         summary = defaultAnalysisCenterSummary(),
-        sectionOrder = listOf("摘要", "关键指标", "洞察", "深挖入口"),
+        sectionOrder = listOf("摘要", "关键指标", "洞察"),
         keyMetrics = emptyList(),
-        topInsights = emptyList(),
-        deepDiveEntries = emptyList()
+        topInsights = emptyList()
     )
 }

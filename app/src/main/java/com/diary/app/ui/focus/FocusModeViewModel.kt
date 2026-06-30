@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 class FocusModeViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as DiaryApplication
     private val dao = app.database.diaryDao()
-    private val sessionStore = app.readingSessionStore
 
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning
@@ -65,7 +64,7 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
 
         _remainingSeconds.value = _selectedDuration.value * 60
         _isRunning.value = true
-        sessionStore.setFocusActive(true)
+
 
         timerJob = viewModelScope.launch {
             while (_remainingSeconds.value > 0) {
@@ -79,13 +78,12 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
     fun pauseSession() {
         timerJob?.cancel()
         _isRunning.value = false
-        sessionStore.setFocusActive(false)
     }
 
     fun resumeSession() {
         if (_remainingSeconds.value <= 0) return
         _isRunning.value = true
-        sessionStore.setFocusActive(true)
+
         timerJob = viewModelScope.launch {
             while (_remainingSeconds.value > 0) {
                 delay(1000)
@@ -99,7 +97,6 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
         timerJob?.cancel()
         _isRunning.value = false
         _remainingSeconds.value = _selectedDuration.value * 60
-        sessionStore.setFocusActive(false)
         currentSessionId?.let { id ->
             viewModelScope.launch {
                 dao.completeFocusSession(
@@ -114,7 +111,6 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun completeSession() {
         _isRunning.value = false
-        sessionStore.setFocusActive(false)
         currentSessionId?.let { id ->
             viewModelScope.launch {
                 dao.completeFocusSession(
