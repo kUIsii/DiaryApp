@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,13 +70,41 @@ fun WritingLabScreen(onNavigateBack: () -> Unit, viewModel: WritingLabViewModel 
     val activeExperiment by viewModel.activeExperiment.collectAsState()
     val participations by viewModel.participations.collectAsState()
     val completedExperiments by viewModel.completedExperiments.collectAsState()
+    val challengeStreak by viewModel.challengeStreak.collectAsState()
+    val completedChallenges by viewModel.completedChallenges.collectAsState()
+    val styleHistory by viewModel.styleHistory.collectAsState()
+    val rhetoricalSuggestions by viewModel.rhetoricalSuggestions.collectAsState()
+    val templates by viewModel.templates.collectAsState()
     val showPicker by viewModel.showPresetPicker.collectAsState()
     val currentTab by viewModel.currentTab.collectAsState()
     var inputText by remember { mutableStateOf("") }
+    val overview = remember(
+        activeExperiment,
+        participations,
+        completedExperiments,
+        styleHistory,
+        challengeStreak,
+        completedChallenges,
+        rhetoricalSuggestions,
+        templates
+    ) {
+        buildWritingLabOverview(
+            activeExperiment = activeExperiment,
+            participations = participations,
+            completedExperiments = completedExperiments,
+            styleHistory = styleHistory,
+            challengeStreak = challengeStreak,
+            completedChallenges = completedChallenges,
+            rhetoricalSuggestions = rhetoricalSuggestions,
+            templates = templates
+        )
+    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
             PageHeader(title = "写作工坊", onNavigateBack = onNavigateBack)
+
+            SummaryCard(overview = overview)
 
             TabRow(currentTab = currentTab, onTabSelected = { viewModel.setTab(it) })
 
@@ -88,6 +118,7 @@ fun WritingLabScreen(onNavigateBack: () -> Unit, viewModel: WritingLabViewModel 
                         activeExperiment = activeExperiment,
                         participations = participations,
                         completedExperiments = completedExperiments,
+                        overview = overview,
                         inputText = inputText,
                         onInputChange = { inputText = it },
                         onStartExperiment = { viewModel.startExperiment(it) },
@@ -146,16 +177,58 @@ private fun TabRow(currentTab: WritingLabTab, onTabSelected: (WritingLabTab) -> 
 }
 
 @Composable
+private fun SummaryCard(overview: WritingLabOverview) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            Text("训练总览", fontSize = DesignTokens.FontMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text(overview.practiceLoopsText, fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
+                StatChip(label = "实验", value = overview.completedExperimentsText)
+                StatChip(label = "进度", value = overview.activeExperimentProgressText)
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text(overview.nextStepTitle, fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(overview.nextStepDescription, fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text(overview.fallbackCoverageText, fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.StatChip(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(DesignTokens.SpacingSm)
+    ) {
+        Text(label, fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(value, fontSize = DesignTokens.FontSmall, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
 private fun ExperimentsSection(
     showPicker: Boolean,
     activeExperiment: com.diary.app.data.WritingExperiment?,
     participations: List<com.diary.app.data.ExperimentParticipation>,
     completedExperiments: List<com.diary.app.data.WritingExperiment>,
+    overview: WritingLabOverview,
     inputText: String,
     onInputChange: (String) -> Unit,
     onStartExperiment: (ExperimentPreset) -> Unit,
     onLogParticipation: (String) -> Unit
 ) {
+    Text("完成闭环", fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
+    Text(overview.practiceLoopsText, fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+
     if (showPicker) {
         Text("选择一个实验开始", fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
@@ -274,7 +347,17 @@ private fun ExperimentsSection(
                         Text("写作天数：${participations.size} 天", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("总字数：${totalChars} 字", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("开始日期：$firstDate", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                        Text("下一步：把这次实验的写法复制到下一篇日记里。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.primary)
                     }
+                }
+            }
+        } ?: run {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text("当前没有进行中的实验", fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+                    Text("先从上方选择一个实验，开始建立写作闭环。", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -366,6 +449,8 @@ private fun StyleTransferSection(viewModel: WritingLabViewModel) {
             Text(selectedStyle, fontSize = DesignTokens.FontSmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(result, fontSize = DesignTokens.FontBody, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text("下一步：把这版改写和原文对照，找出最像你的句子。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
             Text("这个改写对你有帮助吗？", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -483,6 +568,8 @@ private fun ChallengeSection(viewModel: WritingLabViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(DesignTokens.CornerMedium)
             ) { Text("生成新挑战") }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text("没有 AI 时也会给出本地挑战，确保今天就能开始。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 
@@ -585,6 +672,13 @@ private fun RhetoricalSection(viewModel: WritingLabViewModel) {
                 }
             }
         }
+    } else if (!isRhetoricalLoading && rhetoricalInput.isNotBlank()) {
+        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+        GlassCard(modifier = Modifier.fillMaxWidth(), innerPadding = DesignTokens.SpacingMd) {
+            Text("暂时没有明显问题", fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("你可以补一个细节、拆短句子，或者换一个段落再试一次。", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -606,6 +700,8 @@ private fun TemplateSection(viewModel: WritingLabViewModel) {
             if (isTemplateLoading) Text("生成中...")
             else Text("生成模板")
         }
+        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+        Text("AI 关闭时会自动使用本地模板库。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 
     if (isTemplateLoading) {

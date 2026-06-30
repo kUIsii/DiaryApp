@@ -116,6 +116,7 @@ import com.diary.app.ui.achievement.AchievementDetailScreen
 import com.diary.app.ui.achievement.AchievementViewModel
 import com.diary.app.ui.biography.BiographyScreen
 import com.diary.app.ui.writingcoach.WritingCoachScreen
+import com.diary.app.ui.writingcenter.WritingGrowthCenterScreen
 import com.diary.app.ui.voicerecording.VoiceRecordingScreen
 import com.diary.app.ui.diarysummary.DiarySummaryScreen
 import com.diary.app.ui.smallwins.SmallWinsScreen
@@ -227,6 +228,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
     object WeatherDetail : Screen("weather_detail", "天气详情", Icons.Default.LocationOn)
     object SmallWins : Screen("small_wins", "小确幸", Icons.Default.Favorite)
+    object WritingGrowthCenter : Screen("writing_growth_center", "写作成长中心", Icons.Default.AutoAwesome)
     object QuickCheckin : Screen("quick_checkin", "快速签到", Icons.Default.Edit)
     object Goals : Screen("goals", "目标追踪", Icons.Default.BarChart)
     object EmotionRadar : Screen("emotion_radar", "情绪雷达", Icons.Default.BarChart)
@@ -441,6 +443,7 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateToAiAssistant = { navController.navigate(Screen.AiAssistant.route) },
                     onNavigateToAiManagement = { navController.navigate(Screen.AiManagement.route) },
                     onNavigateToSmallWins = { navController.navigate(Screen.SmallWins.route) },
+                    onNavigateToWritingGrowthCenter = { navController.navigate(Screen.WritingGrowthCenter.route) },
                     onNavigateToQuickCheckin = { navController.navigate(Screen.QuickCheckin.route) },
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
@@ -639,9 +642,9 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 popEnterTransition = { subPagePopEnterTransition() },
                 popExitTransition = { subPagePopExitTransition() }
             ) {
-                val app = LocalContext.current.applicationContext as? com.diary.app.DiaryApplication
+                val diaryApp = LocalContext.current.applicationContext as? com.diary.app.DiaryApplication
                 com.diary.app.ui.tools.AiManagementScreen(
-                    aiService = app!!.aiService,
+                    aiService = diaryApp!!.aiService,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -905,6 +908,22 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+            composable(
+                route = Screen.WritingGrowthCenter.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                WritingGrowthCenterScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditor = { navController.navigate(Screen.Editor.createRoute()) },
+                    onNavigateToWritingCoach = { navController.navigate(Screen.WritingCoach.route) },
+                    onNavigateToWritingLab = { navController.navigate(Screen.WritingLab.route) },
+                    onNavigateToWritingHint = { navController.navigate(Screen.WritingHint.route) },
+                    onNavigateToSmallWins = { navController.navigate(Screen.SmallWins.route) }
+                )
+            }
 
             composable(
                 route = Screen.QuickCheckin.route,
@@ -1013,7 +1032,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(route = Screen.WritingHint.route) {
                 WritingHintScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditor = { navController.navigate(Screen.Editor.createRoute()) }
                 )
             }
             composable(route = Screen.AmbientSound.route) {

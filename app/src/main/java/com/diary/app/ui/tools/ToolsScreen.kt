@@ -160,6 +160,7 @@ fun ToolsScreen(
     onNavigateToAiAssistant: () -> Unit = {},
     onNavigateToAiManagement: () -> Unit = {},
     onNavigateToSmallWins: () -> Unit = {},
+    onNavigateToWritingGrowthCenter: () -> Unit = {},
     onNavigateToQuickCheckin: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToWritingCoach: () -> Unit = {},
@@ -225,6 +226,7 @@ fun ToolsScreen(
             title = "\u5199\u4F5C\u5DE5\u574A",
             subtitle = "\u7075\u611F\u00B7\u5DE5\u574A\u00B7\u5C0F\u786E\u5E78",
             items = listOf(
+                ToolItem(Icons.Default.AutoStories, "\u5199\u4F5C\u6210\u957F\u4E2D\u5FC3", "\u5165\u53E3\u00B7\u8BAD\u7EC3\u00B7\u590D\u76D8\u4E00\u4F53", onNavigateToWritingGrowthCenter),
                 ToolItem(Icons.Default.AutoFixHigh, "\u5199\u4F5C\u5DE5\u574A", "\u7075\u611F\u00B7\u6A21\u677F\u00B7\u5B9E\u9A8C\u5BA4", onNavigateToWritingLab),
                 ToolItem(Icons.Default.TipsAndUpdates, "\u5199\u4F5C\u7075\u611F", "\u5B9E\u65F6\u5199\u4F5C\u5EFA\u8BAE\u4E0E\u63D0\u793A", onNavigateToWritingHint),
                 ToolItem(Icons.Default.Favorite, "\u5C0F\u786E\u5E78", "\u8BB0\u5F55\u751F\u6D3B\u7684\u5C0F\u786E\u5E78", onNavigateToSmallWins),

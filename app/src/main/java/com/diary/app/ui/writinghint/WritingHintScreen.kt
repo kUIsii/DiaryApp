@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -109,6 +111,8 @@ fun WritingHintScreen(
                 }
             )
 
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
             TabRow(
                 selectedTabIndex = state.activeTab.ordinal,
                 modifier = Modifier.fillMaxWidth()
@@ -152,6 +156,27 @@ private fun HintsTab(
     onNavigateToEditor: (() -> Unit)?
 ) {
     Column {
+        WritingSummaryStrip(
+            state = state,
+            onRefresh = { viewModel.generateHints() },
+            onOpenEditor = onNavigateToEditor
+        )
+
+        if (state.customPreview.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+            FirstClassCustomRail(
+                customHints = state.customPreview,
+                onUse = { hint ->
+                    viewModel.markCustomHintAsUsed(hint)
+                    onNavigateToEditor?.invoke()
+                },
+                onExpand = { hint ->
+                    viewModel.expandHint(WritingHint(hint.category, hint.content, hint.id))
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
         CategoryChips(
             selected = state.selectedCategory,
             onSelect = { viewModel.setCategory(it) }
@@ -199,13 +224,218 @@ private fun HintsTab(
         if (state.errorMsg != null) {
             Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
             Text(
-                text = state.errorMsg!!,
+                text = state.errorMsg,
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(bottom = DesignTokens.SpacingSm)
             )
+        }
+    }
+}
+
+@Composable
+private fun WritingSummaryStrip(
+    state: WritingHintState,
+    onRefresh: () -> Unit,
+    onOpenEditor: (() -> Unit)?
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        innerPadding = 14.dp,
+        cornerRadius = DesignTokens.CornerLarge
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = state.summaryHeadline,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = state.summarySubtitle,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 17.sp
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = state.lifecycleLabel,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                IconButton(onClick = onRefresh, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Default.Refresh, contentDescription = "刷新灵感")
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                state.summaryChips.take(3).forEach { chip ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(999.dp)
+                    ) {
+                        Text(
+                            text = chip,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+            }
+
+            if (state.quickUsePreview.isNotEmpty()) {
+                Text(
+                    text = "可直接使用",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = state.quickUsePreview.first().content,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2
+                )
+                if (onOpenEditor != null) {
+                    TextButton(onClick = onOpenEditor, modifier = Modifier.align(Alignment.End)) {
+                        Text("去写作")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FirstClassCustomRail(
+    customHints: List<SavedHint>,
+    onUse: (SavedHint) -> Unit,
+    onExpand: (SavedHint) -> Unit
+) {
+    Column {
+        Text(
+            text = "自定义库优先展示",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
+            items(customHints, key = { it.id }) { hint ->
+                Surface(
+                    modifier = Modifier.width(220.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = hint.category,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "使用 ${hint.usageCount} 次",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = hint.content,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                            TextButton(onClick = { onExpand(hint) }) { Text("扩展") }
+                            TextButton(onClick = { onUse(hint) }) { Text("使用") }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomLibraryHeader(state: WritingHintState) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = DesignTokens.CornerLarge,
+        innerPadding = 14.dp
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "自定义写作库",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "把你常用的写作切口沉淀下来，后面可以直接收藏、扩展、复用。",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)) {
+                    Text(
+                        text = "${state.customHints.size} 条自定义",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+                Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)) {
+                    Text(
+                        text = "${state.favoriteHints.size} 条收藏",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -267,6 +497,30 @@ private fun SavedTab(
                     GenerationHistoryCard(history = gen, viewModel = viewModel)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GuidanceBlock(
+    title: String,
+    items: List<String>
+) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        items.forEach { item ->
+            Text(
+                text = "• $item",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -383,6 +637,10 @@ private fun CustomTab(
     var hintToDelete by remember { mutableStateOf<SavedHint?>(null) }
 
     Column {
+        CustomLibraryHeader(state = state)
+
+        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+
         OutlinedButton(
             onClick = { showAddDialog = true },
             modifier = Modifier
@@ -405,13 +663,13 @@ private fun CustomTab(
                 verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMd),
                 contentPadding = PaddingValues(vertical = DesignTokens.SpacingSm)
             ) {
-                items(state.customHints, key = { it.id }) { hint ->
+                items(state.customHints.sortedWith(compareByDescending<SavedHint> { it.usageCount }.thenByDescending { it.createdAt }), key = { it.id }) { hint ->
                     CustomHintCard(
                         hint = hint,
                         onDelete = { hintToDelete = hint },
                         onExpand = { viewModel.expandHint(WritingHint(hint.category, hint.content, hint.id)) },
                         onUse = {
-                            viewModel.markAsUsed(WritingHint(hint.category, hint.content, hint.id))
+                            viewModel.markCustomHintAsUsed(hint)
                             onNavigateToEditor?.invoke()
                         }
                     )
@@ -803,11 +1061,18 @@ private fun RefineDialog(
                     }
                 } else {
                     state.refinedContent?.let { content ->
-                        Text(
-                            text = content,
-                            fontSize = 14.sp,
-                            lineHeight = 21.sp
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
+                            Text(
+                                text = content,
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp
+                            )
+                            state.refineGuidance?.let { guidance ->
+                                GuidanceBlock(title = "可追问的问题", items = guidance.questions)
+                                GuidanceBlock(title = "可切入的角度", items = guidance.angles)
+                                GuidanceBlock(title = "建议开写顺序", items = guidance.nextSteps)
+                            }
+                        }
                     }
                 }
 

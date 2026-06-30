@@ -44,6 +44,8 @@ import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.theme.DesignTokens
 import kotlin.math.roundToInt
 
+private fun rowWeightModifier(): Modifier = Modifier
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WritingCoachScreen(
@@ -66,6 +68,7 @@ fun WritingCoachScreen(
     val selectedTrendMetric by viewModel.selectedTrendMetric.collectAsState()
     val hourDistribution by viewModel.hourDistribution.collectAsState()
     val aiSuggestions by viewModel.aiSuggestions.collectAsState()
+    val growthState by viewModel.growth.collectAsState()
 
     var aiExpanded by remember { mutableStateOf(false) }
     var showGoalSheet by remember { mutableStateOf(false) }
@@ -131,6 +134,10 @@ fun WritingCoachScreen(
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
+                    GrowthSummaryCard(growth = growthState, onOpenGoals = { showGoalSheet = true })
+
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+
                     AiAnalysisCard(
                         aiAnalysisResult = aiAnalysisResult,
                         isAiLoading = isAiLoading,
@@ -237,101 +244,13 @@ fun WritingCoachScreen(
 
                     Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
 
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        cornerRadius = DesignTokens.CornerLarge,
-                        innerPadding = DesignTokens.SpacingLg
-                    ) {
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "写作目标",
-                                    fontSize = DesignTokens.FontMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                IconButton(
-                                    onClick = { showGoalSheet = true }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription = "目标设置",
-                                        modifier = Modifier.size(DesignTokens.IconMedium)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
-
-                            Text(
-                                "每日字数目标",
-                                fontSize = DesignTokens.FontBody,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
-                            val wordProgress = (todayWordCount.toFloat() / dailyWordGoal).coerceAtMost(1f)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(wordProgress)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(MaterialTheme.colorScheme.primary)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
-                            Text(
-                                "今日已写 ${todayWordCount} / ${dailyWordGoal} 字",
-                                fontSize = DesignTokens.FontSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
-
-                            Text(
-                                "每周天数目标",
-                                fontSize = DesignTokens.FontBody,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
-                            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
-                                for (i in 1..7) {
-                                    val filled = i <= thisWeekWritingDays
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (filled) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            "$i",
-                                            fontSize = DesignTokens.FontSmall,
-                                            color = if (filled) MaterialTheme.colorScheme.onPrimary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
-                            Text(
-                                "本周已写 ${thisWeekWritingDays}/7 天",
-                                fontSize = DesignTokens.FontSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    GoalSummaryCard(
+                        dailyWordGoal = dailyWordGoal,
+                        weeklyDayGoal = weeklyDayGoal,
+                        todayWordCount = todayWordCount,
+                        thisWeekWritingDays = thisWeekWritingDays,
+                        onOpenGoals = { showGoalSheet = true }
+                    )
 
                     Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
 
@@ -570,10 +489,16 @@ private fun AiAnalysisCard(
                             .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     )
                     Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+                    Text(
+                        "AI 与本地分析已同步",
+                        fontSize = DesignTokens.FontCaption,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
 
                     if (!aiEnabled) {
                         Text(
-                            "AI 分析暂不可用",
+                            "AI 分析暂不可用，当前将展示本地分析和缓存结果",
                             fontSize = DesignTokens.FontBody,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -587,6 +512,8 @@ private fun AiAnalysisCard(
                         AiResultItem("主题偏好", aiAnalysisResult.themePreference)
                         Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
                         AiResultItem("一句话点评", aiAnalysisResult.summary)
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                        Text("下一步：选一条点评，直接改写下一篇日记。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         Button(
                             onClick = onAnalyze,
@@ -594,9 +521,133 @@ private fun AiAnalysisCard(
                         ) {
                             Text("开始 AI 分析")
                         }
+                        Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+                        Text("没有 AI 结果时，也会沿用本地分析里的建议。", fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GrowthSummaryCard(growth: WritingCoachGrowth, onOpenGoals: () -> Unit) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = DesignTokens.CornerLarge,
+        innerPadding = DesignTokens.SpacingLg
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("成长指标", fontSize = DesignTokens.FontMedium, fontWeight = FontWeight.Medium)
+                IconButton(onClick = onOpenGoals) {
+                    Icon(Icons.Default.Settings, contentDescription = "目标设置", modifier = Modifier.size(DesignTokens.IconMedium))
+                }
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
+                MetricCard("今日", growth.dailyProgressText)
+                MetricCard("本周", growth.weeklyProgressText)
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text(growth.writingFrequencyText, fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(growth.analysisSourceText, fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Text(growth.nextActionTitle, fontSize = DesignTokens.FontSmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+            Text(growth.nextActionDescription, fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun MetricCard(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(0.5f)
+            .clip(RoundedCornerShape(DesignTokens.CornerMedium))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(DesignTokens.SpacingSm)
+    ) {
+        Text(label, fontSize = DesignTokens.FontCaption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(value, fontSize = DesignTokens.FontBody, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun GoalSummaryCard(
+    dailyWordGoal: Int,
+    weeklyDayGoal: Int,
+    todayWordCount: Int,
+    thisWeekWritingDays: Int,
+    onOpenGoals: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = DesignTokens.CornerLarge,
+        innerPadding = DesignTokens.SpacingLg
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("写作目标", fontSize = DesignTokens.FontMedium, fontWeight = FontWeight.Medium)
+                IconButton(onClick = onOpenGoals) {
+                    Icon(Icons.Default.Settings, contentDescription = "目标设置", modifier = Modifier.size(DesignTokens.IconMedium))
+                }
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingMd))
+            Text("每日字数目标", fontSize = DesignTokens.FontBody, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+            val wordProgress = (todayWordCount.toFloat() / dailyWordGoal).coerceAtMost(1f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(wordProgress)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+            Text("今日已写 $todayWordCount / $dailyWordGoal 字", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingLg))
+            Text("每周天数目标", fontSize = DesignTokens.FontBody, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingSm))
+            Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSm)) {
+                for (i in 1..weeklyDayGoal.coerceAtLeast(1)) {
+                    val filled = i <= thisWeekWritingDays
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "$i",
+                            fontSize = DesignTokens.FontSmall,
+                            color = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(DesignTokens.SpacingXs))
+            Text("本周已写 $thisWeekWritingDays / $weeklyDayGoal 天", fontSize = DesignTokens.FontSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

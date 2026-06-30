@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.ai.AiServiceManager
 import com.diary.app.ai.aiRequest
+import com.diary.app.data.DiaryEntry
 import com.diary.app.data.ExperimentParticipation
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -50,7 +51,175 @@ data class CreativeTemplate(
     val example: String, val type: String
 )
 
+data class WritingLabOverview(
+    val activeExperimentProgressText: String,
+    val completedExperimentsText: String,
+    val practiceLoopsText: String,
+    val nextStepTitle: String,
+    val nextStepDescription: String,
+    val fallbackCoverageText: String
+)
+
 enum class WritingLabTab { EXPERIMENTS, STYLE_TRANSFER, CHALLENGES, RHETORICAL, TEMPLATES }
+
+fun buildWritingLabOverview(
+    activeExperiment: com.diary.app.data.WritingExperiment?,
+    participations: List<ExperimentParticipation>,
+    completedExperiments: List<com.diary.app.data.WritingExperiment>,
+    styleHistory: List<WritingExperiment>,
+    challengeStreak: Int,
+    completedChallenges: Int,
+    rhetoricalSuggestions: List<RhetoricalSuggestion>,
+    templates: List<CreativeTemplate>
+): WritingLabOverview {
+    val activeTotalDays = activeExperiment?.let {
+        experimentPresets.find { preset -> preset.title == it.title }?.days ?: 7
+    } ?: 0
+    val activeProgress = if (activeTotalDays > 0) "${participations.size}/$activeTotalDays 天" else "暂无进行中的实验"
+    val loopParts = buildList {
+        if (styleHistory.isNotEmpty()) add("风格转换 ${styleHistory.size} 次")
+        if (challengeStreak > 0 || completedChallenges > 0) add("挑战连胜 $challengeStreak 天，累计 $completedChallenges 次")
+        if (rhetoricalSuggestions.isNotEmpty()) add("修辞建议 ${rhetoricalSuggestions.size} 条")
+        if (templates.isNotEmpty()) add("模板库 ${templates.size} 个")
+    }
+    val practiceLoops = if (loopParts.isNotEmpty()) loopParts.joinToString(" · ") else "还没有形成闭环，先完成一个实验或一次转换"
+    val nextStepTitle = when {
+        activeExperiment != null && participations.size < activeTotalDays -> "继续当前实验"
+        styleHistory.isEmpty() -> "先完成一次风格转换"
+        rhetoricalSuggestions.isEmpty() -> "先做一次修辞分析"
+        else -> "把结果写回日记"
+    }
+    val nextStepDescription = when {
+        activeExperiment != null && participations.size < activeTotalDays ->
+            "今天补一条 ${activeExperiment.title} 记录，完成 $activeProgress。"
+        styleHistory.isEmpty() ->
+            "输入一段 50 到 120 字的文字，先把改写结果保存下来。"
+        rhetoricalSuggestions.isEmpty() ->
+            "贴上一段最近写过的内容，先看见可优化的句子。"
+        else ->
+            "选一个练习结果，立刻把它用到下一篇日记里。"
+    }
+    return WritingLabOverview(
+        activeExperimentProgressText = activeProgress,
+        completedExperimentsText = "已完成 ${completedExperiments.size} 个实验",
+        practiceLoopsText = practiceLoops,
+        nextStepTitle = nextStepTitle,
+        nextStepDescription = nextStepDescription,
+        fallbackCoverageText = "AI 关闭时仍可使用：风格转换、写作挑战、修辞建议、创意模板"
+    )
+}
+
+fun buildLocalStyleTransferResult(originalText: String, style: String): String {
+    val trimmed = originalText.trim()
+    val sample = buildStyleSample(trimmed, style)
+    val guidance = when (style) {
+        "鲁迅风格" -> "保留判断力，语气更锋利一点。"
+        "张爱玲风格" -> "把细节写得更具体，情绪更含蓄。"
+        "村上春树风格" -> "用安静、克制的节奏推动句子。"
+        "古诗风格" -> "尝试用分行和意象组织语句。"
+        "简洁风格" -> "删掉重复表达，只留下最重要的信息。"
+        "华丽风格" -> "给句子加一点画面感和转折。"
+        else -> "先保留原意，再调整语气和节奏。"
+    }
+    return buildString {
+        appendLine("${style}练习版")
+        appendLine("改写提示：$guidance")
+        appendLine("参考草稿：")
+        appendLine(sample)
+        appendLine()
+        appendLine("你可以继续补一版更贴近自己语气的改写。")
+    }.trim()
+}
+
+fun buildLocalChallenge(entries: List<DiaryEntry>): WritingChallenge {
+    val recentText = entries.firstOrNull()?.plainText?.trim().orEmpty()
+    val keyword = recentText.split(Regex("\\s+")).firstOrNull { it.length >= 2 }
+        ?: recentText.takeIf { it.isNotBlank() }?.take(6)
+        ?: "今天"
+    val (text, reason) = when {
+        recentText.length >= 80 -> {
+            "用三段话重写今天的内容：事实、感受、想法" to "先把记录拆成三层，帮助你练习结构"
+        }
+        recentText.isNotBlank() -> {
+            "围绕「$keyword」写一段 120 字的小记" to "用一个具体线索扩展观察"
+        }
+        else -> {
+            "今天写 200 字，描述一个你忽略的小细节" to "没有历史输入时，先练习细节观察"
+        }
+    }
+    return WritingChallenge(text, reason, System.currentTimeMillis())
+}
+
+fun buildLocalRhetoricalSuggestions(text: String): List<RhetoricalSuggestion> {
+    val trimmed = text.trim()
+    if (trimmed.isBlank()) return emptyList()
+    val sentenceCount = trimmed.split(Regex("[。！？!?\\n]+")).count { it.isNotBlank() }
+    val commaCount = trimmed.count { it == '，' || it == ',' }
+    val suggestions = mutableListOf<RhetoricalSuggestion>()
+    if (trimmed.length < 80) {
+        suggestions.add(
+            RhetoricalSuggestion(
+                type = "词汇建议",
+                text = "这段文字偏短，可以补一个感官细节。",
+                originalText = trimmed.take(30),
+                suggestion = "加入一个看到、听到或触到的具体细节，让画面更立体。"
+            )
+        )
+    }
+    if (sentenceCount <= 2 || commaCount >= 4) {
+        suggestions.add(
+            RhetoricalSuggestion(
+                type = "结构建议",
+                text = "这段文字适合拆成更清楚的层次。",
+                originalText = trimmed.take(30),
+                suggestion = "把事实、感受和结论分成 2 到 3 句来写。"
+            )
+        )
+    }
+    if (trimmed.contains("然后") || trimmed.contains("但是") || trimmed.contains("所以")) {
+        suggestions.add(
+            RhetoricalSuggestion(
+                type = "修辞建议",
+                text = "转折词很多时，可以用更具体的动作推进。",
+                originalText = trimmed.take(30),
+                suggestion = "把抽象的连接词换成动作或画面，节奏会更自然。"
+            )
+        )
+    }
+    if (suggestions.isEmpty()) {
+        suggestions.add(
+            RhetoricalSuggestion(
+                type = "修辞建议",
+                text = "这段文字已经顺畅，可以尝试替换一个动词。",
+                originalText = trimmed.take(30),
+                suggestion = "把最常用的动词换成更具体的表达，提升画面感。"
+            )
+        )
+    }
+    return suggestions.take(3)
+}
+
+fun buildLocalTemplateFallback(): List<CreativeTemplate> = listOf(
+    CreativeTemplate("t1", "感官日记", "用五感描述你今天的环境", "我看到窗外的树影摇曳，听到远处传来的汽车声...", "感官日记"),
+    CreativeTemplate("t2", "对话日记", "以对话形式记录今天的交流", "A: 今天过得怎么样？ B: 还不错，今天完成了一个项目。", "对话日记"),
+    CreativeTemplate("t3", "倒叙日记", "从今晚开始倒着写到今早", "此刻躺在床上，回想今天发生的一切...", "倒叙日记"),
+    CreativeTemplate("t4", "诗歌日记", "用诗的形式记录今天", "清晨的一缕光 / 照亮了书桌一角 / 新的一天开始了", "诗歌日记")
+)
+
+private fun buildStyleSample(originalText: String, style: String): String {
+    val compact = originalText.replace(Regex("\\s+"), " ").trim()
+    if (compact.isBlank()) return "请先输入一段原文，再开始练习。"
+    return when (style) {
+        "鲁迅风格" -> "事情并没有结束。$compact 只是开始。"
+        "张爱玲风格" -> "那一刻，$compact，像旧窗上的一层薄光。"
+        "村上春树风格" -> "然后，$compact。风从门缝里轻轻经过。"
+        "古诗风格" -> "晨光入纸，$compact，句句可成章。"
+        "简洁风格" -> compact.split(Regex("[。！？!?]+")).firstOrNull { it.isNotBlank() }?.take(80)?.plus("。")
+            ?: compact.take(80)
+        "华丽风格" -> "在这一段里，$compact，像一束慢慢展开的光。"
+        else -> compact.take(120)
+    }
+}
 
 class WritingLabViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as DiaryApplication).database.diaryDao()
@@ -133,6 +302,9 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
         loadStyleHistory()
         loadChallengeState()
         loadTemplates()
+        if (!aiService.isAiEnabled()) {
+            ensureLocalFallbackContent()
+        }
     }
 
     fun setTab(tab: WritingLabTab) { _currentTab.value = tab }
@@ -159,11 +331,14 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
         _currentRating.value = null
 
         viewModelScope.launch {
+            val style = _selectedStyle.value
             if (!aiService.isAiEnabled()) {
+                val fallback = buildLocalStyleTransferResult(text, style)
+                _styleResult.value = fallback
+                saveStyleRecord(text, fallback, style, source = "local")
                 _isStyleLoading.value = false
                 return@launch
             }
-            val style = _selectedStyle.value
             val systemPrompt = "你是一个写作风格转换助手。将以下内容改写成${style}风格，保持原意不变。只返回改写后的内容，不要加解释。"
             val request = aiRequest(userMessage = text, systemPrompt = systemPrompt, temperature = 0.7f, maxTokens = 512)
             try {
@@ -171,9 +346,17 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
                 val content = result.getOrNull()?.content?.trim()
                 if (content != null) {
                     _styleResult.value = content
-                    saveStyleRecord(text, content, style)
+                    saveStyleRecord(text, content, style, source = "ai")
+                } else {
+                    val fallback = buildLocalStyleTransferResult(text, style)
+                    _styleResult.value = fallback
+                    saveStyleRecord(text, fallback, style, source = "local")
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                val fallback = buildLocalStyleTransferResult(text, style)
+                _styleResult.value = fallback
+                saveStyleRecord(text, fallback, style, source = "local")
+            }
             _isStyleLoading.value = false
         }
     }
@@ -184,13 +367,13 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
         _currentRating.value = null
     }
 
-    private fun saveStyleRecord(original: String, result: String, style: String) {
+    private fun saveStyleRecord(original: String, result: String, style: String, source: String) {
         val record = WritingExperiment(
             id = System.currentTimeMillis().toString(),
             type = "style_transfer",
             originalText = original,
             resultText = result,
-            metadata = mapOf("style" to style),
+            metadata = mapOf("style" to style, "source" to source),
             rating = null,
             createdAt = System.currentTimeMillis()
         )
@@ -212,14 +395,12 @@ class WritingLabViewModel(application: Application) : AndroidViewModel(applicati
     fun generateChallenge() {
         _isChallengeLoading.value = true
         viewModelScope.launch {
+            val recentEntries = dao.getAllEntries().first().take(10)
             if (!aiService.isAiEnabled()) {
-                _currentChallenge.value = WritingChallenge(
-                    "今天用 200 字描述窗外的声音", "尝试关注听觉细节", System.currentTimeMillis()
-                )
+                _currentChallenge.value = buildLocalChallenge(recentEntries)
                 _isChallengeLoading.value = false
                 return@launch
             }
-            val recentEntries = dao.getAllEntries().first().take(10)
             val entriesText = if (recentEntries.isNotEmpty()) {
                 recentEntries.joinToString("\n") { it.plainText.take(100) }
             } else "暂无近期日记"
@@ -242,11 +423,11 @@ $entriesText
                         val reason = json["reason"] as? String ?: "尝试不同的写作视角"
                         _currentChallenge.value = WritingChallenge(text, reason, System.currentTimeMillis())
                     } catch (_: Exception) {
-                        _currentChallenge.value = WritingChallenge("今天用 200 字描述窗外的声音", "尝试关注听觉细节", System.currentTimeMillis())
+                        _currentChallenge.value = buildLocalChallenge(recentEntries)
                     }
                 }
             } catch (_: Exception) {
-                _currentChallenge.value = WritingChallenge("用第三人称写今天的事", "尝试不同的叙述视角", System.currentTimeMillis())
+                _currentChallenge.value = buildLocalChallenge(recentEntries)
             }
             _isChallengeLoading.value = false
         }
@@ -293,7 +474,13 @@ $entriesText
         _expandedSuggestionIndex.value = null
 
         viewModelScope.launch {
-            if (!aiService.isAiEnabled()) return@launch
+            if (!aiService.isAiEnabled()) {
+                val fallback = buildLocalRhetoricalSuggestions(text)
+                _rhetoricalSuggestions.value = fallback
+                _showRhetoricalDots.value = fallback.isNotEmpty()
+                _isRhetoricalLoading.value = false
+                return@launch
+            }
 
             val systemPrompt = """你是一个写作助手。分析以下段落，给出修辞、结构和词汇方面的改进建议。
 请严格按以下JSON数组格式返回，最多返回3条:
@@ -316,15 +503,15 @@ type只能是"修辞建议"、"结构建议"或"词汇建议"之一。"""
                             )
                         }
                     } catch (_: Exception) {
-                        _rhetoricalSuggestions.value = listOf(
-                            RhetoricalSuggestion("修辞建议", "这里可以用比喻增强表现力", null, "尝试添加一个生动的比喻"),
-                            RhetoricalSuggestion("结构建议", "这一段可以分两段", null, "分开后逻辑更清晰"),
-                            RhetoricalSuggestion("词汇建议", "'快乐'用了三次，换'愉悦''开心'", null, "使用近义词丰富表达")
-                        )
+                        _rhetoricalSuggestions.value = buildLocalRhetoricalSuggestions(text)
                     }
                     _showRhetoricalDots.value = _rhetoricalSuggestions.value.isNotEmpty()
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                val fallback = buildLocalRhetoricalSuggestions(text)
+                _rhetoricalSuggestions.value = fallback
+                _showRhetoricalDots.value = fallback.isNotEmpty()
+            }
             _isRhetoricalLoading.value = false
         }
     }
@@ -419,6 +606,15 @@ $entriesText
             val type = object : TypeToken<List<CreativeTemplate>>() {}.type
             _templates.value = gson.fromJson(json, type) ?: emptyList()
         } catch (_: Exception) { }
+    }
+
+    private fun ensureLocalFallbackContent() {
+        if (_templates.value.isEmpty()) {
+            loadFallbackTemplates()
+        }
+        if (_currentChallenge.value == null) {
+            _currentChallenge.value = buildLocalChallenge(emptyList())
+        }
     }
 
     // Existing methods

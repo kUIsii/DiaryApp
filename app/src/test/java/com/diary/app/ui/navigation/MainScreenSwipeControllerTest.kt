@@ -21,7 +21,7 @@ class MainScreenSwipeControllerTest {
     @Test
     fun `right swipe moves to previous main route`() {
         assertEquals(
-            "timeline",
+            "tools",
             resolveMainScreenSwipeTarget(
                 currentRoute = "todo",
                 totalDrag = 60f,
@@ -41,7 +41,7 @@ class MainScreenSwipeControllerTest {
         )
         assertNull(
             resolveMainScreenSwipeTarget(
-                currentRoute = "tools",
+                currentRoute = "unknown",
                 totalDrag = -80f,
                 enabled = true
             )

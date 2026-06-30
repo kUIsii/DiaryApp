@@ -27,7 +27,7 @@ class ExperimentalFeatureLogicTest {
             enabled = true
         )
 
-        assertEquals("timeline", target)
+        assertEquals("tools", target)
     }
 
     @Test

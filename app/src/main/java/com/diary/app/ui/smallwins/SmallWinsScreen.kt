@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.data.SmallWin
 import com.diary.app.ui.components.EmptyState
@@ -89,6 +91,7 @@ fun SmallWinsScreen(
     val analytics by viewModel.analytics.collectAsState()
     val aiSummary by viewModel.aiSummary.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
+    val writingBridgeSeed by viewModel.writingBridgeSeed.collectAsState()
 
     val context = LocalContext.current
 
@@ -97,6 +100,7 @@ fun SmallWinsScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var editWinId by remember { mutableStateOf(0L) }
     var editWinContent by remember { mutableStateOf("") }
+    var showWritingBridgeDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -205,6 +209,10 @@ fun SmallWinsScreen(
                     isAiLoading = isAiLoading,
                     isAiEnabled = viewModel.isAiEnabled,
                     onGenerateSummary = viewModel::generateSummary,
+                    onOpenWritingBridge = {
+                        viewModel.prepareWritingBridge()
+                        showWritingBridgeDialog = true
+                    },
                     onShare = {
                         val text = viewModel.getShareText()
                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -216,6 +224,16 @@ fun SmallWinsScreen(
                 )
             }
         }
+    }
+
+    if (showWritingBridgeDialog && writingBridgeSeed != null) {
+        WritingBridgeDialog(
+            seed = writingBridgeSeed!!,
+            onDismiss = {
+                showWritingBridgeDialog = false
+                viewModel.clearWritingBridgeSeed()
+            }
+        )
     }
 }
 
@@ -567,6 +585,7 @@ private fun StatsTab(
     isAiLoading: Boolean,
     isAiEnabled: Boolean,
     onGenerateSummary: () -> Unit,
+    onOpenWritingBridge: () -> Unit,
     onShare: () -> Unit
 ) {
     LazyColumn(
@@ -752,26 +771,87 @@ private fun StatsTab(
         }
 
         item {
-            Button(
-                onClick = onShare,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("分享摘要", fontSize = 14.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onOpenWritingBridge,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("写成日记素材", fontSize = 14.sp)
+                }
+                Button(
+                    onClick = onShare,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("分享摘要", fontSize = 14.sp)
+                }
             }
         }
 
         item { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+private fun WritingBridgeDialog(
+    seed: WritingBridgeSeed,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 16.dp,
+            innerPadding = 16.dp
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = seed.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = seed.summary,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 19.sp
+                )
+                GlassCard(cornerRadius = 12.dp, innerPadding = 12.dp) {
+                    Text(
+                        text = seed.prompt,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text("关闭")
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -56,6 +56,15 @@ data class AiSuggestion(
     val isAiGenerated: Boolean
 )
 
+data class WritingCoachGrowth(
+    val dailyProgressText: String,
+    val weeklyProgressText: String,
+    val writingFrequencyText: String,
+    val analysisSourceText: String,
+    val nextActionTitle: String,
+    val nextActionDescription: String
+)
+
 private data class AiSuggestionCache(
     val suggestions: List<String>,
     val timestamp: Long
@@ -73,6 +82,58 @@ inline fun <reified T> SharedPreferences.getObject(key: String): T? {
 
 inline fun <reified T> SharedPreferences.putObject(key: String, value: T) {
     edit().putString(key, Gson().toJson(value)).apply()
+}
+
+fun buildWritingCoachGrowth(
+    analysis: WritingCoach.WritingAnalysis?,
+    currentStats: WritingMonthlyStats?,
+    dailyWordGoal: Int,
+    weeklyDayGoal: Int,
+    todayWordCount: Int,
+    thisWeekWritingDays: Int,
+    aiEnabled: Boolean,
+    aiAnalysisResult: AiAnalysisResult?,
+    aiSuggestions: List<AiSuggestion>
+): WritingCoachGrowth {
+    val analysisSafe = analysis ?: WritingCoach.WritingAnalysis()
+    val dailyProgress = "${todayWordCount}/${dailyWordGoal} 字"
+    val weeklyProgress = "${thisWeekWritingDays}/${weeklyDayGoal} 天"
+    val writingFrequency = when {
+        analysisSafe.totalEntries == 0 -> "还没有写作数据"
+        thisWeekWritingDays >= weeklyDayGoal -> "节奏稳定，正在形成习惯"
+        todayWordCount >= dailyWordGoal -> "今日目标已完成"
+        else -> "继续保持每天一点点"
+    }
+    val analysisSource = when {
+        aiAnalysisResult != null && aiEnabled -> "AI 结果已同步到本地教练"
+        aiSuggestions.any { it.isAiGenerated } && aiEnabled -> "AI 建议和本地建议已合并"
+        aiEnabled -> "AI 可用，正在等待新分析"
+        else -> "AI 关闭，当前使用本地分析"
+    }
+    val nextActionTitle = when {
+        todayWordCount < dailyWordGoal -> "补今天的字数"
+        thisWeekWritingDays < weeklyDayGoal -> "补本周写作天数"
+        analysisSafe.suggestions.isNotEmpty() -> "按建议微调下一篇"
+        else -> "开始一次新分析"
+    }
+    val nextActionDescription = when {
+        todayWordCount < dailyWordGoal ->
+            "先写到 ${dailyWordGoal - todayWordCount} 字，完成今天的最小闭环。"
+        thisWeekWritingDays < weeklyDayGoal ->
+            "本周还差 ${weeklyDayGoal - thisWeekWritingDays} 天，安排一次 10 分钟写作。"
+        analysisSafe.suggestions.isNotEmpty() ->
+            "从本地分析里挑一条建议，直接应用到下一篇日记。"
+        else ->
+            "你已经有稳定习惯了，可以刷新 AI 分析看看新的侧面。"
+    }
+    return WritingCoachGrowth(
+        dailyProgressText = dailyProgress,
+        weeklyProgressText = weeklyProgress,
+        writingFrequencyText = writingFrequency,
+        analysisSourceText = analysisSource,
+        nextActionTitle = nextActionTitle,
+        nextActionDescription = nextActionDescription
+    )
 }
 
 class WritingCoachViewModel(application: Application) : AndroidViewModel(application) {
@@ -130,8 +191,24 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
     private val _aiSuggestions = MutableStateFlow<List<AiSuggestion>>(emptyList())
     val aiSuggestions: StateFlow<List<AiSuggestion>> = _aiSuggestions
 
+    private val _growth = MutableStateFlow(
+        buildWritingCoachGrowth(
+            analysis = null,
+            currentStats = null,
+            dailyWordGoal = _dailyWordGoal.value,
+            weeklyDayGoal = _weeklyDayGoal.value,
+            todayWordCount = _todayWordCount.value,
+            thisWeekWritingDays = _thisWeekWritingDays.value,
+            aiEnabled = aiEnabled,
+            aiAnalysisResult = null,
+            aiSuggestions = emptyList()
+        )
+    )
+    val growth: StateFlow<WritingCoachGrowth> = _growth
+
     init {
         loadGoals()
+        refreshGrowth()
         analyze()
     }
 
@@ -143,17 +220,20 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
     fun setDailyWordGoal(value: Int) {
         _dailyWordGoal.value = value
         prefs.edit().putInt("writing_goal_daily_words", value).apply()
+        refreshGrowth()
     }
 
     fun setWeeklyDayGoal(value: Int) {
         _weeklyDayGoal.value = value
         prefs.edit().putInt("writing_goal_weekly_days", value).apply()
+        refreshGrowth()
     }
 
     fun selectTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
         computeTimeRangeStats()
         computeHourDistribution()
+        refreshGrowth()
     }
 
     fun selectTrendMetric(metric: TrendMetric) {
@@ -174,8 +254,10 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
                 loadCachedAiAnalysis()
                 generateAiSuggestions()
                 mergeSuggestions(null)
+                refreshGrowth()
             } catch (e: Exception) {
                 _analysis.value = null
+                refreshGrowth()
             } finally {
                 _isLoading.value = false
             }
@@ -211,6 +293,7 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
                     prefs.edit().putLong("last_ai_analysis_time", System.currentTimeMillis()).apply()
                     val cache = AiAnalysisCache(parsed, System.currentTimeMillis())
                     prefs.edit().putString("ai_analysis_cache", gson.toJson(cache)).apply()
+                    refreshGrowth()
                 }
             } catch (_: Exception) {
             } finally {
@@ -225,6 +308,7 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
             val cache = gson.fromJson(json, AiAnalysisCache::class.java)
             if (System.currentTimeMillis() - cache.timestamp < 24 * 60 * 60 * 1000) {
                 _aiAnalysisResult.value = cache.result
+                refreshGrowth()
             }
         } catch (_: Exception) {}
     }
@@ -388,6 +472,7 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
                     val entry = AiSuggestionCache(list, System.currentTimeMillis())
                     prefs.edit().putString("ai_suggestions_cache", gson.toJson(entry)).apply()
                     mergeSuggestions(list)
+                    refreshGrowth()
                 }
             }
         }
@@ -408,6 +493,21 @@ class WritingCoachViewModel(application: Application) : AndroidViewModel(applica
             }
         }
         _aiSuggestions.value = merged
+        refreshGrowth()
+    }
+
+    fun refreshGrowth() {
+        _growth.value = buildWritingCoachGrowth(
+            analysis = _analysis.value,
+            currentStats = _currentStats.value,
+            dailyWordGoal = _dailyWordGoal.value,
+            weeklyDayGoal = _weeklyDayGoal.value,
+            todayWordCount = _todayWordCount.value,
+            thisWeekWritingDays = _thisWeekWritingDays.value,
+            aiEnabled = aiEnabled,
+            aiAnalysisResult = _aiAnalysisResult.value,
+            aiSuggestions = _aiSuggestions.value
+        )
     }
 
     private fun getTimeRangeTimestamps(range: TimeRange): Pair<Long, Long> {

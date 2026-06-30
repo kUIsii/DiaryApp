@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
@@ -31,6 +32,12 @@ data class SmallWinsAnalytics(
     val thisWeekCount: Int = 0,
     val lastWeekCount: Int = 0,
     val categoryDistribution: Map<String, Int> = emptyMap()
+)
+
+data class WritingBridgeSeed(
+    val title: String,
+    val prompt: String,
+    val summary: String
 )
 
 class SmallWinsViewModel(application: Application) : AndroidViewModel(application) {
@@ -71,6 +78,9 @@ class SmallWinsViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _aiSummary = MutableStateFlow<String?>(null)
     val aiSummary: StateFlow<String?> = _aiSummary.asStateFlow()
+
+    private val _writingBridgeSeed = MutableStateFlow<WritingBridgeSeed?>(null)
+    val writingBridgeSeed: StateFlow<WritingBridgeSeed?> = _writingBridgeSeed.asStateFlow()
 
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
@@ -165,14 +175,50 @@ class SmallWinsViewModel(application: Application) : AndroidViewModel(applicatio
         _aiSummary.value = null
     }
 
+    fun buildWritingBridgeSeed(): WritingBridgeSeed? {
+        val wins = todaySmallWins.value.ifEmpty { historyWins.value }
+        if (wins.isEmpty()) return null
+        val latest = wins.sortedByDescending { it.createdAt }.first()
+        val dateText = millisToLocalDate(latest.recordDate).format(DateTimeFormatter.ofPattern("M月d日"))
+        val summary = buildString {
+            appendLine("今天的小确幸可以转成一段写作素材：")
+            wins.take(3).forEach { appendLine("- ${it.content}") }
+        }.trim()
+        val prompt = buildString {
+            appendLine("请把下面的小确幸整理成一条可以直接写日记的提示，要求具体、温暖、能落笔。")
+            appendLine("日期：$dateText")
+            appendLine("内容：")
+            wins.take(5).forEach { appendLine("- ${it.content}") }
+            appendLine("请给出：")
+            appendLine("1. 一句可直接开写的起笔")
+            appendLine("2. 2-3 个可追问的问题")
+            appendLine("3. 一个适合写成段落的角度")
+        }
+        return WritingBridgeSeed(
+            title = "把小确幸写成日记",
+            prompt = prompt,
+            summary = summary
+        )
+    }
+
+    fun prepareWritingBridge() {
+        _writingBridgeSeed.value = buildWritingBridgeSeed()
+    }
+
+    fun clearWritingBridgeSeed() {
+        _writingBridgeSeed.value = null
+    }
+
     fun getShareText(): String {
         val a = analytics.value
         val todayWins = todaySmallWins.value
+        val recentWins = allSmallWins.value.sortedByDescending { it.recordDate }.take(10)
         val sb = StringBuilder()
         sb.appendLine("小确幸摘要")
         sb.appendLine("==========")
         sb.appendLine("今日记录: ${todayWins.size} 件")
-        todayWins.forEach { sb.appendLine("  - ${it.content}") }
+        todayWins.take(5).forEach { sb.appendLine("  - ${it.content}") }
+        if (todayWins.size > 5) sb.appendLine("  - 等共 ${todayWins.size} 件")
         sb.appendLine()
         sb.appendLine("总计: ${a.totalWins} 件")
         sb.appendLine("当前连续记录: ${a.currentStreak} 天")
@@ -180,6 +226,11 @@ class SmallWinsViewModel(application: Application) : AndroidViewModel(applicatio
         sb.appendLine("活跃日均: ${"%.1f".format(a.averagePerActiveDay)} 件 (活跃 ${a.daysActive} 天)")
         sb.appendLine("全部日均: ${"%.1f".format(a.averagePerDay)} 件")
         sb.appendLine("本周: ${a.thisWeekCount} 件 (上周: ${a.lastWeekCount} 件)")
+        if (recentWins.isNotEmpty()) {
+            sb.appendLine()
+            sb.appendLine("可转写作素材:")
+            recentWins.take(3).forEach { win -> sb.appendLine("  - ${win.content}") }
+        }
         return sb.toString()
     }
 
