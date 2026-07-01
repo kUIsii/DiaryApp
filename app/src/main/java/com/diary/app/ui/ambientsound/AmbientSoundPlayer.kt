@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.diary.app.data.ambientsound.AudioTrack
 import java.io.File
+import kotlin.math.sin
+import kotlin.math.PI
 
 class AmbientSoundPlayer private constructor() {
     private var player: MediaPlayer? = null
@@ -26,6 +28,13 @@ class AmbientSoundPlayer private constructor() {
     private var ducked = false
     private var playCallback: (() -> Unit)? = null
     private var stopCallback: (() -> Unit)? = null
+
+    private var meanderEnabled = false
+    private var meanderFactor = 1f
+    private var meanderHandler: Handler? = null
+    private var meanderRunnable: Runnable? = null
+    private var meanderPeriodMs = 10000L
+    private var meanderPhase = 0.0
 
     private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
@@ -57,6 +66,7 @@ class AmbientSoundPlayer private constructor() {
     val duration: Int get() = player?.duration ?: 0
     val currentTrack: AudioTrack? get() = track
     val currentVolume: Float get() = vol
+    val isMeanderEnabled: Boolean get() = meanderEnabled
 
     fun play(context: Context, audioTrack: AudioTrack, audioFile: File) {
         stop()
@@ -85,6 +95,7 @@ class AmbientSoundPlayer private constructor() {
                 return
             }
             start()
+            if (meanderEnabled) startMeander()
             playCallback?.invoke()
         }
     }
@@ -95,6 +106,7 @@ class AmbientSoundPlayer private constructor() {
                 ensureAudioFocus()
                 it.start()
                 paused = false
+                if (meanderEnabled) startMeander()
                 playCallback?.invoke()
             }
         }
@@ -105,11 +117,13 @@ class AmbientSoundPlayer private constructor() {
             if (it.isPlaying) {
                 it.pause()
                 paused = true
+                playCallback?.invoke()
             }
         }
     }
 
     fun stop() {
+        stopMeander()
         player?.apply {
             if (isPlaying) stop()
             release()
@@ -130,6 +144,15 @@ class AmbientSoundPlayer private constructor() {
     fun setVolume(volume: Float) {
         vol = volume.coerceIn(0f, 1f)
         applyVolume()
+    }
+
+    fun setMeanderEnabled(enabled: Boolean) {
+        meanderEnabled = enabled
+        if (enabled) {
+            startMeander()
+        } else {
+            stopMeander()
+        }
     }
 
     fun startSleepTimer(minutes: Int) {
@@ -163,9 +186,34 @@ class AmbientSoundPlayer private constructor() {
         }
     }
 
+    private fun startMeander() {
+        stopMeander()
+        meanderFactor = 1f
+        meanderPeriodMs = 5000L + (Math.random() * 10000).toLong()
+        meanderPhase = 0.0
+        meanderHandler = Handler(Looper.getMainLooper())
+        meanderRunnable = Runnable {
+            if (!meanderEnabled || player == null) return@Runnable
+            meanderPhase += 2.0 * PI * 200.0 / meanderPeriodMs
+            val normalized = (sin(meanderPhase) + 1.0) / 2.0
+            meanderFactor = 0.5f + 0.5f * normalized.toFloat()
+            applyVolume()
+            meanderHandler?.postDelayed(meanderRunnable!!, 200)
+        }
+        meanderHandler?.post(meanderRunnable!!)
+    }
+
+    private fun stopMeander() {
+        meanderRunnable?.let { meanderHandler?.removeCallbacks(it) }
+        meanderHandler = null
+        meanderRunnable = null
+        meanderFactor = 1f
+        applyVolume()
+    }
+
     private fun applyVolume() {
         val effectiveVol = if (ducked) vol * 0.3f else vol
-        player?.setVolume(effectiveVol, effectiveVol)
+        player?.setVolume(effectiveVol * meanderFactor, effectiveVol * meanderFactor)
     }
 
     private fun ensureAudioFocus() {

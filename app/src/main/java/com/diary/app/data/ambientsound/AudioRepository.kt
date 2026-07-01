@@ -37,7 +37,7 @@ object AudioRepository {
         AudioTrack("n2", "nature", "森林晨鸟", 30, hq(639985, 5487341),
             "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&q=80"),
         AudioTrack("n3", "nature", "林风习习", 30, hq(401127, 7724516),
-            "https://images.unsplash.com/photo-1440297491022-f9b761d2edbf?w=400&q=80"),
+            "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=400&q=80"),
         AudioTrack("n4", "nature", "夏日蝉鸣", 30, hq(421955, 377690),
             "https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=400&q=80"),
         AudioTrack("n5", "nature", "瀑布水声", 30, hq(489073, 7707368),
