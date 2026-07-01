@@ -97,7 +97,11 @@ fun AmbientSoundScreen(
     }
 
     val categories = AudioRepository.categories
-    val tracks = AudioRepository.getTracks(state.selectedCategoryId)
+    val tracks = orderAmbientTracksForDisplay(
+        tracks = AudioRepository.getTracks(state.selectedCategoryId),
+        favoriteIds = state.favoriteIds,
+        recentIds = state.recentIds
+    )
     val category = categories.find { it.id == state.selectedCategoryId }
 
     LaunchedEffect(state.currentTrack) {
@@ -143,6 +147,7 @@ fun AmbientSoundScreen(
                 isPlaying = state.isPlaying,
                 volume = state.volume,
                 favoriteIds = state.favoriteIds,
+                recentIds = state.recentIds,
                 sleepRemaining = state.sleepRemainingSeconds,
                 isPreparing = state.isPreparing,
                 meanderEnabled = state.meanderEnabled,
@@ -171,6 +176,7 @@ private fun BrowseView(
     isPlaying: Boolean,
     volume: Float,
     favoriteIds: Set<String>,
+    recentIds: List<String>,
     sleepRemaining: Int,
     isPreparing: Boolean,
     meanderEnabled: Boolean,
@@ -255,6 +261,7 @@ private fun BrowseView(
                         isActive = track.id == currentTrack?.id,
                         isPlaying = isPlaying && track.id == currentTrack?.id,
                         isFavorite = track.id in favoriteIds,
+                        isRecent = track.id in recentIds,
                         isPreparing = isPreparing && track.id == currentTrack?.id,
                         accent = accent,
                         onPlay = { onTogglePlay(track) },
@@ -349,6 +356,7 @@ private fun TrackCard(
     isActive: Boolean,
     isPlaying: Boolean,
     isFavorite: Boolean,
+    isRecent: Boolean,
     isPreparing: Boolean,
     accent: Color,
     onPlay: () -> Unit,
@@ -421,7 +429,16 @@ private fun TrackCard(
                         color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        if (isPreparing) "加载中…" else track.subtitle,
+                        if (isPreparing) {
+                            "加载中…"
+                        } else {
+                            buildAmbientTrackSupportingText(
+                                baseSubtitle = track.subtitle,
+                                trackId = track.id,
+                                favoriteIds = if (isFavorite) setOf(track.id) else emptySet(),
+                                recentIds = if (isRecent) listOf(track.id) else emptyList()
+                            )
+                        },
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

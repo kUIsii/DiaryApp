@@ -16,6 +16,7 @@ import kotlin.math.sin
 import kotlin.math.PI
 
 class AmbientSoundPlayer private constructor() {
+    private val playbackSessionGate = AmbientPlaybackSessionGate()
     private var player: MediaPlayer? = null
     private var track by mutableStateOf<AudioTrack?>(null)
     private var paused by mutableStateOf(false)
@@ -69,6 +70,7 @@ class AmbientSoundPlayer private constructor() {
     val isMeanderEnabled: Boolean get() = meanderEnabled
 
     fun play(context: Context, audioTrack: AudioTrack, audioFile: File): Result<Unit> {
+        playbackSessionGate.beginSessionReplacement()
         stop()
         track = audioTrack
         paused = false
@@ -139,7 +141,9 @@ class AmbientSoundPlayer private constructor() {
         sleepActive = false
         sleepEndTime = 0L
         abandonAudioFocus()
-        stopCallback?.invoke()
+        if (playbackSessionGate.shouldDispatchStopCallback()) {
+            stopCallback?.invoke()
+        }
     }
 
     fun seekTo(position: Int) {
