@@ -420,13 +420,13 @@ private fun TrackCard(
                     Text(track.name, fontSize = 15.sp, fontWeight = FontWeight.Medium,
                         color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (isPreparing) {
-                        Text("加载中…", fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Text("软件发行", fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    Text(
+                        if (isPreparing) "加载中…" else track.subtitle,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 IconButton(onClick = onFavorite, modifier = Modifier.size(36.dp)) {
                     Icon(

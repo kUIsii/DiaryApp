@@ -77,16 +77,18 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
                     val result = cacheManager.prepare(track.id, track.audioUrl)
                     _state.value = _state.value.copy(isPreparing = false)
                     result.onSuccess { file ->
-                        player.play(ctx, track, file)
-                        dao.addRecent(RecentEntity(track.id))
-                        val recent = dao.getRecentIds()
-                        _state.value = _state.value.copy(
-                            currentTrack = track,
-                            isPlaying = true,
-                            recentIds = recent,
-                            progress = 0,
-                            duration = player.duration
-                        )
+                        val playResult = player.play(ctx, track, file)
+                        playResult.onSuccess {
+                            dao.addRecent(RecentEntity(track.id))
+                            val recent = dao.getRecentIds()
+                            _state.value = _state.value.copy(
+                                currentTrack = track,
+                                isPlaying = true,
+                                recentIds = recent,
+                                progress = 0,
+                                duration = player.duration
+                            )
+                        }
                     }
                 }
             }
@@ -117,20 +119,30 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
             _state.value = _state.value.copy(isPreparing = false)
 
             result.onSuccess { file ->
-                player.play(ctx, track, file)
-                prefs.edit().putString("last_track_id", track.id).apply()
-                dao.addRecent(RecentEntity(track.id))
-                val recentIds = dao.getRecentIds()
-                _state.value = _state.value.copy(
-                    currentTrack = track,
-                    isPlaying = true,
-                    recentIds = recentIds,
-                    progress = 0,
-                    duration = player.duration
-                )
+                val playResult = player.play(ctx, track, file)
+                playResult.onSuccess {
+                    prefs.edit().putString("last_track_id", track.id).apply()
+                    dao.addRecent(RecentEntity(track.id))
+                    val recentIds = dao.getRecentIds()
+                    _state.value = _state.value.copy(
+                        currentTrack = track,
+                        isPlaying = true,
+                        recentIds = recentIds,
+                        progress = 0,
+                        duration = player.duration
+                    )
+                }.onFailure {
+                    _state.value = _state.value.copy(
+                        errorMessage = "无法播放此音频"
+                    )
+                }
             }.onFailure { e ->
+                val msg = when {
+                    e.message?.contains("not found", true) == true -> "音频文件缺失"
+                    else -> "无法加载音频"
+                }
                 _state.value = _state.value.copy(
-                    errorMessage = "无法加载音频，请重试"
+                    errorMessage = msg
                 )
             }
         }

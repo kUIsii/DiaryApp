@@ -10,6 +10,7 @@ data class AudioTrack(
     val id: String,
     val categoryId: String,
     val name: String,
+    val subtitle: String,
     val durationSeconds: Int,
     val audioUrl: String?,
     val imageUrl: String?

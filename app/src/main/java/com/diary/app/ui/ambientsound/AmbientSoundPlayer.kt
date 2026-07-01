@@ -61,14 +61,14 @@ class AmbientSoundPlayer private constructor() {
 
     val isPlaying: Boolean get() = player?.isPlaying ?: false
     val isPausedState: Boolean get() = paused
-    val hasSession: Boolean get() = track != null
-    val currentPosition: Int get() = player?.currentPosition ?: 0
-    val duration: Int get() = player?.duration ?: 0
+    val hasSession: Boolean get() = track != null && player != null
+    val currentPosition: Int get() = try { player?.currentPosition ?: 0 } catch (_: Exception) { 0 }
+    val duration: Int get() = try { player?.duration ?: 0 } catch (_: Exception) { 0 }
     val currentTrack: AudioTrack? get() = track
     val currentVolume: Float get() = vol
     val isMeanderEnabled: Boolean get() = meanderEnabled
 
-    fun play(context: Context, audioTrack: AudioTrack, audioFile: File) {
+    fun play(context: Context, audioTrack: AudioTrack, audioFile: File): Result<Unit> {
         stop()
         track = audioTrack
         paused = false
@@ -77,7 +77,7 @@ class AmbientSoundPlayer private constructor() {
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         ensureAudioFocus()
 
-        player = MediaPlayer().apply {
+        val mp = MediaPlayer().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -87,17 +87,22 @@ class AmbientSoundPlayer private constructor() {
             setDataSource(audioFile.absolutePath)
             isLooping = true
             setVolume(vol, vol)
-            try {
-                prepare()
-            } catch (e: Exception) {
-                release()
-                playCallback?.invoke()
-                return
-            }
-            start()
-            if (meanderEnabled) startMeander()
-            playCallback?.invoke()
         }
+
+        try {
+            mp.prepare()
+        } catch (e: Exception) {
+            mp.release()
+            track = null
+            playCallback?.invoke()
+            return Result.failure(e)
+        }
+
+        mp.start()
+        player = mp
+        if (meanderEnabled) startMeander()
+        playCallback?.invoke()
+        return Result.success(Unit)
     }
 
     fun resume() {
@@ -138,7 +143,7 @@ class AmbientSoundPlayer private constructor() {
     }
 
     fun seekTo(position: Int) {
-        player?.seekTo(position)
+        try { player?.seekTo(position) } catch (_: Exception) { }
     }
 
     fun setVolume(volume: Float) {
