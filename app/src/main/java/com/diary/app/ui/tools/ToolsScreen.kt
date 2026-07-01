@@ -1,5 +1,8 @@
 package com.diary.app.ui.tools
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -32,7 +35,6 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
@@ -40,13 +42,17 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -129,7 +135,7 @@ fun ToolsScreen(
         ),
         ToolSection(
             title = "\u56DE\u5FC6\u65C5\u7A0B",
-            accentColor = Color(0xFFE67E22),
+            accentColor = MaterialTheme.colorScheme.tertiary,
             items = listOf(
                 ToolItem(Icons.Default.Timer, "\u65F6\u95F4\u80F6\u56CA", "\u7ED9\u672A\u6765\u7684\u81EA\u5DF1\u5199\u4FE1", onNavigateToTimeCapsule),
                 ToolItem(Icons.Default.CalendarMonth, "\u5012\u6570\u65E5", "\u91CD\u8981\u65E5\u5B50\u5012\u8BA1\u65F6", onNavigateToCountDown),
@@ -138,7 +144,7 @@ fun ToolsScreen(
         ),
         ToolSection(
             title = "\u6C89\u6D78",
-            accentColor = Color(0xFF3498DB),
+            accentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
             items = listOf(
                 ToolItem(Icons.Default.Timer, "\u4E13\u6CE8\u6A21\u5F0F", "\u4E13\u6CE8\u5199\u4F5C\u4E0E\u756A\u8304\u949F", onNavigateToFocusMode),
                 ToolItem(Icons.Default.Headphones, "\u8212\u7F13\u73AF\u5883\u97F3", "\u6C89\u6D78\u5F0F\u5199\u4F5C\u80CC\u666F\u97F3", onNavigateToAmbientSound),
@@ -215,6 +221,7 @@ private fun SectionCard(
     app: DiaryApplication?
 ) {
     val c = section.accentColor
+    var expanded by remember { mutableStateOf(false) }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -224,7 +231,11 @@ private fun SectionCard(
         Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 2.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -237,23 +248,38 @@ private fun SectionCard(
                     text = section.title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = c
+                    color = c,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = c.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            section.items.forEachIndexed { i, item ->
-                if (i > 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    section.items.forEachIndexed { i, item ->
+                        if (i > 0) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
+                        ToolRow(
+                            icon = item.icon,
+                            tint = c,
+                            title = item.title,
+                            subtitle = item.subtitle,
+                            textColor = textColor,
+                            textSecondary = textSecondary,
+                            onClick = item.onClick
+                        )
+                    }
                 }
-                ToolRow(
-                    icon = item.icon,
-                    tint = c,
-                    title = item.title,
-                    subtitle = item.subtitle,
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    onClick = item.onClick
-                )
             }
         }
     }
