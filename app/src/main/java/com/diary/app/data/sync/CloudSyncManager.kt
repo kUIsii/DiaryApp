@@ -116,8 +116,8 @@ class CloudSyncManager(private val context: Context) {
         try {
             conn.requestMethod = "POST"
             conn.doOutput = true
-            conn.connectTimeout = 15000
-            conn.readTimeout = 30000
+            conn.connectTimeout = 8000
+            conn.readTimeout = 15000
             conn.setRequestProperty("Content-Type", "application/json")
             if (token != null) {
                 conn.setRequestProperty("Authorization", "Bearer $token")
@@ -137,8 +137,8 @@ class CloudSyncManager(private val context: Context) {
         val conn = URL("$endpoint$path").openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "GET"
-            conn.connectTimeout = 15000
-            conn.readTimeout = 30000
+            conn.connectTimeout = 8000
+            conn.readTimeout = 15000
             conn.setRequestProperty("Authorization", "Bearer $token")
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream

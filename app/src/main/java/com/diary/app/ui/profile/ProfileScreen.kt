@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.CircularProgressIndicator
@@ -226,7 +227,12 @@ fun ProfileScreen(
     var showPinDialog by remember { mutableStateOf(false) }
     var showRemovePinDialog by remember { mutableStateOf(false) }
 
-    // Account section
+    val authManager = remember { com.diary.app.data.auth.AuthManager(context) }
+    var syncStatus by remember { mutableStateOf<String?>(null) }
+    var showRebindDialog by remember { mutableStateOf(false) }
+    var rebindPhone by remember { mutableStateOf("") }
+    var rebindPin by remember { mutableStateOf("") }
+
     // Expanded state for each section
     var expandedSection by remember { mutableStateOf<String?>(null) }
 
@@ -330,6 +336,42 @@ fun ProfileScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showRemovePinDialog = false }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+
+    if (showRebindDialog) {
+        AlertDialog(
+            onDismissRequest = { showRebindDialog = false },
+            title = { Text("换绑手机号") },
+            text = {
+                Column {
+                    Text("数据不变，仅更换登录账号", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(value = rebindPhone, onValueChange = { rebindPhone = it }, label = { Text("新手机号") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = rebindPin, onValueChange = { rebindPin = it }, label = { Text("新 PIN (至少4位)") }, singleLine = true, visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (rebindPhone.isBlank() || rebindPin.length < 4) {
+                        Toast.makeText(context, "请填写完整信息", Toast.LENGTH_SHORT).show()
+                    } else {
+                        scope.launch {
+                            val result = authManager.changePhone(rebindPhone, rebindPin)
+                            if (result.isSuccess) {
+                                showRebindDialog = false
+                                syncStatus = "换绑成功"
+                                delay(2000)
+                                syncStatus = null
+                            } else {
+                                Toast.makeText(context, result.exceptionOrNull()?.message ?: "换绑失败", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }) { Text("确认换绑") }
+            },
+            dismissButton = { TextButton(onClick = { showRebindDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -468,6 +510,71 @@ fun ProfileScreen(
                         onClick = onNavigateToBackup
                     )
                 }
+
+                if (authManager.isLoggedIn) {
+                    CollapsibleSection(
+                        icon = Icons.Default.SystemUpdate,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "云同步",
+                        subtitle = if (authManager.savedPhone != null) "已绑定 ${authManager.savedPhone}" else "登录后自动同步数据",
+                        isExpanded = expandedSection == "sync",
+                        onToggle = { expandedSection = if (expandedSection == "sync") null else "sync" },
+                        textColor = textColor,
+                        textSecondary = textSecondary,
+                        textTertiary = textTertiary
+                    ) {
+                        ClickableSettingRow(
+                            icon = Icons.Default.SystemUpdate,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "立即同步",
+                            subtitle = if (syncStatus != null) syncStatus!! else "将本地数据上传到云端",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = {
+                                syncStatus = "同步中..."
+                                scope.launch {
+                                    authManager.syncNow()
+                                    syncStatus = "同步完成"
+                                    delay(2000)
+                                    syncStatus = null
+                                }
+                            }
+                        )
+                        SettingDivider()
+                        ClickableSettingRow(
+                            icon = Icons.Default.Backup,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "从云端恢复",
+                            subtitle = "将云端数据恢复到本地",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = {
+                                scope.launch {
+                                    val result = authManager.pullFromCloud()
+                                    syncStatus = if (result.isSuccess) "恢复成功" else result.exceptionOrNull()?.message
+                                    delay(2000)
+                                    syncStatus = null
+                                }
+                            }
+                        )
+                        SettingDivider()
+                        ClickableSettingRow(
+                            icon = Icons.Default.Person,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "换绑手机号",
+                            subtitle = if (authManager.savedPhone != null) "当前: ${authManager.savedPhone}" else "",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = { showRebindDialog = true }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Notification settings section
                 CollapsibleSection(
