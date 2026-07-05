@@ -74,13 +74,13 @@ import kotlin.math.sin
 // --- Per-theme gradient drift ---
 
 private fun driftDuration(theme: ThemeFamily): Int = when (theme) {
-    ThemeFamily.BLUE -> 30000
-    ThemeFamily.GREEN -> 25000
-    ThemeFamily.CYAN -> 35000
-    ThemeFamily.ROSE -> 28000
-    ThemeFamily.AMBER -> 32000
-    ThemeFamily.CLAY -> 40000
-    ThemeFamily.INK -> 30000
+    ThemeFamily.BLUE -> 90000
+    ThemeFamily.GREEN -> 75000
+    ThemeFamily.CYAN -> 105000
+    ThemeFamily.ROSE -> 84000
+    ThemeFamily.AMBER -> 96000
+    ThemeFamily.CLAY -> 120000
+    ThemeFamily.INK -> 90000
 }
 
 private fun driftColor(base: Color, progress: Float, theme: ThemeFamily): Color {
