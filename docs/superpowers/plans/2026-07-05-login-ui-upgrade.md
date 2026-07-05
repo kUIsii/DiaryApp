@@ -1,13 +1,141 @@
+# LoginScreen UI Upgrade Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Upgrade LoginScreen to match 7 theme families, add micro-interactions (Design Spells), dynamic gradient background (Shader Gradient), and polished card layout (Unicorn UI).
+
+**Architecture:** Single-file change to `LoginScreen.kt`. Extract per-theme login specs into a new `LoginThemeSpec.kt` for clean separation. Leverage existing `GradientBackground`, `GlassCard`, and `ThemeFamily` infrastructure.
+
+**Tech Stack:** Jetpack Compose, Material3, Compose Animation
+
+---
+
+## File Structure
+
+- **Modify:** `app/src/main/java/com/diary/app/ui/login/LoginScreen.kt` — Full UI rewrite with animations + theme adaptation
+- **Create:** `app/src/main/java/com/diary/app/ui/login/LoginThemeSpec.kt` — Per-theme color/animation specs for login
+
+### Task 1: Create LoginThemeSpec
+
+**Create:** `app/src/main/java/com/diary/app/ui/login/LoginThemeSpec.kt`
+
+Per-theme login UI constants: input field accent color, button gradient colors, animation specs, decorative element type.
+
+```kotlin
+package com.diary.app.ui.login
+
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Color
+import com.diary.app.ui.theme.ThemeFamily
+
+data class LoginThemeSpec(
+    val inputAccent: Color,
+    val inputGlow: Color,
+    val buttonStart: Color,
+    val buttonEnd: Color,
+    val buttonPressedScale: Float,
+    val buttonAnimSpec: Any, // SpringSpec or TweenSpec
+    val decorElement: DecorElement
+)
+
+enum class DecorElement {
+    NONE, HORIZONTAL_LINES, DOTS, WAVES, ELLIPSES, GRAIN, CROSS_HATCH, GRID_DOTS
+}
+
+fun loginThemeSpec(family: ThemeFamily): LoginThemeSpec = when (family) {
+    ThemeFamily.BLUE -> LoginThemeSpec(
+        inputAccent = Color(0xFF60A5FA),
+        inputGlow = Color(0xFF3B82F6).copy(alpha = 0.15f),
+        buttonStart = Color(0xFF3B82F6),
+        buttonEnd = Color(0xFF1D4ED8),
+        buttonPressedScale = 0.97f,
+        buttonAnimSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 300f),
+        decorElement = DecorElement.HORIZONTAL_LINES
+    )
+    ThemeFamily.GREEN -> LoginThemeSpec(
+        inputAccent = Color(0xFF4ADE80),
+        inputGlow = Color(0xFF22C55E).copy(alpha = 0.15f),
+        buttonStart = Color(0xFF22C55E),
+        buttonEnd = Color(0xFF15803D),
+        buttonPressedScale = 0.96f,
+        buttonAnimSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = 250f),
+        decorElement = DecorElement.DOTS
+    )
+    ThemeFamily.CYAN -> LoginThemeSpec(
+        inputAccent = Color(0xFF22D3EE),
+        inputGlow = Color(0xFF06B6D4).copy(alpha = 0.15f),
+        buttonStart = Color(0xFF06B6D4),
+        buttonEnd = Color(0xFF0891B2),
+        buttonPressedScale = 0.97f,
+        buttonAnimSpec = tween(durationMillis = 150),
+        decorElement = DecorElement.WAVES
+    )
+    ThemeFamily.ROSE -> LoginThemeSpec(
+        inputAccent = Color(0xFFFB7185),
+        inputGlow = Color(0xFFF43F5E).copy(alpha = 0.15f),
+        buttonStart = Color(0xFFF43F5E),
+        buttonEnd = Color(0xFFBE123C),
+        buttonPressedScale = 0.96f,
+        buttonAnimSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 280f),
+        decorElement = DecorElement.ELLIPSES
+    )
+    ThemeFamily.AMBER -> LoginThemeSpec(
+        inputAccent = Color(0xFFFBBF24),
+        inputGlow = Color(0xFFF59E0B).copy(alpha = 0.15f),
+        buttonStart = Color(0xFFF59E0B),
+        buttonEnd = Color(0xFFB45309),
+        buttonPressedScale = 0.97f,
+        buttonAnimSpec = tween(durationMillis = 200),
+        decorElement = DecorElement.GRAIN
+    )
+    ThemeFamily.CLAY -> LoginThemeSpec(
+        inputAccent = Color(0xFFA8A29E),
+        inputGlow = Color(0xFF78716C).copy(alpha = 0.15f),
+        buttonStart = Color(0xFF78716C),
+        buttonEnd = Color(0xFF44403C),
+        buttonPressedScale = 0.97f,
+        buttonAnimSpec = tween(durationMillis = 180),
+        decorElement = DecorElement.CROSS_HATCH
+    )
+    ThemeFamily.INK -> LoginThemeSpec(
+        inputAccent = Color(0xFF94A3B8),
+        inputGlow = Color(0xFF64748B).copy(alpha = 0.15f),
+        buttonStart = Color(0xFF64748B),
+        buttonEnd = Color(0xFF334155),
+        buttonPressedScale = 0.98f,
+        buttonAnimSpec = tween(durationMillis = 120),
+        decorElement = DecorElement.GRID_DOTS
+    )
+}
+```
+
+### Task 2: Rewrite LoginScreen
+
+**Modify:** `app/src/main/java/com/diary/app/ui/login/LoginScreen.kt`
+
+Full rewrite with:
+1. **Entrance animation** — title, input fields, button stagger in (slideUp + fadeIn, 100ms apart)
+2. **Per-theme colors** — input accent, button gradient, glow via `loginThemeSpec()`
+3. **Button press animation** — spring scale down on press using `animateFloatAsState`
+4. **Mode switch animation** — register/login text crossfade
+5. **Input glow** — focused input gets a subtle colored shadow/glow overlay
+6. **Decorative element** — subtle background pattern based on theme (using same Canvas drawing approach as GradientBackground)
+
+```kotlin
 package com.diary.app.ui.login
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +145,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +166,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,22 +185,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.data.auth.AuthManager
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.theme.currentThemeFamily
+import com.diary.app.ui.theme.ThemeFamily
+import com.diary.app.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.sin
+import kotlin.math.roundToInt
 
 @Composable
 fun LoginScreen(
@@ -86,6 +219,7 @@ fun LoginScreen(
     var showPin by remember { mutableStateOf(false) }
     var entered by remember { mutableStateOf(false) }
 
+    // Staggered entrance animation
     LaunchedEffect(Unit) {
         delay(100)
         entered = true
@@ -118,7 +252,7 @@ fun LoginScreen(
         animationSpec = tween(400, delayMillis = 200)
     )
 
-    val family = currentThemeFamily()
+    val family = com.diary.app.ui.theme.currentThemeFamily()
     val spec = loginThemeSpec(family)
 
     GradientBackground {
@@ -126,9 +260,15 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .drawWithCache {
+                    // Theme decorative pattern (subtle)
+                    val w = size.width
+                    val h = size.height
+                    val paint = android.graphics.Paint().apply {
+                        color = spec.inputAccent.copy(alpha = 0.03f).hashCode()
+                        strokeWidth = 1f
+                        style = android.graphics.Paint.Style.STROKE
+                    }
                     onDrawBehind {
-                        val w = size.width
-                        val h = size.height
                         when (spec.decorElement) {
                             DecorElement.HORIZONTAL_LINES -> {
                                 for (y in 0 until h.toInt() step 60) {
@@ -149,7 +289,7 @@ fun LoginScreen(
                                     val baseY = h * 0.15f + wave * h * 0.25f
                                     wavePath.moveTo(0f, baseY)
                                     for (x in 0 until w.toInt() step 10) {
-                                        wavePath.lineTo(x.toFloat(), baseY + sin(x.toDouble() * 0.02 + wave).toFloat() * 20f)
+                                        wavePath.lineTo(x.toFloat(), baseY + kotlin.math.sin(x.toDouble() * 0.02 + wave).toFloat() * 20f)
                                     }
                                     drawPath(wavePath, spec.inputAccent.copy(alpha = 0.015f), style = Stroke(1f))
                                 }
@@ -164,6 +304,7 @@ fun LoginScreen(
                                 }
                             }
                             DecorElement.GRAIN -> {
+                                // noise dots at random-ish positions
                                 val seed = 42
                                 for (i in 0 until 80) {
                                     val px = ((i * 137 + seed) % w.toInt()).toFloat()
@@ -198,10 +339,11 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // Title with entrance animation
                 Column(
                     modifier = Modifier
                         .alpha(titleAlpha)
-                        .padding(top = titleOffset.dp),
+                        .offset(y = titleOffset.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -220,10 +362,11 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
+                // Input fields with entrance animation
                 Column(
                     modifier = Modifier
                         .alpha(inputAlpha)
-                        .padding(top = inputOffset.dp)
+                        .offset(y = inputOffset.dp)
                 ) {
                     PhoneInput(
                         value = phone,
@@ -251,10 +394,11 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Button with entrance animation
                 Column(
                     modifier = Modifier
                         .alpha(buttonAlpha)
-                        .padding(top = buttonOffset.dp),
+                        .offset(y = buttonOffset.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     LoginButton(
@@ -315,7 +459,8 @@ private fun PhoneInput(
 
     val glowAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(200)
+        animationSpec = tween(200),
+        label = "glowAlpha"
     )
 
     Box {
@@ -361,7 +506,8 @@ private fun PinInput(
 
     val glowAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(200)
+        animationSpec = tween(200),
+        label = "glowAlpha"
     )
 
     Box {
@@ -382,7 +528,7 @@ private fun PinInput(
             interactionSource = interactionSource,
             visualTransformation = if (showPin) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            keyboardActions = KeyboardActions(onDone = onDone),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -415,7 +561,9 @@ private fun LoginButton(
 
     val scale by animateFloatAsState(
         targetValue = if (pressed) spec.buttonPressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f)
+        animationSpec = spec.buttonAnimSpec as? androidx.compose.animation.core.SpringSpec<Float>
+            ?: androidx.compose.animation.core.spring(),
+        label = "buttonScale"
     )
 
     Button(
@@ -441,7 +589,7 @@ private fun LoginButton(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(
                     Brush.horizontalGradient(listOf(spec.buttonStart, spec.buttonEnd)),
                     RoundedCornerShape(14.dp)
@@ -465,24 +613,35 @@ private fun LoginButton(
         }
     }
 }
+```
 
-private suspend fun doLogin(
-    authManager: AuthManager,
-    phone: String,
-    pin: String,
-    isRegister: Boolean,
-    onLoading: (Boolean) -> Unit,
-    onSuccess: () -> Unit,
-    onError: (String) -> Unit
-) {
-    onLoading(true)
-    val result = withContext(Dispatchers.IO) {
-        if (isRegister) authManager.register(phone, pin)
-        else authManager.login(phone, pin)
-    }
-    onLoading(false)
-    result.fold(
-        onSuccess = { onSuccess() },
-        onFailure = { onError(it.message ?: "操作失败") }
-    )
+Add a `currentThemeFamily()` utility to get current theme family:
+
+Insert into `app/src/main/java/com/diary/app/ui/theme/ThemeMode.kt`:
+```kotlin
+@Composable
+fun currentThemeFamily(): ThemeFamily {
+    val themeMode = com.diary.app.ui.theme.LocalThemeMode.current
+    return themeMode.family
 }
+```
+
+This requires `LocalThemeMode` to be provided. Check if it already exists — if not, add:
+```kotlin
+val LocalThemeMode = staticCompositionLocalOf { ThemeMode.PURE_LIGHT }
+```
+in `ThemeMode.kt` and set it in `DiaryAppTheme` via `CompositionLocalProvider`.
+
+### Task 3: Build & Test
+
+- [ ] **Build APK**
+
+Run: `.\gradlew.bat :app:assembleExperimentalDebug`
+Expected: BUILD SUCCESSFUL
+
+- [ ] **Commit**
+
+```bash
+git add -A
+git commit -m "feat: login UI upgrade with 7 theme adaptation and micro-interactions"
+```

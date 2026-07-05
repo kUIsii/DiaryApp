@@ -1,0 +1,90 @@
+<h2>Login & 账号功能 UI 升级方案</h2>
+<p class="subtitle">参考 Design Spells + Unicorn UI + Shader Gradient，点选你感兴趣的模块</p>
+
+<div class="section">
+  <h3>🔐 一、登录页面 UI 升级</h3>
+  <div class="cards">
+    <div class="card" data-choice="login-theme" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>适配 7 主题家族</h3>
+        <p>输入框聚焦色、按鈕渐变、装饰纹理都跟随当前主题（BLUE/GREEN/CYAN/ROSE/AMBER/CLAY/INK）</p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <span style="background:#3B82F6;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#22C55E;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#06B6D4;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#F43F5E;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#F59E0B;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#78716C;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+          <span style="background:#64748B;width:20px;height:20px;border-radius:50%;display:inline-block"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card" data-choice="login-anim" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>入场动画 + 微交互</h3>
+        <p>标题→输入框→按钮 错开 slideUp 淡入（各间隔100ms）<br>按钮按压 spring 缩放、输入框聚焦光晕、注册/登录文字 crossfade</p>
+      </div>
+    </div>
+    <div class="card" data-choice="login-decor" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>主题装饰底纹</h3>
+        <p>各主题在背景叠加极淡的 Canvas 图案：水平线/圆点/波浪/椭圆/噪点/交叉线/网格点（<2%透明度）</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>👤 二、个人中心页面</h3>
+  <div class="cards">
+    <div class="card" data-choice="profile" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>个人中心框架</h3>
+        <p>顶部圆形头像 + 昵称 + 手机号，下方卡片式功能列表</p>
+        <div class="pros-cons" style="margin-top:8px">
+          <div class="pros"><h4>包含</h4><ul><li>修改 PIN</li><li>同步状态</li><li>设备管理</li><li>导出数据</li><li>注销</li></ul></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" data-choice="sync-indicator" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>同步状态指示器</h3>
+        <p>首页圆点 + 设置页文字，显示 🟢已同步 / 🟡同步中 / 🔴未登录</p>
+      </div>
+    </div>
+    <div class="card" data-choice="multi-device" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>多设备管理</h3>
+        <p>显示已登录设备列表，可远程注销。Worker 新增 GET/DELETE /api/devices</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🎨 UI 设计参考</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Design Spells</div>
+      <div class="mockup-body">
+        <p>按钮按压弹性动画<br>输入框聚焦微光晕<br>页面切换 crossfade<br>状态圆点 pulse 闪烁</p>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Unicorn UI</div>
+      <div class="mockup-body">
+        <p>卡片圆角 16dp<br>列表项 8dp 间距<br>圆形头像 64dp<br>渐变按钮 + 毛玻璃</p>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Shader Gradient</div>
+      <div class="mockup-body">
+        <p>动态渐变背景<br>HSL 缓慢漂移<br>主题色扩散过渡<br>登录页氛围光晕</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">在浏览器里点击卡片选中你感兴趣的模块（可多选），然后告诉我你想先从哪个开始做。</p>
+</div>
