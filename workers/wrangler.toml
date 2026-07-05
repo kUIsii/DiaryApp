@@ -1,9 +1,8 @@
 name = "diary-app-sync"
 main = "src/index.js"
 compatibility_date = "2026-07-02"
-account_id = "b1779096743d9a35527ad9f6b8aabd22"
+account_id = "c8775c74e20e9761e3c0a46b9ca5a196"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "diary-app-db"
-database_id = "8ccf6647-2677-42d7-96cd-462abfd2d7d2"
+[[kv_namespaces]]
+binding = "KV"
+id = "c91ab4efde02412eb309780d228fc627"

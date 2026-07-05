@@ -28,7 +28,7 @@ data class SyncBackupResponse(
 
 class CloudSyncManager(private val context: Context) {
     companion object {
-        private const val DEFAULT_ENDPOINT = "https://diary-app-sync.workers.dev"
+        private const val DEFAULT_ENDPOINT = "https://diary-app-sync.2453759261.workers.dev"
         private const val PREFS_NAME = "cloud_sync"
         private const val KEY_PHONE = "phone"
         private const val KEY_TOKEN = "token"
