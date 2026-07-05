@@ -46,8 +46,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -98,7 +96,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.DayOfWeek
-import androidx.compose.runtime.mutableStateMapOf
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
@@ -172,37 +169,23 @@ fun TimelineScreen(
         }.toSortedMap(compareByDescending { it })
     }
 
-    // Track expanded/collapsed state for each month
-    val expandedMonths = remember { mutableStateMapOf<YearMonth, Boolean>() }
-    val currentMonth = YearMonth.now()
-    if (!expandedMonths.containsKey(currentMonth)) {
-        expandedMonths[currentMonth] = true
-    }
+    // All months always expanded
+    data class TimelineItem(val key: String, val month: YearMonth? = null, val date: LocalDate? = null, val entry: DiaryPreview? = null)
 
-    // Build flat list of items for LazyColumn with stable keys
-    data class TimelineItem(val key: String, val type: String, val month: YearMonth? = null, val date: LocalDate? = null, val entry: DiaryPreview? = null)
-
-    // Don't wrap in remember — expandedMonths is a SnapshotStateMap (reference-stable),
-    // so remember(key) won't recompute on content changes. Direct computation lets
-    // Compose snapshot tracking detect reads from expandedMonths and recompose correctly.
-    val timelineItems = buildList<TimelineItem> {
-        monthGroups.forEach { (month, monthEntries) ->
-            val isExpanded = expandedMonths[month] ?: false
-            if (!isExpanded) {
-                add(TimelineItem(key = "collapsed_$month", type = "collapsed_month", month = month))
-            } else {
-                add(TimelineItem(key = "expanded_$month", type = "expanded_month", month = month))
+    val timelineItems = remember(entries, monthGroups) {
+        buildList<TimelineItem> {
+            monthGroups.forEach { (month, monthEntries) ->
+                add(TimelineItem(key = "month_$month", month = month))
                 val monthDateGroups = monthEntries.groupBy { entry ->
                     Instant.ofEpochMilli(entry.createdAt)
                         .atZone(ZoneId.systemDefault())
                         .toLocalDate()
                 }.toSortedMap(compareByDescending { it })
                 monthDateGroups.forEach { (date, dayEntries) ->
-                    add(TimelineItem(key = "day_$date", type = "day_header", date = date))
+                    add(TimelineItem(key = "day_$date", date = date))
                     dayEntries.forEachIndexed { _, entry ->
                         add(TimelineItem(
                             key = "entry_${entry.id}",
-                            type = "entry",
                             entry = entry,
                             date = date
                         ))
@@ -360,62 +343,48 @@ fun TimelineScreen(
                     key = { _, item -> item.key }
                 ) { index, item ->
                     val nextItem = timelineItems.getOrNull(index + 1)
-                    val isLastOfDay = nextItem == null || nextItem.type == "day_header" || nextItem.type == "collapsed_month" || nextItem.type == "expanded_month"
+                    val isLastOfDay = nextItem == null || nextItem.date != item.date
 
-                    when (item.type) {
-                        "collapsed_month" -> {
-                            item.month?.let { month ->
-                                CollapsedMonthHeader(
-                                    month = month,
-                                    entryCount = monthGroups[month]?.size ?: 0,
-                                    onClick = { expandedMonths[month] = true }
-                                )
-                            }
-                        }
-                        "expanded_month" -> {
-                            item.month?.let { month ->
-                                ExpandedMonthHeader(
-                                    month = month,
-                                    entryCount = monthGroups[month]?.size ?: 0,
-                                    onCollapse = { expandedMonths[month] = false }
-                                )
-                            }
-                        }
-                        "day_header" -> {
-                            item.date?.let { date ->
-                                DayHeaderWithAxis(date = date)
-                            }
-                        }
-                        "entry" -> {
-                            item.entry?.let { entry ->
-                                val tags = tagsMap[entry.id] ?: emptyList()
-                                val imagePath = imageMap[entry.id]
+                    when {
+                        item.entry != null -> {
+                            val entry = item.entry
+                            val tags = tagsMap[entry.id] ?: emptyList()
+                            val imagePath = imageMap[entry.id]
 
-                                TimelineEntryWithAxis(
-                                    entry = entry,
-                                    tags = tags,
-                                    imagePath = imagePath,
-                                    isLastInDay = isLastOfDay,
-                                    isSelected = entry.id in multiSelectState.selectedIds,
-                                    isMultiSelectMode = multiSelectState.isEnabled,
-                                    onEntryClick = {
-                                        haptic.click()
-                                        if (multiSelectState.isEnabled) {
-                                            multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                        } else {
-                                            onNavigateToDetail(entry.id)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        haptic.click()
-                                        multiSelectState = if (multiSelectState.isEnabled) {
-                                            multiSelectState.toggleSelection(entry.id)
-                                        } else {
-                                            TimelineMultiSelectState.startSelection(entry.id)
-                                        }
+                            TimelineEntryWithAxis(
+                                entry = entry,
+                                tags = tags,
+                                imagePath = imagePath,
+                                isLastInDay = isLastOfDay,
+                                isSelected = entry.id in multiSelectState.selectedIds,
+                                isMultiSelectMode = multiSelectState.isEnabled,
+                                onEntryClick = {
+                                    haptic.click()
+                                    if (multiSelectState.isEnabled) {
+                                        multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        onNavigateToDetail(entry.id)
                                     }
-                                )
-                            }
+                                },
+                                onLongClick = {
+                                    haptic.click()
+                                    multiSelectState = if (multiSelectState.isEnabled) {
+                                        multiSelectState.toggleSelection(entry.id)
+                                    } else {
+                                        TimelineMultiSelectState.startSelection(entry.id)
+                                    }
+                                }
+                            )
+                        }
+                        item.date != null -> {
+                            DayHeaderWithAxis(date = item.date)
+                        }
+                        item.month != null -> {
+                            val month = item.month
+                            MonthHeader(
+                                month = month,
+                                entryCount = monthGroups[month]?.size ?: 0
+                            )
                         }
                     }
                 }
@@ -947,10 +916,9 @@ private fun ActiveFilterChip(
 // ========== Month Headers ==========
 
 @Composable
-private fun CollapsedMonthHeader(
+private fun MonthHeader(
     month: YearMonth,
-    entryCount: Int,
-    onClick: () -> Unit
+    entryCount: Int
 ) {
     val now = YearMonth.now()
     val isCurrentMonth = month == now
@@ -959,7 +927,6 @@ private fun CollapsedMonthHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -988,65 +955,6 @@ private fun CollapsedMonthHeader(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = Icons.Default.ExpandMore,
-            contentDescription = "展开",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(18.dp)
-        )
-    }
-}
-
-@Composable
-private fun ExpandedMonthHeader(
-    month: YearMonth,
-    entryCount: Int,
-    onCollapse: () -> Unit
-) {
-    val now = YearMonth.now()
-    val isCurrentMonth = month == now
-    val monthText = if (isCurrentMonth) "本月" else "${month.year}年${month.monthValue}月"
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCollapse)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = monthText,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$entryCount",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = Icons.Default.ExpandLess,
-            contentDescription = "折叠",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(18.dp)
-        )
     }
 }
 
