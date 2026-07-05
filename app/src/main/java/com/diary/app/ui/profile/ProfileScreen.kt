@@ -129,6 +129,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // Section icon colors with a slightly different tint balance per group
 @Composable
@@ -229,9 +232,11 @@ fun ProfileScreen(
 
     val authManager = remember { com.diary.app.data.auth.AuthManager(context) }
     var syncStatus by remember { mutableStateOf<String?>(null) }
+    var lastSyncTime by remember { mutableStateOf<Long?>(null) }
     var showRebindDialog by remember { mutableStateOf(false) }
     var rebindPhone by remember { mutableStateOf("") }
     var rebindPin by remember { mutableStateOf("") }
+    var showRestoreDialog by remember { mutableStateOf(false) }
 
     // Expanded state for each section
     var expandedSection by remember { mutableStateOf<String?>(null) }
@@ -375,6 +380,26 @@ fun ProfileScreen(
         )
     }
 
+    if (showRestoreDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestoreDialog = false },
+            title = { Text("确认恢复") },
+            text = { Text("将从云端下载数据并合并到本地，确定继续？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRestoreDialog = false
+                    scope.launch {
+                        val result = authManager.pullFromCloud()
+                        syncStatus = if (result.isSuccess) "恢复成功" else result.exceptionOrNull()?.message
+                        delay(2000)
+                        syncStatus = null
+                    }
+                }) { Text("确认恢复") }
+            },
+            dismissButton = { TextButton(onClick = { showRestoreDialog = false }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+
     val scrollState = rememberScrollState()
 
     GradientBackground {
@@ -400,7 +425,7 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            HeaderSection(textColor = textColor, textTertiary = textTertiary)
+            HeaderSection(textColor = textColor, textTertiary = textTertiary, phoneNumber = if (authManager.isLoggedIn) authManager.savedPhone else null)
 
             Spacer(modifier = Modifier.height(28.dp))
 
@@ -517,7 +542,11 @@ fun ProfileScreen(
                         iconBg = sectionIconBg(2),
                         iconTint = sectionIconTint(2),
                         title = "云同步",
-                        subtitle = if (authManager.savedPhone != null) "已绑定 ${authManager.savedPhone}" else "登录后自动同步数据",
+                        subtitle = if (authManager.savedPhone != null) {
+                            "已绑定手机: ${authManager.savedPhone}" + (lastSyncTime?.let { " | 上次同步: ${formatTime(it)}" } ?: "")
+                        } else {
+                            "登录后自动同步数据"
+                        },
                         isExpanded = expandedSection == "sync",
                         onToggle = { expandedSection = if (expandedSection == "sync") null else "sync" },
                         textColor = textColor,
@@ -529,15 +558,14 @@ fun ProfileScreen(
                             iconBg = sectionIconBg(2),
                             iconTint = sectionIconTint(2),
                             title = "立即同步",
-                            subtitle = if (syncStatus != null) syncStatus!! else "将本地数据上传到云端",
+                            subtitle = syncStatus ?: (lastSyncTime?.let { "上次同步: ${formatTime(it)}" } ?: "将本地数据上传到云端"),
                             textColor = textColor,
                             textTertiary = textTertiary,
                             onClick = {
                                 syncStatus = "同步中..."
                                 scope.launch {
                                     authManager.syncNow()
-                                    syncStatus = "同步完成"
-                                    delay(2000)
+                                    lastSyncTime = System.currentTimeMillis()
                                     syncStatus = null
                                 }
                             }
@@ -551,14 +579,7 @@ fun ProfileScreen(
                             subtitle = "将云端数据恢复到本地",
                             textColor = textColor,
                             textTertiary = textTertiary,
-                            onClick = {
-                                scope.launch {
-                                    val result = authManager.pullFromCloud()
-                                    syncStatus = if (result.isSuccess) "恢复成功" else result.exceptionOrNull()?.message
-                                    delay(2000)
-                                    syncStatus = null
-                                }
-                            }
+                            onClick = { showRestoreDialog = true }
                         )
                         SettingDivider()
                         ClickableSettingRow(
@@ -571,10 +592,36 @@ fun ProfileScreen(
                             textTertiary = textTertiary,
                             onClick = { showRebindDialog = true }
                         )
+                        SettingDivider()
+                        ClickableSettingRow(
+                            icon = Icons.Default.Person,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "退出登录",
+                            subtitle = "仅退出登录，保留本地数据",
+                            textColor = textColor,
+                            textTertiary = textTertiary,
+                            onClick = {
+                                authManager.logout()
+                                Toast.makeText(context, "已退出登录", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        SettingDivider()
+                        ClickableSettingRow(
+                            icon = Icons.Default.Delete,
+                            iconBg = sectionIconBg(2),
+                            iconTint = sectionIconTint(2),
+                            title = "退出并清除数据",
+                            subtitle = "清除本地数据，可换号重新登录",
+                            textColor = MaterialTheme.colorScheme.error,
+                            textTertiary = textTertiary,
+                            onClick = {
+                                authManager.logoutAndClearData()
+                                Toast.makeText(context, "已清除数据并退出登录", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Notification settings section
                 CollapsibleSection(
@@ -870,6 +917,7 @@ private fun CollapsibleSection(
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
                     content()
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
             }
         }
@@ -977,7 +1025,7 @@ private fun SwitchSettingRow(
 // --- Header ---
 
 @Composable
-private fun HeaderSection(textColor: Color, textTertiary: Color) {
+private fun HeaderSection(textColor: Color, textTertiary: Color, phoneNumber: String? = null) {
     val infiniteTransition = rememberInfiniteTransition(label = "avatarRing")
     val ringRotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
@@ -1015,6 +1063,17 @@ private fun HeaderSection(textColor: Color, textTertiary: Color) {
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, color = textColor, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         Text(stringResource(R.string.app_subtitle), fontSize = 14.sp, color = textTertiary, letterSpacing = 0.5.sp)
+        if (phoneNumber != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text("已绑定: $phoneNumber", fontSize = 15.sp, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.3.sp)
+            }
+        }
     }
 }
 
@@ -1340,4 +1399,9 @@ private fun PinSetupDialog(onDismiss: () -> Unit, onPinSet: (String, String) -> 
         confirmButton = { if (step == 2) TextButton(onClick = { onPinSet(firstPin, hint) }) { Text(stringResource(R.string.pin_hint_done)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
+}
+
+private fun formatTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+    return sdf.format(Date(timestamp))
 }
