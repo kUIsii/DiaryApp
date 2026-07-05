@@ -2,7 +2,6 @@ package com.diary.app.data.auth
 
 import android.content.Context
 import com.diary.app.data.sync.CloudSyncManager
-import java.security.MessageDigest
 
 enum class AuthState {
     UNINITIALIZED, LOGGED_OUT, LOGGED_IN
@@ -21,21 +20,20 @@ class AuthManager(context: Context) {
         private const val KEY_PHONE = "auth_phone"
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_REGISTERED = "auth_registered"
-        private const val KEY_PIN_HASH = "auth_pin_hash"
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val cloudSync = CloudSyncManager(context)
+    private val syncManager = CloudSyncManager(context)
 
     val savedPhone: String? get() = prefs.getString(KEY_PHONE, null)
     val savedToken: String? get() = prefs.getString(KEY_TOKEN, null)
-    val isLoggedIn: Boolean get() = prefs.getBoolean(KEY_REGISTERED, false) && !savedToken.isNullOrBlank()
+    val isLoggedIn: Boolean get() = !savedToken.isNullOrBlank()
     val isRegistered: Boolean get() = prefs.getBoolean(KEY_REGISTERED, false)
 
     fun restoreSession(): AuthUiState {
         val phone = savedPhone
         val token = savedToken
-        return if (phone != null && token != null && isRegistered) {
+        return if (phone != null && token != null) {
             AuthUiState(state = AuthState.LOGGED_IN, phone = phone)
         } else if (isRegistered) {
             AuthUiState(state = AuthState.LOGGED_OUT)
@@ -45,55 +43,29 @@ class AuthManager(context: Context) {
     }
 
     suspend fun register(phone: String, pin: String): Result<AuthUiState> {
-        if (phone.isBlank() || pin.length < 4) {
-            return Result.failure(Exception("手机号或 PIN 格式不正确"))
-        }
-        val hash = hashPin(pin, phone)
-        saveAuth(phone, generateLocalToken(phone))
-        prefs.edit().putString(KEY_PIN_HASH, hash).apply()
-        syncCloud(phone, pin)
-        return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
+        val result = syncManager.register(phone, pin)
+        return result.fold(
+            onSuccess = { token ->
+                saveAuth(phone, token)
+                Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
+            },
+            onFailure = { e ->
+                Result.failure(e)
+            }
+        )
     }
 
     suspend fun login(phone: String, pin: String): Result<AuthUiState> {
-        if (phone.isBlank() || pin.length < 4) {
-            return Result.failure(Exception("手机号或 PIN 格式不正确"))
-        }
-        val storedHash = prefs.getString(KEY_PIN_HASH, null)
-        if (storedHash == null) {
-            return Result.failure(Exception("该手机号尚未注册"))
-        }
-        val inputHash = hashPin(pin, phone)
-        if (inputHash != storedHash) {
-            return Result.failure(Exception("PIN 错误"))
-        }
-        saveAuth(phone, generateLocalToken(phone))
-        syncCloud(phone, pin)
-        return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
-    }
-
-    fun changePin(oldPin: String, newPin: String): Result<Unit> {
-        val phone = savedPhone ?: return Result.failure(Exception("未登录"))
-        if (newPin.length < 4) {
-            return Result.failure(Exception("新 PIN 至少4位"))
-        }
-        val storedHash = prefs.getString(KEY_PIN_HASH, null) ?: return Result.failure(Exception("未设置密码"))
-        val oldHash = hashPin(oldPin, phone)
-        if (oldHash != storedHash) {
-            return Result.failure(Exception("旧 PIN 错误"))
-        }
-        val newHash = hashPin(newPin, phone)
-        prefs.edit().putString(KEY_PIN_HASH, newHash).apply()
-        return Result.success(Unit)
-    }
-
-    private suspend fun syncCloud(phone: String, pin: String) {
-        try {
-            val result = cloudSync.register(phone, pin)
-            if (result.isFailure) {
-                cloudSync.login(phone, pin)
+        val result = syncManager.login(phone, pin)
+        return result.fold(
+            onSuccess = { token ->
+                saveAuth(phone, token)
+                Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
+            },
+            onFailure = { e ->
+                Result.failure(e)
             }
-        } catch (_: Exception) { }
+        )
     }
 
     fun logout() {
@@ -101,8 +73,8 @@ class AuthManager(context: Context) {
             .remove(KEY_PHONE)
             .remove(KEY_TOKEN)
             .remove(KEY_REGISTERED)
-            .remove(KEY_PIN_HASH)
             .apply()
+        syncManager.clearCredentials()
     }
 
     private fun saveAuth(phone: String, token: String) {
@@ -111,16 +83,5 @@ class AuthManager(context: Context) {
             .putString(KEY_TOKEN, token)
             .putBoolean(KEY_REGISTERED, true)
             .apply()
-    }
-
-    private fun generateLocalToken(phone: String): String {
-        val raw = "$phone:${System.currentTimeMillis()}:${Math.random()}"
-        val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(raw.toByteArray()).joinToString("") { "%02x".format(it) }
-    }
-
-    private fun hashPin(pin: String, phone: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest("$phone:$pin".toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

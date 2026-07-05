@@ -58,7 +58,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Security
@@ -104,7 +103,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
-import com.diary.app.data.auth.AuthManager
 import com.diary.app.biometric.BiometricHelper
 import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
@@ -175,8 +173,6 @@ private fun sectionIconTint(index: Int): Color {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    authManager: AuthManager? = null,
-    onNavigateToChangePin: (() -> Unit)? = null,
     onNavigateToChangelog: () -> Unit = {},
     onNavigateToTagManagement: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
@@ -231,25 +227,6 @@ fun ProfileScreen(
     var showRemovePinDialog by remember { mutableStateOf(false) }
 
     // Account section
-    var showLogoutDialog by remember { mutableStateOf(false) }
-
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("退出登录") },
-            text = { Text("确定退出登录吗？退出后需要重新输入手机号和 PIN 才能登录。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    authManager?.logout()
-                    showLogoutDialog = false
-                }) { Text("确定退出") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("取消") }
-            }
-        )
-    }
-
     // Expanded state for each section
     var expandedSection by remember { mutableStateOf<String?>(null) }
 
@@ -398,42 +375,6 @@ fun ProfileScreen(
                     .graphicsLayer { this.alpha = alpha; translationY = offsetY },
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Account section
-                CollapsibleSection(
-                    icon = Icons.Default.Lock,
-                    iconBg = sectionIconBg(0),
-                    iconTint = sectionIconTint(0),
-                    title = "账号",
-                    subtitle = if (authManager?.isLoggedIn == true) "已登录" else "未登录",
-                    isExpanded = expandedSection == "account",
-                    onToggle = { expandedSection = if (expandedSection == "account") null else "account" },
-                    textColor = textColor,
-                    textSecondary = textSecondary,
-                    textTertiary = textTertiary
-                ) {
-                    ClickableSettingRow(
-                        icon = Icons.Default.Lock,
-                        iconBg = sectionIconBg(0),
-                        iconTint = sectionIconTint(0),
-                        title = "修改登录密码",
-                        subtitle = "修改当前 PIN 码",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        onClick = { onNavigateToChangePin?.invoke() }
-                    )
-                    SettingDivider()
-                    ClickableSettingRow(
-                        icon = Icons.Default.ExitToApp,
-                        iconBg = sectionIconBg(0),
-                        iconTint = sectionIconTint(0),
-                        title = "退出登录",
-                        subtitle = "清除登录状态，回到登录页",
-                        textColor = textColor,
-                        textTertiary = textTertiary,
-                        onClick = { showLogoutDialog = true }
-                    )
-                }
-
                 // Appearance section
                 CollapsibleSection(
                     icon = Icons.Default.Palette,

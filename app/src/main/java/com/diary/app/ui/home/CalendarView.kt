@@ -68,7 +68,9 @@ import java.time.temporal.TemporalAdjusters
 
 enum class CalendarMode { WEEK, MONTH }
 
-internal const val CENTER_PAGE = Int.MAX_VALUE / 2
+internal const val CALENDAR_RANGE_YEARS = 10
+internal const val TOTAL_PAGES = CALENDAR_RANGE_YEARS * 12
+internal const val CENTER_PAGE = TOTAL_PAGES / 2
 
 internal fun monthForPage(baseMonth: YearMonth, page: Int): YearMonth {
     return baseMonth.plusMonths((page - CENTER_PAGE).toLong())
@@ -146,7 +148,7 @@ fun CalendarView(
     var showDatePicker by remember { mutableStateOf(false) }
 
     // Pager: source of truth for displayed month/week
-    val pagerState = rememberPagerState(initialPage = CENTER_PAGE) { Int.MAX_VALUE }
+    val pagerState = rememberPagerState(initialPage = CENTER_PAGE) { TOTAL_PAGES }
     var monthPagerBase by remember(calendarMode) { mutableStateOf(currentMonth) }
     var weekPagerBase by remember(calendarMode) { mutableStateOf(currentWeekStart) }
 
@@ -186,9 +188,10 @@ fun CalendarView(
         } else {
             targetPageForWeek(weekPagerBase, currentWeekStart)
         }
-        if (pagerState.currentPage != targetPage) {
+        val clampedPage = targetPage.coerceIn(0, TOTAL_PAGES - 1)
+        if (pagerState.currentPage != clampedPage) {
             isProgrammaticScroll = true
-            pagerState.scrollToPage(targetPage)
+            pagerState.scrollToPage(clampedPage)
             isProgrammaticScroll = false
         }
     }
@@ -200,6 +203,7 @@ fun CalendarView(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val minMonth = monthPagerBase.minusMonths(CENTER_PAGE.toLong())
                 Box(
                     modifier = Modifier
                         .size(28.dp)
@@ -209,7 +213,9 @@ fun CalendarView(
                             indication = null
                         ) {
                             if (calendarMode == CalendarMode.MONTH) {
-                                onCurrentMonthChange(currentMonth.minusMonths(1))
+                                if (currentMonth > minMonth) {
+                                    onCurrentMonthChange(currentMonth.minusMonths(1))
+                                }
                             } else {
                                 onCurrentWeekStartChange(currentWeekStart.minusWeeks(1))
                             }
@@ -219,7 +225,7 @@ fun CalendarView(
                     Icon(
                         imageVector = Icons.Default.ChevronLeft,
                         contentDescription = "上一页",
-                        tint = onSurfaceVariant,
+                        tint = if (currentMonth <= minMonth) onSurfaceVariant.copy(alpha = 0.3f) else onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -328,7 +334,7 @@ fun CalendarView(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
                 key = { "${calendarMode.name}-$it" },
-                beyondBoundsPageCount = 0
+                beyondBoundsPageCount = 1
             ) { page ->
                 if (calendarMode == CalendarMode.MONTH) {
                     val month = monthForPage(monthPagerBase, page)

@@ -19,8 +19,8 @@ android {
         applicationId = "com.diary.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 27814
-        versionName = "2.78.13-experimental"
+        versionCode = 27815
+        versionName = "2.78.14-experimental"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -85,7 +85,7 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
+    val composeBom = platform("androidx.compose:compose-bom:2023.10.01")
     implementation(composeBom)
 
     implementation("androidx.core:core-ktx:1.12.0")

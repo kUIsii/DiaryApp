@@ -1,15 +1,10 @@
 package com.diary.app.ui.login
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,11 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,17 +37,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -65,12 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.data.auth.AuthManager
 import com.diary.app.ui.components.GradientBackground
-import com.diary.app.ui.theme.currentThemeFamily
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.sin
 
 @Composable
 fun LoginScreen(
@@ -84,382 +63,112 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isRegisterMode by remember { mutableStateOf(!authManager.isRegistered) }
     var showPin by remember { mutableStateOf(false) }
-    var entered by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        entered = true
-    }
-
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(400)
-    )
-    val titleOffset by animateFloatAsState(
-        targetValue = if (entered) 0f else 24f,
-        animationSpec = tween(400)
-    )
-
-    val inputAlpha by animateFloatAsState(
-        targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 100)
-    )
-    val inputOffset by animateFloatAsState(
-        targetValue = if (entered) 0f else 20f,
-        animationSpec = tween(400, delayMillis = 100)
-    )
-
-    val buttonAlpha by animateFloatAsState(
-        targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 200)
-    )
-    val buttonOffset by animateFloatAsState(
-        targetValue = if (entered) 0f else 16f,
-        animationSpec = tween(400, delayMillis = 200)
-    )
-
-    val family = currentThemeFamily()
-    val spec = loginThemeSpec(family)
 
     GradientBackground {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .drawWithCache {
-                    onDrawBehind {
-                        val w = size.width
-                        val h = size.height
-                        when (spec.decorElement) {
-                            DecorElement.HORIZONTAL_LINES -> {
-                                for (y in 0 until h.toInt() step 60) {
-                                    drawLine(spec.inputAccent.copy(alpha = 0.02f), Offset(0f, y.toFloat()), Offset(w, y.toFloat()))
-                                }
-                            }
-                            DecorElement.DOTS -> {
-                                for (x in 0 until w.toInt() step 40) {
-                                    for (y in 0 until h.toInt() step 40) {
-                                        drawCircle(spec.inputAccent.copy(alpha = 0.015f), 1.5f, Offset(x.toFloat(), y.toFloat()))
-                                    }
-                                }
-                            }
-                            DecorElement.WAVES -> {
-                                val wavePath = Path()
-                                for (wave in 0..3) {
-                                    wavePath.reset()
-                                    val baseY = h * 0.15f + wave * h * 0.25f
-                                    wavePath.moveTo(0f, baseY)
-                                    for (x in 0 until w.toInt() step 10) {
-                                        wavePath.lineTo(x.toFloat(), baseY + sin(x.toDouble() * 0.02 + wave).toFloat() * 20f)
-                                    }
-                                    drawPath(wavePath, spec.inputAccent.copy(alpha = 0.015f), style = Stroke(1f))
-                                }
-                            }
-                            DecorElement.ELLIPSES -> {
-                                for (i in 0..4) {
-                                    drawOval(
-                                        spec.inputAccent.copy(alpha = 0.012f),
-                                        topLeft = Offset(i * w / 5f, h * 0.2f),
-                                        size = Size(w * 0.15f, h * 0.08f)
-                                    )
-                                }
-                            }
-                            DecorElement.GRAIN -> {
-                                val seed = 42
-                                for (i in 0 until 80) {
-                                    val px = ((i * 137 + seed) % w.toInt()).toFloat()
-                                    val py = ((i * 251 + seed) % h.toInt()).toFloat()
-                                    drawCircle(spec.inputAccent.copy(alpha = 0.01f), 1f, Offset(px, py))
-                                }
-                            }
-                            DecorElement.CROSS_HATCH -> {
-                                for (i in 0 until w.toInt() step 40) {
-                                    drawLine(spec.inputAccent.copy(alpha = 0.015f), Offset(i.toFloat(), 0f), Offset(i.toFloat() + 20f, h), 0.5f)
-                                }
-                                for (i in 0 until w.toInt() step 40) {
-                                    drawLine(spec.inputAccent.copy(alpha = 0.015f), Offset(i.toFloat() + 20f, 0f), Offset(i.toFloat(), h), 0.5f)
-                                }
-                            }
-                            DecorElement.GRID_DOTS -> {
-                                for (x in 0 until w.toInt() step 36) {
-                                    for (y in 0 until h.toInt() step 36) {
-                                        drawCircle(spec.inputAccent.copy(alpha = 0.018f), 1.2f, Offset(x.toFloat(), y.toFloat()))
-                                    }
-                                }
-                            }
-                            DecorElement.NONE -> {}
-                        }
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "DiaryApp",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "你的私人日记空间",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(40.dp))
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it; errorMessage = null },
+                label = { Text("手机号") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedTextField(
+                value = pin,
+                onValueChange = { pin = it; errorMessage = null },
+                label = { Text("PIN (至少4位)") },
+                singleLine = true,
+                visualTransformation = if (showPin) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    if (phone.isNotBlank() && pin.length >= 4) {
+                        scope.launch { doLogin(authManager, phone, pin, isRegisterMode, { isLoading = it; errorMessage = null }, { onLoggedIn() }, { errorMessage = it }) }
+                    }
+                }),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                trailingIcon = {
+                    IconButton(onClick = { showPin = !showPin }) {
+                        Icon(
+                            imageVector = if (showPin) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showPin) "隐藏PIN" else "显示PIN"
+                        )
                     }
                 }
-        ) {
-            Column(
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    scope.launch { doLogin(authManager, phone, pin, isRegisterMode, { isLoading = it; errorMessage = null }, { onLoggedIn() }, { errorMessage = it }) }
+                },
+                enabled = phone.isNotBlank() && pin.length >= 4 && !isLoading,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .alpha(titleAlpha)
-                        .padding(top = titleOffset.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.5.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
                     Text(
-                        text = "DiaryApp",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "你的私人日记空间",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                Column(
-                    modifier = Modifier
-                        .alpha(inputAlpha)
-                        .padding(top = inputOffset.dp)
-                ) {
-                    PhoneInput(
-                        value = phone,
-                        onValueChange = { phone = it; errorMessage = null },
-                        accentColor = spec.inputAccent,
-                        glowColor = spec.inputGlow
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    PinInput(
-                        value = pin,
-                        onValueChange = { pin = it; errorMessage = null },
-                        showPin = showPin,
-                        onToggleVisibility = { showPin = !showPin },
-                        accentColor = spec.inputAccent,
-                        glowColor = spec.inputGlow,
-                        onDone = {
-                            if (phone.isNotBlank() && pin.length >= 4) {
-                                scope.launch { doLogin(authManager, phone, pin, isRegisterMode, { isLoading = it; errorMessage = null }, { onLoggedIn() }, { errorMessage = it }) }
-                            }
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Column(
-                    modifier = Modifier
-                        .alpha(buttonAlpha)
-                        .padding(top = buttonOffset.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    LoginButton(
                         text = if (isRegisterMode) "注册并登录" else "登录",
-                        enabled = phone.isNotBlank() && pin.length >= 4 && !isLoading,
-                        isLoading = isLoading,
-                        spec = spec,
-                        onClick = {
-                            scope.launch { doLogin(authManager, phone, pin, isRegisterMode, { isLoading = it; errorMessage = null }, { onLoggedIn() }, { errorMessage = it }) }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    TextButton(onClick = { isRegisterMode = !isRegisterMode; errorMessage = null }) {
-                        Crossfade(
-                            targetState = isRegisterMode,
-                            animationSpec = tween(200)
-                        ) { registerMode ->
-                            Text(
-                                text = if (registerMode) "已有账号？点击登录" else "没有账号？点击注册",
-                                fontSize = 13.sp,
-                                color = spec.inputAccent
-                            )
-                        }
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = errorMessage != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun PhoneInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    accentColor: Color,
-    glowColor: Color
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+            Spacer(modifier = Modifier.height(12.dp))
 
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(200)
-    )
-
-    Box {
-        if (isFocused) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(horizontal = (-4).dp, vertical = (-4).dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(glowColor.copy(alpha = glowAlpha))
-            )
-        }
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text("手机号") },
-            singleLine = true,
-            interactionSource = interactionSource,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = accentColor,
-                cursorColor = accentColor,
-                focusedLabelColor = accentColor
-            )
-        )
-    }
-}
-
-@Composable
-private fun PinInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    showPin: Boolean,
-    onToggleVisibility: () -> Unit,
-    accentColor: Color,
-    glowColor: Color,
-    onDone: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(200)
-    )
-
-    Box {
-        if (isFocused) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(horizontal = (-4).dp, vertical = (-4).dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(glowColor.copy(alpha = glowAlpha))
-            )
-        }
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text("PIN (至少4位)") },
-            singleLine = true,
-            interactionSource = interactionSource,
-            visualTransformation = if (showPin) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = accentColor,
-                cursorColor = accentColor,
-                focusedLabelColor = accentColor
-            ),
-            trailingIcon = {
-                IconButton(onClick = onToggleVisibility) {
-                    Icon(
-                        imageVector = if (showPin) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showPin) "隐藏PIN" else "显示PIN",
-                        tint = if (isFocused) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        )
-    }
-}
-
-@Composable
-private fun LoginButton(
-    text: String,
-    enabled: Boolean,
-    isLoading: Boolean,
-    spec: LoginThemeSpec,
-    onClick: () -> Unit
-) {
-    var pressed by remember { mutableStateOf(false) }
-
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) spec.buttonPressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f)
-    )
-
-    Button(
-        onClick = onClick,
-        enabled = enabled && !isLoading,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
-            .scale(scale)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    awaitPointerEvent()
-                    pressed = true
-                    awaitPointerEvent()
-                    pressed = false
-                }
-            },
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(listOf(spec.buttonStart, spec.buttonEnd)),
-                    RoundedCornerShape(14.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    strokeWidth = 2.5.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
+            TextButton(onClick = { isRegisterMode = !isRegisterMode; errorMessage = null }) {
                 Text(
-                    text = text,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    text = if (isRegisterMode) "已有账号？点击登录" else "没有账号？点击注册",
+                    fontSize = 13.sp
+                )
+            }
+
+            AnimatedVisibility(
+                visible = errorMessage != null,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 )
             }
         }

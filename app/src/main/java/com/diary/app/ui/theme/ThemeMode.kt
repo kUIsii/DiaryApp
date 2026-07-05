@@ -42,9 +42,6 @@ val LocalThemeMode = staticCompositionLocalOf { ThemeMode.PURE_LIGHT }
 fun themeMode(): ThemeMode = LocalThemeMode.current
 
 @Composable
-fun currentThemeFamily(): ThemeFamily = LocalThemeMode.current.category
-
-@Composable
 fun ThemeMode.isDark(): Boolean = when (this) {
     ThemeMode.PURE_LIGHT -> false
     ThemeMode.PURE_DARK -> true
