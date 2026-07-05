@@ -328,7 +328,7 @@ fun CalendarView(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
                 key = { "${calendarMode.name}-$it" },
-                beyondBoundsPageCount = 1
+                beyondBoundsPageCount = 0
             ) { page ->
                 if (calendarMode == CalendarMode.MONTH) {
                     val month = monthForPage(monthPagerBase, page)
