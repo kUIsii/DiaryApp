@@ -89,6 +89,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diary.app.DiaryApplication
+import com.diary.app.data.auth.AuthManager
 import com.diary.app.ui.backup.BackupScreen
 import com.diary.app.ui.theme.ThemeFamily
 import com.diary.app.ui.theme.themeMode
@@ -104,6 +105,7 @@ import com.diary.app.ui.experimental.ExperimentalFeaturesScreen
 import com.diary.app.ui.favorites.FavoritesScreen
 import com.diary.app.ui.home.HomeScreen
 import com.diary.app.ui.media.MediaLibraryScreen
+import com.diary.app.ui.profile.ChangePinScreen
 import com.diary.app.ui.profile.ProfileScreen
 import com.diary.app.ui.profile.TagManagementScreen
 import com.diary.app.ui.stats.StatsScreen
@@ -197,6 +199,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object AmbientSound : Screen("ambient_sound", "场景环境音", Icons.Default.MusicNote)
 
     object PastSelf : Screen("past_self", "与过去的自己对话", Icons.Default.Schedule)
+    object ChangePin : Screen("change_pin", "修改登录密码", Icons.Default.Lock)
 }
 
 data class BottomNavItem(
@@ -216,6 +219,8 @@ val bottomNavItems = listOf(
 @Composable
 fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {}) {
     val app = LocalContext.current.applicationContext as? DiaryApplication ?: return
+    val context = LocalContext.current
+    val authManager = remember { AuthManager(context) }
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
@@ -407,6 +412,8 @@ popExitTransition = {
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(
+                    authManager = authManager,
+                    onNavigateToChangePin = { navController.navigate(Screen.ChangePin.route) },
                     onNavigateToChangelog = { navController.navigate(Screen.Changelog.route) },
                     onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
@@ -422,6 +429,17 @@ popExitTransition = {
                             navigateToBottomRoute(targetRoute)
                         }
                     }
+                )
+            }
+
+            composable(
+                route = Screen.ChangePin.route,
+                enterTransition = { fadeIn(animationSpec = tween(150)) },
+                exitTransition = { fadeOut(animationSpec = tween(100)) }
+            ) {
+                ChangePinScreen(
+                    authManager = authManager,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
