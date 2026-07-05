@@ -45,49 +45,46 @@ class AuthManager(context: Context) {
     }
 
     suspend fun register(phone: String, pin: String): Result<AuthUiState> {
-        val result = syncManager.register(phone, pin)
-        return if (result.isSuccess) {
-            saveLocalHash(phone, pin)
-            saveAuth(phone, result.getOrThrow())
-            Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
-        } else {
-            localRegister(phone, pin)
-        }
-    }
-
-    suspend fun login(phone: String, pin: String): Result<AuthUiState> {
-        val result = syncManager.login(phone, pin)
-        return if (result.isSuccess) {
-            saveLocalHash(phone, pin)
-            saveAuth(phone, result.getOrThrow())
-            Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
-        } else {
-            localLogin(phone, pin)
-        }
-    }
-
-    private fun localRegister(phone: String, pin: String): Result<AuthUiState> {
         if (phone.isBlank() || pin.length < 4) {
             return Result.failure(Exception("手机号或 PIN 格式不正确"))
         }
         saveLocalHash(phone, pin)
         val token = generateLocalToken(phone)
         saveAuth(phone, token)
+        syncCloud(phone, pin)
         return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
     }
 
-    private fun localLogin(phone: String, pin: String): Result<AuthUiState> {
+    suspend fun login(phone: String, pin: String): Result<AuthUiState> {
         val storedHash = prefs.getString(KEY_PIN_HASH, null)
-        if (storedHash == null) {
-            return Result.failure(Exception("云端登录失败，且本地无缓存账号"))
+        if (storedHash != null) {
+            if (hashPin(pin, phone) == storedHash) {
+                val token = generateLocalToken(phone)
+                saveAuth(phone, token)
+                syncCloud(phone, pin)
+                return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
+            }
         }
-        val inputHash = hashPin(pin, phone)
-        if (inputHash != storedHash) {
-            return Result.failure(Exception("PIN 错误"))
+        val cloudResult = syncManager.login(phone, pin)
+        if (cloudResult.isSuccess) {
+            saveLocalHash(phone, pin)
+            saveAuth(phone, cloudResult.getOrThrow())
+            return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
         }
-        val token = generateLocalToken(phone)
-        saveAuth(phone, token)
-        return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
+        return if (storedHash != null) {
+            Result.failure(Exception("PIN 错误"))
+        } else {
+            Result.failure(Exception("未找到账号信息，请重新注册"))
+        }
+    }
+
+    private suspend fun syncCloud(phone: String, pin: String) {
+        try {
+            val result = syncManager.register(phone, pin)
+            if (result.isFailure) {
+                syncManager.login(phone, pin)
+            }
+        } catch (_: Exception) { }
     }
 
     fun logout() {
