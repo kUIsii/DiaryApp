@@ -45,7 +45,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Today
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,16 +68,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import com.diary.app.data.sync.CloudSyncManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -129,35 +120,8 @@ fun TodoScreen(
     val showHabitRecordDialog by viewModel.showHabitRecordDialog.collectAsState()
     val todayThree by viewModel.todayThree.collectAsState()
 
-    val clipboard = LocalClipboardManager.current
-    val scope = rememberCoroutineScope()
-    val todoContext = LocalContext.current
-    val cloudSyncManager = remember { CloudSyncManager(todoContext) }
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var showAddDialog by remember { mutableStateOf(false) }
-    var syncStatus by remember { mutableStateOf("桌面同步就绪") }
-    var showAuthDialog by remember { mutableStateOf(false) }
-    var phoneInput by remember { mutableStateOf("") }
-    var pinInput by remember { mutableStateOf("") }
-    var isSyncing by remember { mutableStateOf(false) }
-
-    fun pushToCloud() {
-        if (!cloudSyncManager.isAuthenticated) {
-            showAuthDialog = true
-            return
-        }
-        isSyncing = true
-        scope.launch {
-            val gson = com.google.gson.Gson()
-            @Suppress("UNCHECKED_CAST")
-            val payload = gson.fromJson(viewModel.buildDesktopSyncPayloadJson(), Map::class.java) as Map<String, Any>
-            cloudSyncManager.pushBackup(payload).fold(
-                onSuccess = { syncStatus = "云端同步成功" },
-                onFailure = { syncStatus = "同步失败: ${it.message}" }
-            )
-            isSyncing = false
-        }
-    }
 
     val currentTab = TodoTab.entries[currentPageIndex]
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -278,63 +242,6 @@ fun TodoScreen(
             }
         }
     )
-
-    if (showAuthDialog) {
-        AlertDialog(
-            onDismissRequest = { showAuthDialog = false },
-            title = { Text("云同步绑定") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("绑定手机号后可推送到云端", fontSize = 12.sp, color = textSecondary)
-                    TextField(
-                        value = phoneInput,
-                        onValueChange = { phoneInput = it },
-                        label = { Text("手机号") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    TextField(
-                        value = pinInput,
-                        onValueChange = { pinInput = it },
-                        label = { Text("PIN (至少4位)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (phoneInput.isNotBlank() && pinInput.length >= 4) {
-                            isSyncing = true
-                            scope.launch(Dispatchers.IO) {
-                                cloudSyncManager.login(phoneInput, pinInput).fold(
-                                    onSuccess = {
-                                        val gson = com.google.gson.Gson()
-                                        @Suppress("UNCHECKED_CAST")
-                                        val payload = gson.fromJson(viewModel.buildDesktopSyncPayloadJson(), Map::class.java) as Map<String, Any>
-                                        cloudSyncManager.pushBackup(payload).fold(
-                                            onSuccess = { syncStatus = "绑定成功，已同步到云端" },
-                                            onFailure = { syncStatus = "同步失败: ${it.message}" }
-                                        )
-                                    },
-                                    onFailure = { syncStatus = "绑定失败: ${it.message}" }
-                                )
-                                isSyncing = false
-                            }
-                        }
-                        showAuthDialog = false
-                    },
-                    enabled = phoneInput.isNotBlank() && pinInput.length >= 4 && !isSyncing
-                ) {
-                    if (isSyncing) Text("绑定中...") else Text("绑定并同步")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAuthDialog = false }) { Text("取消") }
-            }
-        )
-    }
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -480,17 +387,9 @@ fun TodoScreen(
                                 textColor = textColor,
                                 textSecondary = textSecondary,
                                 onAdd = { showAddDialog = true },
-                                syncStatus = syncStatus,
-                                isSyncing = isSyncing,
                                 onCapture = { text ->
                                     viewModel.captureMobileTasks(text)
-                                    syncStatus = "已写入快速捕获"
                                 },
-                                onCopySyncPayload = {
-                                    clipboard.setText(AnnotatedString(viewModel.buildDesktopSyncPayloadJson()))
-                                    syncStatus = "已复制桌面同步 JSON"
-                                },
-                                onPushSync = { pushToCloud() },
                                 onDeleteRequest = { deletingTodo = it },
                                 onEdit = { editingTodo = it },
                                 isMultiSelectMode = isMultiSelectMode,
@@ -983,11 +882,7 @@ private fun DeadlineTab(
     textColor: Color,
     textSecondary: Color,
     onAdd: () -> Unit,
-    syncStatus: String,
-    isSyncing: Boolean,
     onCapture: (String) -> Unit,
-    onCopySyncPayload: () -> Unit,
-    onPushSync: () -> Unit,
     onDeleteRequest: (TodoItem) -> Unit,
     onEdit: (TodoItem) -> Unit,
     isMultiSelectMode: Boolean,
@@ -1011,16 +906,12 @@ private fun DeadlineTab(
                 todayThree = todayThree,
                 captureText = captureText,
                 onCaptureTextChange = { captureText = it },
-                syncStatus = syncStatus,
-                isSyncing = isSyncing,
                 textColor = textColor,
                 textSecondary = textSecondary,
                 onCapture = {
                     onCapture(captureText)
                     captureText = ""
-                },
-                onCopySyncPayload = onCopySyncPayload,
-                onPushSync = onPushSync
+                }
             )
         }
 
@@ -1071,13 +962,9 @@ private fun TodoAssistantPanel(
     todayThree: List<TodayThreeItem>,
     captureText: String,
     onCaptureTextChange: (String) -> Unit,
-    syncStatus: String,
-    isSyncing: Boolean,
     textColor: Color,
     textSecondary: Color,
-    onCapture: () -> Unit,
-    onCopySyncPayload: () -> Unit,
-    onPushSync: () -> Unit
+    onCapture: () -> Unit
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -1102,18 +989,6 @@ private fun TodoAssistantPanel(
                         fontSize = 12.sp,
                         color = textSecondary
                     )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = onPushSync, enabled = !isSyncing) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                        } else {
-                            Text("推送同步", fontSize = 12.sp)
-                        }
-                    }
-                    TextButton(onClick = onCopySyncPayload) {
-                        Text("复制", fontSize = 12.sp)
-                    }
                 }
             }
 
@@ -1174,23 +1049,11 @@ private fun TodoAssistantPanel(
                 maxLines = 4,
                 placeholder = { Text("!! 今天 18:30 完成桌面端同步 #desktop\n! 明天 整理发布清单 #release") }
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            TextButton(
+                onClick = onCapture,
+                enabled = captureText.isNotBlank()
             ) {
-                Text(
-                    text = syncStatus,
-                    fontSize = 11.sp,
-                    color = textSecondary,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(
-                    onClick = onCapture,
-                    enabled = captureText.isNotBlank()
-                ) {
-                    Text("快速捕获")
-                }
+                Text("快速捕获")
             }
         }
     }
