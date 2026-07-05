@@ -30,6 +30,44 @@ fun buildAmbientTrackSupportingText(
     return markers.joinToString(" · ")
 }
 
+data class AmbientPlayerSnapshot(
+    val currentTrack: AudioTrack?,
+    val isPlaying: Boolean,
+    val volume: Float,
+    val duration: Int,
+    val progress: Int,
+    val sleepRemainingSeconds: Int,
+    val meanderEnabled: Boolean,
+    val hasSession: Boolean
+)
+
+fun shouldRestoreAmbientTrack(
+    savedTrackId: String?,
+    hasActiveSession: Boolean
+): Boolean {
+    return !savedTrackId.isNullOrBlank() && !hasActiveSession
+}
+
+fun syncAmbientStateWithPlayer(
+    state: AmbientSoundState,
+    snapshot: AmbientPlayerSnapshot
+): AmbientSoundState {
+    return state.copy(
+        currentTrack = snapshot.currentTrack,
+        isPlaying = snapshot.isPlaying,
+        volume = snapshot.volume,
+        duration = snapshot.duration,
+        progress = snapshot.progress,
+        sleepRemainingSeconds = snapshot.sleepRemainingSeconds,
+        meanderEnabled = snapshot.meanderEnabled,
+        isFullscreenPlayerVisible = if (snapshot.hasSession) {
+            state.isFullscreenPlayerVisible
+        } else {
+            false
+        }
+    )
+}
+
 class AmbientPlaybackSessionGate {
     private var suppressNextStopCallback = false
 

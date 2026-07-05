@@ -66,12 +66,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.diary.app.data.ambientsound.AudioCategory
@@ -82,11 +81,9 @@ import com.diary.app.ui.components.PageHeader
 @Composable
 fun AmbientSoundScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AmbientSoundViewModel = viewModel()
+    viewModel: AmbientSoundViewModel
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
-    var showFullPlayer by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.errorMessage) {
@@ -108,8 +105,8 @@ fun AmbientSoundScreen(
         if (state.currentTrack != null) {
             viewModel.startProgressUpdates()
         } else {
-            showFullPlayer = false
             viewModel.stopProgressUpdates()
+            viewModel.hideFullscreenPlayer()
         }
     }
 
@@ -118,7 +115,7 @@ fun AmbientSoundScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (showFullPlayer && state.currentTrack != null) {
+        if (state.isFullscreenPlayerVisible && state.currentTrack != null) {
             FullscreenPlayer(
                 track = state.currentTrack!!,
                 isPlaying = state.isPlaying,
@@ -130,13 +127,13 @@ fun AmbientSoundScreen(
                 backgroundImageUrl = category?.backgroundImageUrl,
                 categoryId = category?.id,
                 onTogglePlay = { viewModel.togglePlay(state.currentTrack!!) },
-                onStop = { viewModel.stop(); showFullPlayer = false },
+                onStop = { viewModel.stop() },
                 onSeek = { viewModel.seekTo(it) },
                 onVolumeChange = { viewModel.setVolume(it) },
                 onToggleFavorite = { viewModel.toggleFavorite(state.currentTrack!!.id) },
                 onSleepTimer = { viewModel.startSleepTimer(it) },
                 onCancelSleepTimer = { viewModel.cancelSleepTimer() },
-                onBack = { showFullPlayer = false }
+                onBack = { viewModel.hideFullscreenPlayer() }
             )
         } else {
             BrowseView(
@@ -154,7 +151,13 @@ fun AmbientSoundScreen(
                 onSelectCategory = { viewModel.selectCategory(it) },
                 onTogglePlay = { viewModel.togglePlay(it) },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
-                onTrackClick = { showFullPlayer = true },
+                onTrackClick = { track ->
+                    if (track == state.currentTrack) {
+                        viewModel.showFullscreenPlayer()
+                    } else {
+                        viewModel.togglePlay(track)
+                    }
+                },
                 onVolumeChange = { viewModel.setVolume(it) },
                 onSleepTimer = { viewModel.startSleepTimer(it) },
                 onCancelSleepTimer = { viewModel.cancelSleepTimer() },
@@ -183,7 +186,7 @@ private fun BrowseView(
     onSelectCategory: (String) -> Unit,
     onTogglePlay: (AudioTrack) -> Unit,
     onToggleFavorite: (String) -> Unit,
-    onTrackClick: () -> Unit,
+    onTrackClick: (AudioTrack) -> Unit,
     onVolumeChange: (Float) -> Unit,
     onSleepTimer: (Int) -> Unit,
     onCancelSleepTimer: () -> Unit,
@@ -266,7 +269,7 @@ private fun BrowseView(
                         accent = accent,
                         onPlay = { onTogglePlay(track) },
                         onFavorite = { onToggleFavorite(track.id) },
-                        onClick = { if (track.id == currentTrack?.id) onTrackClick() }
+                        onClick = { onTrackClick(track) }
                     )
                 }
             }
@@ -645,15 +648,29 @@ private fun FullscreenPlayer(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = onTogglePlay, shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = accent),
-                modifier = Modifier.size(64.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null, tint = onAccent, modifier = Modifier.size(32.dp)
-                )
+                Button(
+                    onClick = onTogglePlay, shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = accent),
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null, tint = onAccent, modifier = Modifier.size(32.dp)
+                    )
+                }
+                Button(
+                    onClick = onStop,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.height(44.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("停止")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

@@ -82,8 +82,9 @@ data class MonthlyReportNotification(
 
 data class WeatherAlertNotification(
     val weatherCity: String,
-    val weatherDesc: String,
-    val temperature: String,
+    val alertLevel: String,
+    val alertType: String,
+    val alertText: String,
     override val id: String = "weather_alert_${System.currentTimeMillis()}",
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
@@ -489,10 +490,16 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
             )
             is WeatherAlertNotification -> NotificationMeta(
                 type = "weather_alert",
-                title = "天气预警 · $weatherCity",
-                subtitle = "$weatherDesc $temperature°C",
+                title = "${alertLevel}预警 · ${alertType}",
+                subtitle = alertText,
                 iconType = "thunderstorm",
-                colorHex = 0xFFE53935,
+                colorHex = when (alertLevel) {
+                    "红色" -> 0xFFDC2626
+                    "橙色" -> 0xFFEA580C
+                    "黄色" -> 0xFFF59E0B
+                    "蓝色" -> 0xFF3B82F6
+                    else -> 0xFFE53935
+                },
                 relatedId = null
             )
             is InactivityNotification -> NotificationMeta(
@@ -599,13 +606,14 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                 )
             }
             "weather_alert" -> {
-                val city = title.removePrefix("天气预警 · ")
-                val temp = subtitle.substringAfterLast(" ").removeSuffix("°C")
-                val desc = subtitle.substringBeforeLast(" ")
+                val parts = title.split("预警 · ")
+                val level = if (parts.size >= 2) parts[0] else ""
+                val type = if (parts.size >= 2) parts[1] else title
                 WeatherAlertNotification(
-                    weatherCity = city,
-                    weatherDesc = desc,
-                    temperature = temp,
+                    weatherCity = "",
+                    alertLevel = level,
+                    alertType = type,
+                    alertText = subtitle,
                     id = id,
                     timestamp = createdAt
                 )

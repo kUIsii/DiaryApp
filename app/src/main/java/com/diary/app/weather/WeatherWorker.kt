@@ -22,7 +22,30 @@ class WeatherWorker(
         return try {
             val weather = WeatherManager.fetchWeather(applicationContext)
             if (weather != null && weather.alerts.isNotEmpty()) {
-                sendAlerts(weather.alerts, weather.city)
+                val app = applicationContext as com.diary.app.DiaryApplication
+                val dao = app.database.diaryDao()
+                for (alert in weather.alerts) {
+                    val entity = com.diary.app.data.NotificationEntity(
+                        id = "weather_alert_${System.currentTimeMillis()}_${alert.hashCode()}",
+                        type = "weather_alert",
+                        title = "${alert.level}预警 · ${alert.type}",
+                        subtitle = alert.text,
+                        iconType = "thunderstorm",
+                        colorHex = when (alert.level) {
+                            "红色" -> 0xFFDC2626L
+                            "橙色" -> 0xFFEA580CL
+                            "黄色" -> 0xFFF59E0BL
+                            "蓝色" -> 0xFF3B82F6L
+                            else -> 0xFFE53935L
+                        },
+                        relatedId = null,
+                        createdAt = System.currentTimeMillis()
+                    )
+                    dao.insertNotification(entity)
+                }
+                if (com.diary.app.reminder.NotificationPreferencesManager.isWeatherAlertsEnabled(applicationContext)) {
+                    sendAlerts(weather.alerts, weather.city)
+                }
             }
             Result.success()
         } catch (e: Exception) {
@@ -76,7 +99,7 @@ class WeatherWorker(
         private const val NOTIFICATION_ID = 1002
 
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<WeatherWorker>(3, TimeUnit.HOURS).build()
+            val request = PeriodicWorkRequestBuilder<WeatherWorker>(1, TimeUnit.HOURS).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
             val oneTimeRequest = androidx.work.OneTimeWorkRequestBuilder<WeatherWorker>()
                 .build()

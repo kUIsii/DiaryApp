@@ -29,7 +29,8 @@ data class AmbientSoundState(
     val recentIds: List<String> = emptyList(),
     val isPreparing: Boolean = false,
     val errorMessage: String? = null,
-    val meanderEnabled: Boolean = false
+    val meanderEnabled: Boolean = false,
+    val isFullscreenPlayerVisible: Boolean = false
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
@@ -67,11 +68,14 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
             }
 
             val savedTrackId = prefs.getString("last_track_id", null)
-            if (savedTrackId != null) {
-                val track = AudioRepository.getTrack(savedTrackId)
+            if (player.hasSession) {
+                syncStateWithPlayer()
+            } else if (shouldRestoreAmbientTrack(savedTrackId, player.hasSession)) {
+                val track = AudioRepository.getTrack(savedTrackId!!)
                 if (track != null) {
                     _state.value = _state.value.copy(
                         selectedCategoryId = track.categoryId,
+                        currentTrack = track,
                         isPreparing = true
                     )
                     val result = cacheManager.prepare(track.id, track.audioUrl)
@@ -81,14 +85,15 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
                         playResult.onSuccess {
                             dao.addRecent(RecentEntity(track.id))
                             val recent = dao.getRecentIds()
-                            _state.value = _state.value.copy(
-                                currentTrack = track,
-                                isPlaying = true,
+                            syncStateWithPlayer(
                                 recentIds = recent,
-                                progress = 0,
-                                duration = player.duration
+                                selectedCategoryId = track.categoryId
                             )
+                        }.onFailure {
+                            _state.value = _state.value.copy(currentTrack = null)
                         }
+                    }.onFailure {
+                        _state.value = _state.value.copy(currentTrack = null)
                     }
                 }
             }
@@ -96,11 +101,31 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun onPlaybackChanged() {
-        _state.value = _state.value.copy(
-            isPlaying = player.isPlaying,
-            currentTrack = player.currentTrack
-        )
+        syncStateWithPlayer()
         if (player.hasSession) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
+    }
+
+    private fun syncStateWithPlayer(
+        recentIds: List<String> = _state.value.recentIds,
+        selectedCategoryId: String = _state.value.selectedCategoryId
+    ) {
+        val snapshot = AmbientPlayerSnapshot(
+            currentTrack = player.currentTrack,
+            isPlaying = player.isPlaying,
+            volume = player.currentVolume,
+            duration = player.duration,
+            progress = player.currentPosition,
+            sleepRemainingSeconds = player.sleepRemainingSeconds(),
+            meanderEnabled = player.isMeanderEnabled,
+            hasSession = player.hasSession
+        )
+        _state.value = syncAmbientStateWithPlayer(
+            state = _state.value.copy(
+                recentIds = recentIds,
+                selectedCategoryId = selectedCategoryId
+            ),
+            snapshot = snapshot
+        )
     }
 
     fun clearError() {
@@ -114,34 +139,44 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
 
     fun play(track: AudioTrack) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isPreparing = true, errorMessage = null)
+            _state.value = _state.value.copy(
+                currentTrack = track,
+                isPreparing = true,
+                errorMessage = null
+            )
             val result = cacheManager.prepare(track.id, track.audioUrl)
+
+            if (_state.value.currentTrack?.id != track.id) return@launch
+
             _state.value = _state.value.copy(isPreparing = false)
 
             result.onSuccess { file ->
+                if (_state.value.currentTrack?.id != track.id) return@launch
                 val playResult = player.play(ctx, track, file)
                 playResult.onSuccess {
+                    if (_state.value.currentTrack?.id != track.id) return@launch
                     prefs.edit().putString("last_track_id", track.id).apply()
                     dao.addRecent(RecentEntity(track.id))
                     val recentIds = dao.getRecentIds()
-                    _state.value = _state.value.copy(
-                        currentTrack = track,
-                        isPlaying = true,
+                    syncStateWithPlayer(
                         recentIds = recentIds,
-                        progress = 0,
-                        duration = player.duration
+                        selectedCategoryId = track.categoryId
                     )
                 }.onFailure {
+                    if (_state.value.currentTrack?.id != track.id) return@launch
                     _state.value = _state.value.copy(
+                        currentTrack = null,
                         errorMessage = "无法播放此音频"
                     )
                 }
             }.onFailure { e ->
+                if (_state.value.currentTrack?.id != track.id) return@launch
                 val msg = when {
                     e.message?.contains("not found", true) == true -> "音频文件缺失"
                     else -> "无法加载音频"
                 }
                 _state.value = _state.value.copy(
+                    currentTrack = null,
                     errorMessage = msg
                 )
             }
@@ -156,7 +191,7 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
             } else {
                 player.resume()
             }
-            _state.value = _state.value.copy(isPlaying = player.isPlaying)
+            syncStateWithPlayer()
         } else {
             play(track)
         }
@@ -170,12 +205,14 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun stop() {
+        sleepTimerJob?.cancel()
+        stopProgressUpdates()
         player.stop()
         prefs.edit().remove("last_track_id").apply()
+        syncStateWithPlayer()
         _state.value = _state.value.copy(
-            currentTrack = null,
-            isPlaying = false,
-            sleepRemainingSeconds = 0
+            sleepRemainingSeconds = 0,
+            isFullscreenPlayerVisible = false
         )
         AmbientSoundService.stop(ctx)
     }
@@ -188,6 +225,7 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
 
     fun seekTo(position: Int) {
         player.seekTo(position)
+        syncStateWithPlayer()
     }
 
     fun toggleFavorite(trackId: String) {
@@ -228,6 +266,16 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         _state.value = _state.value.copy(sleepRemainingSeconds = 0)
     }
 
+    fun showFullscreenPlayer() {
+        if (_state.value.currentTrack != null) {
+            _state.value = _state.value.copy(isFullscreenPlayerVisible = true)
+        }
+    }
+
+    fun hideFullscreenPlayer() {
+        _state.value = _state.value.copy(isFullscreenPlayerVisible = false)
+    }
+
     var progressUpdateJob: Job? = null
     private var sleepTimerJob: Job? = null
 
@@ -236,10 +284,7 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
         progressUpdateJob = viewModelScope.launch {
             while (true) {
                 if (player.isPlaying) {
-                    _state.value = _state.value.copy(
-                        progress = player.currentPosition,
-                        duration = player.duration
-                    )
+                    syncStateWithPlayer()
                 }
                 delay(500)
             }

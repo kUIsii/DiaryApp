@@ -67,17 +67,36 @@ fun buildAnalysisCenterHome(
     totalEntries: Int,
     currentStreak: Int,
     thisMonthEntries: Int,
-    topInsights: List<AnalysisCenterInsight>
+    topInsights: List<AnalysisCenterInsight>,
+    deepDiveEntries: List<String> = emptyList()
 ): AnalysisCenterHome {
     return AnalysisCenterHome(
         summary = summary,
-        sectionOrder = listOf("摘要", "关键指标", "洞察"),
+        sectionOrder = if (deepDiveEntries.isEmpty()) {
+            listOf("摘要", "关键指标", "洞察")
+        } else {
+            listOf("摘要", "关键指标", "洞察", "深挖入口")
+        },
         keyMetrics = listOf(
             AnalysisCenterMetric("总记录", totalEntries.toString()),
             AnalysisCenterMetric("连续天数", currentStreak.toString()),
             AnalysisCenterMetric("本月记录", thisMonthEntries.toString())
         ),
         topInsights = topInsights
+    )
+}
+
+data class DeepDiveGroup(
+    val title: String,
+    val entries: List<String>
+)
+
+fun buildDeepDiveGroups(): List<DeepDiveGroup> {
+    return listOf(
+        DeepDiveGroup("时间报告", listOf("月度报告", "季度回顾", "年度报告", "个人年鉴")),
+        DeepDiveGroup("心情洞察", listOf("情绪分析", "情绪雷达")),
+        DeepDiveGroup("文本洞察", listOf("写作分析", "文字显微镜")),
+        DeepDiveGroup("结构关联", listOf("条目图谱"))
     )
 }
 

@@ -1,0 +1,5 @@
+{"type":"owner-pid-invalid","pid":26920,"reason":"dead at startup"}
+{"type":"server-started","port":53037,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:53037","screen_dir":"C:\\Users\\陈仕杰\\Desktop\\DiaryApp\\.superpowers\\brainstorm\\session_20260702_095006\\content","state_dir":"C:\\Users\\陈仕杰\\Desktop\\DiaryApp\\.superpowers\\brainstorm\\session_20260702_095006\\state"}
+{"type":"screen-added","file":"C:\\Users\\陈仕杰\\Desktop\\DiaryApp\\.superpowers\\brainstorm\\session_20260702_095006\\content\\weather-home-alert.html"}
+{"type":"screen-added","file":"C:\\Users\\陈仕杰\\Desktop\\DiaryApp\\.superpowers\\brainstorm\\session_20260702_095006\\content\\home-weather-v2.html"}
+{"type":"server-stopped","reason":"idle timeout"}

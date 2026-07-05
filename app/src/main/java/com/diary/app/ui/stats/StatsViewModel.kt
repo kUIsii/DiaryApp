@@ -115,6 +115,7 @@ data class StatsState(
     val isAnalyzing: Boolean = false,
     val centerSummary: AnalysisCenterSummary = defaultAnalysisCenterSummary(),
     val centerHome: AnalysisCenterHome = defaultAnalysisCenterHome(),
+    val deepDiveGroups: List<DeepDiveGroup> = emptyList(),
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -254,12 +255,15 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         )
+        val deepDiveGroups = buildDeepDiveGroups()
+        val deepDiveEntries = deepDiveGroups.flatMap { it.entries }
         val centerHome = buildAnalysisCenterHome(
             summary = centerSummary,
             totalEntries = stats.totalEntries,
             currentStreak = stats.currentStreak,
             thisMonthEntries = stats.thisMonthEntries,
-            topInsights = listOf(centerSummary.primaryInsight) + centerSummary.secondaryInsights
+            topInsights = listOf(centerSummary.primaryInsight) + centerSummary.secondaryInsights,
+            deepDiveEntries = deepDiveEntries
         )
         stats.copy(
             topWords = wc.words,
@@ -270,6 +274,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             isAnalyzing = analyzing,
             centerSummary = centerSummary,
             centerHome = centerHome,
+            deepDiveGroups = deepDiveGroups,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsState())
 

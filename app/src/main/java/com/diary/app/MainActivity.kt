@@ -56,8 +56,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diary.app.biometric.BiometricHelper
+import com.diary.app.data.auth.AuthManager
 import com.diary.app.ui.components.GradientBackground
 import com.diary.app.ui.lock.PinEntryScreen
+import com.diary.app.ui.login.LoginScreen
 import com.diary.app.ui.navigation.DiaryNavHost
 import com.diary.app.ui.notification.InAppNotification
 import com.diary.app.ui.notification.InAppNotificationBanner
@@ -145,7 +147,19 @@ class MainActivity : FragmentActivity() {
                 // If both are enabled, default to PIN; otherwise use whichever is set
                 var showPinScreen by remember { mutableStateOf(pinLockEnabled) }
 
-                if (!isAuthenticated) {
+                val authManager = remember { AuthManager(context) }
+                val initialAuth = remember { authManager.restoreSession() }
+                var authState by remember { mutableStateOf(initialAuth) }
+
+                if (authState.state != com.diary.app.data.auth.AuthState.LOGGED_IN) {
+                    LoginScreen(
+                        authManager = authManager,
+                        onLoggedIn = {
+                            authState = authManager.restoreSession()
+                            com.diary.app.data.sync.SyncWorker.syncOnce(context)
+                        }
+                    )
+                } else if (!isAuthenticated) {
                     GradientBackground {
                         Box(modifier = Modifier.fillMaxSize()) {
                             if (showPinScreen) {
@@ -417,6 +431,10 @@ class MainActivity : FragmentActivity() {
                             }
                             lastNotifCount = unread.size
                         }
+                    }
+
+                    LaunchedEffect(Unit) {
+                        com.diary.app.data.sync.SyncWorker.syncOnce(context)
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {

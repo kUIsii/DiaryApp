@@ -1,0 +1,67 @@
+<div style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: center;">
+
+  <!-- Phone mockup 1: 无预警 -->
+  <div style="width: 320px; border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+    <div style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 14px; font-weight: 600; color: #111827;">7月2日 周四</span>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <div style="width: 14px; height: 14px; background: #FBBF24; border-radius: 50%;"></div>
+        <span style="font-size: 12px; color: #6B7280;">北京 晴 25°</span>
+      </div>
+    </div>
+    <div style="padding: 32px 16px; display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 13px; color: #9CA3AF;">无预警 · 正常显示</span>
+    </div>
+  </div>
+
+  <!-- Phone mockup 2: 有预警 · 收起状态 -->
+  <div style="width: 320px; border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+    <div style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 14px; font-weight: 600; color: #111827;">7月2日 周四</span>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <div style="width: 14px; height: 14px; background: #FBBF24; border-radius: 50%;"></div>
+        <span style="font-size: 12px; color: #6B7280;">北京 多云 28°</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin: 0 12px; margin-top: 8px; background: #f9fafb; border-radius: 8px; cursor: pointer;">
+      <div style="width: 6px; height: 6px; background: #EF4444; border-radius: 50%;"></div>
+      <span style="font-size: 12px; font-weight: 500; color: #DC2626;">暴雨黄色预警</span>
+    </div>
+    <div style="padding: 32px 16px; display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 13px; color: #9CA3AF;">点击预警标签展开详情</span>
+    </div>
+  </div>
+
+  <!-- Phone mockup 3: 有预警 · 展开状态 -->
+  <div style="width: 320px; border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+    <div style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 14px; font-weight: 600; color: #111827;">7月2日 周四</span>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <div style="width: 14px; height: 14px; background: #FBBF24; border-radius: 50%;"></div>
+        <span style="font-size: 12px; color: #6B7280;">北京 多云 28°</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin: 0 12px; margin-top: 8px; background: #fef2f2; border-radius: 8px; cursor: pointer;">
+      <div style="width: 6px; height: 6px; background: #EF4444; border-radius: 50%;"></div>
+      <span style="font-size: 12px; font-weight: 500; color: #DC2626;">暴雨黄色预警</span>
+    </div>
+    <div style="margin: 4px 12px 12px; padding: 10px 14px; background: #fef2f2; border-left: 3px solid #EF4444; border-radius: 0 6px 6px 0;">
+      <p style="margin: 0; font-size: 12px; color: #6B7280; line-height: 1.6;">
+        预计未来6小时本市将出现强降水，部分地区累计雨量可达50毫米以上，请注意防范城市内涝。
+      </p>
+    </div>
+    <div style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 13px; color: #9CA3AF;">点击标签收起</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <h3>说明</h3>
+  <ul>
+    <li><strong>左：</strong>无预警场景 — 天气行正常显示</li>
+    <li><strong>中：</strong>有预警，收起状态 — 天气行 + 红色预警标签</li>
+    <li><strong>右：</strong>有预警，展开状态 — 标签下方展开预警原文，带红色左边框</li>
+  </ul>
+</div>

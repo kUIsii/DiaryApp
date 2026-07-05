@@ -1,6 +1,7 @@
 ﻿package com.diary.app.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -91,6 +92,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.backup.BackupScreen
+import com.diary.app.ui.theme.ThemeFamily
+import com.diary.app.ui.theme.themeMode
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.capsule.CreateCapsuleScreen
 import com.diary.app.ui.capsule.ReadCapsuleScreen
@@ -127,6 +130,7 @@ import com.diary.app.ui.tools.ToolsScreen
 
 import com.diary.app.ui.ambientsound.AmbientSoundMiniBar
 import com.diary.app.ui.ambientsound.AmbientSoundScreen
+import com.diary.app.ui.ambientsound.AmbientSoundViewModel
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
@@ -230,6 +234,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
     val experimentalFeatures by app.experimentalFeatures.collectAsState()
     val navController = rememberNavController()
     val haptic = rememberHapticFeedback()
+    val ambientSoundViewModel: AmbientSoundViewModel = viewModel()
+    val ambientSoundState by ambientSoundViewModel.state.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -413,8 +419,21 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 )
             }
             composable(Screen.Stats.route) {
+                val now = java.time.LocalDate.now()
                 StatsScreen(
-                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) }
+                    onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
+                    onDeepDiveNavigate = { group, entry ->
+                        when (entry) {
+                            "月度报告" -> navController.navigate(
+                                Screen.MonthlyReport.createRoute(now.year, now.monthValue)
+                            )
+                            "年度报告" -> navController.navigate(Screen.AnnualReport.route)
+                            "个人年鉴" -> navController.navigate(Screen.AnnualReport.route)
+                            "写作分析" -> navController.navigate(Screen.WritingFingerprint.route)
+                            "情绪分析" -> navController.navigate(Screen.Stats.route)
+                            else -> { /* coming soon */ }
+                        }
+                    }
                 )
             }
             composable(Screen.Profile.route) {
@@ -819,7 +838,8 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
             }
             composable(route = Screen.AmbientSound.route) {
                 AmbientSoundScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    viewModel = ambientSoundViewModel
                 )
             }
             composable(
@@ -838,8 +858,21 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
         }
 
         AmbientSoundMiniBar(
+            state = ambientSoundState,
+            onTogglePlay = {
+                ambientSoundState.currentTrack?.let {
+                    ambientSoundViewModel.togglePlay(it)
+                }
+            },
+            onStop = { ambientSoundViewModel.stop() },
+            onVolumeChange = { ambientSoundViewModel.setVolume(it) },
             modifier = Modifier.align(Alignment.BottomCenter),
-            onNavigateToFullScreen = { navController.navigate(Screen.AmbientSound.route) }
+            onNavigateToFullScreen = {
+                ambientSoundViewModel.showFullscreenPlayer()
+                navController.navigate(Screen.AmbientSound.route) {
+                    launchSingleTop = true
+                }
+            }
         )
         }
     }
@@ -894,25 +927,38 @@ private fun DiaryBottomNavItem(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val mode = themeMode()
+
+    val scaleSpec: AnimationSpec<Float>
+    val colorSpec: AnimationSpec<Color>
+    when (mode.category) {
+        ThemeFamily.BLUE -> { scaleSpec = spring(dampingRatio = 0.8f, stiffness = 400f); colorSpec = tween(200) }
+        ThemeFamily.GREEN -> { scaleSpec = spring(dampingRatio = 0.5f, stiffness = 300f); colorSpec = tween(250) }
+        ThemeFamily.CYAN -> { scaleSpec = spring(dampingRatio = 0.7f, stiffness = 350f); colorSpec = tween(180) }
+        ThemeFamily.ROSE -> { scaleSpec = spring(dampingRatio = 0.7f, stiffness = 200f); colorSpec = tween(280) }
+        ThemeFamily.AMBER -> { scaleSpec = spring(dampingRatio = 0.9f, stiffness = 250f); colorSpec = tween(320) }
+        ThemeFamily.CLAY -> { scaleSpec = spring(dampingRatio = 0.85f, stiffness = 300f); colorSpec = tween(260) }
+        ThemeFamily.INK -> { scaleSpec = spring(dampingRatio = 0.9f, stiffness = 500f); colorSpec = tween(150) }
+    }
 
     val iconScale by animateFloatAsState(
         targetValue = if (isSelected) 1.1f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = scaleSpec,
         label = "iconScale"
     )
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) primaryColor else onSurfaceVariant,
-        animationSpec = tween(200),
+        animationSpec = colorSpec,
         label = "iconColor"
     )
     val textColor by animateColorAsState(
         targetValue = if (isSelected) primaryColor else onSurfaceVariant,
-        animationSpec = tween(200),
+        animationSpec = colorSpec,
         label = "textColor"
     )
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) primaryColor.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = tween(200),
+        animationSpec = colorSpec,
         label = "backgroundColor"
     )
 

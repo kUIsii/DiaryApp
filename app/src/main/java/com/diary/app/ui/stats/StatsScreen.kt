@@ -93,6 +93,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StatsScreen(
     onNavigateToDetail: (Long) -> Unit = {},
+    onDeepDiveNavigate: (String, String) -> Unit = { _, _ -> },
     viewModel: StatsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -325,6 +326,15 @@ fun StatsScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    if (state.deepDiveGroups.isNotEmpty()) {
+                        item {
+                            DeepDiveSection(
+                                groups = state.deepDiveGroups,
+                                onEntryClick = onDeepDiveNavigate
+                            )
                         }
                     }
 
@@ -1569,6 +1579,61 @@ private fun HeatmapLegend() {
             fontSize = 10.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun DeepDiveSection(
+    groups: List<DeepDiveGroup>,
+    onEntryClick: (String, String) -> Unit
+) {
+    StatsSectionCard(
+        title = "深挖入口",
+        subtitle = "从不同维度深入分析你的日记数据"
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            groups.forEach { group ->
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    innerPadding = 14.dp
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = group.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            group.entries.forEach { entry ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                        .clickable { onEntryClick(group.title, entry) }
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = entry,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

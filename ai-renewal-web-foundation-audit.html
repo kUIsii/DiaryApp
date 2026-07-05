@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp Web Foundation Audit</title>
+  <style>
+    :root {
+      --paper: #f7f5ef;
+      --paper-2: #fbfaf6;
+      --ink: #19211f;
+      --muted: #66736f;
+      --line: #ddd8cd;
+      --line-strong: #c8c0b2;
+      --moss: #3f6f5c;
+      --moss-2: #e2ede4;
+      --fog: #dfe8ea;
+      --fog-2: #edf3f3;
+      --blue: #2f6577;
+      --amber: #b37532;
+      --red: #a34c43;
+      --green: #2f7a5a;
+      --white: #ffffff;
+      --shadow: 0 16px 38px rgba(43, 55, 50, .08);
+      --radius: 8px;
+      --sidebar: 248px;
+      --inspector: 340px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 0;
+      background:
+        linear-gradient(180deg, rgba(223, 232, 234, .52), rgba(247, 245, 239, .84) 34%, var(--paper)),
+        var(--paper);
+      color: var(--ink);
+      font-family: "Inter", "Plus Jakarta Sans", "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(47, 101, 119, .32);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--inspector);
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 18px 14px;
+      border-right: 1px solid var(--line);
+      background: rgba(251, 250, 246, .82);
+      backdrop-filter: blur(12px);
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 8px 18px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--paper-2);
+      background: var(--ink);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav-group-title {
+      margin: 18px 8px 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .nav-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      margin: 3px 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      transition: background .18s ease, color .18s ease;
+    }
+
+    .nav-button svg {
+      width: 19px;
+      height: 19px;
+      flex: 0 0 auto;
+    }
+
+    .nav-button.active,
+    .nav-button:hover {
+      background: var(--fog-2);
+      color: var(--ink);
+    }
+
+    .nav-button.active {
+      box-shadow: inset 3px 0 0 var(--moss);
+    }
+
+    .main {
+      min-width: 0;
+      padding: 18px 20px 80px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 12;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      min-height: 66px;
+      padding: 12px 0;
+      background: linear-gradient(180deg, rgba(247, 245, 239, .96), rgba(247, 245, 239, .82));
+      backdrop-filter: blur(10px);
+    }
+
+    .page-kicker {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .page-title {
+      margin: 1px 0 0;
+      font-size: 24px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .58);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .screen {
+      display: none;
+      min-width: 0;
+    }
+
+    .screen.active {
+      display: block;
+      animation: reveal .18s ease;
+    }
+
+    @keyframes reveal {
+      from { opacity: .4; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.main-todo { grid-template-columns: minmax(0, 1.34fr) minmax(320px, .88fr); align-items: start; }
+    .grid.editor { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); align-items: start; }
+    .grid.memory { grid-template-columns: minmax(0, 1fr) minmax(280px, .68fr); align-items: start; }
+
+    .panel,
+    .card,
+    .metric,
+    .phone,
+    .table-wrap,
+    .spec-block {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(251, 250, 246, .82);
+      box-shadow: var(--shadow);
+    }
+
+    .panel { padding: 16px; min-width: 0; }
+    .card { padding: 14px; min-width: 0; }
+    .metric { padding: 13px; min-width: 0; background: rgba(255, 255, 255, .62); }
+    .panel.tight { padding: 12px; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-head h2,
+    .section-head h3,
+    .card h3,
+    .metric h3,
+    .spec-block h3 {
+      margin: 0;
+      line-height: 1.28;
+      letter-spacing: 0;
+    }
+
+    .section-head h2 { font-size: 19px; }
+    .section-head h3, .card h3, .metric h3, .spec-block h3 { font-size: 15px; }
+
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 23px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: var(--paper-2);
+      border: 1px solid var(--ink);
+      transition: background .18s ease, border-color .18s ease;
+    }
+
+    .btn svg { width: 17px; height: 17px; }
+    .btn.secondary { background: var(--white); color: var(--ink); border-color: var(--line-strong); }
+    .btn.ghost { background: transparent; color: var(--muted); border-color: var(--line); }
+    .btn:hover { background: var(--blue); border-color: var(--blue); color: var(--paper-2); }
+
+    .segmented {
+      display: inline-flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.58);
+      gap: 3px;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .segmented button {
+      min-height: 38px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .segmented button.active {
+      background: var(--ink);
+      color: var(--paper-2);
+    }
+
+    .todo-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .todo-column {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.46);
+    }
+
+    .column-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 9px;
+      min-height: 34px;
+    }
+
+    .column-head h3 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .count {
+      display: inline-flex;
+      min-width: 26px;
+      justify-content: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--fog-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .task {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper-2);
+      margin-bottom: 8px;
+    }
+
+    .task h4 {
+      margin: 0 0 5px;
+      font-size: 13px;
+      line-height: 1.32;
+    }
+
+    .task p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .mini {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--fog-2);
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .mini.warn { background: #f7eadc; color: var(--amber); }
+    .mini.good { background: var(--moss-2); color: var(--green); }
+    .mini.bad { background: #f4e2df; color: var(--red); }
+    .mini.ai { background: #e4edf0; color: var(--blue); }
+
+    .ai-command {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+      margin-top: 10px;
+    }
+
+    .ai-command textarea,
+    .input {
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background: var(--white);
+      color: var(--ink);
+      resize: vertical;
+    }
+
+    .calendar-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .day-cell {
+      min-height: 58px;
+      padding: 7px 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper-2);
+      text-align: center;
+    }
+
+    .day-cell strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.15;
+    }
+
+    .day-cell span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .day-cell.done {
+      background: var(--moss-2);
+      border-color: #b8d2bf;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--fog);
+      overflow: hidden;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--moss);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.58);
+    }
+
+    .time {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .editor-paper {
+      min-height: 460px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background:
+        repeating-linear-gradient(to bottom, transparent 0 31px, rgba(47,101,119,.09) 32px),
+        var(--paper-2);
+    }
+
+    .editor-paper h2 {
+      margin: 0 0 16px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 27px;
+      letter-spacing: 0;
+    }
+
+    .editor-paper p {
+      max-width: 72ch;
+      margin: 0 0 14px;
+      color: #2a3431;
+      line-height: 1.78;
+    }
+
+    .metadata-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 8px;
+      padding: 9px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.58);
+      border: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .meta-row span:first-child {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .graph {
+      min-height: 430px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(25,33,31,.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(25,33,31,.04) 1px, transparent 1px),
+        rgba(255,255,255,.52);
+      background-size: 28px 28px;
+    }
+
+    .node {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 112px;
+      min-height: 54px;
+      padding: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--paper-2);
+      text-align: center;
+      font-size: 12px;
+      box-shadow: 0 10px 24px rgba(25,33,31,.08);
+    }
+
+    .node.main {
+      width: 132px;
+      background: var(--ink);
+      color: var(--paper-2);
+      border-color: var(--ink);
+      font-weight: 700;
+    }
+
+    .edge {
+      position: absolute;
+      height: 1px;
+      transform-origin: 0 0;
+      background: rgba(47, 101, 119, .42);
+    }
+
+    .phone {
+      max-width: 360px;
+      margin: 0 auto;
+      padding: 12px;
+      border-radius: 28px;
+      background: #202724;
+      box-shadow: 0 22px 50px rgba(25,33,31,.18);
+    }
+
+    .phone-screen {
+      min-height: 680px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: var(--paper-2);
+      color: var(--ink);
+      padding: 14px;
+    }
+
+    .phone-top {
+      height: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 12px;
+    }
+
+    .mobile-tabbar {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 4px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .mobile-tabbar span {
+      min-height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--fog-2);
+    }
+
+    .mobile-tabbar span.active {
+      background: var(--ink);
+      color: var(--paper-2);
+    }
+
+    .inspector {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 18px 16px 80px;
+      border-left: 1px solid var(--line);
+      background: rgba(251,250,246,.78);
+      backdrop-filter: blur(12px);
+    }
+
+    .inspector h2 {
+      margin: 0 0 5px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .inspector-block {
+      display: none;
+    }
+
+    .inspector-block.active {
+      display: block;
+    }
+
+    .finding-list,
+    .check-list,
+    .plain-list {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .finding-list li,
+    .check-list li,
+    .plain-list li {
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.55);
+      font-size: 12px;
+    }
+
+    .check-list li {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 7px;
+    }
+
+    .check-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--moss);
+      margin-top: 2px;
+    }
+
+    .spec-block {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(251,250,246,.9);
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      background: rgba(251,250,246,.88);
+    }
+
+    table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 10px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--fog-2);
+      color: var(--ink);
+      font-size: 11px;
+      z-index: 1;
+    }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: var(--fog-2);
+      color: #214655;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .92em;
+    }
+
+    pre {
+      margin: 10px 0 0;
+      padding: 12px;
+      overflow-x: auto;
+      border-radius: 8px;
+      background: #1f2725;
+      color: #f2f0e8;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .roadmap {
+      display: grid;
+      gap: 10px;
+      counter-reset: phase;
+    }
+
+    .phase {
+      display: grid;
+      grid-template-columns: 80px minmax(0, 1fr);
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.56);
+    }
+
+    .phase b {
+      display: inline-grid;
+      place-items: center;
+      min-height: 42px;
+      border-radius: 8px;
+      color: var(--paper-2);
+      background: var(--ink);
+    }
+
+    .source-note {
+      margin-top: 12px;
+      padding: 10px;
+      border-left: 3px solid var(--blue);
+      background: var(--fog-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hide-mobile { display: initial; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      :root { --sidebar: 214px; --inspector: 300px; }
+      .grid.main-todo,
+      .grid.editor,
+      .grid.memory { grid-template-columns: 1fr; }
+      .todo-board { grid-template-columns: 1fr; }
+      .spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        display: block;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        height: auto;
+        padding: 10px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        padding-bottom: 10px;
+        margin-bottom: 8px;
+      }
+      .nav-group-title { display: none; }
+      .nav-scroll {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .nav-button {
+        width: auto;
+        min-width: 128px;
+        flex: 0 0 auto;
+      }
+      .nav-button.active { box-shadow: inset 0 -3px 0 var(--moss); }
+      .main { padding: 12px 12px 60px; }
+      .topbar {
+        position: relative;
+        grid-template-columns: 1fr;
+        padding-top: 6px;
+      }
+      .status-strip { justify-content: flex-start; }
+      .inspector {
+        position: relative;
+        height: auto;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .grid.two,
+      .grid.three { grid-template-columns: 1fr; }
+      .spec-grid { grid-template-columns: 1fr; }
+      .ai-command { grid-template-columns: 1fr; }
+      .hide-mobile { display: none; }
+    }
+
+    @media (max-width: 520px) {
+      body { font-size: 14px; }
+      .page-title { font-size: 20px; }
+      .brand-mark { width: 38px; height: 38px; }
+      .metric strong { font-size: 20px; }
+      .panel, .card, .metric, .spec-block { padding: 12px; }
+      .calendar-strip { gap: 4px; }
+      .day-cell { min-height: 52px; }
+      .timeline-item { grid-template-columns: 1fr; }
+      .phase { grid-template-columns: 1fr; }
+      .phone-screen { min-height: 620px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H6A2 2 0 0 1 4 17.5v-11a2 2 0 0 1 2-2Z"/><path d="M8 8h7M8 11h5M8 14h7"/></svg>
+        </div>
+        <div>
+          <h1>DiaryApp Web</h1>
+          <p>Foundation Audit</p>
+        </div>
+      </div>
+      <div class="nav-scroll" role="navigation" aria-label="网页端审查导航">
+        <div class="nav-group-title">Web App</div>
+        <button class="nav-button active" data-target="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-3H4v3Z"/></svg>
+          总览工作台
+        </button>
+        <button class="nav-button" data-target="todo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 12 4 4L20 4"/><path d="M4 20h16"/></svg>
+          AI 待办中心
+        </button>
+        <button class="nav-button" data-target="editor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="m14 4 6 6L8 22H2v-6L14 4Z"/></svg>
+          智能编辑器
+        </button>
+        <button class="nav-button" data-target="timeline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4v16"/><path d="M9 6h10M9 12h10M9 18h10"/><path d="M4 6h2M4 12h2M4 18h2"/></svg>
+          时间线媒体
+        </button>
+        <button class="nav-button" data-target="memory">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+          记忆网络
+        </button>
+        <button class="nav-button" data-target="sync">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8a5 5 0 0 1 8.6-3.5L18 7"/><path d="M18 4v3h-3"/><path d="M17 16a5 5 0 0 1-8.6 3.5L6 17"/><path d="M6 20v-3h3"/></svg>
+          同步隐私
+        </button>
+        <div class="nav-group-title">Audit</div>
+        <button class="nav-button" data-target="audit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10"/><path d="m17 18 2 2 4-5"/></svg>
+          工程审查
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="page-kicker" id="pageKicker">Web Foundation</p>
+          <h2 class="page-title" id="pageTitle">全局能力重组后的网页版底座</h2>
+        </div>
+        <div class="status-strip" aria-label="项目状态">
+          <span class="pill"><span class="dot"></span> 源码审查：Android + Worker</span>
+          <span class="pill">重点：待办与 AI</span>
+          <span class="pill">产物：可交互 HTML</span>
+        </div>
+      </header>
+
+      <section class="screen active" id="overview" data-title="全局能力重组后的网页版底座" data-kicker="Web Foundation">
+        <div class="grid three">
+          <div class="metric"><h3>现有主入口</h3><strong>5</strong><p class="sub">首页、时间轴、工具、待办、我的。问题不是入口太少，而是二级能力太散。</p></div>
+          <div class="metric"><h3>实际功能面</h3><strong>30+</strong><p class="sub">编辑、统计、AI、备份、地图、传记、成就、媒体、沉浸、报告等被拆散在多个页面。</p></div>
+          <div class="metric"><h3>数据库版本</h3><strong>37</strong><p class="sub">Room 已沉淀大量实体，网页版应复用概念模型，而不是重做一个浅层 Todo/Diary。</p></div>
+        </div>
+
+        <div class="grid two" style="margin-top:14px;">
+          <div class="panel">
+            <div class="section-head">
+              <div>
+                <h2>新版信息架构</h2>
+                <p class="sub">把当前移动端的功能“按用户目标”重新组织，而不是按历史开发顺序堆在工具页。</p>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item"><div class="time">01 今日</div><div><b>写什么、做什么、复盘什么</b><p class="sub">合并 Home 的问候、搜索、日历、快捷入口、待办概览、AI 今日建议。</p></div></div>
+              <div class="timeline-item"><div class="time">02 待办</div><div><b>AI 任务与习惯中心</b><p class="sub">从原三 Tab 升级为计划、执行、习惯、复盘、AI 拆解五个工作流。</p></div></div>
+              <div class="timeline-item"><div class="time">03 记录</div><div><b>长文编辑器与快速记录</b><p class="sub">WebView/Quill 经验迁移到 Web 富文本编辑器，保留媒体、位置、天气、标签、草稿。</p></div></div>
+              <div class="timeline-item"><div class="time">04 记忆</div><div><b>时间线、媒体、人物、地点、决策</b><p class="sub">利用已有 TrackedPerson、PersonMention、Decision、DiaryEmbedding 等实体。</p></div></div>
+              <div class="timeline-item"><div class="time">05 AI</div><div><b>有证据链的个人记忆助手</b><p class="sub">从“抽最近和随机日记进 prompt”升级为检索、引用、权限、缓存、可撤销记忆。</p></div></div>
+              <div class="timeline-item"><div class="time">06 同步</div><div><b>手机号登录、端到端加密、多设备</b><p class="sub">现 Worker 只能做 PIN 登录和单备份，需要会话、设备、备份版本和加密层。</p></div></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-head">
+              <div>
+                <h2>明天可开工的 Web 版本结构</h2>
+                <p class="sub">第一阶段建议直接做一个正式 Web App 底座，不再继续产出孤立静态图。</p>
+              </div>
+            </div>
+            <div class="spec-grid">
+              <div class="card"><h3>前端</h3><p class="sub">Next.js 或 React + Vite。先做本地 IndexedDB 数据层，接口适配 Worker。</p></div>
+              <div class="card"><h3>同步</h3><p class="sub">Cloudflare Worker 扩为 Auth、Sync、Tasks、AI Jobs、Audit Logs 五组 API。</p></div>
+              <div class="card"><h3>数据</h3><p class="sub">沿用 Android 实体语义，Web 端建立 schema version 与迁移器。</p></div>
+              <div class="card"><h3>AI</h3><p class="sub">统一上下文策略：检索、引用、摘要、敏感字段屏蔽、用户确认后写入。</p></div>
+            </div>
+            <div class="source-note">审查依据来自源码：<code>DiaryNavHost.kt</code> 的路由结构、<code>DiaryDatabase.kt</code> 的实体列表、<code>workers/src/index.js</code> 的同步接口、各核心页面的 Compose 布局与状态收集。</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px;">
+          <div class="section-head">
+            <div>
+              <h2>手机端与网页端关系</h2>
+              <p class="sub">手机端继续承担轻记录、提醒、通知、小组件；网页端承担重整理、批量编辑、AI 规划、回顾分析。</p>
+            </div>
+          </div>
+          <div class="grid two">
+            <div class="phone">
+              <div class="phone-screen">
+                <div class="phone-top"><span>9:41</span><span>DiaryApp</span></div>
+                <div class="card" style="background:var(--moss-2);"><h3>今日</h3><p class="sub">快速写一条、完成打卡、看提醒。</p></div>
+                <div class="calendar-strip">
+                  <div class="day-cell done"><strong>1</strong><span>写作</span></div>
+                  <div class="day-cell done"><strong>2</strong><span>待办</span></div>
+                  <div class="day-cell"><strong>3</strong><span>空</span></div>
+                  <div class="day-cell done"><strong>4</strong><span>今</span></div>
+                  <div class="day-cell"><strong>5</strong><span>计划</span></div>
+                  <div class="day-cell"><strong>6</strong><span>休</span></div>
+                  <div class="day-cell"><strong>7</strong><span>复盘</span></div>
+                </div>
+                <div class="task" style="margin-top:12px;"><h4>写 200 字晨间记录</h4><p>AI 根据昨晚未完成事项建议保留 20 分钟。</p><div class="task-meta"><span class="mini ai">AI 建议</span><span class="mini good">习惯</span></div></div>
+                <div class="task"><h4>整理旅行照片</h4><p>来自昨日日记的媒体待处理。</p><div class="task-meta"><span class="mini warn">今天</span><span class="mini">媒体</span></div></div>
+                <div class="mobile-tabbar"><span class="active">今日</span><span>待办</span><span>写作</span><span>记忆</span><span>我的</span></div>
+              </div>
+            </div>
+            <div class="panel tight">
+              <div class="section-head"><div><h3>网页端首屏</h3><p class="sub">不是移动端放大，而是多栏工作区。</p></div></div>
+              <div class="grid two">
+                <div class="card"><h3>左侧导航</h3><p class="sub">固定 6 个工作区，避免工具页无限膨胀。</p></div>
+                <div class="card"><h3>中间工作面板</h3><p class="sub">今日计划、任务看板、编辑器、记忆图谱可直接操作。</p></div>
+                <div class="card"><h3>右侧 Inspector</h3><p class="sub">显示 AI 证据、数据来源、同步状态、风险提示。</p></div>
+                <div class="card"><h3>底部审查矩阵</h3><p class="sub">给开发者看实施顺序、接口、测试、迁移。</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="todo" data-title="AI 待办中心：从清单升级为行动系统" data-kicker="Priority Module">
+        <div class="grid main-todo">
+          <div class="panel">
+            <div class="section-head">
+              <div>
+                <h2>今日行动台</h2>
+                <p class="sub">基于现有 TodoItem、HabitRecord、日记标签联动，新增 AI 拆解、计划生成、复盘回写。</p>
+              </div>
+              <div class="segmented" aria-label="待办视图切换">
+                <button class="todo-view active" data-view="plan">计划</button>
+                <button class="todo-view" data-view="habit">习惯</button>
+                <button class="todo-view" data-view="review">复盘</button>
+              </div>
+            </div>
+
+            <div class="grid three">
+              <div class="metric"><h3>今日待处理</h3><strong>12</strong><p class="sub">3 个截止，4 个备忘，5 个习惯。</p></div>
+              <div class="metric"><h3>AI 可自动整理</h3><strong>7</strong><p class="sub">来自日记、过期事项、重复任务和未归类备忘。</p></div>
+              <div class="metric"><h3>拖延风险</h3><strong>中</strong><p class="sub">2 个事项连续改期，1 个目标无下一步。</p></div>
+            </div>
+
+            <div class="ai-command">
+              <textarea aria-label="AI 待办指令">把今天的工作和写作安排成一个可执行计划，保留午后低能量时间，顺手把“整理照片”拆成 3 个小步骤。</textarea>
+              <button class="btn" id="simulateAi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.5 5 5 1.5-5 1.5-1.5 5-1.5-5-5-1.5 5-1.5L12 3Z"/><path d="M19 15l.8 2.6 2.2.7-2.2.7L19 22l-.8-3-2.2-.7 2.2-.7L19 15Z"/></svg>
+                生成计划
+              </button>
+            </div>
+            <div class="source-note" id="aiResult">AI 输出应该不是一句建议，而是产生结构化变更草案：新增子任务、调整提醒、标记风险、写入复盘问题，用户确认后才保存。</div>
+
+            <div class="todo-board" style="margin-top:14px;">
+              <div class="todo-column">
+                <div class="column-head"><h3>Inbox 待澄清</h3><span class="count">4</span></div>
+                <div class="task"><h4>把周报写完</h4><p>缺少截止时间与下一步。</p><div class="task-meta"><span class="mini ai">建议拆解</span><span class="mini warn">模糊</span></div></div>
+                <div class="task"><h4>整理照片</h4><p>来自昨晚日记，媒体库有 28 张未归档。</p><div class="task-meta"><span class="mini ai">日记抽取</span><span class="mini">媒体</span></div></div>
+                <div class="task"><h4>研究网页版部署</h4><p>可以拆成 Worker、前端、数据迁移三条。</p><div class="task-meta"><span class="mini">项目</span></div></div>
+              </div>
+              <div class="todo-column">
+                <div class="column-head"><h3>今日执行</h3><span class="count">5</span></div>
+                <div class="task"><h4>09:30 写 200 字晨间记录</h4><p>关联习惯：每日记录。完成后自动打卡。</p><div class="task-meta"><span class="mini good">习惯</span><span class="mini ai">自动完成</span></div></div>
+                <div class="task"><h4>10:20 周报第一版</h4><p>AI 建议只写结论和阻塞，不追求完整。</p><div class="task-meta"><span class="mini warn">高能量</span><span class="mini">45 分钟</span></div></div>
+                <div class="task"><h4>16:00 照片筛选 10 张</h4><p>低能量任务，适合放在下午。</p><div class="task-meta"><span class="mini">轻任务</span></div></div>
+              </div>
+              <div class="todo-column">
+                <div class="column-head"><h3>等待与复盘</h3><span class="count">3</span></div>
+                <div class="task"><h4>复盘：为什么周报总拖延</h4><p>AI 将从改期次数、完成时段、日记情绪中找原因。</p><div class="task-meta"><span class="mini ai">复盘问题</span><span class="mini bad">拖延</span></div></div>
+                <div class="task"><h4>等待：同步接口设计确认</h4><p>没有下一步，建议转为决策记录。</p><div class="task-meta"><span class="mini">等待</span><span class="mini ai">转决策</span></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-head"><div><h2>AI 深度用法</h2><p class="sub">把 AI 放进每个待办生命周期，而不是做一个聊天入口。</p></div></div>
+            <ul class="check-list">
+              <li><span class="check-icon"></span><span><b>日记抽任务：</b>保存日记后扫描 “要做、忘了、决定、担心、截止” 句式，给出候选任务，用户逐条确认。</span></li>
+              <li><span class="check-icon"></span><span><b>自然语言创建：</b>“下周三提醒我把照片发给小王，每月重复” 解析为 dueDate、reminderTime、recurringType、peopleRefs。</span></li>
+              <li><span class="check-icon"></span><span><b>任务拆解：</b>将模糊任务拆成 3-7 个可完成子任务，继承父任务标签和截止日期。</span></li>
+              <li><span class="check-icon"></span><span><b>今日排程：</b>综合截止日期、优先级、用户常写作时间、历史完成时段、情绪能量，生成轻重搭配。</span></li>
+              <li><span class="check-icon"></span><span><b>习惯联动：</b>现有 linkedTagIds 可以继续用，增强为“日记内容证据 + 标签命中 + 用户确认”的打卡逻辑。</span></li>
+              <li><span class="check-icon"></span><span><b>拖延诊断：</b>统计改期次数、过期次数、长时间无子任务、完成耗时，AI 输出阻塞类型和下一步。</span></li>
+              <li><span class="check-icon"></span><span><b>复盘回写：</b>任务完成时生成一句完成记录，可写入日记草稿、HabitRecord.summary 或月度挑战日志。</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <div class="section-head"><div><h2>待办功能实施细节</h2><p class="sub">这一章是网页版优先级最高的产品与工程蓝图。</p></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>功能</th><th>当前基础</th><th>网页版实施效果</th><th>新增数据/接口</th><th>AI 参与方式</th><th>验收标准</th></tr></thead>
+              <tbody>
+                <tr><td>统一任务 Inbox</td><td><code>TodoItem</code> 已有 task/reminder/goal，但 UI 分成备忘、待办、打卡。</td><td>所有未归类事项进入 Inbox，用户可批量归类为任务、提醒、习惯、等待、项目。</td><td><code>todo_type</code>、<code>status</code>、<code>source</code>、<code>confidence</code>。</td><td>从日记、AI 对话、剪贴板、语音文本中提取候选。</td><td>候选任务必须先进入待确认区；拒绝后不再重复提示同一片段。</td></tr>
+                <tr><td>AI 任务拆解</td><td>已有 <code>parentId</code> 支持子任务，但入口弱。</td><td>任务详情右侧显示“下一步建议”，一键生成子任务、估时、依赖、提醒。</td><td><code>POST /api/ai/tasks/breakdown</code>，返回结构化 JSON diff。</td><td>根据历史完成模式限制粒度，不生成超过 7 个子任务。</td><td>用户确认后才写库；撤销可恢复父任务原状态。</td></tr>
+                <tr><td>智能今日计划</td><td><code>todayTodos</code> 只按日期取当天事项。</td><td>网页首页展示时间块：深度工作、轻任务、等待、习惯、复盘。</td><td><code>task_schedule_blocks</code> 或本地派生表。</td><td>综合截止、优先级、过期、用户活跃时间、心情趋势。</td><td>计划生成后允许拖拽改时，改动会反馈给后续推荐。</td></tr>
+                <tr><td>习惯自动打卡</td><td><code>autoCompleteHabitsForDiary</code> 已通过日记标签自动写 <code>HabitRecord</code>。</td><td>升级为“证据式打卡”：显示命中的日记句子、标签、时间，用户可确认/撤销。</td><td><code>habit_evidence</code>：habitId、diaryId、quote、rule、confidence。</td><td>AI 判断是否真的完成，而非只看标签。</td><td>低置信度不自动打卡，只提示；撤销会训练本地规则。</td></tr>
+                <tr><td>拖延风险</td><td>当前模型没有延期历史。</td><td>任务卡显示风险：过期、连续改期、目标太大、无下一步、提醒失效。</td><td><code>task_events</code>：created、rescheduled、completed、snoozed。</td><td>AI 将风险翻译成可执行建议，不做情绪化评价。</td><td>连续两次改期后出现拆解建议；完成后风险清零。</td></tr>
+                <tr><td>项目视图</td><td>只有 <code>parentId</code>，没有项目概念。</td><td>一个目标可展开为项目：里程碑、任务、日记证据、决策、复盘。</td><td><code>projects</code>、<code>project_tasks</code>，或先用 parentId + category 兼容。</td><td>AI 根据日记和任务生成项目周报。</td><td>项目页能看完成率、延迟项、最近相关日记。</td></tr>
+                <tr><td>复盘系统</td><td>习惯记录有 summary，月度挑战有 daily log。</td><td>完成任务后弹出 10 秒复盘：结果、阻塞、下一步；可写入日记草稿。</td><td><code>task_reflections</code>：taskId、outcome、blocker、nextAction。</td><td>AI 把碎片复盘汇总为周/月报告。</td><td>复盘可跳过；跳过不会阻塞完成流程。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid two" style="margin-top:14px;">
+          <div class="spec-block">
+            <h3>待办 API 草案</h3>
+            <pre><code>POST /api/tasks
+GET  /api/tasks?status=open&amp;range=today
+PATCH /api/tasks/:id
+POST /api/tasks/:id/complete
+POST /api/tasks/:id/reschedule
+POST /api/tasks/:id/subtasks
+POST /api/ai/tasks/extract-from-diary
+POST /api/ai/tasks/breakdown
+POST /api/ai/tasks/day-plan
+POST /api/ai/tasks/review
+GET  /api/habits/:id/evidence</code></pre>
+          </div>
+          <div class="spec-block">
+            <h3>待办状态机</h3>
+            <pre><code>inbox -> planned -> doing -> done
+       -> waiting
+       -> blocked
+       -> archived
+
+habit: active -> paused -> completed
+review: skipped | quick | detailed
+ai_diff: proposed -> accepted | rejected | edited</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="editor" data-title="智能编辑器：把记录变成结构化记忆" data-kicker="Writing">
+        <div class="grid editor">
+          <div class="panel">
+            <div class="section-head">
+              <div><h2>网页富文本编辑器</h2><p class="sub">现 Android 编辑器使用 WebView + Quill + JS bridge，Web 端可以直接复用富文本思路，但要重做 autosave、媒体、草稿冲突和 AI 面板。</p></div>
+              <div class="toolbar"><button class="btn secondary">保存草稿</button><button class="btn">发布记录</button></div>
+            </div>
+            <div class="editor-paper">
+              <h2>今天把任务重新整理了一遍</h2>
+              <p>上午发现自己真正卡住的不是事情太多，而是每一件事都缺少下一步。新的待办中心应该能从日记里识别这种“模糊焦虑”，把它拆成几个小动作。</p>
+              <p>比如“准备网页版”不是一个任务，而是一组步骤：确定信息架构、搭好数据模型、复现编辑器、接入同步、再让 AI 参与整理。</p>
+              <p>AI 不应该替我决定人生，但它可以帮我把散乱的想法变成能开始的动作。</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="section-head"><div><h2>编辑器 Inspector</h2><p class="sub">所有 AI 结果必须可解释、可撤销。</p></div></div>
+            <div class="metadata-list">
+              <div class="meta-row"><span>心情</span><span>平稳，略焦虑</span></div>
+              <div class="meta-row"><span>天气</span><span>自动定位后补全，可关闭</span></div>
+              <div class="meta-row"><span>标签</span><span>网页版、待办、AI</span></div>
+              <div class="meta-row"><span>人物</span><span>无明确人物，低置信度不写入</span></div>
+              <div class="meta-row"><span>任务候选</span><span>识别 4 条，待用户确认</span></div>
+              <div class="meta-row"><span>决策候选</span><span>“网页版优先做待办中心”</span></div>
+            </div>
+            <ul class="finding-list">
+              <li><b>实现风险：</b>Android 当前多处 evaluateJavascript + autosave，Web 端应统一为编辑器事件总线。</li>
+              <li><b>优化效果：</b>编辑时实时产出任务、人物、地点、决策候选，但不自动写入主数据。</li>
+              <li><b>验收：</b>断网、刷新、重复打开、移动端输入法、媒体上传失败均不会丢草稿。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="timeline" data-title="时间线与媒体：从列表变成可检索档案" data-kicker="Archive">
+        <div class="grid two">
+          <div class="panel">
+            <div class="section-head"><div><h2>多维时间线</h2><p class="sub">现有 Timeline/Search/MediaLibrary/Stats 分散，Web 端应统一成可筛选档案。</p></div></div>
+            <div class="toolbar">
+              <span class="pill">全文</span><span class="pill">标签</span><span class="pill">心情</span><span class="pill">地点</span><span class="pill">人物</span><span class="pill">任务</span>
+            </div>
+            <div class="timeline" style="margin-top:12px;">
+              <div class="timeline-item"><div class="time">7月4日</div><div><b>网页版待办中心设计</b><p class="sub">关联任务 6 个，决策 1 个，AI 提取候选 4 个。</p></div></div>
+              <div class="timeline-item"><div class="time">7月3日</div><div><b>整理照片与旅行回忆</b><p class="sub">媒体 28 张，地点 2 个，建议创建“旅行回顾”项目。</p></div></div>
+              <div class="timeline-item"><div class="time">6月29日</div><div><b>写作习惯复盘</b><p class="sub">连续记录中断一次，AI 认为提醒时间过晚。</p></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="section-head"><div><h2>媒体与证据</h2><p class="sub">媒体不只是图库，而是 AI 回忆和任务来源的证据。</p></div></div>
+            <div class="grid two">
+              <div class="card"><h3>媒体归档</h3><p class="sub">按日记、地点、人物、项目自动聚合。</p></div>
+              <div class="card"><h3>任务来源</h3><p class="sub">照片未整理、票据未记录、地点未命名都可变成 Inbox 候选。</p></div>
+              <div class="card"><h3>性能</h3><p class="sub">列表只查 preview，媒体缩略图懒加载，避免当前 OOM 风险延伸到 Web。</p></div>
+              <div class="card"><h3>搜索</h3><p class="sub">先用 FTS，后续接 embeddings，结果必须显示来源段落。</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="memory" data-title="记忆网络：人物、地点、任务、决策的关系图" data-kicker="Memory">
+        <div class="grid memory">
+          <div class="panel">
+            <div class="section-head"><div><h2>关系图谱</h2><p class="sub">现有数据库已经有人物、提及、决策、向量、挑战等实体，应做成用户能看懂、能修正的记忆网络。</p></div></div>
+            <div class="graph" aria-label="记忆关系图">
+              <div class="edge" style="left:190px;top:182px;width:180px;transform:rotate(-16deg);"></div>
+              <div class="edge" style="left:190px;top:205px;width:185px;transform:rotate(18deg);"></div>
+              <div class="edge" style="left:342px;top:145px;width:150px;transform:rotate(42deg);"></div>
+              <div class="edge" style="left:332px;top:255px;width:170px;transform:rotate(-28deg);"></div>
+              <div class="node main" style="left:72px;top:164px;">网页版待办中心</div>
+              <div class="node" style="left:300px;top:82px;">日记片段</div>
+              <div class="node" style="left:310px;top:248px;">任务项目</div>
+              <div class="node" style="left:520px;top:168px;">决策记录</div>
+              <div class="node" style="left:520px;top:314px;">月度挑战</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="section-head"><div><h2>AI 记忆原则</h2><p class="sub">私人日记产品里，AI 的每次“记住”都必须透明。</p></div></div>
+            <ul class="check-list">
+              <li><span class="check-icon"></span><span>所有记忆带来源：日记 ID、段落、时间、提取模型、置信度。</span></li>
+              <li><span class="check-icon"></span><span>人物和关系允许用户合并、改名、删除、禁止再次提取。</span></li>
+              <li><span class="check-icon"></span><span>AI 回答必须引用证据，不确定时说“不知道”。</span></li>
+              <li><span class="check-icon"></span><span>任务、决策、习惯是行动型记忆，要能回写到待办中心。</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="sync" data-title="同步与隐私：从单备份升级到多设备安全层" data-kicker="Security">
+        <div class="grid two">
+          <div class="panel">
+            <div class="section-head"><div><h2>同步账户面板</h2><p class="sub">现 Worker 支持手机号 + PIN 登录和最新备份上传下载，但还不足以支撑完整网页端。</p></div></div>
+            <div class="metadata-list">
+              <div class="meta-row"><span>登录</span><span>手机号 + OTP + PIN，PIN 只解锁本地密钥，不直接作为账户唯一凭证。</span></div>
+              <div class="meta-row"><span>设备</span><span>手机、网页、备用设备独立 session，可远程撤销。</span></div>
+              <div class="meta-row"><span>备份</span><span>多版本 manifest，支持增量、冲突、回滚。</span></div>
+              <div class="meta-row"><span>加密</span><span>客户端加密后上传，服务端只存密文、版本、校验和。</span></div>
+              <div class="meta-row"><span>审计</span><span>登录、下载、恢复、AI 访问敏感字段都写 audit log。</span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="section-head"><div><h2>Worker 风险修复</h2><p class="sub">这些是上线网页端前必须补的基础。</p></div></div>
+            <ul class="finding-list">
+              <li><b>注册 token：</b>当前注册返回 <code>phone:Date.now()</code>，应统一走随机 token + KV session。</li>
+              <li><b>CORS：</b>当前 <code>*</code> 过宽，正式 Web 域名应白名单。</li>
+              <li><b>备份明文：</b><code>backup_data</code> 当前直接 JSON 存储，应改密文 blob + manifest。</li>
+              <li><b>单版本：</b>上传前删除旧备份，无法回滚，应保留版本链。</li>
+              <li><b>设备态：</b>没有 device/session 表，无法管理多端。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="audit" data-title="全局代码审查矩阵与实施路线" data-kicker="Engineering Audit">
+        <div class="panel">
+          <div class="section-head"><div><h2>全局代码审查矩阵</h2><p class="sub">只基于源码与配置审查，未参考旧 MD/HTML 文档。</p></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>模块</th><th>现有功能</th><th>UI/交互问题</th><th>实现风险</th><th>网页版优化</th><th>优先级</th></tr></thead>
+              <tbody>
+                <tr><td>导航</td><td>5 个底部入口 + 30 多个子页面。</td><td>工具页和首页快捷入口承担过多发现任务。</td><td>功能越加越依赖二级跳转，用户难形成心智地图。</td><td>Web 固定 6 个工作区：今日、待办、记录、档案、记忆、同步。</td><td>P0</td></tr>
+                <tr><td>待办</td><td>打卡、备忘、截止待办、提醒、重复、子任务、习惯记录。</td><td>三 Tab 分裂，AI 未进入任务生命周期。</td><td>缺少延期历史、项目、任务事件、AI diff 审核。</td><td>AI 待办中心作为首个深度模块。</td><td>P0</td></tr>
+                <tr><td>首页</td><td>问候、搜索、快捷入口、日历、AI 洞察、天气、日记列表。</td><td>承载过多入口，信息层级容易拥挤。</td><td>大量 StateFlow 在单屏收集，状态面宽。</td><td>Web 首页只放今日计划、最近记录、待办风险、同步状态。</td><td>P1</td></tr>
+                <tr><td>编辑器</td><td>Quill WebView、媒体、草稿、自动保存、AI 面板。</td><td>移动端操作复杂，工具栏和输入法冲突成本高。</td><td>JS bridge、evaluateJavascript、生命周期保存链复杂。</td><td>Web 原生富文本 + 事件总线 + 草稿冲突面板。</td><td>P1</td></tr>
+                <tr><td>时间线</td><td>搜索、筛选、月份分组、多选、图片预览。</td><td>筛选能力强但移动端空间紧。</td><td>LIKE 搜索和多筛选在大数据量下会慢。</td><td>Web 多列筛选 + FTS/向量混合检索。</td><td>P2</td></tr>
+                <tr><td>统计</td><td>热力图、趋势、心情、天气、标签、词云、AI 分析。</td><td>纵向堆叠多，图表之间缺少行动出口。</td><td>分析和展示耦合，AI 结果以 bottom sheet 呈现。</td><td>统计卡直接生成任务、复盘、挑战。</td><td>P2</td></tr>
+                <tr><td>AI 助手</td><td>会话、上下文、最近/随机日记片段、token 记录。</td><td>像聊天工具，不像产品级个人记忆系统。</td><td>上下文构建粗，缺少证据引用、权限和检索策略。</td><td>AI Orchestrator：检索、引用、结构化写入、任务工具调用。</td><td>P0</td></tr>
+                <tr><td>备份</td><td>本地备份、导入、历史、自动备份、权限提示。</td><td>流程多，错误状态依赖 Toast。</td><td>本地与云端备份模型不同，冲突策略不足。</td><td>Web 同步中心统一版本、设备、冲突、恢复。</td><td>P1</td></tr>
+                <tr><td>Worker</td><td>register/login/backup upload/download。</td><td>API 面过窄，无法直接支撑 Web App。</td><td>明文备份、CORS、注册 token、单版本备份、无设备表。</td><td>Auth、Tasks、Sync、AI Jobs、Audit Logs 分组重建。</td><td>P0</td></tr>
+                <tr><td>沉浸音频</td><td>环境音、收藏、最近、睡眠计时、播放器。</td><td>很完整但与写作/待办联动不强。</td><td>全局 mini bar 和导航叠加需谨慎。</td><td>Web 端作为专注会话的一部分，而非独立大入口。</td><td>P3</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid two" style="margin-top:14px;">
+          <div class="spec-block">
+            <h3>P0-P4 实施路线</h3>
+            <div class="roadmap">
+              <div class="phase"><b>P0</b><div><b>Web App 骨架 + AI 待办中心</b><p class="sub">React/Next、路由、布局、IndexedDB、任务数据模型、AI diff 审核、基础 Worker Auth。</p></div></div>
+              <div class="phase"><b>P1</b><div><b>编辑器与同步</b><p class="sub">富文本、草稿、媒体上传、端到端加密备份、多设备会话。</p></div></div>
+              <div class="phase"><b>P2</b><div><b>时间线与记忆检索</b><p class="sub">FTS、向量、人物/地点/决策提取、证据链 Inspector。</p></div></div>
+              <div class="phase"><b>P3</b><div><b>统计变行动</b><p class="sub">热力图、趋势、写作指纹、月报都能生成任务、挑战、复盘。</p></div></div>
+              <div class="phase"><b>P4</b><div><b>跨端一致体验</b><p class="sub">手机小组件、通知、网页批量整理、冲突解决和权限统一。</p></div></div>
+            </div>
+          </div>
+          <div class="spec-block">
+            <h3>验收清单</h3>
+            <ul class="check-list">
+              <li><span class="check-icon"></span><span>390px、768px、1440px 无页面级横向滚动，表格只在内部滚动。</span></li>
+              <li><span class="check-icon"></span><span>所有按钮触控高度不小于 44px，键盘焦点可见。</span></li>
+              <li><span class="check-icon"></span><span>AI 生成的任务、子任务、复盘必须先以 diff 展示，不能直接写入。</span></li>
+              <li><span class="check-icon"></span><span>断网可创建任务和日记草稿，恢复网络后显示冲突解决。</span></li>
+              <li><span class="check-icon"></span><span>云端只存密文备份；服务端日志不能出现日记明文。</span></li>
+              <li><span class="check-icon"></span><span>待办中心至少覆盖：日记抽取、自然语言创建、拆解、今日计划、习惯联动、拖延复盘。</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="inspector" aria-label="当前页面工程审查">
+      <div class="inspector-block active" data-for="overview">
+        <h2>总览审查</h2>
+        <p class="sub">当前 App 的强项是功能厚度，弱项是产品结构。网页版应先重组心智，再迁移代码。</p>
+        <ul class="finding-list">
+          <li><b>关键判断：</b>不要把 Android 工具页照搬成 Web 菜单。</li>
+          <li><b>第一目标：</b>待办 + AI 做成一个能每天打开的中心。</li>
+          <li><b>边界：</b>手机端保留轻操作，网页端负责重整理和 AI 工作流。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="todo">
+        <h2>待办模块审查</h2>
+        <p class="sub">这是最值得优先优化的模块，因为它已经有数据基础，也最容易和 AI 形成实际价值。</p>
+        <ul class="finding-list">
+          <li><b>现有基础：</b><code>TodoItem</code> 支持 priority、dueDate、reminderTime、parentId、recurringType、progress、isPinned、linkedTagIds。</li>
+          <li><b>现有亮点：</b><code>autoCompleteHabitsForDiary</code> 已经能通过日记标签自动打卡。</li>
+          <li><b>主要缺口：</b>没有任务事件流、AI 结构化变更、项目视图、拖延诊断、复盘沉淀。</li>
+          <li><b>建议：</b>先做 AI 待办中心，不要先做泛泛的 AI 聊天升级。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="editor">
+        <h2>编辑器审查</h2>
+        <p class="sub">Android 当前编辑器能力很强，但复杂度集中在 WebView、JS bridge、autosave 和媒体处理。</p>
+        <ul class="finding-list">
+          <li>Web 端可以直接做原生富文本，不再绕 WebView。</li>
+          <li>AI 提取候选任务、人物、地点、决策，必须进入确认队列。</li>
+          <li>草稿保存要使用本地优先策略，避免网络失败导致输入焦虑。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="timeline">
+        <h2>档案审查</h2>
+        <p class="sub">时间线、媒体库、统计、搜索应该合并为“可检索档案”。</p>
+        <ul class="finding-list">
+          <li>现有 DAO 已经区分全量 Entry 和 Preview，这是性能方向正确的信号。</li>
+          <li>Web 端要补 FTS、分页、虚拟列表、缩略图懒加载。</li>
+          <li>所有 AI 检索结果都要能回到原文和原图。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="memory">
+        <h2>记忆审查</h2>
+        <p class="sub">数据库已经埋了人物、决策、向量、挑战等长期能力，适合做成可视化记忆层。</p>
+        <ul class="finding-list">
+          <li>先做证据链和用户修正，再做复杂图谱动画。</li>
+          <li>记忆实体要支持删除、合并、禁用提取。</li>
+          <li>待办、决策、挑战之间要互相链接。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="sync">
+        <h2>同步审查</h2>
+        <p class="sub">当前 Worker 是原型级同步服务，不能直接承载完整 Web App。</p>
+        <ul class="finding-list">
+          <li>注册 token 和登录 token 生成逻辑不一致，需要统一。</li>
+          <li>备份数据应客户端加密，服务端只存密文。</li>
+          <li>必须增加设备、会话、版本、审计日志。</li>
+        </ul>
+      </div>
+      <div class="inspector-block" data-for="audit">
+        <h2>工程落地审查</h2>
+        <p class="sub">建议把这份 HTML 当作 Web 端第一版 PRD + 技术蓝图。</p>
+        <ul class="finding-list">
+          <li>P0 只做骨架、待办、Auth，不要一次迁移全部功能。</li>
+          <li>AI 所有写操作走 diff/confirm，避免私人数据被误改。</li>
+          <li>Web 和 Android 共享概念模型，但不共享 UI 代码。</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const navButtons = Array.from(document.querySelectorAll(".nav-button[data-target]"));
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const inspectors = Array.from(document.querySelectorAll(".inspector-block"));
+    const pageTitle = document.getElementById("pageTitle");
+    const pageKicker = document.getElementById("pageKicker");
+
+    function activate(target) {
+      navButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.target === target));
+      screens.forEach(screen => {
+        const isActive = screen.id === target;
+        screen.classList.toggle("active", isActive);
+        if (isActive) {
+          pageTitle.textContent = screen.dataset.title || "DiaryApp Web";
+          pageKicker.textContent = screen.dataset.kicker || "Audit";
+        }
+      });
+      inspectors.forEach(block => block.classList.toggle("active", block.dataset.for === target));
+      if (window.innerWidth < 900) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    navButtons.forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.target)));
+
+    const todoViewButtons = Array.from(document.querySelectorAll(".todo-view"));
+    todoViewButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        todoViewButtons.forEach(item => item.classList.toggle("active", item === btn));
+        const result = document.getElementById("aiResult");
+        const map = {
+          plan: "计划视图：AI 输出结构化变更草案，包括今日时间块、任务顺序、提醒调整、子任务候选。",
+          habit: "习惯视图：AI 不直接打卡，而是展示证据句、标签命中、置信度，并允许撤销。",
+          review: "复盘视图：AI 汇总过期、延期、完成时间和日记情绪，生成阻塞类型与下一步。"
+        };
+        result.textContent = map[btn.dataset.view] || map.plan;
+      });
+    });
+
+    const simulateAi = document.getElementById("simulateAi");
+    if (simulateAi) {
+      simulateAi.addEventListener("click", () => {
+        document.getElementById("aiResult").innerHTML =
+          "<b>AI 计划草案：</b>新增 3 个子任务：筛选照片 10 张、命名相册、写 80 字说明；把周报安排到 10:20；把低能量任务放到 16:00；新增复盘问题“周报拖延的真实阻塞是什么”。以上变更等待用户确认。";
+      });
+    }
+  </script>
+</body>
+</html>

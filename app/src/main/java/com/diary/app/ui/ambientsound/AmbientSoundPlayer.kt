@@ -100,7 +100,13 @@ class AmbientSoundPlayer private constructor() {
             return Result.failure(e)
         }
 
-        mp.start()
+        try {
+            mp.start()
+        } catch (e: Exception) {
+            mp.release()
+            track = null
+            return Result.failure(e)
+        }
         player = mp
         if (meanderEnabled) startMeander()
         playCallback?.invoke()
@@ -131,10 +137,12 @@ class AmbientSoundPlayer private constructor() {
 
     fun stop() {
         stopMeander()
-        player?.apply {
-            if (isPlaying) stop()
-            release()
-        }
+        try {
+            player?.apply {
+                try { if (isPlaying) stop() } catch (_: Exception) { }
+                release()
+            }
+        } catch (_: Exception) { }
         player = null
         track = null
         paused = false

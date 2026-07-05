@@ -1,0 +1,53 @@
+{
+  "name": "diaryapp-desktop",
+  "version": "0.1.0",
+  "description": "DiaryApp desktop task and diary workbench",
+  "author": "DiaryApp",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "node --test \"src/**/*.test.js\"",
+    "smoke": "electron . --smoke",
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "build": {
+    "appId": "com.diaryapp.desktop",
+    "productName": "DiaryApp Desktop",
+    "directories": {
+      "output": "D:/DiaryApp/Desktop/dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "include": "build/installer.nsh"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "marked": "^18.0.5",
+    "uuid": "^14.0.1"
+  }
+}

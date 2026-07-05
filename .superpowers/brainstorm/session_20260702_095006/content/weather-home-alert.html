@@ -1,0 +1,51 @@
+<h2>首页天气预警 — 3种状态示意</h2>
+<p class="subtitle">状态A：无天气数据（当前逻辑，不变）</p>
+<div class="mockup" style="max-width: 400px; margin-bottom: 12px;">
+  <div class="mockup-body" style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f5f5f5; border-radius: 999px; width: fit-content;">
+    <div style="width: 12px; height: 12px; border-radius: 50%; background: #9CA3AF;"></div>
+    <span style="font-size: 12px; color: #9CA3AF;">查看天气</span>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">状态B：有天气 + 无预警（当前逻辑，不变）</p>
+  <div class="mockup" style="max-width: 400px; margin-bottom: 12px;">
+    <div class="mockup-body" style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(0,0,0,0.04); border-radius: 999px; width: fit-content;">
+      <div style="width: 14px; height: 14px; border-radius: 50%; background: #FBBF24;"></div>
+      <span style="font-size: 13px; color: #374151;">北京 · 晴 25°C</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">状态C：有天气 + 有预警（新增）</p>
+  <div class="mockup" style="max-width: 400px;">
+    <div class="mockup-body" style="padding: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(0,0,0,0.04); border-radius: 999px;">
+          <div style="width: 14px; height: 14px; border-radius: 50%; background: #FBBF24;"></div>
+          <span style="font-size: 13px; color: #374151;">北京 · 晴 25°C</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: rgba(239, 68, 68, 0.12); border-radius: 6px; cursor: pointer;">
+          <div style="width: 12px; height: 12px; background: #EF4444; border-radius: 50%;"></div>
+          <span style="font-size: 12px; font-weight: 600; color: #DC2626;">暴雨黄色预警</span>
+        </div>
+      </div>
+      <div style="padding: 8px 12px; background: rgba(239, 68, 68, 0.06); border-left: 3px solid #EF4444; border-radius: 4px; font-size: 12px; color: #6B7280; line-height: 1.5;">
+        预计未来6小时本市将出现强降水，部分地区累计雨量可达50毫米以上，请注意防范城市内涝。
+      </div>
+    </div>
+  </div>
+  <p style="font-size: 12px; color: #9CA3AF; margin-top: 6px;">点击 "暴雨黄色预警" 标签可展开/收起详细内容</p>
+</div>
+
+<div class="section">
+  <h3>交互逻辑</h3>
+  <ul>
+    <li>无预警时：天气行不变，只显示天气概况</li>
+    <li>有预警时：天气行右侧出现红色预警标签</li>
+    <li>点击标签：原地展开显示预警原文</li>
+    <li>再次点击：收起</li>
+    <li>点击天气行左侧区域：跳转天气详情页（不变）</li>
+  </ul>
+</div>

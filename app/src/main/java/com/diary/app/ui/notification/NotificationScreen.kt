@@ -806,8 +806,8 @@ private fun getNotificationStyle(item: NotificationItem): NotificationStyle {
         is WeatherAlertNotification -> NotificationStyle(
             icon = Icons.Default.Notifications,
             iconColor = Color(0xFFE53935),
-            title = "天气预警 · ${item.weatherCity}",
-            subtitle = "${item.weatherDesc} ${item.temperature}°C"
+            title = "${item.alertLevel}预警 · ${item.alertType}",
+            subtitle = item.alertText
         )
         is InactivityNotification -> NotificationStyle(
             icon = Icons.Default.Edit,

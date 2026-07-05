@@ -1,6 +1,8 @@
 package com.diary.app.ui.components
 
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +52,7 @@ import com.diary.app.ui.theme.SandDarkCardBackground
 import com.diary.app.ui.theme.SandDarkCardBorder
 import com.diary.app.ui.theme.SandLightCardBackground
 import com.diary.app.ui.theme.SandLightCardBorder
+import com.diary.app.ui.theme.ThemeFamily
 import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.theme.themeMode
@@ -93,12 +96,25 @@ fun GlassCard(
 
     val shape = RoundedCornerShape(cornerRadius)
 
-    // Press animation
+    // Press animation — per-theme feel
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+
+    val pressTarget: Float
+    val pressSpec: AnimationSpec<Float>
+    when (mode.category) {
+        ThemeFamily.BLUE -> { pressTarget = 0.97f; pressSpec = tween(100) }
+        ThemeFamily.GREEN -> { pressTarget = 0.96f; pressSpec = spring(dampingRatio = 0.5f, stiffness = 300f) }
+        ThemeFamily.CYAN -> { pressTarget = 0.975f; pressSpec = tween(150) }
+        ThemeFamily.ROSE -> { pressTarget = 0.965f; pressSpec = spring(dampingRatio = 0.7f, stiffness = 200f) }
+        ThemeFamily.AMBER -> { pressTarget = 0.95f; pressSpec = tween(200) }
+        ThemeFamily.CLAY -> { pressTarget = 0.955f; pressSpec = tween(180) }
+        ThemeFamily.INK -> { pressTarget = 0.98f; pressSpec = tween(80) }
+    }
+
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.97f else 1f,
-        animationSpec = tween(100),
+        targetValue = if (isPressed && onClick != null) pressTarget else 1f,
+        animationSpec = pressSpec,
         label = "cardPress"
     )
 

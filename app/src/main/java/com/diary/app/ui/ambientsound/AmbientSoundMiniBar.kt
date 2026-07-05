@@ -27,7 +27,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -37,14 +36,17 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun AmbientSoundMiniBar(
+    state: AmbientSoundState,
+    onTogglePlay: () -> Unit,
+    onStop: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToFullScreen: () -> Unit
 ) {
-    val player = AmbientSoundPlayer.getInstance()
-    val visible = player.hasSession
-    val trackName = player.currentTrack?.name ?: ""
-    val isPlaying = player.isPlaying
-    val volume = player.currentVolume
+    val visible = state.currentTrack != null
+    val trackName = state.currentTrack?.name ?: ""
+    val isPlaying = state.isPlaying
+    val volume = state.volume
 
     AnimatedVisibility(
         visible = visible,
@@ -75,7 +77,7 @@ fun AmbientSoundMiniBar(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = { if (isPlaying) player.pause() else player.resume() },
+                        onClick = onTogglePlay,
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
@@ -86,7 +88,7 @@ fun AmbientSoundMiniBar(
                         )
                     }
                     Button(
-                        onClick = { player.stop() },
+                        onClick = onStop,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.height(28.dp)
                     ) {
@@ -110,7 +112,7 @@ fun AmbientSoundMiniBar(
                     Spacer(modifier = Modifier.width(4.dp))
                     Slider(
                         value = volume,
-                        onValueChange = { player.setVolume(it) },
+                        onValueChange = onVolumeChange,
                         modifier = Modifier.weight(1f).height(24.dp),
                         colors = SliderDefaults.colors(
                             thumbColor = MaterialTheme.colorScheme.primary,

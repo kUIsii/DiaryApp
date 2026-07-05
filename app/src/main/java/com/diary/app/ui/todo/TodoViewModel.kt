@@ -9,6 +9,7 @@ import com.diary.app.data.Tag
 import com.diary.app.data.TodoItem
 import com.diary.app.reminder.TodoReminderManager
 import com.diary.app.widget.TodoWidgetProvider
+import com.google.gson.GsonBuilder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -179,6 +180,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     val habitSummary: StateFlow<HabitSummaryUiState> = habitUiState
         .map(::buildHabitSummaryUiState)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSummaryUiState())
+
+    val todayThree: StateFlow<List<TodayThreeItem>> = allTodos
+        .map(::buildTodayThree)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val selectedHabit: StateFlow<TodoItem?> = combine(allTodos, selectedHabitId) { todos, habitId ->
         todos.firstOrNull { it.id == habitId }
@@ -413,6 +418,39 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             TodoReminderManager.scheduleReminder(context, id, content.trim(), deadlineMillis)
             refreshWidget()
         }
+    }
+
+    fun captureMobileTasks(text: String) {
+        val parsed = parseMobileCapture(text)
+        if (parsed.isEmpty()) return
+        viewModelScope.launch {
+            parsed.forEach { task ->
+                val reminderTime = task.dueDate?.takeIf { it > System.currentTimeMillis() }
+                val id = dao.insertTodo(
+                    TodoItem(
+                        title = task.title,
+                        priority = task.priority,
+                        dueDate = task.dueDate,
+                        category = task.category,
+                        reminderTime = reminderTime,
+                        tags = TodoItem.setTagList(task.tags)
+                    )
+                )
+                reminderTime?.let { time ->
+                    TodoReminderManager.scheduleReminder(context, id, task.title, time)
+                }
+            }
+            refreshWidget()
+        }
+    }
+
+    fun buildDesktopSyncPayloadJson(): String {
+        return GsonBuilder().setPrettyPrinting().create().toJson(
+            buildDesktopSyncPayload(
+                tasks = allTodos.value,
+                deviceId = "android-${android.os.Build.MODEL ?: "phone"}"
+            )
+        )
     }
 
     fun toggleHabitDay(habit: TodoItem, dayIndex: Int, weekStart: LocalDate? = null) {

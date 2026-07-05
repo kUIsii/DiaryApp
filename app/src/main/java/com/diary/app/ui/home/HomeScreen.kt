@@ -2,8 +2,11 @@ package com.diary.app.ui.home
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -627,28 +630,89 @@ private fun HomeHeroSection(
 
         // Weather row (separate, stable layout)
         if (currentWeather != null && currentWeather.weather.isNotBlank()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-                    .clickable { onWeatherClick() }
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
-            ) {
-                Icon(
-                    imageVector = com.diary.app.ui.components.weatherIconForType(
-                        com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
-                    ),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(
-                    text = "${currentWeather.city} · ${currentWeather.weather} ${currentWeather.temperature}°C",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            var alertExpanded by remember { mutableStateOf(false) }
+            val hasAlerts = currentWeather.alerts.isNotEmpty()
+            val firstAlert = if (hasAlerts) currentWeather.alerts.first() else null
+
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                        .clickable { onWeatherClick() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Icon(
+                        imageVector = com.diary.app.ui.components.weatherIconForType(
+                            com.diary.app.weather.WeatherManager.mapAmapWeatherToType(currentWeather.weather)
+                        ),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "${currentWeather.city} · ${currentWeather.weather} ${currentWeather.temperature}°C",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (hasAlerts && firstAlert != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f))
+                                .clickable { alertExpanded = !alertExpanded }
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(MaterialTheme.colorScheme.error, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${firstAlert.level}预警 · ${firstAlert.type}",
+                                fontSize = 11.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = alertExpanded && firstAlert != null,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    if (firstAlert != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f))
+                                .clickable { alertExpanded = false }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(40.dp)
+                                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = firstAlert.text,
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         } else if (!isWeatherEnabled) {
             Row(

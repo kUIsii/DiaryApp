@@ -15,6 +15,7 @@ import com.diary.app.ai.AiServiceManager
 import com.diary.app.data.AchievementRepository
 import com.diary.app.data.BackupManager
 import com.diary.app.data.TrashCleanupWorker
+import com.diary.app.data.sync.SyncWorker
 import com.diary.app.weather.WeatherWorker
 import com.diary.app.ui.experimental.ExperimentalFeaturesPreferences
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
@@ -62,6 +63,8 @@ class DiaryApplication : Application() {
         // Schedule periodic weather refresh
         WeatherWorker.ensureChannel(this)
         WeatherWorker.schedule(this)
+        // Schedule periodic cloud sync (every 2 hours)
+        SyncWorker.schedule(this)
         warmUpCoreData()
 
         // Initialize Amap SDK

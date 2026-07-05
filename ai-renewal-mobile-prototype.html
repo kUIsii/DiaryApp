@@ -1,0 +1,1824 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 全新移动端体验原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f6f7f4;
+      --paper-2: #eef2ed;
+      --ink: #202923;
+      --muted: #69746b;
+      --soft: #8da18f;
+      --moss: #6e9270;
+      --blue: #6f8fae;
+      --rose: #bf8780;
+      --amber: #c0a16c;
+      --line: rgba(48, 65, 54, .13);
+      --card: rgba(255, 255, 255, .84);
+      --shadow: 0 24px 70px rgba(32, 41, 35, .16);
+      --phone-shadow: 0 30px 90px rgba(31, 43, 36, .24);
+      --radius: 8px;
+      font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background:
+        linear-gradient(90deg, rgba(111, 143, 174, .08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(111, 143, 174, .07) 1px, transparent 1px),
+        linear-gradient(145deg, #f8f6f1 0%, #edf3ef 42%, #f7efeb 100%);
+      background-size: 26px 26px, 26px 26px, auto;
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    button, input {
+      font: inherit;
+      touch-action: manipulation;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    .page {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px 42px;
+      display: grid;
+      grid-template-columns: minmax(330px, 430px) minmax(0, 1fr);
+      gap: 26px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .stage {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-width: 0;
+      justify-self: center;
+    }
+
+    .phone {
+      width: min(390px, calc(100vw - 36px));
+      aspect-ratio: 390 / 844;
+      padding: 12px;
+      border-radius: 36px;
+      background: #17201a;
+      box-shadow: var(--phone-shadow);
+      position: relative;
+    }
+
+    .screen {
+      height: 100%;
+      overflow: hidden;
+      border-radius: 27px;
+      background: linear-gradient(180deg, #f8faf7 0%, #eff4ef 54%, #f6eee9 100%);
+      position: relative;
+    }
+
+    .status {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      color: rgba(32, 41, 35, .82);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .signal {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .bar {
+      width: 17px;
+      height: 8px;
+      border: 1.5px solid currentColor;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .bar::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: 2px;
+      width: 2px;
+      height: 3px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+
+    .app {
+      height: calc(100% - 38px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .content {
+      flex: 1;
+      overflow: hidden;
+      padding: 0 10px 86px;
+    }
+
+    .pane {
+      display: none;
+      height: 100%;
+      overflow: auto;
+      padding-bottom: 18px;
+      scrollbar-width: none;
+    }
+
+    .pane::-webkit-scrollbar { display: none; }
+    .pane.active { display: block; }
+
+    .topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0 12px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .app-title {
+      font-size: 25px;
+      line-height: 1.15;
+      font-weight: 760;
+      margin-top: 3px;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .78);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 26px rgba(43, 55, 47, .08);
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 16px 36px rgba(38, 51, 43, .09);
+    }
+
+    .day-row {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .date-tile {
+      height: 58px;
+      border-radius: var(--radius);
+      background: #26362d;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      line-height: 1.05;
+      box-shadow: inset 0 -12px 20px rgba(255,255,255,.06);
+    }
+
+    .date-tile strong {
+      font-size: 23px;
+    }
+
+    .prompt {
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .micro {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 13px;
+    }
+
+    .primary, .secondary {
+      border-radius: var(--radius);
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .primary {
+      background: #25372d;
+      color: #fff;
+    }
+
+    .secondary {
+      background: rgba(110, 146, 112, .13);
+      color: #35473a;
+      border: 1px solid rgba(110, 146, 112, .18);
+    }
+
+    .section-title {
+      margin: 18px 0 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--ink);
+    }
+
+    .section-title h2 {
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .section-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mood-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+    }
+
+    .mood {
+      height: 42px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.68);
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .mood::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--tone);
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--tone), transparent 78%);
+    }
+
+    .mood.selected {
+      border-color: rgba(110, 146, 112, .7);
+      background: rgba(110, 146, 112, .14);
+    }
+
+    .entry-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .entry {
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.75);
+      border: 1px solid var(--line);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .entry-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .entry h3 {
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .entry time {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .entry p {
+      font-size: 12px;
+      line-height: 1.55;
+      color: #526056;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 11px;
+      color: #46604c;
+      background: rgba(110, 146, 112, .14);
+      border: 1px solid rgba(110, 146, 112, .16);
+    }
+
+    .week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(44px, 1fr));
+      gap: 0;
+      margin-top: 10px;
+    }
+
+    .day {
+      height: 44px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.62);
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      position: relative;
+    }
+
+    .day.active {
+      color: #fff;
+      background: #6e9270;
+      border-color: transparent;
+    }
+
+    .day.wrote::after {
+      content: "";
+      position: absolute;
+      bottom: 7px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .7;
+    }
+
+    .composer {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .editor-card {
+      flex: 1;
+      min-height: 420px;
+      background: rgba(255, 255, 255, .82);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 15px;
+      box-shadow: 0 16px 34px rgba(48, 58, 50, .08);
+    }
+
+    .title-input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-size: 20px;
+      font-weight: 760;
+      color: var(--ink);
+      padding: 0 0 10px;
+    }
+
+    .writing-line {
+      height: 1px;
+      background: var(--line);
+      margin-bottom: 12px;
+    }
+
+    .body-copy {
+      color: #3e4d43;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .assist {
+      margin-top: 14px;
+      border-radius: var(--radius);
+      padding: 11px;
+      background: #eef5ef;
+      border: 1px solid rgba(110, 146, 112, .18);
+    }
+
+    .assist strong {
+      font-size: 12px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .assist p {
+      font-size: 12px;
+      line-height: 1.55;
+      color: #536358;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 8px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.8);
+      border: 1px solid var(--line);
+    }
+
+    .tool {
+      min-height: 44px;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+    }
+
+    .tool.active {
+      background: #26362d;
+      color: white;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 11px;
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: rgba(110, 146, 112, .25);
+    }
+
+    .moment {
+      position: relative;
+      background: rgba(255,255,255,.76);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .moment::before {
+      content: "";
+      position: absolute;
+      left: -19px;
+      top: 18px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--moss);
+      box-shadow: 0 0 0 5px rgba(110, 146, 112, .13);
+    }
+
+    .moment h3 {
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .moment p {
+      font-size: 12px;
+      line-height: 1.55;
+      color: #56635a;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 90px;
+      border-radius: var(--radius);
+      padding: 12px;
+      background: rgba(255,255,255,.75);
+      border: 1px solid var(--line);
+    }
+
+    .metric b {
+      font-size: 23px;
+      line-height: 1;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .heatmap {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 4px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--moss), white calc(92% - var(--level) * 11%));
+      opacity: calc(.42 + var(--level) * .11);
+    }
+
+    .focus-card {
+      min-height: 250px;
+      border-radius: var(--radius);
+      padding: 16px;
+      background: linear-gradient(180deg, #26362d, #1d2a23);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .focus-card::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+    }
+
+    .timer {
+      position: relative;
+      margin: 36px auto 22px;
+      width: 142px;
+      height: 142px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(#c8d8c9 0 72%, rgba(255,255,255,.16) 72% 100%);
+    }
+
+    .timer::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 50%;
+      background: #26362d;
+    }
+
+    .timer strong {
+      position: relative;
+      z-index: 1;
+      font-size: 28px;
+    }
+
+    .sound-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 44px 1fr 54px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.1);
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, #afc2b1, #d9c29a);
+    }
+
+    .profile-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .auth-card {
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.82);
+      border: 1px solid var(--line);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 16px 34px rgba(48, 58, 50, .08);
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 720;
+      color: #465349;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid rgba(48, 65, 54, .14);
+      border-radius: var(--radius);
+      background: #fbfcfa;
+      color: var(--ink);
+      outline: 0;
+      padding: 0 12px;
+      font-size: 15px;
+    }
+
+    .field input:focus {
+      border-color: rgba(110, 146, 112, .65);
+      box-shadow: 0 0 0 3px rgba(110, 146, 112, .14);
+    }
+
+    .code-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .code-box {
+      height: 44px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(110, 146, 112, .1);
+      display: grid;
+      place-items: center;
+      font-weight: 760;
+      color: #26362d;
+    }
+
+    .sync-steps {
+      display: grid;
+      gap: 9px;
+    }
+
+    .sync-step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 9px;
+      align-items: start;
+      font-size: 12px;
+      color: #536358;
+      line-height: 1.45;
+    }
+
+    .sync-step b {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #26362d;
+      color: white;
+      font-size: 12px;
+    }
+
+    .setting {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.75);
+      border: 1px solid var(--line);
+    }
+
+    .setting h3 {
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .setting p {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .glyph {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      background: rgba(110, 146, 112, .13);
+      color: var(--moss);
+    }
+
+    .switch {
+      width: 43px;
+      height: 25px;
+      border-radius: 99px;
+      background: #26362d;
+      padding: 3px;
+    }
+
+    .switch::after {
+      content: "";
+      width: 19px;
+      height: 19px;
+      display: block;
+      border-radius: 50%;
+      background: white;
+      margin-left: 18px;
+    }
+
+    .nav {
+      position: absolute;
+      left: 11px;
+      right: 11px;
+      bottom: 10px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      padding: 7px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .86);
+      border: 1px solid rgba(44, 59, 50, .12);
+      box-shadow: 0 12px 34px rgba(30, 43, 35, .14);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav button {
+      min-height: 50px;
+      border-radius: 15px;
+      background: transparent;
+      color: #6a756e;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      font-size: 10px;
+      font-weight: 680;
+    }
+
+    .nav button.active {
+      background: #26362d;
+      color: #fff;
+    }
+
+    svg {
+      width: 19px;
+      height: 19px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .fab {
+      position: absolute;
+      right: 22px;
+      bottom: 86px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #26362d;
+      color: white;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 16px 36px rgba(38, 54, 45, .28);
+      z-index: 4;
+    }
+
+    .desk {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .hero-copy {
+      min-height: 210px;
+      padding: 28px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.68);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .hero-copy .kicker {
+      font-size: 13px;
+      color: var(--moss);
+      font-weight: 760;
+      margin-bottom: 13px;
+    }
+
+    .hero-copy h1 {
+      max-width: 720px;
+      font-size: clamp(30px, 5vw, 58px);
+      line-height: 1.04;
+      font-weight: 790;
+      letter-spacing: 0;
+    }
+
+    .hero-copy p {
+      max-width: 680px;
+      color: #5c685f;
+      font-size: 16px;
+      line-height: 1.75;
+      margin-top: 17px;
+    }
+
+    .blueprint {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.7);
+      border: 1px solid var(--line);
+      padding: 18px;
+      box-shadow: 0 16px 38px rgba(38, 50, 42, .08);
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .panel.wide { grid-column: 1 / -1; }
+
+    .panel h2 {
+      font-size: 17px;
+      margin-bottom: 12px;
+    }
+
+    .panel p, .panel li {
+      color: #5a675e;
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      min-height: 31px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0 11px;
+      background: rgba(255,255,255,.68);
+      border: 1px solid var(--line);
+      color: #455349;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .deep-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .evidence-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .evidence-item {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      color: #536058;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .evidence-item b {
+      color: #26362d;
+      font-size: 12px;
+    }
+
+    .feature-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .feature-detail {
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.73);
+      border: 1px solid var(--line);
+      padding: 20px;
+      box-shadow: 0 16px 38px rgba(38, 50, 42, .08);
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .feature-detail h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .feature-detail .lead {
+      color: #536058;
+      font-size: 14px;
+      line-height: 1.75;
+      max-width: 900px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .detail-block {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    .detail-block h3 {
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #26362d;
+    }
+
+    .detail-block p,
+    .detail-block li {
+      color: #5a675e;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .detail-block ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .flow span {
+      min-height: 74px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.62);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #455249;
+      font-weight: 650;
+    }
+
+    .schema {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .schema code {
+      display: block;
+      white-space: normal;
+      min-height: 52px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(48,65,54,.14);
+      background: #eef4ee;
+      color: #2e4234;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .phase {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.66);
+      padding: 14px;
+    }
+
+    .phase b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #26362d;
+    }
+
+    .phase span {
+      color: #5a675e;
+      font-size: 12px;
+      line-height: 1.6;
+      display: block;
+    }
+
+    .effect-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .effect {
+      min-height: 96px;
+      border-radius: var(--radius);
+      padding: 13px;
+      background: #26362d;
+      color: white;
+    }
+
+    .effect b {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 7px;
+    }
+
+    .effect span {
+      color: rgba(255,255,255,.76);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 12px;
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+
+    .api-table th,
+    .api-table td {
+      border: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+      color: #526057;
+      line-height: 1.5;
+      background: rgba(255,255,255,.62);
+    }
+
+    .api-table th {
+      color: #26362d;
+      background: rgba(110,146,112,.12);
+      font-weight: 760;
+    }
+
+    .map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .map-node {
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 13px;
+      background: rgba(255,255,255,.68);
+    }
+
+    .map-node b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .map-node span {
+      display: block;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .swatch {
+      height: 44px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0,0,0,.08);
+      background: var(--c);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+      max-width: 100%;
+      justify-content: center;
+    }
+
+    .tab-btn {
+      min-height: 44px;
+      border-radius: 999px;
+      padding: 0 13px;
+      background: rgba(255,255,255,.76);
+      border: 1px solid var(--line);
+      color: #4a574f;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .tab-btn.active {
+      background: #26362d;
+      color: white;
+      border-color: transparent;
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .stage {
+        position: static;
+        max-width: calc(100vw - 36px);
+      }
+      .blueprint, .map, .deep-hero, .detail-grid, .flow, .schema, .roadmap, .effect-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-copy {
+        padding: 20px;
+      }
+      .api-table {
+        display: block;
+        overflow-x: auto;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      .api-table th,
+      .api-table td {
+        min-width: 138px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="stage" aria-label="手机端交互原型">
+      <div class="phone">
+        <div class="screen">
+          <div class="status">
+            <span>21:16</span>
+            <span class="signal">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16h10M10 12h4"/></svg>
+              <span class="bar"></span>
+            </span>
+          </div>
+          <div class="app">
+            <div class="content">
+              <section class="pane active" data-pane="today">
+                <div class="topline">
+                  <div>
+                    <p class="eyebrow">周六 · 上海 · 小雨将停</p>
+                    <h1 class="app-title">今晚适合慢慢写</h1>
+                  </div>
+                  <button class="icon-btn" aria-label="通知">
+                    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                  </button>
+                </div>
+
+                <div class="hero-card">
+                  <div class="day-row">
+                    <div class="date-tile"><span>7月</span><strong>04</strong></div>
+                    <div>
+                      <p class="prompt">今天有一件事，值得被你温柔地放下来。</p>
+                      <p class="micro">已连续记录 18 天 · 昨天写了 642 字</p>
+                    </div>
+                  </div>
+                  <div class="actions">
+                    <button class="primary"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>开始记录</button>
+                    <button class="secondary"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>安静问答</button>
+                  </div>
+                </div>
+
+                <div class="section-title"><h2>快速标记</h2><span>先记录状态，再写正文</span></div>
+                <div class="mood-strip" aria-label="心情选择">
+                  <button class="mood" style="--tone:#cf7b7b" aria-label="低落"></button>
+                  <button class="mood" style="--tone:#d4a06a" aria-label="疲惫"></button>
+                  <button class="mood selected" style="--tone:#7ba7c9" aria-label="平静"></button>
+                  <button class="mood" style="--tone:#7bc9a0" aria-label="愉快"></button>
+                  <button class="mood" style="--tone:#6bc0b0" aria-label="清爽"></button>
+                  <button class="mood" style="--tone:#a88bc9" aria-label="兴奋"></button>
+                </div>
+
+                <div class="section-title"><h2>本周日记</h2><span>月历降噪为周视图</span></div>
+                <div class="week">
+                  <button class="day wrote">一</button>
+                  <button class="day wrote">二</button>
+                  <button class="day">三</button>
+                  <button class="day wrote">四</button>
+                  <button class="day wrote">五</button>
+                  <button class="day active wrote">六</button>
+                  <button class="day">日</button>
+                </div>
+
+                <div class="section-title"><h2>今天的内容</h2><span>2 篇</span></div>
+                <div class="entry-list">
+                  <article class="entry">
+                    <div class="entry-head"><h3>雨声把晚饭后的房间放慢</h3><time>20:42</time></div>
+                    <p>没有特别大的事，只是突然觉得窗台那盏灯很好看。今天的我比上午安静一些。</p>
+                    <div class="tags"><span class="tag">平静</span><span class="tag">家</span><span class="tag">雨天</span></div>
+                  </article>
+                  <article class="entry">
+                    <div class="entry-head"><h3>写完一个拖了很久的小任务</h3><time>17:09</time></div>
+                    <p>不是很完美，但确实推进了。这个 APP 可以把小胜利和待办联动起来。</p>
+                    <div class="tags"><span class="tag">小胜利</span><span class="tag">工作</span></div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="pane" data-pane="write">
+                <div class="composer">
+                  <div class="topline">
+                    <div>
+                      <p class="eyebrow">自动草稿 · 00:06 前保存</p>
+                      <h1 class="app-title">记录</h1>
+                    </div>
+                    <button class="icon-btn" aria-label="保存"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
+                  </div>
+                  <div class="editor-card">
+                    <input class="title-input" value="把今天放进一个干净的抽屉" aria-label="日记标题">
+                    <div class="writing-line"></div>
+                    <p class="body-copy">今天没有急着给自己下结论。下午在路口等红灯的时候，忽然意识到最近总是在赶下一个节点，却很少真正停下来看看自己已经走到哪里。</p>
+                    <p class="body-copy"><br>如果要给今晚留一句话，大概是：不用每一天都显得有成果，稳定本身也是一种成果。</p>
+                    <div class="assist">
+                      <strong>低干扰 AI 建议</strong>
+                      <p>你写到“稳定本身也是一种成果”。可以补一句具体证据：今天哪个动作让你觉得自己稳定了？</p>
+                    </div>
+                  </div>
+                  <div class="toolbar" aria-label="编辑工具栏">
+                    <button class="tool active" aria-label="文字"><svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></button>
+                    <button class="tool" aria-label="心情"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></button>
+                    <button class="tool" aria-label="标签"><svg viewBox="0 0 24 24"><path d="M20.6 13.5 13.5 20.6a2 2 0 0 1-2.8 0L3 12.9V3h9.9l7.7 7.7a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/></svg></button>
+                    <button class="tool" aria-label="图片"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 2-2 7 7"/></svg></button>
+                    <button class="tool" aria-label="AI"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="pane" data-pane="memory">
+                <div class="topline">
+                  <div>
+                    <p class="eyebrow">回忆不再只是一条长列表</p>
+                    <h1 class="app-title">记忆流</h1>
+                  </div>
+                  <button class="icon-btn" aria-label="筛选"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+                </div>
+                <div class="hero-card">
+                  <p class="prompt">三年前的今天，你也写到“雨后空气”。</p>
+                  <p class="micro">把“那一天”从通知、时间胶囊、地图、收藏里合并成一个回忆入口。</p>
+                </div>
+                <div class="section-title"><h2>七月片段</h2><span>按主题聚合</span></div>
+                <div class="timeline">
+                  <article class="moment"><h3>城市和雨</h3><p>上海 · 12 篇 · 常出现词：窗、地铁、晚风、回家</p></article>
+                  <article class="moment"><h3>完成过的小事</h3><p>从待办自动关联 6 次小胜利，适合生成月末回顾。</p></article>
+                  <article class="moment"><h3>给未来的信</h3><p>1 个时间胶囊将在 7 月 18 日开启，可以提前加入倒数日。</p></article>
+                  <article class="moment"><h3>地图足迹</h3><p>最近 30 天记录了 4 个常去地点，支持路线回看。</p></article>
+                </div>
+              </section>
+
+              <section class="pane" data-pane="insight">
+                <div class="topline">
+                  <div>
+                    <p class="eyebrow">统计中心降噪后只保留行动线索</p>
+                    <h1 class="app-title">洞察</h1>
+                  </div>
+                  <button class="icon-btn" aria-label="生成报告"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                </div>
+                <div class="insight-grid">
+                  <div class="metric"><b>18</b><span>连续记录天数，比上月稳定 23%</span></div>
+                  <div class="metric"><b>4.2</b><span>近 30 天平均心情，雨天更容易平静</span></div>
+                  <div class="metric"><b>21:40</b><span>最常开始写作的时间段</span></div>
+                  <div class="metric"><b>6</b><span>和待办联动的小胜利</span></div>
+                </div>
+                <div class="section-title"><h2>记录热力</h2><span>点击日期看当天内容</span></div>
+                <div class="hero-card">
+                  <div class="heatmap" aria-label="记录热力图">
+                    <span class="cell" style="--level:0"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:3"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:4"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:3"></span><span class="cell" style="--level:0"></span><span class="cell" style="--level:4"></span><span class="cell" style="--level:2"></span>
+                    <span class="cell" style="--level:3"></span><span class="cell" style="--level:0"></span><span class="cell" style="--level:4"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:4"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:3"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:0"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:4"></span>
+                    <span class="cell" style="--level:2"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:3"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:4"></span><span class="cell" style="--level:0"></span><span class="cell" style="--level:2"></span><span class="cell" style="--level:3"></span><span class="cell" style="--level:5"></span><span class="cell" style="--level:1"></span><span class="cell" style="--level:4"></span>
+                  </div>
+                  <p class="micro">建议：统计页首页只展示 3 个可行动结论，深挖图表放到二级页。</p>
+                </div>
+                <div class="section-title"><h2>本周提醒</h2><span>AI 只做辅助</span></div>
+                <article class="entry"><h3>你在周三容易断档</h3><p>可以在周三晚间推一个更轻的“30 秒 check-in”，而不是完整写作提醒。</p></article>
+              </section>
+
+              <section class="pane" data-pane="me">
+                <div class="topline">
+                  <div>
+                    <p class="eyebrow">设置、工具和个人资产重新合并</p>
+                    <h1 class="app-title">我的空间</h1>
+                  </div>
+                  <button class="icon-btn" aria-label="隐私锁"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+                </div>
+                <div class="focus-card">
+                  <p class="eyebrow" style="color:rgba(255,255,255,.68)">沉浸写作</p>
+                  <h2 style="font-size:20px;margin-top:4px">森林雨声 · 专注中</h2>
+                  <div class="timer"><strong>24:18</strong></div>
+                  <div class="sound-row">
+                    <div class="avatar"></div>
+                    <div><strong style="font-size:13px">雨落松针</strong><p class="micro" style="color:rgba(255,255,255,.68)">环境音、专注模式、编辑器合并控制</p></div>
+                    <button class="secondary" style="min-width:54px;background:rgba(255,255,255,.14);color:white;border-color:rgba(255,255,255,.15)">暂停</button>
+                  </div>
+                </div>
+                <div class="section-title"><h2>常用管理</h2><span>少展开，多直达</span></div>
+                <div class="profile-card">
+                  <div class="auth-card">
+                    <div>
+                      <p class="eyebrow">账号与同步</p>
+                      <h3 style="font-size:16px;margin-top:3px">手机号登录，恢复全部记忆</h3>
+                    </div>
+                    <div class="field">
+                      <label for="phoneDemo">手机号</label>
+                      <input id="phoneDemo" value="138 0000 2026" inputmode="tel" aria-describedby="phoneHelp">
+                      <p class="micro" id="phoneHelp">用于找回云端加密备份，不公开展示。</p>
+                    </div>
+                    <div class="code-row" aria-label="验证码示例">
+                      <span class="code-box">2</span><span class="code-box">6</span><span class="code-box">0</span><span class="code-box">7</span><span class="code-box">0</span><span class="code-box">4</span>
+                    </div>
+                    <button class="primary">登录并同步</button>
+                    <div class="sync-steps">
+                      <div class="sync-step"><b>1</b><span>验证手机号，生成设备会话。</span></div>
+                      <div class="sync-step"><b>2</b><span>本地备份加密后上传，只同步密文。</span></div>
+                      <div class="sync-step"><b>3</b><span>新设备登录后恢复日记、媒体、设置和 AI 记忆索引。</span></div>
+                    </div>
+                  </div>
+                  <div class="setting"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M20 7H4M14 17H4M18 12H4"/></svg></div><div><h3>标签与素材库</h3><p>标签、媒体、收藏统一整理</p></div><span class="switch"></span></div>
+                  <div class="setting"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><h3>备份与存储</h3><p>自动备份、导入导出、缓存清理</p></div><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+                  <div class="setting"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></div><div><h3>AI 与隐私</h3><p>模型配置、额度、截图保护、锁屏</p></div><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+                </div>
+              </section>
+            </div>
+
+            <button class="fab" aria-label="新建日记" data-open-write>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+
+            <nav class="nav" aria-label="底部导航">
+              <button class="active" data-target="today"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H5v-8h14"/></svg><span>今天</span></button>
+              <button data-target="write"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>记录</span></button>
+              <button data-target="memory"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg><span>回忆</span></button>
+              <button data-target="insight"><svg viewBox="0 0 24 24"><path d="M4 19V5M9 19v-7M14 19V9M19 19V3"/></svg><span>洞察</span></button>
+              <button data-target="me"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span></button>
+            </nav>
+          </div>
+        </div>
+      </div>
+      <div class="tabs" aria-label="原型切换">
+        <button class="tab-btn active" data-target="today">今天</button>
+        <button class="tab-btn" data-target="write">记录</button>
+        <button class="tab-btn" data-target="memory">回忆</button>
+        <button class="tab-btn" data-target="insight">洞察</button>
+        <button class="tab-btn" data-target="me">我的</button>
+      </div>
+    </section>
+
+    <section class="desk" aria-label="优化蓝图">
+      <div class="hero-copy">
+        <div class="kicker">DiaryApp 全新移动端体验 · 基于当前 Kotlin/Compose 源码梳理</div>
+        <h1>把功能很多的日记 APP，重构成每天愿意打开的私人空间。</h1>
+        <p>这版不是换一层玻璃卡片，而是重新分配信息层级：首页负责开始记录，回忆负责找回过去，洞察负责给出行动线索，我的空间收纳工具、隐私和沉浸能力。AI 被放进写作过程里，保持克制，不抢走用户和自己的对话。</p>
+        <div class="pill-row">
+          <span class="pill">移动端优先</span>
+          <span class="pill">44px 触控目标</span>
+          <span class="pill">低饱和主题</span>
+          <span class="pill">AI 低干扰</span>
+          <span class="pill">工具入口降噪</span>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <h2>新的主导航</h2>
+        <div class="map">
+          <div class="map-node"><b>今天</b><span>首页、周历、快速心情、天气、今日日记、通知摘要和开始记录。</span></div>
+          <div class="map-node"><b>记录</b><span>Quill 编辑器、标签、心情、天气、地点、草稿、图片、AI 润色统一成底部上下文工具栏。</span></div>
+          <div class="map-node"><b>回忆</b><span>时间线、收藏、随机回顾、时间胶囊、倒数日、地图、媒体库按“记忆主题”聚合。</span></div>
+          <div class="map-node"><b>洞察 / 我的</b><span>统计、热力图、写作指纹、成就放洞察；设置、备份、AI 配置、隐私、沉浸音放我的。</span></div>
+        </div>
+      </div>
+
+      <div class="blueprint">
+        <article class="panel">
+          <h2>页面展示优化</h2>
+          <ul>
+            <li>首页从“信息堆叠”变为“今天能做什么”：写一篇、30 秒 check-in、继续草稿。</li>
+            <li>日历默认周视图，月视图作为展开态，减少首屏压迫感。</li>
+            <li>工具页拆解到场景内，不再让用户在二十多个入口里找功能。</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h2>交互优化</h2>
+          <ul>
+            <li>编辑器的 AI、图片、标签、天气、地点用同一条上下文工具栏承载。</li>
+            <li>统计图表先给结论，再给图表；热力图和趋势点击后再进入深挖。</li>
+            <li>环境音、专注模式、写作计时并入沉浸写作，不作为孤立工具。</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h2>视觉系统</h2>
+          <p>保留源码主题里的雾蓝灰、苔藓绿、陶粉玫瑰气质，增加纸面质感和安静边界。避免大面积紫色渐变、悬浮装饰和营销页式布局。</p>
+          <div class="swatches">
+            <span class="swatch" style="--c:#f6f7f4"></span>
+            <span class="swatch" style="--c:#26362d"></span>
+            <span class="swatch" style="--c:#6e9270"></span>
+            <span class="swatch" style="--c:#6f8fae"></span>
+            <span class="swatch" style="--c:#bf8780"></span>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>性能优化方向</h2>
+          <ul>
+            <li>首页首屏只订阅首屏数据，历史列表、媒体图、统计延迟加载。</li>
+            <li>时间线分组和筛选结果放入 ViewModel 派生状态，减少 Compose 重算。</li>
+            <li>WebView 编辑器预热和资源复用，图片缩略图固定尺寸并懒加载。</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="panel wide">
+        <div class="deep-hero">
+          <div>
+            <h2>深度功能拓展总览</h2>
+            <p>这次不再罗列几十个浅功能，而是把 DiaryApp 推向 6 个能真正改变产品深度的系统：账号与云同步、隐私安全层、AI 记忆引擎、智能记录工作台、回忆关系网络、成长实验与挑战。每个系统都能接入当前源码里的真实基础：Room 本地库、Cloudflare Worker、备份导入导出、AI 配置、统计、成就、时间胶囊、专注和环境音。</p>
+            <div class="pill-row">
+              <span class="pill">手机号登录</span>
+              <span class="pill">端到端加密备份</span>
+              <span class="pill">增量同步队列</span>
+              <span class="pill">AI 记忆索引</span>
+              <span class="pill">关系与决策追踪</span>
+              <span class="pill">可验收实施计划</span>
+            </div>
+          </div>
+          <div class="evidence-list">
+            <div class="evidence-item"><b>本地能力</b><span>Room 数据库已覆盖日记、标签、待办、习惯、通知、AI 对话、成就、胶囊、摘要、嵌入、语音、人物、决策、价值提取、写作实验和月度挑战。</span></div>
+            <div class="evidence-item"><b>云端雏形</b><span>workers 目录已有手机号 + PIN 注册登录、KV 会话、D1 users/backups 表和备份上传下载接口，可升级为真正账号系统。</span></div>
+            <div class="evidence-item"><b>产品方向</b><span>重点不是增加入口，而是让现有功能互相联动：记录产生素材，AI 提炼索引，回忆组织关系，洞察推动行动。</span></div>
+          </div>
+        </div>
+      </div>
+
+      <section class="feature-stack" aria-label="深度功能实施方案">
+        <article class="feature-detail">
+          <h2>1. 手机号登录与私密云同步</h2>
+          <p class="lead">目标是让用户换手机、重装应用、跨设备时不用再手动找备份文件。登录方式可以从“手机号 + 验证码 + 本地 PIN/生物识别”开始，逐步替换当前 worker 的简单 phone + PIN 模式。云端只保存账号、设备、同步元数据和加密备份密文，不保存可读日记。</p>
+          <div class="flow">
+            <span>输入手机号</span>
+            <span>短信验证码或测试码</span>
+            <span>创建设备密钥</span>
+            <span>本地备份加密上传</span>
+            <span>新设备解密恢复</span>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>产品细节</h3>
+              <ul>
+                <li>首次打开不强制登录，先允许本地使用，首页用“开启云端保护”柔性入口。</li>
+                <li>登录页明确说明：手机号只用于找回备份，日记正文加密后再上传。</li>
+                <li>支持“仅本机模式”“云备份模式”“多设备同步模式”三档隐私选择。</li>
+                <li>新设备登录后先展示备份摘要：最后同步时间、日记数、媒体大小、是否覆盖。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>实施模块</h3>
+              <ul>
+                <li>新增 `AccountSessionStore` 保存 token、手机号掩码、设备 ID、同步开关。</li>
+                <li>新增 `SyncApiClient` 对接 worker：login、refresh、upload、download、device。</li>
+                <li>新增 `CloudSyncRepository`，复用 `BackupManager` 生成备份包。</li>
+                <li>新增“账号与同步”屏幕，挂到“我的空间”。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>异常处理</h3>
+              <ul>
+                <li>验证码错误展示剩余次数，失败 5 次进入冷却。</li>
+                <li>token 过期时保持本地可写，后台刷新失败才提示重新登录。</li>
+                <li>云端备份版本低于本机时禁止无提示覆盖。</li>
+                <li>网络断开时写入 `sync_outbox`，恢复网络后重试。</li>
+              </ul>
+            </div>
+          </div>
+          <table class="api-table">
+            <thead><tr><th>接口</th><th>请求</th><th>返回</th><th>升级点</th></tr></thead>
+            <tbody>
+              <tr><td>POST /api/auth/request-code</td><td>phone, deviceName</td><td>challengeId, ttl</td><td>替代直接 PIN 注册，接入短信服务或开发测试码。</td></tr>
+              <tr><td>POST /api/auth/verify</td><td>phone, code, devicePublicKey</td><td>accessToken, refreshToken, userId</td><td>把当前 KV session 升级为短 token + 刷新 token。</td></tr>
+              <tr><td>POST /api/sync/backup</td><td>encryptedPayload, manifest, schemaVersion</td><td>backupId, serverRevision</td><td>只保存密文和摘要，不保存明文 backup_data。</td></tr>
+              <tr><td>GET /api/sync/latest</td><td>Authorization</td><td>manifest, encryptedPayload</td><td>新设备恢复和冲突判断。</td></tr>
+            </tbody>
+          </table>
+          <div class="schema">
+            <code>users: id, phone_hash, created_at</code>
+            <code>devices: id, user_id, public_key, name, last_seen</code>
+            <code>sync_backups: user_id, revision, encrypted_blob, manifest_json</code>
+            <code>sync_events: entity_type, entity_id, op, updated_at</code>
+          </div>
+          <div class="effect-grid">
+            <div class="effect"><b>30 秒</b><span>换机恢复目标时间：登录后选择备份，自动导入本地库。</span></div>
+            <div class="effect"><b>0 明文</b><span>云端不接触日记正文、媒体原图和 AI 对话明文。</span></div>
+            <div class="effect"><b>3 模式</b><span>本机、云备份、多设备同步，用户自己决定隐私级别。</span></div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>2. 端到端隐私安全层</h2>
+          <p class="lead">当前 APP 已有 PIN、生物识别、截图保护和本地备份能力，下一步要把这些能力统一成“隐私中心”。核心不是多一个开关，而是让用户知道哪些数据在本机、哪些会上传、哪些会被 AI 使用。</p>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>功能细节</h3>
+              <ul>
+                <li>隐私仪表盘：本地锁、截图保护、云同步、AI 上下文、备份加密状态一屏可见。</li>
+                <li>敏感日记模式：单篇日记可标记“不进 AI、不进回忆推送、不出现在通知摘要”。</li>
+                <li>二次验证：导出、云端覆盖恢复、删除云备份前必须 PIN/生物识别确认。</li>
+                <li>隐私日志：记录最近 30 天的导出、恢复、AI 调用、云同步动作。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>技术实施</h3>
+              <ul>
+                <li>新增 `privacy_flags` 字段或表，关联 diaryId / conversationId / mediaId。</li>
+                <li>备份前走 `BackupEncryptionService`，使用 Android Keystore 派生本机密钥。</li>
+                <li>AI 请求前统一经过 `AiContextPolicy`，过滤敏感条目和过量上下文。</li>
+                <li>新增 `PrivacyAuditEvent` 本地表，用于用户可见的安全日志。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>验收效果</h3>
+              <ul>
+                <li>用户能在 10 秒内确认“我的日记是否上传了明文”。</li>
+                <li>敏感日记不会出现在 AI 问答、年度报告、今日回忆和通知中。</li>
+                <li>导出/恢复/云端删除有明确二次确认和日志记录。</li>
+                <li>关闭云同步后不再发起任何 sync 请求。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>3. AI 记忆引擎：从聊天助手升级为私人记忆索引</h2>
+          <p class="lead">现有 AI 助手、写作教练、写作指纹、摘要和 embedding 实体可以合并成一个更深入的“记忆引擎”。它不是每天主动说教，而是在用户需要回看、整理、决策时给出有证据的线索。</p>
+          <div class="flow">
+            <span>日记保存</span>
+            <span>后台生成摘要</span>
+            <span>抽取人物/地点/价值/决策</span>
+            <span>建立向量与关系索引</span>
+            <span>回忆/洞察按证据展示</span>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>核心能力</h3>
+              <ul>
+                <li>“问过去的自己”：回答必须引用具体日期和日记片段。</li>
+                <li>关系记忆：自动识别常出现的人、互动情绪、关系变化。</li>
+                <li>决策复盘：从日记里提取决定、理由、后续结果和情绪变化。</li>
+                <li>价值雷达：用 extracted_values 汇总用户长期在意的事。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>数据实现</h3>
+              <ul>
+                <li>`DiarySummary` 存短摘要、关键词、情绪、隐私等级。</li>
+                <li>`DiaryEmbedding` 存向量索引和模型版本，支持离线重建。</li>
+                <li>`TrackedPerson` / `PersonMention` 建人物网络。</li>
+                <li>`Decision` / `ExtractedValue` 支撑决策与价值复盘。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>AI 安全</h3>
+              <ul>
+                <li>AI 回答分为“证据”和“推测”，推测必须标注。</li>
+                <li>默认只取摘要和片段，用户确认后才发送全文上下文。</li>
+                <li>所有 AI token 和模型消耗继续进入现有 `AiUsageTracker`。</li>
+                <li>本地缓存 AI 结果，避免同一日记反复消耗。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="effect-grid">
+            <div class="effect"><b>有出处</b><span>每条洞察都能点回具体日记，避免“AI 味道”的空泛总结。</span></div>
+            <div class="effect"><b>低打扰</b><span>AI 默认藏在记录、回忆、复盘场景内，不抢首页主导权。</span></div>
+            <div class="effect"><b>可重建</b><span>摘要和向量带版本号，换模型后可后台增量重算。</span></div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>4. 智能记录工作台：日记、语音、待办、小胜利合流</h2>
+          <p class="lead">现在的编辑器已经有 Quill、图片、标签、心情、天气、地点、AI 面板和写作时长。深度优化方向是把“写正文”拓展为一个记录工作台：可以先语音、先 check-in、先完成待办，再自然沉淀成一篇日记。</p>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>功能细节</h3>
+              <ul>
+                <li>30 秒 check-in：心情、能量、今天一句话，之后可一键扩写成日记。</li>
+                <li>语音备忘：录音后转成草稿，保留原音频和 AI 整理文本。</li>
+                <li>待办联动：完成待办时弹出“小胜利记录”，自动关联 Goal / SmallWin。</li>
+                <li>编辑器模板不再做固定模板库，而是根据时间、天气、最近标签生成动态问题。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>实施步骤</h3>
+              <ul>
+                <li>新建 `RecordIntent`：diary、quickCheckin、voiceMemo、smallWin、focusNote。</li>
+                <li>编辑器入口接收 intent，自动预填标题、标签、来源和草稿内容。</li>
+                <li>Todo 完成事件写入 SmallWin，并显示“补一句感受”。</li>
+                <li>VoiceMemo 文件走现有媒体目录和备份包机制。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>实施效果</h3>
+              <ul>
+                <li>用户不想写长文时，也能用 10-30 秒留下可分析数据。</li>
+                <li>待办、专注、习惯不再和日记分离，而是成为日记素材。</li>
+                <li>AI 生成的问题来自真实上下文，不再像通用写作提示。</li>
+                <li>后续月报能展示“做了什么”与“感觉如何”的关联。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>5. 回忆关系网络：时间线之外的第二种回看方式</h2>
+          <p class="lead">时间线适合按日期浏览，但日记的长期价值往往在人物、地点、主题和反复出现的决定里。回忆关系网络会把时间胶囊、地图、媒体库、收藏、人物、地点和主题串起来。</p>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>体验设计</h3>
+              <ul>
+                <li>回忆首页显示“本周浮现的 3 条线索”：一个人、一个地点、一个主题。</li>
+                <li>人物页：共同出现的地点、情绪趋势、最近一次提到、重要片段。</li>
+                <li>地点页：地图轨迹 + 当地日记 + 相关照片 + 天气情绪。</li>
+                <li>主题页：同一关键词跨月份串联，支持生成“这一年的我如何看待 X”。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>数据与算法</h3>
+              <ul>
+                <li>从 `DiarySummary` 关键词和 `PersonMention` 生成 memory anchors。</li>
+                <li>按共现频率、时间距离、情绪强度计算 anchor_relations。</li>
+                <li>隐私标记的条目只在手动搜索中出现，不进入主动推荐。</li>
+                <li>图片和地点使用本地缩略图，列表只加载可见范围。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>验收标准</h3>
+              <ul>
+                <li>任意一个回忆卡片都能追溯到来源日记。</li>
+                <li>空数据用户看到的是轻量建议，不是空白页。</li>
+                <li>主动推荐每周最多 3 条，避免“过度打扰”。</li>
+                <li>地图、照片、文字在弱网/无网状态仍能读本地缓存。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>6. 成长实验与月度挑战：让记录产生行动</h2>
+          <p class="lead">项目里已有 WritingExperiment、ExperimentParticipation、MonthlyChallenge、ChallengeDailyLog、Goal 和 FocusSession。可以把它们做成“轻量行动系统”：不是打卡压力，而是从日记洞察里生成小实验。</p>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h3>功能细节</h3>
+              <ul>
+                <li>AI 从洞察里提议实验：例如“连续 5 天晚饭后写 80 字”。</li>
+                <li>实验有假设、持续天数、每日记录问题、结束复盘。</li>
+                <li>月度挑战按写作稳定、情绪照顾、专注、关系、健康分主题。</li>
+                <li>成就不只奖励数量，也奖励“回看、复盘、完成实验”。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>实施计划</h3>
+              <ul>
+                <li>复用 `MonthlyChallenge` 与 `ChallengeDailyLog` 建挑战详情页。</li>
+                <li>写作教练页新增“建议实验”，用户确认后写入 WritingExperiment。</li>
+                <li>首页只展示今日实验一步，不展示完整任务墙。</li>
+                <li>实验结束自动生成复盘草稿，不直接替用户下结论。</li>
+              </ul>
+            </div>
+            <div class="detail-block">
+              <h3>效果</h3>
+              <ul>
+                <li>记录从被动存档变成“可尝试的小改变”。</li>
+                <li>挑战由用户数据生成，比固定任务更贴身。</li>
+                <li>写作教练有明确闭环：发现问题、提出实验、记录结果、复盘。</li>
+                <li>长期留存依赖真实获得感，而不是入口堆叠。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-detail">
+          <h2>实施路线图与优先级</h2>
+          <p class="lead">建议按“先账号安全，再同步，再 AI 索引，再体验联动”的顺序推进。这样每一步都有可见收益，也能避免先做大量视觉页却没有底层能力支撑。</p>
+          <div class="roadmap">
+            <div class="phase"><b>P0 · 账号底座</b><span>升级 worker schema；实现手机号验证码登录、token 刷新、设备表；Android 端新增 AccountSessionStore 和登录 UI。</span></div>
+            <div class="phase"><b>P1 · 加密备份</b><span>复用 BackupManager 生成包；新增加密服务、云端上传下载、恢复预览、冲突确认和隐私中心状态。</span></div>
+            <div class="phase"><b>P2 · 记录合流</b><span>接入 QuickCheckin、SmallWin、VoiceMemo；编辑器支持来源 intent；待办完成可沉淀为日记素材。</span></div>
+            <div class="phase"><b>P3 · AI 记忆</b><span>摘要、人物、决策、价值、embedding 增量生成；回忆页和洞察页按证据展示；加入 AI 隐私策略。</span></div>
+          </div>
+          <table class="api-table">
+            <thead><tr><th>阶段</th><th>关键文件/模块</th><th>测试与验收</th><th>用户可见效果</th></tr></thead>
+            <tbody>
+              <tr><td>P0</td><td>workers/src/index.js, workers/schema.sql, AccountSessionStore, AuthScreen</td><td>注册、登录、错误码、锁定、token 过期刷新单元测试</td><td>“我的空间”出现手机号登录和设备状态</td></tr>
+              <tr><td>P1</td><td>BackupManager, CloudSyncRepository, BackupEncryptionService</td><td>加密后云端不可读；断网入队；恢复前预览数量一致</td><td>换机可一键恢复日记与媒体</td></tr>
+              <tr><td>P2</td><td>EditorScreen, TodoViewModel, VoiceRecorder, QuickCheckin</td><td>不同来源进入编辑器不丢字段；待办完成生成 SmallWin</td><td>不想写长文时也能快速记录</td></tr>
+              <tr><td>P3</td><td>DiarySummarizer, InsightGenerator, WritingFingerprint, Timeline/Stats</td><td>敏感日记被过滤；洞察可点回来源；缓存避免重复消耗</td><td>回忆和洞察真正有个人感</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const paneButtons = document.querySelectorAll("[data-target]");
+    const panes = document.querySelectorAll(".pane");
+    const fab = document.querySelector("[data-open-write]");
+
+    function setPane(name) {
+      panes.forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === name));
+      paneButtons.forEach((button) => {
+        const active = button.dataset.target === name;
+        button.classList.toggle("active", active);
+        if (button.closest(".nav")) button.setAttribute("aria-current", active ? "page" : "false");
+      });
+    }
+
+    paneButtons.forEach((button) => {
+      button.addEventListener("click", () => setPane(button.dataset.target));
+    });
+
+    fab.addEventListener("click", () => setPane("write"));
+  </script>
+</body>
+</html>
