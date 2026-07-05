@@ -72,6 +72,21 @@ class AuthManager(context: Context) {
         return Result.success(AuthUiState(state = AuthState.LOGGED_IN, phone = phone))
     }
 
+    fun changePin(oldPin: String, newPin: String): Result<Unit> {
+        val phone = savedPhone ?: return Result.failure(Exception("未登录"))
+        if (newPin.length < 4) {
+            return Result.failure(Exception("新 PIN 至少4位"))
+        }
+        val storedHash = prefs.getString(KEY_PIN_HASH, null) ?: return Result.failure(Exception("未设置密码"))
+        val oldHash = hashPin(oldPin, phone)
+        if (oldHash != storedHash) {
+            return Result.failure(Exception("旧 PIN 错误"))
+        }
+        val newHash = hashPin(newPin, phone)
+        prefs.edit().putString(KEY_PIN_HASH, newHash).apply()
+        return Result.success(Unit)
+    }
+
     private suspend fun syncCloud(phone: String, pin: String) {
         try {
             val result = cloudSync.register(phone, pin)
