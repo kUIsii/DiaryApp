@@ -7,8 +7,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -134,26 +132,13 @@ import com.diary.app.ui.ambientsound.AmbientSoundViewModel
 import com.diary.app.update.ChangelogScreen
 import kotlinx.coroutines.launch
 
-// Sub-page transition specs: smooth slide without bounce
-private fun subPageEnterTransition() = slideInHorizontally(
-    initialOffsetX = { it / 3 },
-    animationSpec = tween(280)
-) + fadeIn(animationSpec = tween(240))
+private fun subPageEnterTransition() = fadeIn(animationSpec = tween(150))
 
-private fun subPageExitTransition() = slideOutHorizontally(
-    targetOffsetX = { -it / 4 },
-    animationSpec = tween(280)
-) + fadeOut(animationSpec = tween(200))
+private fun subPageExitTransition() = fadeOut(animationSpec = tween(100))
 
-private fun subPagePopEnterTransition() = slideInHorizontally(
-    initialOffsetX = { -it / 4 },
-    animationSpec = tween(280)
-) + fadeIn(animationSpec = tween(240))
+private fun subPagePopEnterTransition() = fadeIn(animationSpec = tween(100))
 
-private fun subPagePopExitTransition() = slideOutHorizontally(
-    targetOffsetX = { it / 3 },
-    animationSpec = tween(280)
-) + fadeOut(animationSpec = tween(200))
+private fun subPagePopExitTransition() = fadeOut(animationSpec = tween(100))
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "首页", Icons.Default.Home)
@@ -278,33 +263,17 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 startDestination = Screen.Home.route,
                 modifier = Modifier,
                 enterTransition = {
-                val from = initialState.destination.route
-                val to = targetState.destination.route
-                val fromIdx = bottomNavItems.indexOfFirst { it.screen.route == from }
-                val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
-                if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
-                    val direction = if (toIdx > fromIdx) 1 else -1
-                    slideInHorizontally(tween(280)) { direction * it / 3 } +
-                        fadeIn(tween(200))
-                } else {
-                    fadeIn(animationSpec = tween(250))
-                }
-            },
-            exitTransition = {
-                val from = initialState.destination.route
-                val to = targetState.destination.route
-                val fromIdx = bottomNavItems.indexOfFirst { it.screen.route == from }
-                val toIdx = bottomNavItems.indexOfFirst { it.screen.route == to }
-                if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
-                    val direction = if (toIdx > fromIdx) -1 else 1
-                    slideOutHorizontally(tween(280)) { direction * it / 4 } +
-                        fadeOut(tween(200))
-                } else {
-                    fadeOut(animationSpec = tween(200))
-                }
-            },
-            popEnterTransition = { fadeIn(animationSpec = tween(250)) },
-            popExitTransition = { fadeOut(animationSpec = tween(200)) }
+    fadeIn(animationSpec = tween(150))
+},
+exitTransition = {
+    fadeOut(animationSpec = tween(100))
+},
+popEnterTransition = {
+    fadeIn(animationSpec = tween(100))
+},
+popExitTransition = {
+    fadeOut(animationSpec = tween(100))
+}
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
@@ -746,28 +715,16 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                     navArgument("draftId") { type = NavType.StringType; defaultValue = "" }
                 ),
                 enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(280)
-                    ) + fadeIn(animationSpec = tween(240))
+                    fadeIn(animationSpec = tween(150))
                 },
                 exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 3 },
-                        animationSpec = tween(280)
-                    ) + fadeOut(animationSpec = tween(200))
+                    fadeOut(animationSpec = tween(100))
                 },
                 popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it / 3 },
-                        animationSpec = tween(280)
-                    ) + fadeIn(animationSpec = tween(240))
+                    fadeIn(animationSpec = tween(100))
                 },
                 popExitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(280)
-                    ) + fadeOut(animationSpec = tween(200))
+                    fadeOut(animationSpec = tween(100))
                 }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
@@ -783,28 +740,16 @@ fun DiaryNavHost(navigateTo: String? = null, onNavigateHandled: () -> Unit = {})
                 route = Screen.Detail.route,
                 arguments = listOf(navArgument("diaryId") { type = NavType.LongType }),
                 enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(280)
-                    ) + fadeIn(animationSpec = tween(240))
+                    fadeIn(animationSpec = tween(150))
                 },
                 exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 3 },
-                        animationSpec = tween(280)
-                    ) + fadeOut(animationSpec = tween(200))
+                    fadeOut(animationSpec = tween(100))
                 },
                 popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it / 3 },
-                        animationSpec = tween(280)
-                    ) + fadeIn(animationSpec = tween(240))
+                    fadeIn(animationSpec = tween(100))
                 },
                 popExitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(280)
-                    ) + fadeOut(animationSpec = tween(200))
+                    fadeOut(animationSpec = tween(100))
                 }
             ) { backStackEntry ->
                 val diaryId = backStackEntry.arguments?.getLong("diaryId") ?: -1L
