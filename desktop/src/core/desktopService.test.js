@@ -163,7 +163,7 @@ test("loginSyncAccount links desktop account with masked phone and token", async
   const result = await loginSyncAccount(emptyState(), {
     phone: "13812345678",
     pin: "2468",
-    endpoint: "https://diary-app-sync.workers.dev",
+    endpoint: "https://diary-app-sync.2453759261.workers.dev",
     deviceName: "Desktop Studio"
   }, { fetcher, now: now() });
 
@@ -171,8 +171,8 @@ test("loginSyncAccount links desktop account with masked phone and token", async
   assert.equal(result.state.account.status, "linked");
   assert.equal(result.state.account.maskedPhone, "138****5678");
   assert.equal(result.state.account.token, "token-123");
-  assert.equal(result.state.account.syncEndpoint, "https://diary-app-sync.workers.dev");
-  assert.equal(calls[0].url, "https://diary-app-sync.workers.dev/api/login");
+  assert.equal(result.state.account.syncEndpoint, "https://diary-app-sync.2453759261.workers.dev");
+  assert.equal(calls[0].url, "https://diary-app-sync.2453759261.workers.dev/api/login");
   assert.deepEqual(JSON.parse(calls[0].options.body), { phone: "13812345678", pin: "2468" });
 });
 
@@ -194,7 +194,7 @@ test("registerSyncAccount uses the same Worker auth contract as Android", async 
 
   assert.equal(result.ok, true);
   assert.equal(result.state.account.status, "linked");
-  assert.equal(calls[0].url, "https://diary-app-sync.workers.dev/api/register");
+  assert.equal(calls[0].url, "https://diary-app-sync.2453759261.workers.dev/api/register");
 });
 
 test("syncWithCloud uploads desktop data and stores sync metadata", async () => {
@@ -205,7 +205,7 @@ test("syncWithCloud uploads desktop data and stores sync metadata", async () => 
       phone: "13812345678",
       maskedPhone: "138****5678",
       token: "token-123",
-      syncEndpoint: "https://diary-app-sync.workers.dev",
+      syncEndpoint: "https://diary-app-sync.2453759261.workers.dev",
       deviceId: "desktop-test",
       deviceName: "Desktop"
     }
@@ -223,7 +223,7 @@ test("syncWithCloud uploads desktop data and stores sync metadata", async () => 
   const result = await syncWithCloud(starting, { fetcher, now: now() });
 
   assert.equal(result.ok, true);
-  assert.equal(calls[0].url, "https://diary-app-sync.workers.dev/api/backup");
+  assert.equal(calls[0].url, "https://diary-app-sync.2453759261.workers.dev/api/backup");
   assert.equal(calls[0].options.headers.Authorization, "Bearer token-123");
   const body = JSON.parse(calls[0].options.body);
   assert.equal(body.data.syncMeta.deviceId, "desktop-test");

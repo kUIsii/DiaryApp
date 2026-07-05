@@ -716,7 +716,7 @@ function renderSyncAccount() {
   const summary = document.getElementById("sync-account-summary");
   if (!summary) return;
   const account = state.account || {};
-  const endpoint = account.syncEndpoint || "https://diary-app-sync.workers.dev";
+  const endpoint = account.syncEndpoint || "https://diary-app-sync.2453759261.workers.dev";
   document.getElementById("sync-phone").value = account.status === "linked" ? account.phone : "";
   document.getElementById("sync-endpoint").value = endpoint;
   summary.innerHTML = account.status === "linked"

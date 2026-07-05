@@ -1,7 +1,7 @@
 import { createDesktopState } from "./taskEngine.js";
 
 const DAY = 24 * 60 * 60 * 1000;
-const DEFAULT_SYNC_ENDPOINT = "https://diary-app-sync.workers.dev";
+const DEFAULT_SYNC_ENDPOINT = "https://diary-app-sync.2453759261.workers.dev";
 
 // ── Core State ──
 export function createInitialState(input = {}) {

@@ -346,6 +346,14 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   registerGlobalShortcuts();
+  // Auto-sync every 2 hours
+  setInterval(() => {
+    if (state.account?.token) {
+      Service.syncWithCloud(state).then((r) => {
+        if (r.state) { state = r.state; persist(); }
+      }).catch(() => {});
+    }
+  }, 2 * 60 * 60 * 1000);
 });
 
 app.on("window-all-closed", () => {
