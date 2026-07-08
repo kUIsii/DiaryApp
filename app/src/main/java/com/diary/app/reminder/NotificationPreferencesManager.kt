@@ -17,6 +17,8 @@ object NotificationPreferencesManager {
     private const val KEY_DAILY_REMINDER_ENABLED = "daily_reminder_enabled"
     private const val KEY_ACHIEVEMENTS_ENABLED = "achievements_enabled"
     private const val KEY_WEATHER_ALERTS_ENABLED = "weather_alerts_enabled"
+    private const val KEY_WEATHER_ALERT_SYSTEM_ENABLED = "weather_alerts_system_enabled"
+    private const val KEY_WEATHER_ALERT_INAPP_ENABLED = "weather_alerts_inapp_enabled"
     private const val KEY_QUIET_HOURS_ENABLED = "quiet_hours_enabled"
     private const val KEY_QUIET_HOURS_START_HOUR = "quiet_hours_start_hour"
     private const val KEY_QUIET_HOURS_START_MINUTE = "quiet_hours_start_minute"
@@ -27,6 +29,8 @@ object NotificationPreferencesManager {
     private const val DEFAULT_DAILY_REMINDER = true
     private const val DEFAULT_ACHIEVEMENTS = true
     private const val DEFAULT_WEATHER_ALERTS = true
+    private const val DEFAULT_WEATHER_ALERT_SYSTEM = true
+    private const val DEFAULT_WEATHER_ALERT_INAPP = true
     private const val DEFAULT_QUIET_HOURS_ENABLED = false
     private const val DEFAULT_QUIET_START_HOUR = 22
     private const val DEFAULT_QUIET_START_MINUTE = 0
@@ -65,6 +69,26 @@ object NotificationPreferencesManager {
 
     fun setWeatherAlertsEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_WEATHER_ALERTS_ENABLED, enabled).apply()
+    }
+
+    // ── 天气预警：系统推送（状态栏通知）───────────────────
+
+    fun isWeatherAlertSystemEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_WEATHER_ALERT_SYSTEM_ENABLED, DEFAULT_WEATHER_ALERT_SYSTEM)
+    }
+
+    fun setWeatherAlertSystemEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_WEATHER_ALERT_SYSTEM_ENABLED, enabled).apply()
+    }
+
+    // ── 天气预警：APP 内提醒（收件箱）────────────────────
+
+    fun isWeatherAlertInAppEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_WEATHER_ALERT_INAPP_ENABLED, DEFAULT_WEATHER_ALERT_INAPP)
+    }
+
+    fun setWeatherAlertInAppEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_WEATHER_ALERT_INAPP_ENABLED, enabled).apply()
     }
 
     // ── Quiet hours ────────────────────────────────────────────

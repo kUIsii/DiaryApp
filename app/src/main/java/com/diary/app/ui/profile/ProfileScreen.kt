@@ -222,6 +222,8 @@ fun ProfileScreen(
 
     // Notification settings
     var weatherAlertsEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertsEnabled(context)) }
+    var weatherAlertSystemEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertSystemEnabled(context)) }
+    var weatherAlertInAppEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertInAppEnabled(context)) }
     var achievementsNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isAchievementsEnabled(context)) }
     var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isBiometricLockEnabled(context)) }
     var screenshotProtectionEnabled by remember { mutableStateOf(ScreenshotProtectionHelper.isEnabled(context)) }
@@ -663,7 +665,7 @@ fun ProfileScreen(
                         iconBg = sectionIconBg(2),
                         iconTint = sectionIconTint(2),
                         title = "天气预警",
-                        subtitle = if (weatherAlertsEnabled) "恶劣天气时发送通知" else "已关闭",
+                        subtitle = if (weatherAlertsEnabled) "恶劣天气时首页展示预警横幅" else "已关闭",
                         textColor = textColor,
                         textTertiary = textTertiary,
                         accentColor = accentColor,
@@ -671,6 +673,40 @@ fun ProfileScreen(
                         onCheckedChange = { newValue ->
                             NotificationPreferencesManager.setWeatherAlertsEnabled(context, newValue)
                             weatherAlertsEnabled = newValue
+                        }
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Notifications,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "系统推送",
+                        subtitle = if (weatherAlertSystemEnabled) "通过状态栏发送预警通知" else "已关闭",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = weatherAlertSystemEnabled,
+                        switchEnabled = weatherAlertsEnabled,
+                        onCheckedChange = { newValue ->
+                            NotificationPreferencesManager.setWeatherAlertSystemEnabled(context, newValue)
+                            weatherAlertSystemEnabled = newValue
+                        }
+                    )
+                    SettingDivider()
+                    SwitchSettingRow(
+                        icon = Icons.Default.Notifications,
+                        iconBg = sectionIconBg(2),
+                        iconTint = sectionIconTint(2),
+                        title = "APP 内提醒",
+                        subtitle = if (weatherAlertInAppEnabled) "在通知收件箱生成预警卡片" else "已关闭",
+                        textColor = textColor,
+                        textTertiary = textTertiary,
+                        accentColor = accentColor,
+                        checked = weatherAlertInAppEnabled,
+                        switchEnabled = weatherAlertsEnabled,
+                        onCheckedChange = { newValue ->
+                            NotificationPreferencesManager.setWeatherAlertInAppEnabled(context, newValue)
+                            weatherAlertInAppEnabled = newValue
                         }
                     )
                     SettingDivider()

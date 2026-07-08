@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交互游乐场</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0b0b;--bg2:#141414;--card:#1c1c1c;--card-h:#242424;--text:#e8e8e8;--text2:#9a9a9a;--text3:#666;--gold:#c4a86a;--gold-h:#d8bc7e;--gold-m:#5a5030;--border:#2a2a2a;--radius:14px;--font:'Noto Sans SC',sans-serif;--font-serif:'Noto Serif SC',serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:16px;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--gold);color:var(--bg)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+.section{padding:90px 0}
+.sn{font-size:13px;font-weight:600;letter-spacing:.15em;color:var(--gold);margin-bottom:8px}
+h2{font-size:28px;font-weight:600;letter-spacing:-.01em;margin-bottom:12px;line-height:1.3}
+.st{font-size:15px;color:var(--text2);max-width:520px;line-height:1.8}
+
+/* HEADER */
+.hd{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;background:rgba(11,11,11,.8);backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}
+.hd.scrolled{border-color:var(--border)}
+.hd .container{display:flex;align-items:center;justify-content:space-between}
+.hd-logo{font-weight:600;font-size:16px}
+.hd-logo span{color:var(--gold)}
+.hd-actions{display:flex;gap:8px}
+.hbtn{padding:6px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text2);transition:all .2s;background:transparent;font-family:inherit}
+.hbtn:hover{border-color:var(--gold);color:var(--gold)}
+.hbtn.pri{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+
+/* HERO */
+.hero{height:100vh;min-height:600px;display:flex;align-items:center;position:relative;overflow:hidden}
+.hero-cv{position:absolute;inset:0;z-index:0}
+.hero-ov{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 30%,var(--bg) 80%);z-index:1;pointer-events:none}
+.hero .container{position:relative;z-index:2;width:100%}
+.hero h1{font-size:clamp(36px,6vw,60px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:14px}
+.hero h1 span{color:var(--gold)}
+.hero p{color:var(--text2);font-size:17px;max-width:420px;line-height:1.8;margin-bottom:0}
+
+/* Controls */
+.co{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:3;pointer-events:none;max-width:98vw}
+.co>*{pointer-events:auto}
+.cp{background:rgba(28,28,28,.9);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.cg{display:flex;flex-direction:column;gap:4px;min-width:80px}
+.cl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+.cg select{background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 10px;font-size:13px;font-family:inherit;outline:none;cursor:pointer}
+.cs{display:flex;flex-direction:column;gap:3px;min-width:100px}
+.csh{display:flex;justify-content:space-between;font-size:12px}
+.csh .l{color:var(--text3)}.csh .v{color:var(--gold);font-family:monospace}
+.cs input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none}
+.cs input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:none}
+.csw{display:flex;gap:4px}
+.csw-i{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .2s;position:relative}
+.csw-i:hover{transform:scale(1.15);border-color:var(--text2)}
+.csw-i.active{border-color:var(--gold)}
+.csw-i input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.sg{display:flex;gap:3px;flex-wrap:wrap}
+.sbtn{padding:5px 12px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:transparent;color:var(--text2);font-family:inherit;transition:all .15s;cursor:pointer}
+.sbtn:hover{border-color:var(--gold);color:var(--text)}
+.sbtn.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.sbtn-s{padding:4px 8px;font-size:11px}
+
+/* Palette dots */
+.pd{position:absolute;top:14px;right:14px;z-index:3;display:flex;gap:3px;flex-wrap:wrap;max-width:160px;pointer-events:none}
+.pd>*{pointer-events:auto}
+.pdi{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .2s}
+.pdi:hover{transform:scale(1.3);border-color:var(--text)}
+.pdi.on{border-color:var(--gold)}
+
+/* CARDS GRID */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);border-radius:var(--radius);overflow:hidden}
+.gi{background:var(--card);padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;transition:background .25s;min-height:150px;position:relative}
+.gi:hover{background:var(--card-h)}
+.gl{font-size:14px;color:var(--text2);font-weight:500;text-align:center}
+
+/* Toggle */
+.tg{width:48px;height:26px;background:var(--bg2);border-radius:13px;position:relative;cursor:pointer;transition:background .3s;border:1px solid var(--border);flex-shrink:0}
+.tg.on{background:var(--gold-m);border-color:var(--gold)}
+.tg-k{width:20px;height:20px;background:var(--text3);border-radius:50%;position:absolute;top:2px;left:2px;transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.tg.on .tg-k{left:24px;background:var(--gold)}
+.tg-label{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* Magnetic */
+.mbtn{padding:10px 28px;border:1px solid var(--border);border-radius:100px;font-size:14px;color:var(--text);background:transparent;font-family:inherit;transition:border-color .2s;display:inline-block}
+.mbtn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Ripple */
+.rp{padding:10px 24px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);font-size:13px;font-family:inherit;position:relative;overflow:hidden;transition:border-color .2s}
+.rp:hover{border-color:var(--gold)}
+.rfx{position:absolute;border-radius:50%;background:rgba(196,168,106,.25);transform:scale(0);animation:rf .55s ease-out forwards;pointer-events:none}
+@keyframes rf{to{transform:scale(4);opacity:0}}
+
+/* Stars */
+.stars{display:flex;gap:5px;cursor:pointer}
+.star{font-size:26px;color:var(--text3);transition:color .15s;line-height:1;user-select:none}
+.star.on{color:var(--gold)}
+.star-score{font-size:13px;color:var(--text3);margin-top:4px}
+
+/* Counter */
+.cw{display:flex;align-items:center;gap:14px}
+.cbtn{width:34px;height:34px;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:16px;color:var(--text2);background:transparent;font-family:inherit;user-select:none}
+.cbtn:hover{border-color:var(--gold);color:var(--gold)}
+.cv{font-family:monospace;font-size:24px;color:var(--gold);min-width:40px;text-align:center}
+.cv.pop{animation:pop .3s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
+
+/* Slider */
+.ds{width:100%;max-width:160px}
+.ds input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none}
+.ds input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:none}
+.ds-v{text-align:center;font-family:monospace;font-size:14px;color:var(--gold);margin-top:6px}
+
+/* Progress */
+.pr{width:60px;height:60px;position:relative}
+.pr svg{transform:rotate(-90deg)}
+.pr-b{fill:none;stroke:var(--border);stroke-width:3}
+.pr-f{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .4s}
+.pr-t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;color:var(--gold)}
+
+/* Color picker */
+.cp-w{display:flex;flex-direction:column;align-items:center;gap:10px}
+.cp-swatches{display:flex;gap:5px}
+.cp-s{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .2s}
+.cp-s:hover{transform:scale(1.15)}
+.cp-s.on{border-color:var(--gold)}
+.cp-box{width:70px;height:56px;border-radius:8px;border:1px solid var(--border);transition:background .3s}
+.cp-hex{font-size:12px;color:var(--text3);font-family:monospace}
+
+/* Progress bar */
+.pb-w{width:100%;max-width:160px}
+.pb{width:100%;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.pb-f{height:100%;background:var(--gold);border-radius:3px;transition:width .4s ease;width:0}
+.pb-v{text-align:center;font-size:12px;color:var(--text3);margin-top:6px}
+.pb-input{margin-top:8px;width:100%}
+.pb-input input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none;accent-color:var(--gold)}
+
+/* Accordion */
+.ac{width:100%;text-align:left;font-size:13px}
+.ac-i{border-bottom:1px solid var(--border);padding:6px 0}
+.ac-h{display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--text2);transition:color .2s;padding:4px 0}
+.ac-h:hover{color:var(--text)}
+.ac-a{font-size:10px;transition:transform .3s;color:var(--text3)}
+.ac-i.open .ac-a{transform:rotate(180deg)}
+.ac-b{max-height:0;overflow:hidden;transition:max-height .3s}
+.ac-i.open .ac-b{max-height:100px}
+.ac-c{padding:4px 0 12px;color:var(--text3);line-height:1.6;font-size:13px}
+
+/* Digital clock */
+.dclock{font-family:monospace;font-size:28px;color:var(--gold);letter-spacing:3px;text-align:center}
+.dclock-date{font-size:12px;color:var(--text3);text-align:center;margin-top:4px}
+
+/* Password generator */
+.pwg{display:flex;flex-direction:column;gap:8px;width:100%;max-width:180px}
+.pwg-input{width:100%;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:12px;outline:none;text-align:center}
+.pwg-input:focus{border-color:var(--gold)}
+.pwg-len{font-size:12px;color:var(--text3);display:flex;justify-content:space-between}
+.pwg-btn{padding:6px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text2);font-family:inherit;font-size:12px;cursor:pointer;transition:all .2s}
+.pwg-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Bounce */
+.bd{display:flex;gap:4px;align-items:center;height:24px}
+.bd-d{width:7px;height:7px;background:var(--gold);border-radius:50%;animation:bd .9s ease-in-out infinite}
+.bd-d:nth-child(2){animation-delay:.12s}
+.bd-d:nth-child(3){animation-delay:.24s}
+@keyframes bd{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+
+/* Flip card */
+.fc{width:120px;height:80px;perspective:400px;cursor:pointer}
+.fc-in{width:100%;height:100%;position:relative;transition:transform .5s;transform-style:preserve-3d}
+.fc.flip .fc-in{transform:rotateY(180deg)}
+.fc-f,.fc-b{position:absolute;inset:0;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;backface-visibility:hidden}
+.fc-f{background:var(--card);color:var(--text2)}
+.fc-b{background:var(--gold-m);color:var(--gold);transform:rotateY(180deg)}
+
+/* Segmented */
+.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg-i{padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;border-right:1px solid var(--border);background:transparent;font-family:inherit}
+.seg-i:last-child{border-right:none}
+.seg-i:hover{color:var(--text)}
+.seg-i.on{background:var(--gold);color:var(--bg)}
+
+/* Loader variants */
+.lv{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.lv-i{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:6px;border-radius:6px;transition:background .2s;min-width:40px}
+.lv-i:hover{background:var(--card-h)}
+.lv-l{font-size:11px;color:var(--text3)}
+.sp{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp2{width:18px;height:3px;background:var(--border);border-radius:2px;position:relative;overflow:hidden}
+.sp2::after{content:'';position:absolute;top:0;left:-50%;width:50%;height:100%;background:var(--gold);border-radius:2px;animation:sp2 .8s ease-in-out infinite}
+@keyframes sp2{0%{left:-50%}100%{left:100%}}
+.sp3{display:flex;gap:3px}
+.sp3 div{width:5px;height:5px;background:var(--gold);border-radius:50%;animation:sp3 .6s ease-in-out infinite}
+.sp3 div:nth-child(2){animation-delay:.1s}
+.sp3 div:nth-child(3){animation-delay:.2s}
+@keyframes sp3{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.sp4{width:14px;height:14px;background:var(--gold);border-radius:50%;animation:sp4 1s ease-in-out infinite}
+@keyframes sp4{0%,100%{transform:scale(.6);opacity:.3}50%{transform:scale(1);opacity:1}}
+.sp5{width:18px;height:18px;border:2px dashed var(--gold);border-radius:50%;animation:spin 1.2s linear infinite}
+
+/* Scroll vis */
+.sv{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;margin-top:20px}
+.sv-vis{width:100%;height:200px;border-radius:var(--radius);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sv-shape{width:80px;height:80px;background:linear-gradient(135deg,var(--gold),var(--gold-m));transition:all .05s linear}
+.sv-ctl{display:flex;flex-direction:column;gap:10px}
+.sv-r{display:flex;gap:10px;align-items:center}
+.sv-r label{font-size:13px;color:var(--text2);min-width:48px}
+.sv-r .v{font-family:monospace;font-size:13px;color:var(--gold);min-width:44px;text-align:right}
+.sv-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.sv-fill{height:100%;background:var(--gold);width:0;transition:width .05s}
+
+/* PALETTES */
+.pg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+.pi{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .25s}
+.pi:hover{border-color:var(--gold);transform:translateY(-2px)}
+.pi.on{border-color:var(--gold)}
+.pi-s{display:flex;height:56px}
+.pi-c{flex:1}
+.pi-b{padding:10px 14px}
+.pi-n{font-size:14px;font-weight:500}
+.pi-d{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* Reaction */
+.rx{width:100%;height:100px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;font-size:15px;font-weight:500;user-select:none}
+.rx.idle{background:var(--bg2);border:1px solid var(--border);color:var(--text3)}
+.rx.wait{background:#1a2a1a;border:1px solid #2a4a2a;color:#6aaa6a}
+.rx.go{background:var(--gold-m);border:1px solid var(--gold);color:var(--gold)}
+.rx.done{background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
+
+/* Mouse tracker */
+.mt{display:flex;flex-direction:column;gap:6px}
+.mt-r{display:flex;gap:14px;font-family:monospace;font-size:13px;color:var(--text2)}
+.mt-r span{color:var(--gold);min-width:50px}
+.mt-a{width:100%;height:56px;border:1px solid var(--border);border-radius:8px;position:relative;background:var(--bg2);cursor:crosshair}
+.mt-d{width:6px;height:6px;background:var(--gold);border-radius:50%;position:absolute;pointer-events:none;transform:translate(-50%,-50%);transition:left .05s,top .05s}
+
+/* Drawing */
+.dw{position:relative;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:20px}
+#dc{display:block;width:100%;height:280px;background:var(--bg2);cursor:crosshair}
+.dw-toolbar{position:absolute;bottom:8px;left:8px;display:flex;gap:5px;align-items:center}
+.dw-c{width:22px;height:22px;border-radius:50%;padding:0;border:2px solid var(--border);cursor:pointer;transition:border-color .2s}
+.dw-c:hover{border-color:var(--text2)}
+.dw-c.on{border-color:var(--gold)}
+.dw-sep{width:1px;height:18px;background:var(--border);margin:0 2px}
+.dw-btn{padding:4px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text3);background:transparent;cursor:pointer;font-family:inherit;transition:all .2s}
+.dw-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Timer */
+.tw{display:flex;flex-direction:column;align-items:center;gap:10px}
+.timer-d{font-family:monospace;font-size:32px;color:var(--gold);letter-spacing:2px}
+.tw-btns{display:flex;gap:6px}
+
+/* Reaction & tools row */
+.tr{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border-radius:var(--radius);overflow:hidden}
+.tc{background:var(--card);padding:28px 24px;display:flex;flex-direction:column;gap:16px;transition:background .25s}
+.tc:hover{background:var(--card-h)}
+.tl{font-size:14px;color:var(--text2);font-weight:500}
+
+/* PARTICLE */
+.ps{background:var(--bg2);position:relative;overflow:hidden;min-height:280px}
+#pc{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto}
+.ps .container{position:relative;z-index:2}
+.ps-h{font-size:12px;color:var(--text3);margin-top:8px;font-family:monospace}
+
+/* Footer */
+.ft{border-top:1px solid var(--border);padding:36px 0 28px}
+.ft .container{display:flex;justify-content:space-between;align-items:center}
+.ft-l{display:flex;gap:16px}
+.ft-l a{font-size:13px;color:var(--text3);transition:color .2s}
+.ft-l a:hover{color:var(--text2)}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .pg{grid-template-columns:repeat(2,1fr)}
+  .sv{grid-template-columns:1fr}
+  .tr{grid-template-columns:1fr}
+  .cp{padding:12px 14px;gap:10px}
+}
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .pg{grid-template-columns:1fr}
+  .co{display:none}
+  .pd{top:60px;right:10px}
+  .gi{min-height:130px}
+}
+</style>
+</head>
+<body>
+
+<div class="hd" id="hd">
+  <div class="container">
+    <div class="hd-logo"><span>~/</span>游乐场</div>
+    <div class="hd-actions">
+      <button class="hbtn" id="resetBtn">重置</button>
+      <button class="hbtn pri" id="fsBtn">全屏</button>
+    </div>
+  </div>
+</div>
+
+<section class="hero" id="hero">
+  <div class="hero-cv" id="heroCanvas"></div>
+  <div class="hero-ov"></div>
+  <div class="container">
+    <h1>交互<span>游乐场</span></h1>
+    <p>一个可以随便玩的地方。拖拽 3D 场景、切换颜色、测测反应速度、画点什么。全是互动。</p>
+  </div>
+  <div class="pd" id="pd"></div>
+  <div class="co">
+    <div class="cp">
+      <div class="cg">
+        <span class="cl">形状</span>
+        <div class="sg" id="sg">
+          <button class="sbtn on" data-s="sphere">球体</button>
+          <button class="sbtn" data-s="torus">环面</button>
+          <button class="sbtn" data-s="knot">扭结</button>
+          <button class="sbtn" data-s="cube">立方</button>
+        </div>
+      </div>
+      <div class="cs" style="min-width:90px">
+        <div class="csh"><span class="l">频率</span><span class="v" id="freqV">3.2</span></div>
+        <input type="range" id="freqS" min=".5" max="8" step=".1" value="3.2">
+      </div>
+      <div class="cs" style="min-width:90px">
+        <div class="csh"><span class="l">速度</span><span class="v" id="speedV">0.4</span></div>
+        <input type="range" id="speedS" min="0" max="1.5" step=".05" value=".4">
+      </div>
+      <div class="cs" style="min-width:90px">
+        <div class="csh"><span class="l">强度</span><span class="v" id="strV">2.5</span></div>
+        <input type="range" id="strS" min=".5" max="5" step=".1" value="2.5">
+      </div>
+      <div class="cg" style="min-width:60px">
+        <span class="cl">颜色</span>
+        <div class="csw" id="csw"></div>
+      </div>
+      <div class="sg" style="gap:2px">
+        <button class="sbtn sbtn-s on" id="arBtn" title="自动旋转">自转</button>
+        <button class="sbtn sbtn-s" id="wireBtn" title="线框">线框</button>
+        <button class="sbtn sbtn-s" id="gridBtn" title="网格">网格</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="sn">互动卡片</div>
+    <h2>每张卡片都可以玩</h2>
+    <p class="st">点击、拖拽、切换、滑动 -- 每张卡片的反应都不一样。</p>
+    <div class="grid" style="margin-top:28px">
+      <div class="gi">
+        <span class="gl">磁吸按钮</span>
+        <button class="mbtn" id="mgBtn">点我</button>
+        <span style="font-size:11px;color:var(--text3)">鼠标靠近会被吸过去</span>
+      </div>
+      <div class="gi">
+        <span class="gl">开关</span>
+        <div class="tg" id="tg1"><div class="tg-k"></div></div>
+        <span class="tg-label" id="tgLabel">关</span>
+      </div>
+      <div class="gi">
+        <span class="gl">波纹点击</span>
+        <button class="rp" id="rpBtn">点一下</button>
+        <span style="font-size:11px;color:var(--text3)">点击会有波纹扩散</span>
+      </div>
+      <div class="gi">
+        <span class="gl">星星评分</span>
+        <div class="stars" id="stars">
+          <span class="star" data-i="1">&#9733;</span>
+          <span class="star" data-i="2">&#9733;</span>
+          <span class="star" data-i="3">&#9733;</span>
+          <span class="star" data-i="4">&#9733;</span>
+          <span class="star" data-i="5">&#9733;</span>
+        </div>
+        <span class="star-score" id="starScore">未评分</span>
+      </div>
+      <div class="gi">
+        <span class="gl">计数器</span>
+        <div class="cw">
+          <button class="cbtn" id="cDec">-</button>
+          <span class="cv" id="cVal">0</span>
+          <button class="cbtn" id="cInc">+</button>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">进度条</span>
+        <div class="pb-w">
+          <div class="pb"><div class="pb-f" id="pbF" style="width:40%"></div></div>
+          <div class="pb-v" id="pbV">40%</div>
+          <div class="pb-input"><input type="range" id="pbS" min="0" max="100" value="40"></div>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">进度环</span>
+        <div class="pr" id="prRing">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <circle class="pr-b" cx="30" cy="30" r="25"/>
+            <circle class="pr-f" id="prFill" cx="30" cy="30" r="25" stroke-dasharray="157" stroke-dashoffset="110"/>
+          </svg>
+          <span class="pr-t" id="prT">30%</span>
+        </div>
+        <span style="font-size:11px;color:var(--text3)">和上面的进度条联动</span>
+      </div>
+      <div class="gi">
+        <span class="gl">翻转卡片</span>
+        <div class="fc" id="fc"><div class="fc-in"><div class="fc-f">正面</div><div class="fc-b">背面</div></div></div>
+        <span style="font-size:11px;color:var(--text3)">点击翻转</span>
+      </div>
+      <div class="gi">
+        <span class="gl">分段选择</span>
+        <div class="seg" id="seg">
+          <button class="seg-i on">左</button>
+          <button class="seg-i">中</button>
+          <button class="seg-i">右</button>
+        </div>
+        <span style="font-size:11px;color:var(--text3)" id="segV">当前: 左</span>
+      </div>
+      <div class="gi">
+        <span class="gl">颜色拾取</span>
+        <div class="cp-w">
+          <div class="cp-swatches" id="cpS">
+            <div class="cp-s on" style="background:#c4a86a" data-c="#c4a86a"></div>
+            <div class="cp-s" style="background:#5aaa7a" data-c="#5aaa7a"></div>
+            <div class="cp-s" style="background:#ba6a6a" data-c="#ba6a6a"></div>
+            <div class="cp-s" style="background:#5a8aba" data-c="#5a8aba"></div>
+            <div class="cp-s" style="background:#a87ac4" data-c="#a87ac4"></div>
+          </div>
+          <div class="cp-box" id="cpBox" style="background:#c4a86a"></div>
+          <span class="cp-hex" id="cpHex">#c4a86a</span>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">手风琴</span>
+        <div class="ac">
+          <div class="ac-i">
+            <div class="ac-h">关于这个站点 <span class="ac-a">&#9660;</span></div>
+            <div class="ac-b"><div class="ac-c">一个用 Three.js 搭建的 3D 交互实验室，所有源码纯手写。</div></div>
+          </div>
+          <div class="ac-i">
+            <div class="ac-h">怎么玩 <span class="ac-a">&#9660;</span></div>
+            <div class="ac-b"><div class="ac-c">拖拽 3D 场景旋转视角，用滑块调整参数，点击切换颜色预设。</div></div>
+          </div>
+          <div class="ac-i">
+            <div class="ac-h">技术栈 <span class="ac-a">&#9660;</span></div>
+            <div class="ac-b"><div class="ac-c">Three.js 自定义着色器 + Canvas 2D 粒子系统 + 纯 CSS 动画。</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">弹跳小球</span>
+        <div class="bd"><div class="bd-d"></div><div class="bd-d"></div><div class="bd-d"></div></div>
+        <span style="font-size:11px;color:var(--text3)">纯 CSS 动画</span>
+      </div>
+      <div class="gi">
+        <span class="gl">加载动画</span>
+        <div class="lv">
+          <div class="lv-i on"><div class="sp"></div><span class="lv-l">旋转</span></div>
+          <div class="lv-i"><div class="sp2"></div><span class="lv-l">跑条</span></div>
+          <div class="lv-i"><div class="sp3"><div></div><div></div><div></div></div><span class="lv-l">三点</span></div>
+          <div class="lv-i"><div class="sp4"></div><span class="lv-l">脉冲</span></div>
+          <div class="lv-i"><div class="sp5"></div><span class="lv-l">虚线</span></div>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">数字时钟</span>
+        <div>
+          <div class="dclock" id="dclock">00:00:00</div>
+          <div class="dclock-date" id="dclockDate">0000-00-00</div>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">密码生成</span>
+        <div class="pwg">
+          <input class="pwg-input" id="pwgOut" readonly value="abc123">
+          <div class="pwg-len"><span>长度</span><span id="pwgLenV">8</span></div>
+          <input type="range" id="pwgLen" min="4" max="24" value="8" style="width:100%;accent-color:var(--gold)">
+          <button class="pwg-btn" id="pwgBtn">生成密码</button>
+        </div>
+      </div>
+      <div class="gi">
+        <span class="gl">秒表</span>
+        <div class="tw">
+          <div class="timer-d" id="timerD">00:00</div>
+          <div class="tw-btns">
+            <button class="sbtn sbtn-s" id="timerBtn">开始</button>
+            <button class="sbtn sbtn-s" id="timerRst">重置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--bg2)">
+  <div class="container">
+    <div class="sn">滚动绑定</div>
+    <h2>滚动页面 = 控制参数</h2>
+    <p class="st">往下滚的时候，这个方块会跟着变。滚到底全部重置。</p>
+    <div class="sv">
+      <div class="sv-vis"><div class="sv-shape" id="svShape"></div></div>
+      <div class="sv-ctl">
+        <div class="sv-r"><label>旋转</label><div class="sv-bar"><div class="sv-fill" id="svR"></div></div><span class="v" id="svRv">0 deg</span></div>
+        <div class="sv-r"><label>大小</label><div class="sv-bar"><div class="sv-fill" id="svS"></div></div><span class="v" id="svSv">1.0x</span></div>
+        <div class="sv-r"><label>圆角</label><div class="sv-bar"><div class="sv-fill" id="svB"></div></div><span class="v" id="svBv">0 px</span></div>
+        <div class="sv-r"><label>色相</label><div class="sv-bar"><div class="sv-fill" id="svH"></div></div><span class="v" id="svHv">35</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="sn">色彩预设</div>
+    <h2>一键切换场景色调</h2>
+    <p class="st">点击任意配色方案，3D 着色器和页面氛围同步改变。</p>
+    <div class="pg" id="pg"></div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--bg2)">
+  <div class="container">
+    <div class="sn">绘图板</div>
+    <h2>随便画点什么</h2>
+    <p class="st">选颜色、调粗细、自由涂画。点击清除可以重新开始。</p>
+    <div class="dw">
+      <canvas id="dc"></canvas>
+      <div class="dw-toolbar">
+        <button class="dw-c on" style="background:#c4a86a" data-c="#c4a86a"></button>
+        <button class="dw-c" style="background:#5aaa7a" data-c="#5aaa7a"></button>
+        <button class="dw-c" style="background:#ba6a6a" data-c="#ba6a6a"></button>
+        <button class="dw-c" style="background:#5a8aba" data-c="#5a8aba"></button>
+        <button class="dw-c" style="background:#a87ac4" data-c="#a87ac4"></button>
+        <button class="dw-c" style="background:#ca8a4a" data-c="#ca8a4a"></button>
+        <div class="dw-sep"></div>
+        <button class="dw-btn" id="dwS1">细</button>
+        <button class="dw-btn" id="dwS2" style="border-color:var(--gold);color:var(--gold);background:var(--gold-m)">中</button>
+        <button class="dw-btn" id="dwS3">粗</button>
+        <div class="dw-sep"></div>
+        <button class="dw-btn" id="dwClear">清除</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="sn">小工具</div>
+    <h2>反应测试 & 鼠标跟踪</h2>
+    <p class="st">一个测你反应速度，一个跟踪鼠标位置。</p>
+    <div class="tr" style="margin-top:24px">
+      <div class="tc">
+        <span class="tl">反应速度测试</span>
+        <div class="rx idle" id="rx">点击开始</div>
+        <span style="font-size:12px;color:var(--text3)">点击后等变绿立刻再点</span>
+      </div>
+      <div class="tc">
+        <span class="tl">鼠标跟踪</span>
+        <div class="mt">
+          <div class="mt-r">X: <span id="mxV">0</span> &nbsp; Y: <span id="myV">0</span></div>
+          <div class="mt-a" id="mtA"><div class="mt-d" id="mtD" style="top:28px;left:50%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section ps" id="ps">
+  <canvas id="pc"></canvas>
+  <div class="container">
+    <div class="sn">粒子场</div>
+    <h2>鼠标吸引 · 点击爆炸</h2>
+    <p class="st">粒子跟随鼠标流动，点击产生爆散效果。</p>
+    <p class="ps-h">点击爆散  ·  鼠标吸引  ·  80 个粒子</p>
+  </div>
+</section>
+
+<footer class="ft">
+  <div class="container">
+    <span style="font-size:13px;color:var(--text3)">交互游乐场 &mdash; Three.js + Canvas</span>
+    <div class="ft-l">
+      <a href="#" id="resetFt">重置场景</a>
+      <a href="#" id="topLink">回到顶部</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+var T=typeof THREE!=='undefined'?THREE:null;
+var cv,sc,ca,re,mesh,uni,geo;
+var P={freq:3.2,speed:.4,strength:2.5,c1:'#1a1410',c2:'#c4a86a',c3:'#5a4a3a',shape:'sphere',autoRot:true,wire:false,grid:false};
+var otY=0,otX=0,isD=false,lX=0,lY=0,clk;
+function mG(t){switch(t){case'sphere':return new THREE.SphereGeometry(1.3,48,48);case'torus':return new THREE.TorusGeometry(1,.35,36,48);case'knot':return new THREE.TorusKnotGeometry(.85,.25,80,16);case'cube':return new THREE.BoxGeometry(1.4,1.4,1.4,8,8,8);default:return new THREE.SphereGeometry(1.3,48,48);}}
+function initT(){
+  if(!T)return;cv=document.getElementById('heroCanvas');if(!cv)return;
+  sc=new THREE.Scene();ca=new THREE.PerspectiveCamera(45,cv.clientWidth/cv.clientHeight,.1,100);ca.position.set(0,0,3.8);
+  re=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
+  re.setSize(cv.clientWidth,cv.clientHeight);re.setPixelRatio(Math.min(window.devicePixelRatio,1.5));cv.appendChild(re.domElement);
+  uni={uTime:{value:0},uC1:{value:new THREE.Color(P.c1)},uC2:{value:new THREE.Color(P.c2)},uC3:{value:new THREE.Color(P.c3)},uAmplitude:{value:1},uFrequency:{value:P.freq},uSpeed:{value:P.speed},uStrength:{value:P.strength}};
+  var vs='varying vec3 vP;varying vec3 vN;void main(){vP=position;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+  var fs='uniform vec3 uC1;uniform vec3 uC2;uniform vec3 uC3;uniform float uT;uniform float uA;uniform float uF;uniform float uS;uniform float uStr;varying vec3 vP;varying vec3 vN;void main(){float nx=vP.x*uF+vP.y*.7*uF;float ny=vP.y*uF*.6+vP.z*.8*uF;float nz=vP.z*uF*.5+vP.x*1.1*uF;float t=uT*uS;float n1=sin(nx+t)*cos(ny+t*.7);float n2=sin(ny*.8+t*.5)*cos(nz+t*.9);float n3=sin(nz*1.2+t*.3)*cos(nx*.6+t*.6);float pat=(n1*.5+n2*.3+n3*.2)*uA;pat=sin(pat*3.14159)*.5+.5;vec3 c=mix(uC1,uC2,pat);c=mix(c,uC3,sin(pat*6.283)*.12+.12);vec3 ld=normalize(vec3(2.,3.,4.));float df=max(dot(vN,ld),0.);c*=(.2+df*.8);c+=uStr*.015;vec3 vd=normalize(cameraPosition-vP);float fr=1.-abs(dot(vN,vd));fr=pow(fr,2.5);c+=uC3*fr*.15;gl_FragColor=vec4(c,1.);}';
+  var mat=new THREE.ShaderMaterial({uniforms:uni,vertexShader:vs,fragmentShader:fs,wireframe:P.wire});
+  geo=mG(P.shape);mesh=new THREE.Mesh(geo,mat);sc.add(mesh);clk=new THREE.Clock();animT();
+}
+function rebM(){if(!sc||!uni||!mesh)return;sc.remove(mesh);geo=mG(P.shape);var mat=mesh.material;mat.wireframe=P.wire;mesh=new THREE.Mesh(geo,mat);sc.add(mesh);}
+function animT(){if(!uni||!re||!sc||!ca){requestAnimationFrame(animT);return}var dt=clk.getDelta();uni.uTime.value+=dt*.8;if(P.autoRot&&!isD)otY+=dt*.15;if(mesh){mesh.rotation.y=otY;mesh.rotation.x=otX*.08;}re.render(sc,ca);requestAnimationFrame(animT);}
+function resT(){if(!re)return;var c=document.getElementById('heroCanvas');if(!c)return;var w=c.clientWidth,h=c.clientHeight;if(w<1||h<1)return;re.setSize(w,h);ca.aspect=w/h;ca.updateProjectionMatrix();}
+window.addEventListener('resize',resT);
+document.addEventListener('mousedown',function(e){if(e.target.closest('.co,.pd,.hd'))return;isD=true;lX=e.clientX;lY=e.clientY;});
+document.addEventListener('mousemove',function(e){if(isD){var dx=e.clientX-lX,dy=e.clientY-lY;otY+=dx*.008;otX+=dy*.005;lX=e.clientX;lY=e.clientY;}});
+document.addEventListener('mouseup',function(){isD=false;});
+function setupCtl(){
+  document.querySelectorAll('#sg .sbtn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#sg .sbtn').forEach(function(x){x.classList.remove('on')});this.classList.add('on');P.shape=this.dataset.s;rebM();});});
+  document.getElementById('freqS').addEventListener('input',function(){P.freq=parseFloat(this.value);document.getElementById('freqV').textContent=P.freq.toFixed(1);if(uni)uni.uFrequency.value=P.freq;});
+  document.getElementById('speedS').addEventListener('input',function(){P.speed=parseFloat(this.value);document.getElementById('speedV').textContent=P.speed.toFixed(2);if(uni)uni.uSpeed.value=P.speed;});
+  document.getElementById('strS').addEventListener('input',function(){P.strength=parseFloat(this.value);document.getElementById('strV').textContent=P.strength.toFixed(1);if(uni)uni.uStrength.value=P.strength;});
+  document.getElementById('arBtn').addEventListener('click',function(){this.classList.toggle('on');P.autoRot=!P.autoRot;});
+  document.getElementById('wireBtn').addEventListener('click',function(){this.classList.toggle('on');P.wire=!P.wire;if(mesh)mesh.material.wireframe=P.wire;});
+  document.getElementById('gridBtn').addEventListener('click',function(){this.classList.toggle('on');P.grid=!P.grid;if(sc){var g=sc.getObjectByName('grid');if(g){sc.remove(g)}else{var gh=new THREE.GridHelper(10,10,0x333333,0x222222);gh.name='grid';gh.position.y=-1.8;sc.add(gh)}}});
+  document.getElementById('resetBtn').addEventListener('click',resetAll);document.getElementById('resetFt').addEventListener('click',function(e){e.preventDefault();resetAll();});
+  document.getElementById('fsBtn').addEventListener('click',function(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();});
+  document.getElementById('topLink').addEventListener('click',function(e){e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});});
+}
+function resetAll(){
+  P.freq=3.2;P.speed=.4;P.strength=2.5;P.c1='#1a1410';P.c2='#c4a86a';P.c3='#5a4a3a';P.autoRot=true;P.wire=false;
+  document.getElementById('freqS').value='3.2';document.getElementById('freqV').textContent='3.2';
+  document.getElementById('speedS').value='.4';document.getElementById('speedV').textContent='0.40';
+  document.getElementById('strS').value='2.5';document.getElementById('strV').textContent='2.5';
+  document.getElementById('arBtn').classList.add('on');document.getElementById('wireBtn').classList.remove('on');
+  if(uni){uni.uFrequency.value=3.2;uni.uSpeed.value=.4;uni.uStrength.value=2.5;uni.uC1.value.set(P.c1);uni.uC2.value.set(P.c2);uni.uC3.value.set(P.c3);}
+  if(mesh)mesh.material.wireframe=false;
+  document.querySelectorAll('#sg .sbtn').forEach(function(b){b.classList.remove('on')});
+  document.querySelector('#sg [data-s="sphere"]').classList.add('on');P.shape='sphere';rebM();upSw();upPal();
+}
+var cswEl=document.getElementById('csw');
+function initCSW(){
+  [['1',P.c1],['2',P.c2],['3',P.c3]].forEach(function(p,i){var sw=document.createElement('div');sw.className='csw-i'+(i===0?' active':'');sw.style.background=p[1];sw.dataset.target='c'+(i+1);sw.dataset.color=p[1];var inp=document.createElement('input');inp.type='color';inp.value=p[1];inp.addEventListener('input',function(e){e.stopPropagation();sw.style.background=this.value;sw.dataset.color=this.value;P['c'+(i+1)]=this.value;if(uni)uni['uC'+(i+1)].value.set(this.value);});sw.appendChild(inp);sw.addEventListener('click',function(e){if(e.target!==inp){cswEl.querySelectorAll('.csw-i').forEach(function(s){s.classList.remove('active')});this.classList.add('active');}});cswEl.appendChild(sw);});
+}
+function upSw(){var n=['c1','c2','c3'];cswEl.querySelectorAll('.csw-i').forEach(function(s,i){s.style.background=P[n[i]];s.dataset.color=P[n[i]];var inp=s.querySelector('input[type=color]');if(inp)inp.value=P[n[i]];});}
+var pals=[{n:'暖土',d:'金色 + 深褐',c:['#1a1410','#c4a86a','#5a4a3a']},{n:'冷薄荷',d:'青绿 + 鼠尾',c:['#0a1a1a','#5aaa7a','#2a4a3a']},{n:'玫瑰',d:'酒红 + 粉褐',c:['#1a0a0a','#ba6a6a','#5a2a3a']},{n:'深海',d:'深蓝 + 浅蓝',c:['#0a0a1a','#5a8aba','#2a4a6a']},{n:'石板',d:'冷灰 + 钢蓝',c:['#0f0f0f','#8a8a8a','#3a3a4a']},{n:'琥珀',d:'橙金 + 炭黑',c:['#1a100a','#ca8a4a','#4a3a2a']},{n:'森林',d:'墨绿 + 苔藓',c:['#0a120a','#6a9a5a','#2a3a2a']},{n:'紫藤',d:'淡紫 + 粉紫',c:['#100a1a','#8a6aba','#3a2a4a']}];
+function initPal(){var g=document.getElementById('pg'),d=document.getElementById('pd');pals.forEach(function(p,i){var card=document.createElement('div');card.className='pi'+(i===0?' on':'');card.dataset.idx=i;var swd=document.createElement('div');swd.className='pi-s';p.c.forEach(function(c){var di=document.createElement('div');di.className='pi-c';di.style.background=c;swd.appendChild(di);});card.appendChild(swd);var bd=document.createElement('div');bd.className='pi-b';bd.innerHTML='<div class="pi-n">'+p.n+'</div><div class="pi-d">'+p.d+'</div>';card.appendChild(bd);card.addEventListener('click',function(){applyPal(i);});g.appendChild(card);var dot=document.createElement('div');dot.className='pdi'+(i===0?' on':'');dot.style.background='linear-gradient(135deg,'+p.c.join(',')+')';dot.title=p.n;dot.addEventListener('click',function(){applyPal(i);});d.appendChild(dot);});}
+function applyPal(i){var p=pals[i];P.c1=p.c[0];P.c2=p.c[1];P.c3=p.c[2];if(uni){uni.uC1.value.set(p.c[0]);uni.uC2.value.set(p.c[1]);uni.uC3.value.set(p.c[2]);}upSw();upPal(i);}
+function upPal(idx){if(idx===undefined){var m=-1;pals.forEach(function(p,i){if(p.c[0]===P.c1&&p.c[1]===P.c2)m=i;});idx=m>=0?m:0;}document.querySelectorAll('.pi').forEach(function(c,i){c.classList.toggle('on',i===idx);});document.querySelectorAll('.pdi').forEach(function(d,i){d.classList.toggle('on',i===idx);});}
+
+/* Interactions */
+// Magnetic
+var mg=document.getElementById('mgBtn');if(mg&&!isM){mg.addEventListener('mousemove',function(e){var r=this.getBoundingClientRect();this.style.transform='translate('+((e.clientX-r.left-r.width/2)/8)+'px,'+((e.clientY-r.top-r.height/2)/8)+'px)';});mg.addEventListener('mouseleave',function(){this.style.transform='';});}
+// Toggle
+document.getElementById('tg1').addEventListener('click',function(){this.classList.toggle('on');document.getElementById('tgLabel').textContent=this.classList.contains('on')?'开':'关';});
+// Ripple
+document.getElementById('rpBtn').addEventListener('click',function(e){var r=this.getBoundingClientRect(),s=Math.max(r.width,r.height);var el=document.createElement('span');el.className='rfx';el.style.width=el.style.height=s+'px';el.style.left=(e.clientX-r.left-s/2)+'px';el.style.top=(e.clientY-r.top-s/2)+'px';this.appendChild(el);setTimeout(function(){el.remove()},550);});
+// Stars
+document.querySelectorAll('#stars .star').forEach(function(s){s.addEventListener('click',function(){var v=parseInt(this.dataset.i);document.querySelectorAll('#stars .star').forEach(function(x,i){x.classList.toggle('on',i<v);});document.getElementById('starScore').textContent=v+' / 5';});s.addEventListener('mouseenter',function(){var v=parseInt(this.dataset.i);document.querySelectorAll('#stars .star').forEach(function(x,i){x.style.color=i<v?'var(--gold)':'var(--text3)';});});s.addEventListener('mouseleave',function(){document.querySelectorAll('#stars .star').forEach(function(x){x.style.color='';});});});
+// Counter
+var cV=0,cEl=document.getElementById('cVal');document.getElementById('cInc').addEventListener('click',function(){cV++;cEl.textContent=cV;cEl.classList.remove('pop');void cEl.offsetWidth;cEl.classList.add('pop');});document.getElementById('cDec').addEventListener('click',function(){cV--;cEl.textContent=cV;cEl.classList.remove('pop');void cEl.offsetWidth;cEl.classList.add('pop');});
+// Progress bar + ring
+var pbS=document.getElementById('pbS');var pbF=document.getElementById('pbF');var pbV=document.getElementById('pbV');var prFill=document.getElementById('prFill');var prT=document.getElementById('prT');var prC=2*Math.PI*25;function updPb(v){pbF.style.width=v+'%';pbV.textContent=v+'%';var o=prC-(v/100)*prC;if(prFill)prFill.style.strokeDashoffset=o;if(prT)prT.textContent=v+'%';}if(pbS){pbS.addEventListener('input',function(){updPb(parseInt(this.value));});updPb(40);}
+// Flip card
+document.getElementById('fc').addEventListener('click',function(){this.classList.toggle('flip');});
+// Segmented
+document.querySelectorAll('#seg .seg-i').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#seg .seg-i').forEach(function(x){x.classList.remove('on')});this.classList.add('on');document.getElementById('segV').textContent='当前: '+this.textContent;});});
+// Color picker
+document.querySelectorAll('#cpS .cp-s').forEach(function(s){s.addEventListener('click',function(){document.querySelectorAll('#cpS .cp-s').forEach(function(x){x.classList.remove('on')});this.classList.add('on');var c=this.dataset.c;document.getElementById('cpBox').style.background=c;document.getElementById('cpHex').textContent=c;});});
+// Accordion
+document.querySelectorAll('.ac-h').forEach(function(h){h.addEventListener('click',function(){var p=this.parentElement,o=p.classList.contains('open');p.parentElement.querySelectorAll('.ac-i').forEach(function(i){i.classList.remove('open')});if(!o)p.classList.add('open');});});
+// Clock
+function updClock(){var d=new Date();document.getElementById('dclock').textContent=d.toTimeString().slice(0,8);document.getElementById('dclockDate').textContent=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}setInterval(updClock,1000);updClock();
+// Password generator
+var pwgOut=document.getElementById('pwgOut');var pwgLen=document.getElementById('pwgLen');var pwgLenV=document.getElementById('pwgLenV');var chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&';function genPW(){var l=parseInt(pwgLen.value),r='';for(var i=0;i<l;i++)r+=chars[Math.floor(Math.random()*chars.length)];pwgOut.value=r;}pwgLen.addEventListener('input',function(){pwgLenV.textContent=this.value;genPW();});document.getElementById('pwgBtn').addEventListener('click',genPW);genPW();
+// Timer
+var tD=document.getElementById('timerD'),tB=document.getElementById('timerBtn'),tR=document.getElementById('timerRst');var tS=0,tI=null,tRun=false;function tUp(){var m=Math.floor(tS/60),s=tS%60;tD.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}if(tB)tB.addEventListener('click',function(){if(tRun){clearInterval(tI);tRun=false;tB.textContent='继续';}else{tRun=true;tB.textContent='暂停';tI=setInterval(function(){tS++;tUp();},1000);}});if(tR)tR.addEventListener('click',function(){clearInterval(tI);tRun=false;tS=0;tB.textContent='开始';tUp();});
+
+/* Scroll bind */
+var svS=document.getElementById('svShape');var sT=false;
+function updSV(){var dH=document.documentElement.scrollHeight-window.innerHeight;var pct=dH>0?Math.min(1,window.scrollY/dH):0;var rot=pct*360,sc=.5+pct*1,br=pct*50,hue=35+pct*30;if(svS){svS.style.transform='rotate('+rot+'deg) scale('+sc+')';svS.style.borderRadius=br+'px';}document.getElementById('svR').style.width=(pct*100)+'%';document.getElementById('svRv').textContent=Math.round(rot)+' deg';document.getElementById('svS').style.width=(pct*100)+'%';document.getElementById('svSv').textContent=sc.toFixed(1)+'x';document.getElementById('svB').style.width=(pct*100)+'%';document.getElementById('svBv').textContent=Math.round(br)+' px';document.getElementById('svH').style.width=(pct*100)+'%';document.getElementById('svHv').textContent=Math.round(hue);if(uni)uni.uFrequency.value=P.freq+pct*1.5;}
+window.addEventListener('scroll',function(){if(!sT){sT=true;requestAnimationFrame(function(){updSV();sT=false;});}});window.addEventListener('resize',updSV);
+
+/* Drawing */
+var dc=document.getElementById('dc');if(dc){var dC=dc.getContext('2d'),dW,dH,dCol='#c4a86a',dS=4,dDraw=false;function rDC(){var r=dc.parentElement.getBoundingClientRect();dW=r.width;dH=280;var img=dC.getImageData(0,0,dc.width,dc.height);dc.width=dW;dc.height=dH;dC.putImageData(img,0,0);}function iDC(){dW=dc.parentElement.getBoundingClientRect().width;dc.width=dW;dc.height=280;}function gDP(e){var r=dc.getBoundingClientRect();return{x:(e.clientX-r.left)*(dc.width/r.width),y:(e.clientY-r.top)*(dc.height/r.height)};}dc.addEventListener('mousedown',function(e){dDraw=true;var p=gDP(e);dC.beginPath();dC.moveTo(p.x,p.y);});dc.addEventListener('mousemove',function(e){if(!dDraw)return;var p=gDP(e);dC.lineTo(p.x,p.y);dC.strokeStyle=dCol;dC.lineWidth=dS;dC.lineCap='round';dC.lineJoin='round';dC.stroke();});dc.addEventListener('mouseup',function(){dDraw=false;});dc.addEventListener('mouseleave',function(){dDraw=false;});document.getElementById('dwClear').addEventListener('click',function(){dC.clearRect(0,0,dc.width,dc.height);});document.querySelectorAll('.dw-c').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.dw-c').forEach(function(x){x.classList.remove('on')});this.classList.add('on');dCol=this.dataset.c;});});document.getElementById('dwS1').addEventListener('click',function(){dS=2;});document.getElementById('dwS2').addEventListener('click',function(){dS=4;});document.getElementById('dwS3').addEventListener('click',function(){dS=8;});iDC();window.addEventListener('resize',function(){if(dc)rDC();});}
+
+/* Reaction */
+var rx=document.getElementById('rx'),rs='idle',rt;rx.addEventListener('click',function(){if(rs==='idle'||rs==='done'){rs='wait';rx.className='rx wait';rx.textContent='等待绿色...';var delay=1000+Math.random()*3000;rt=setTimeout(function(){rs='go';rx.className='rx go';rx.textContent='快点点！';rStart=performance.now();},delay);}else if(rs==='go'){var ms=Math.round(performance.now()-rStart);rs='done';clearTimeout(rt);rx.className='rx done';rx.textContent=ms+'ms'+(ms<200?' (很快)':ms<300?' (不错)':ms<500?' (还行)':' (偏慢)');}});
+/* Mouse tracker */
+var mtA=document.getElementById('mtA'),mtD=document.getElementById('mtD');mtA.addEventListener('mousemove',function(e){var r=this.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;document.getElementById('mxV').textContent=Math.round(x/r.width*100);document.getElementById('myV').textContent=Math.round(y/r.height*100);mtD.style.left=x+'px';mtD.style.top=y+'px';});
+
+/* Particles */
+var pc=document.getElementById('pc'),pC=pc.getContext('2d');var pA=[],pMx=-999,pMy=-999,pOn=true;
+function rPC(){var s=document.getElementById('ps');if(!s)return;pc.width=s.offsetWidth;pc.height=s.offsetHeight;}
+function mKP(x,y,bur){var a=bur?Math.random()*Math.PI*2:0,sp=bur?1.5+Math.random()*3:.2+Math.random()*.4;return{x:x||Math.random()*pc.width,y:y||Math.random()*pc.height,vx:bur?Math.cos(a)*sp:(Math.random()-.5)*sp,vy:bur?Math.sin(a)*sp:(Math.random()-.5)*sp,life:1,size:1+Math.random()*2,h:38+Math.random()*12};}
+function iP(){for(var i=0;i<80;i++)pA.push(mKP());}
+function aP(){if(!pOn){requestAnimationFrame(aP);return}pC.clearRect(0,0,pc.width,pc.height);if(pMx>-1&&pMy>-1){pA.forEach(function(p){var dx=pMx-p.x,dy=pMy-p.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<100){var f=(100-dist)/100;p.vx+=(dx/dist)*f*.25;p.vy+=(dy/dist)*f*.25;}});}pA.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vx*=.98;p.vy*=.98;p.life-=.002;if(p.life<=0){p.life=1;p.x=Math.random()*pc.width;p.y=Math.random()*pc.height;p.vx=(Math.random()-.5)*.4;p.vy=(Math.random()-.5)*.4;}if(p.x<0)p.x=pc.width;if(p.x>pc.width)p.x=0;if(p.y<0)p.y=pc.height;if(p.y>pc.height)p.y=0;pC.fillStyle='hsla('+p.h+',40%,55%,'+(p.life*.5)+')';pC.fillRect(p.x,p.y,p.size,p.size);});requestAnimationFrame(aP);}
+pc.addEventListener('mousemove',function(e){var r=this.getBoundingClientRect();pMx=e.clientX-r.left;pMy=e.clientY-r.top;});pc.addEventListener('mouseleave',function(){pMx=-999;pMy=-999;});pc.addEventListener('click',function(e){var r=this.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;for(var i=0;i<15;i++)pA.push(mKP(cx,cy,true));if(pA.length>200)pA.splice(0,pA.length-200);});
+var pO=new IntersectionObserver(function(e){e.forEach(function(x){pOn=x.isIntersecting;});},{threshold:0});if(document.getElementById('ps'))pO.observe(document.getElementById('ps'));
+rPC();iP();aP();window.addEventListener('resize',rPC);
+
+/* Hero parallax */
+window.addEventListener('scroll',function(){var s=window.scrollY,h=window.innerHeight;var c=document.getElementById('heroCanvas');if(c&&s<h)c.style.transform='translateY('+(s*.15)+'px) scale('+(1-s*.0003)+')';});
+/* Header */
+window.addEventListener('scroll',function(){document.getElementById('hd').classList.toggle('scrolled',window.scrollY>20);});
+
+initT();setupCtl();initCSW();initPal();updSV();
+})();
+</script>
+</body>
+</html>

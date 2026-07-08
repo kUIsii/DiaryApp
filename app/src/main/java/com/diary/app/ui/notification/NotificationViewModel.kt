@@ -85,6 +85,7 @@ data class WeatherAlertNotification(
     val alertLevel: String,
     val alertType: String,
     val alertText: String,
+    val alertId: String = "",
     override val id: String = "weather_alert_${System.currentTimeMillis()}",
     override val timestamp: Long = System.currentTimeMillis()
 ) : NotificationItem()
@@ -614,6 +615,7 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
                     alertLevel = level,
                     alertType = type,
                     alertText = subtitle,
+                    alertId = id.removePrefix("weather_alert_"),
                     id = id,
                     timestamp = createdAt
                 )

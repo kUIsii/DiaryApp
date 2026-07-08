@@ -69,6 +69,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -77,6 +78,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
@@ -181,6 +185,7 @@ fun HomeScreen(
     onNavigateToBackup: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
     onNavigateToWeatherDetail: () -> Unit = {},
+    onNavigateToWeatherAlertDetail: (String) -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -194,6 +199,7 @@ fun HomeScreen(
     val aiInsight by viewModel.aiInsight.collectAsState()
     val currentWeather by viewModel.currentWeather.collectAsState()
     val imageMap by viewModel.imageMap.collectAsState()
+    val activeWeatherAlerts by viewModel.activeWeatherAlerts.collectAsState()
     val allImagesMap by viewModel.allImagesMap.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -245,6 +251,19 @@ fun HomeScreen(
         viewModel.loadInsight()
         viewModel.autoLoadWeather()
         viewModel.refreshHomeHighlights()
+        viewModel.loadActiveWeatherAlerts()
+    }
+
+    // 从详情页返回或每次进入前台时刷新预警横幅
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadActiveWeatherAlerts()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(selectedDate) {
@@ -319,6 +338,14 @@ fun HomeScreen(
                             haptic.click()
                             onNavigateToAiAssistant()
                         }
+                    )
+                }
+
+                // 天气预警横幅（始终展示，独立于通知开关）
+                item {
+                    WeatherAlertBanner(
+                        alerts = activeWeatherAlerts,
+                        onAlertClick = onNavigateToWeatherAlertDetail
                     )
                 }
 

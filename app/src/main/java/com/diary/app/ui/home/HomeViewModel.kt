@@ -10,6 +10,8 @@ import com.diary.app.ui.SearchHistoryStore
 import com.diary.app.ai.InsightGenerator
 import com.diary.app.data.DiaryEntry
 import com.diary.app.weather.CurrentWeather
+import com.diary.app.weather.WeatherAlert
+import com.diary.app.weather.WeatherAlertStore
 import com.diary.app.weather.WeatherManager
 import com.diary.app.data.DiaryPreview
 import com.diary.app.data.TrashEntry
@@ -133,6 +135,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _currentWeather = MutableStateFlow<CurrentWeather?>(null)
     val currentWeather: StateFlow<CurrentWeather?> = _currentWeather
+
+    // 当前生效中的天气预警（供首页横幅展示，独立于通知开关）
+    private val _activeWeatherAlerts = MutableStateFlow<List<WeatherAlert>>(emptyList())
+    val activeWeatherAlerts: StateFlow<List<WeatherAlert>> = _activeWeatherAlerts
+
+    fun loadActiveWeatherAlerts() {
+        viewModelScope.launch {
+            _activeWeatherAlerts.value = WeatherAlertStore.getActiveAlerts(getApplication())
+        }
+    }
 
     private val _isWeatherEnabled = MutableStateFlow(false)
     val isWeatherEnabled: StateFlow<Boolean> = _isWeatherEnabled

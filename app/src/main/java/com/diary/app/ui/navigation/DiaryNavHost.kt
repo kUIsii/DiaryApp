@@ -188,6 +188,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Storage : Screen("storage", "存储管理", Icons.Default.Memory)
     object WeatherDetail : Screen("weather_detail", "天气详情", Icons.Default.LocationOn)
+    object WeatherAlertDetail : Screen("weather_alert_detail/{alertId}", "天气预警详情", Icons.Default.Notifications) {
+        fun createRoute(alertId: String): String = "weather_alert_detail/$alertId"
+    }
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
     object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
 
@@ -301,6 +304,9 @@ popExitTransition = {
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
                     onNavigateToStorage = { navController.navigate(Screen.Storage.route) },
                     onNavigateToWeatherDetail = { navController.navigate(Screen.WeatherDetail.route) },
+                    onNavigateToWeatherAlertDetail = { alertId ->
+                        navController.navigate(Screen.WeatherAlertDetail.createRoute(alertId))
+                    },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Home.route,
@@ -509,7 +515,8 @@ popExitTransition = {
                     onNavigateToCapsule = { capsuleId -> navController.navigate(Screen.ReadCapsule.createRoute(capsuleId)) },
                     onNavigateToDetail = { diaryId -> navController.navigate(Screen.Detail.createRoute(diaryId)) },
                     onNavigateToMonthlyReport = { year, month -> navController.navigate(Screen.MonthlyReport.createRoute(year, month)) },
-                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) }
+                    onNavigateToAnnualReport = { navController.navigate(Screen.AnnualReport.route) },
+                    onNavigateToWeatherAlertDetail = { alertId -> navController.navigate(Screen.WeatherAlertDetail.createRoute(alertId)) }
                 )
             }
             composable(
@@ -704,6 +711,23 @@ popExitTransition = {
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 com.diary.app.ui.home.WeatherDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.WeatherAlertDetail.route,
+                arguments = listOf(
+                    navArgument("alertId") { type = NavType.StringType; defaultValue = "" }
+                ),
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) { backStackEntry ->
+                val alertId = backStackEntry.arguments?.getString("alertId") ?: ""
+                com.diary.app.ui.home.WeatherAlertDetailScreen(
+                    alertId = alertId,
                     onBack = { navController.popBackStack() }
                 )
             }

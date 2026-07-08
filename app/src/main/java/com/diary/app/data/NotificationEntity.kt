@@ -15,5 +15,9 @@ data class NotificationEntity(
     val isRead: Boolean = false,
     val isTrashed: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val trashedAt: Long? = null
+    val trashedAt: Long? = null,
+    // 天气预警详情字段
+    val alertProvince: String = "",
+    val alertPublishTime: String = "",
+    val alertSource: String = ""
 )

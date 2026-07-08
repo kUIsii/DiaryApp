@@ -7,17 +7,12 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">跳到主内容</a>
-  <div class="app-shell desktop-shell">
-    <div class="desktop-menubar">
-      <span>File</span><span>Edit</span><span>View</span><span>Tools</span><span>Help</span>
-    </div>
-    <!-- Sidebar -->
+  <div class="desktop-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <div class="sidebar-logo-icon">
-            <svg class="icon icon-logo" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3.4 14.4 9l6.1.5-4.6 4 1.4 6-5.3-3.1-5.3 3.1 1.4-6-4.6-4 6.1-.5L12 3.4Z"/>
             </svg>
           </div>
@@ -25,61 +20,36 @@
         </div>
       </div>
       <nav class="sidebar-nav">
-        <div class="nav-section-label">主要</div>
-        <button class="nav-item active" data-view="dashboard" id="nav-dashboard">
-          <svg class="icon icon-dashboard" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 5.8A1.8 1.8 0 0 1 5.8 4h4.4A1.8 1.8 0 0 1 12 5.8v4.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 10.2V5.8Z"/>
-            <path d="M14 5.8A1.8 1.8 0 0 1 15.8 4h2.4A1.8 1.8 0 0 1 20 5.8v8.4a1.8 1.8 0 0 1-1.8 1.8h-2.4a1.8 1.8 0 0 1-1.8-1.8V5.8Z"/>
-            <path d="M4 15.8A1.8 1.8 0 0 1 5.8 14h4.4a1.8 1.8 0 0 1 1.8 1.8v2.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 18.2v-2.4Z"/>
-          </svg>
-          <span>仪表盘</span>
-        </button>
-        <button class="nav-item" data-view="chat" id="nav-chat">
-          <svg class="icon icon-chat" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5.2 5.8c0-1 0.8-1.8 1.8-1.8h10c1 0 1.8.8 1.8 1.8v7c0 1-.8 1.8-1.8 1.8h-4.7l-4.1 3.5v-3.5H7c-1 0-1.8-.8-1.8-1.8v-7Z"/>
-          </svg>
-          <span>AI 助手</span>
-        </button>
-        <button class="nav-item" data-view="tasks" id="nav-tasks">
-          <svg class="icon icon-tasks" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h7"/>
-            <path d="m3.8 6.5.8.8 1.4-1.6M3.8 12l.8.8 1.4-1.6M3.8 17.5l.8.8 1.4-1.6"/>
-          </svg>
-          <span>待办任务</span>
-          <span class="nav-badge" id="task-badge">0</span>
-        </button>
-        <button class="nav-item" data-view="diary" id="nav-diary">
-          <svg class="icon icon-diary" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 4h9.2A1.8 1.8 0 0 1 18 5.8v12.4a1.8 1.8 0 0 1-1.8 1.8H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>
-            <path d="M8.5 8h6M8.5 11.5h6M8.5 15h4"/>
+        <button class="nav-item active" data-view="diary">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 19h4l9.2-9.2a2.1 2.1 0 0 0-3-3L6 16v3Z"/>
+            <path d="m13.8 8.2 3 3"/>
           </svg>
           <span>日记</span>
         </button>
-        <button class="nav-item" data-view="timeline" id="nav-timeline">
-          <svg class="icon icon-calendar" viewBox="0 0 24 24" aria-hidden="true">
+        <button class="nav-item" data-view="todo">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h7"/>
+            <path d="m3.8 6.5.8.8 1.4-1.6M3.8 12l.8.8 1.4-1.6M3.8 17.5l.8.8 1.4-1.6"/>
+          </svg>
+          <span>待办</span>
+        </button>
+        <button class="nav-item" data-view="timeline">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/>
             <path d="M8 3v4M16 3v4M4 10h16"/>
           </svg>
           <span>时间线</span>
         </button>
-        <button class="nav-item" data-view="stats" id="nav-stats">
-          <svg class="icon icon-stats" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 19V9M12 19V5M19 19v-7"/>
+        <button class="nav-item" data-view="chat">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 9h8a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-3a3 3 0 0 1 3-3Z"/>
+            <path d="M12 5v4M9.5 13h.1M14.5 13h.1"/>
           </svg>
-          <span>统计</span>
+          <span>AI 助手</span>
         </button>
-        <div class="nav-section-label">系统</div>
-        <button class="nav-item" data-view="sync" id="nav-sync">
-          <svg class="icon icon-sync" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7.2 7.1A6.8 6.8 0 0 1 18.5 10l1.8-.8"/>
-            <path d="M18.5 10l-.8-1.8"/>
-            <path d="M16.8 16.9A6.8 6.8 0 0 1 5.5 14l-1.8.8"/>
-            <path d="M5.5 14l.8 1.8"/>
-          </svg>
-          <span>互通同步</span>
-        </button>
-        <button class="nav-item" data-view="settings" id="nav-settings">
-          <svg class="icon icon-settings" viewBox="0 0 24 24" aria-hidden="true">
+        <button class="nav-item" data-view="settings">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/>
             <path d="m18.2 13.5 1.6 1.2-1.8 3.1-1.9-.8a7.5 7.5 0 0 1-1.7 1l-.3 2h-3.6l-.3-2a7.5 7.5 0 0 1-1.7-1l-1.9.8-1.8-3.1 1.6-1.2a7.4 7.4 0 0 1 0-2l-1.6-1.2 1.8-3.1 1.9.8a7.5 7.5 0 0 1 1.7-1l.3-2h3.6l.3 2a7.5 7.5 0 0 1 1.7 1l1.9-.8 1.8 3.1-1.6 1.2a7.4 7.4 0 0 1 0 2Z"/>
           </svg>
@@ -94,26 +64,12 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="main-content" id="main-content" tabindex="-1">
-      <div class="desktop-toolbar">
-      <!-- Header -->
-      <header class="main-header">
-        <div>
-          <h1 class="main-title" id="view-title">仪表盘</h1>
-          <p class="main-title-sub" id="view-subtitle">今天的执行、写作和同步状态</p>
-        </div>
+    <main class="main-content">
+      <div class="main-header">
+        <h1 class="main-title" id="view-title">日记</h1>
         <div class="toolbar-actions">
-          <button class="btn btn-secondary btn-sm" id="btn-global-search" title="全局搜索 Ctrl+K" aria-label="全局搜索">
-            <svg class="icon icon-search" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="6"/>
-              <path d="m16 16 4 4"/>
-            </svg>
-            <span>搜索</span>
-            <kbd>Ctrl+K</kbd>
-          </button>
-          <button class="btn btn-secondary btn-sm" id="btn-sync-now" title="立即同步" aria-label="立即同步">
-            <svg class="icon icon-sync" viewBox="0 0 24 24" aria-hidden="true">
+          <button class="btn btn-secondary btn-sm" id="btn-sync-now" title="立即同步">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7.2 7.1A6.8 6.8 0 0 1 18.5 10l1.8-.8"/>
               <path d="M18.5 10l-.8-1.8"/>
               <path d="M16.8 16.9A6.8 6.8 0 0 1 5.5 14l-1.8.8"/>
@@ -122,103 +78,114 @@
             <span>同步</span>
           </button>
         </div>
-      </header>
       </div>
 
-      <!-- Body -->
-      <div class="main-body page-stage">
-
-        <!-- Dashboard View -->
-        <div class="view active" id="view-dashboard">
-          <section class="dashboard-page">
-            <div class="page-hero dashboard-hero">
-              <div>
-                <p class="eyebrow">桌面首页</p>
-                <h2>先看状态，再进入具体页面处理</h2>
-                <p>仪表盘只负责总览、趋势和快速跳转，避免把写作、待办和同步挤成一个混乱界面。</p>
+      <div class="main-body">
+        <div class="view view-diary active">
+          <div class="diary-layout">
+            <div class="diary-list" id="diary-list">
+              <div class="diary-month-header">2026年7月</div>
+              <div class="diary-entry-item selected" data-id="1">
+                <div class="diary-entry-date">7月5日</div>
+                <div class="diary-entry-title">开始使用 DiaryApp</div>
+                <div class="diary-entry-preview">今天开始记录每天的想法和待办...</div>
               </div>
-              <div class="page-action-row">
-                <button class="btn btn-secondary" data-dashboard-action="open-search">搜索</button>
-                <button class="btn btn-primary" data-dashboard-action="new-task">新建任务</button>
+              <div class="diary-entry-item" data-id="2">
+                <div class="diary-entry-date">7月4日</div>
+                <div class="diary-entry-title">昨天回顾</div>
+                <div class="diary-entry-preview">完成了桌面端设计，明天继续...</div>
               </div>
             </div>
-            <div class="dashboard-grid">
-              <section class="dashboard-card dashboard-metrics-card">
-                <div class="calendar-panel-title">今日概览</div>
-                <div class="dashboard-metric-grid" id="dashboard-metric-grid"></div>
-              </section>
-              <section class="dashboard-card dashboard-trend-card">
-                <div class="calendar-panel-title">执行趋势</div>
-                <svg class="dashboard-trend-svg" id="dashboard-trend-svg" viewBox="0 0 560 220" role="img" aria-label="近七天行动趋势"></svg>
-              </section>
-              <section class="dashboard-card dashboard-heatmap-card">
-                <div class="calendar-panel-title">写作热力</div>
-                <div class="dashboard-heatmap" id="dashboard-heatmap"></div>
-                <div class="dashboard-legend" aria-label="写作热力图例">
-                  <span>少</span>
-                  <i class="dashboard-heat-cell level-0"></i>
-                  <i class="dashboard-heat-cell level-1"></i>
-                  <i class="dashboard-heat-cell level-2"></i>
-                  <i class="dashboard-heat-cell level-3"></i>
-                  <i class="dashboard-heat-cell level-4"></i>
-                  <span>多</span>
+            <div class="diary-editor" id="diary-editor">
+              <div class="diary-editor-toolbar">
+                <span class="diary-editor-date">2026年7月5日</span>
+                <div class="editor-actions">
+                  <button class="btn btn-ghost btn-sm editor-btn" data-format="bold" title="粗体"><strong>B</strong></button>
+                  <button class="btn btn-ghost btn-sm editor-btn" data-format="italic" title="斜体"><em>I</em></button>
+                  <button class="btn btn-ghost btn-sm editor-btn" data-format="heading" title="标题">H</button>
+                  <button class="btn btn-primary btn-sm" id="btn-save-diary">保存</button>
                 </div>
-              </section>
-              <section class="dashboard-card smart-folder-card">
-                <div class="calendar-panel-title">智能文件夹</div>
-                <div class="smart-folder-list" id="dashboard-smart-folders">
-                  <button class="smart-folder-item" data-smart-folder="overdue" data-smart-folder-query="status:overdue">
-                    <span class="smart-folder-copy"><strong>逾期任务</strong><small class="smart-folder-query">status:overdue</small></span>
-                    <span id="smart-folder-overdue">0</span>
-                  </button>
-                  <button class="smart-folder-item" data-smart-folder="today" data-smart-folder-query="date:today">
-                    <span class="smart-folder-copy"><strong>今日执行</strong><small class="smart-folder-query">date:today</small></span>
-                    <span id="smart-folder-today">0</span>
-                  </button>
-                  <button class="smart-folder-item" data-smart-folder="untagged" data-smart-folder-query="tags:missing">
-                    <span class="smart-folder-copy"><strong>待归档线索</strong><small class="smart-folder-query">tags:missing</small></span>
-                    <span id="smart-folder-untagged">0</span>
-                  </button>
-                  <button class="smart-folder-item" data-smart-folder="writing" data-smart-folder-query="type:writing-material">
-                    <span class="smart-folder-copy"><strong>写作素材</strong><small class="smart-folder-query">type:writing-material</small></span>
-                    <span id="smart-folder-writing">0</span>
-                  </button>
-                </div>
-              </section>
-              <section class="dashboard-card desktop-readiness-card">
-                <div class="calendar-panel-title">桌面端能力</div>
-                <div class="desktop-readiness-list" id="desktop-readiness-list">
-                  <button class="desktop-readiness-item" data-readiness-action="sync">
-                    <span>手机号互通</span>
-                    <strong id="readiness-sync">待验证</strong>
-                  </button>
-                  <button class="desktop-readiness-item" data-readiness-action="shortcuts">
-                    <span>键盘驱动</span>
-                    <strong>Ctrl+K</strong>
-                  </button>
-                  <button class="desktop-readiness-item" data-readiness-action="import">
-                    <span>数据汇集</span>
-                    <strong>导入中心</strong>
-                  </button>
-                </div>
-              </section>
-              <aside class="dashboard-card page-ai-rail" id="dashboard-ai-rail" aria-label="页面级 AI 辅助"></aside>
+              </div>
+              <textarea id="diary-editor-body" placeholder="开始写日记..." spellcheck="true"></textarea>
             </div>
-          </section>
+          </div>
         </div>
 
-        <!-- Chat View -->
-        <div class="view" id="view-chat">
+        <div class="view view-todo">
+          <div class="quick-capture">
+            <input type="text" id="todo-capture-input" placeholder="快速添加待办...">
+            <button class="btn btn-primary" id="btn-todo-capture">添加</button>
+          </div>
+          <div class="todo-groups">
+            <section class="todo-group">
+              <div class="todo-group-title">今天</div>
+              <div class="todo-list" id="todo-today">
+                <div class="todo-item">
+                  <span class="todo-checkbox"></span>
+                  <span class="todo-text">完成桌面端设计</span>
+                </div>
+              </div>
+            </section>
+            <section class="todo-group">
+              <div class="todo-group-title">本周</div>
+              <div class="todo-list" id="todo-week"></div>
+            </section>
+            <section class="todo-group">
+              <div class="todo-group-title">以后</div>
+              <div class="todo-list" id="todo-later"></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="view view-timeline">
+          <div class="timeline-header-row">
+            <button class="btn btn-ghost btn-sm" id="timeline-prev">← 上月</button>
+            <span class="timeline-month-label" id="timeline-month">2026年7月</span>
+            <button class="btn btn-ghost btn-sm" id="timeline-next">下月 →</button>
+          </div>
+          <div class="timeline-feed" id="timeline-feed">
+            <div class="timeline-feed-item">
+              <span class="timeline-dot"></span>
+              <div class="timeline-item-body">
+                <time class="timeline-time">7月5日</time>
+                <p class="timeline-text">开始使用 DiaryApp</p>
+              </div>
+            </div>
+            <div class="timeline-feed-item">
+              <span class="timeline-dot"></span>
+              <div class="timeline-item-body">
+                <time class="timeline-time">7月4日</time>
+                <p class="timeline-text">完成了桌面端设计初稿</p>
+              </div>
+            </div>
+          </div>
+          <div class="glass-card timeline-stats">
+            <div class="timeline-stat">
+              <span class="stat-value" id="stat-diaries">3</span>
+              <span class="stat-label">篇日记</span>
+            </div>
+            <div class="timeline-stat">
+              <span class="stat-value" id="stat-tasks">12</span>
+              <span class="stat-label">个待办</span>
+            </div>
+            <div class="timeline-stat">
+              <span class="stat-value" id="stat-streak">5</span>
+              <span class="stat-label">连续天数</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="view view-chat">
           <div class="chat-container">
             <div class="chat-messages" id="chat-messages">
               <div class="chat-message assistant">
                 <div class="chat-avatar assistant">
-                  <svg class="icon icon-bot" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M8 9h8a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-3a3 3 0 0 1 3-3Z"/>
                     <path d="M12 5v4M9.5 13h.1M14.5 13h.1"/>
                   </svg>
                 </div>
-                <div class="chat-bubble">你好，我是你的桌面助手。<br><br>我可以帮你管理待办、记录日记、分析数据。<br><br>试试说：<br>1. "帮我创建一个任务叫..."<br>2. "记录一下今天..."<br>3. "今天有什么计划"</div>
+                <div class="chat-bubble">你好，我是你的桌面助手。<br><br>我可以帮你管理待办、记录日记。<br><br>试试说：<br>1. "帮我创建一个任务"<br>2. "记录一下今天..."</div>
               </div>
             </div>
             <div class="chat-input-area">
@@ -228,606 +195,100 @@
           </div>
         </div>
 
-        <!-- Tasks View -->
-        <div class="view" id="view-tasks">
-          <section class="task-page">
-            <div class="task-hero-panel page-hero">
-              <div>
-                <p class="eyebrow">待办计划</p>
-                <h2>把待办拆成可执行的桌面计划</h2>
-                <p>主页面只处理捕捉、流转和时间安排，详细填写进入独立面板。</p>
-              </div>
-              <div class="page-action-row">
-                <button class="btn btn-primary btn-lg" id="btn-open-task-planner">新建详细任务</button>
+        <div class="view view-settings">
+          <div class="glass-card settings-card">
+            <div class="settings-card-title">外观主题</div>
+            <div class="theme-palette" id="theme-palette">
+              <button class="theme-swatch active" data-theme="fog"><span>雾蓝</span></button>
+              <button class="theme-swatch" data-theme="moss"><span>苔绿</span></button>
+              <button class="theme-swatch" data-theme="ocean"><span>海潮</span></button>
+              <button class="theme-swatch" data-theme="petal"><span>陶粉</span></button>
+              <button class="theme-swatch" data-theme="sand"><span>沙金</span></button>
+              <button class="theme-swatch" data-theme="clay"><span>陶土</span></button>
+              <button class="theme-swatch" data-theme="ink"><span>墨蓝</span></button>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">明暗模式</span>
+              <div class="segmented-control" id="theme-mode-control">
+                <button class="segment active" data-mode="light">浅色</button>
+                <button class="segment" data-mode="dark">深色</button>
+                <button class="segment" data-mode="system">跟随系统</button>
               </div>
             </div>
+          </div>
 
-            <div class="task-command-row quick-capture">
-              <label class="visually-hidden" for="task-capture-input">快速添加待办</label>
-              <input type="text" id="task-capture-input" placeholder="快速添加：!! 今天 18:30 完成桌面端主题 #desktop">
-              <button class="btn btn-primary" id="task-capture-btn">捕捉</button>
+          <div class="glass-card settings-card">
+            <div class="settings-card-title">账号与同步</div>
+            <div class="settings-row">
+              <span class="settings-label">手机号</span>
+              <input type="tel" id="settings-phone" placeholder="输入 APP 端使用的手机号" class="settings-input">
             </div>
+            <div class="settings-row">
+              <span class="settings-label">PIN</span>
+              <input type="password" id="settings-pin" placeholder="至少 4 位" class="settings-input">
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">同步服务地址</span>
+              <input type="url" id="settings-endpoint" placeholder="https://diary-app-sync.workers.dev" class="settings-input">
+            </div>
+            <div class="settings-action-row">
+              <button class="btn btn-primary" id="btn-sync-login">登录并连接</button>
+              <button class="btn btn-ghost" id="btn-sync-logout">断开</button>
+            </div>
+          </div>
 
-            <div class="task-focus-strip" id="task-focus-strip"></div>
-
-            <div class="task-bulk-bar" id="task-bulk-bar">
-              <span id="task-bulk-count">已选 0 项</span>
-              <div class="task-bulk-actions">
-                <button class="btn btn-secondary btn-sm" id="btn-bulk-doing">移到进行中</button>
-                <button class="btn btn-secondary btn-sm" id="btn-bulk-complete">完成所选</button>
-                <button class="btn btn-ghost btn-sm" id="btn-bulk-delete">删除所选</button>
-                <button class="btn btn-ghost btn-sm" id="btn-bulk-clear">清除选择</button>
+          <div class="glass-card settings-card">
+            <div class="settings-card-title">AI 助手设置</div>
+            <div class="settings-row">
+              <span class="settings-label">AI 提供商</span>
+              <div class="segmented-control" id="setting-provider">
+                <button class="segment active" data-provider="local">本地</button>
+                <button class="segment" data-provider="deepseek">DeepSeek</button>
+                <button class="segment" data-provider="openai">OpenAI</button>
+                <button class="segment" data-provider="custom">自定义</button>
               </div>
             </div>
-
-            <div class="segmented-control task-filter-tabs" role="tablist" aria-label="待办筛选">
-              <button class="segment active" data-filter="active" id="filter-active">进行中</button>
-              <button class="segment" data-filter="done" id="filter-done">已完成</button>
-              <button class="segment" data-filter="all" id="filter-all">全部</button>
+            <div class="settings-row">
+              <span class="settings-label">API Key</span>
+              <input type="password" id="setting-api-key" placeholder="sk-..." class="settings-input">
             </div>
-
-            <div class="task-planning-board">
-              <div class="kanban-board" id="kanban-board">
-                <section class="kanban-column" data-kanban-column="inbox"><div class="kanban-column-title">Inbox</div><div id="kanban-inbox"></div></section>
-                <section class="kanban-column" data-kanban-column="todo"><div class="kanban-column-title">待办</div><div id="kanban-todo"></div></section>
-                <section class="kanban-column" data-kanban-column="doing"><div class="kanban-column-title">进行中</div><div id="kanban-doing"></div></section>
-                <section class="kanban-column" data-kanban-column="done"><div class="kanban-column-title">已完成</div><div id="kanban-done"></div></section>
-              </div>
-              <aside class="task-side-rail">
-                <div class="task-gantt" id="task-gantt"></div>
-                <div class="task-lanes" id="task-lanes">
-                  <section class="task-lane" data-lane="inbox">
-                    <div class="task-lane-header">
-                      <span>Inbox</span>
-                      <strong id="lane-count-inbox">0</strong>
-                    </div>
-                    <div class="task-lane-list" id="lane-inbox"></div>
-                  </section>
-                  <section class="task-lane" data-lane="today">
-                    <div class="task-lane-header">
-                      <span>今日执行</span>
-                      <strong id="lane-count-today">0</strong>
-                    </div>
-                    <div class="task-lane-list" id="lane-today"></div>
-                  </section>
-                  <section class="task-lane" data-lane="planned">
-                    <div class="task-lane-header">
-                      <span>后续计划</span>
-                      <strong id="lane-count-planned">0</strong>
-                    </div>
-                    <div class="task-lane-list" id="lane-planned"></div>
-                  </section>
-                </div>
-              </aside>
+            <div class="settings-row">
+              <span class="settings-label">API 地址</span>
+              <input type="text" id="setting-endpoint" placeholder="https://api.example.com/v1" class="settings-input">
             </div>
-          </section>
-          <div id="task-list" hidden></div>
-          <div class="task-planner-panel" id="task-planner-panel" aria-hidden="true">
-            <div class="task-planner-card">
-              <div class="task-planner-head">
-                <div>
-                  <p class="eyebrow">任务详情</p>
-                  <h2>新建深度待办</h2>
-                </div>
-              <button class="btn btn-ghost btn-icon" id="btn-close-task-planner" aria-label="关闭">x</button>
-              </div>
-              <div class="task-planner-grid">
-                <div class="input-group task-title-field">
-                  <label class="input-label" for="task-planner-title">任务标题</label>
-                  <input type="text" id="task-planner-title" placeholder="例如：完成桌面端待办页面">
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="task-planner-due">截止时间</label>
-                  <input type="datetime-local" id="task-planner-due">
-                </div>
-                <div class="input-group">
-                  <label class="input-label">优先级</label>
-                  <div class="segmented-control" id="task-priority-control" aria-label="优先级">
-                    <button class="segment active" data-priority-choice="0">普通</button>
-                    <button class="segment" data-priority-choice="1">重要</button>
-                    <button class="segment" data-priority-choice="2">关键</button>
-                  </div>
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="task-planner-tags">项目标签</label>
-                  <input type="text" id="task-planner-tags" placeholder="desktop, design">
-                </div>
-                <div class="input-group task-description-field">
-                  <label class="input-label" for="task-planner-description">下一步说明</label>
-                  <textarea id="task-planner-description" placeholder="写清楚下一步、验收标准或阻塞点"></textarea>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-save-task-planner">保存任务</button>
-              </div>
+            <div class="settings-row">
+              <span class="settings-label">模型</span>
+              <input type="text" id="setting-model" placeholder="deepseek-chat" class="settings-input">
+            </div>
+            <div class="settings-action-row">
+              <button class="btn btn-secondary" id="btn-test-ai">测试连接</button>
+              <button class="btn btn-primary" id="btn-save-settings">保存设置</button>
+            </div>
+          </div>
+
+          <div class="glass-card settings-card">
+            <div class="settings-card-title">数据管理</div>
+            <div class="settings-row">
+              <span class="settings-label">导出数据</span>
+              <button class="btn btn-secondary btn-sm" id="btn-export">导出</button>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">导入数据</span>
+              <button class="btn btn-secondary btn-sm" id="btn-import">导入</button>
             </div>
           </div>
         </div>
-
-        <!-- Diary View -->
-        <div class="view" id="view-diary">
-          <section class="diary-page">
-            <div class="page-hero diary-hero">
-              <div>
-                <p class="eyebrow">写作空间</p>
-                <h2>日记只负责沉淀，不挤进任务面板</h2>
-                <p>先选择模板或查看历史，真正需要填写时再进入写作子页面。</p>
-              </div>
-              <div class="page-action-row">
-                <button class="btn btn-primary" id="btn-open-diary-writer">
-                  <svg class="icon icon-write" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 19h4l9.2-9.2a2.1 2.1 0 0 0-3-3L6 16v3Z"/>
-                    <path d="m13.8 8.2 3 3"/>
-                  </svg>
-                  <span>进入写作页</span>
-                </button>
-              </div>
-            </div>
-            <div id="diary-list"></div>
-            <section class="diary-subpage-shell" id="diary-writer-shell" aria-hidden="true">
-              <div class="diary-subpage-head">
-                <div>
-                  <p class="eyebrow">写作子页面</p>
-                  <h2>Markdown 编辑器</h2>
-                </div>
-                <div class="diary-subpage-actions">
-                  <div class="segmented-control writing-layout-control" id="writing-layout-control" aria-label="写作布局">
-                    <button class="segment active" data-writing-layout="split">分栏</button>
-                    <button class="segment" data-writing-layout="focus">专注</button>
-                    <button class="segment" data-writing-layout="analysis">分析</button>
-                  </div>
-                  <button class="btn btn-secondary btn-sm" id="btn-toggle-writing-focus">全屏写作</button>
-                  <button class="btn btn-ghost btn-icon" id="btn-close-diary-writer" aria-label="关闭写作页">x</button>
-                </div>
-              </div>
-              <div class="diary-template-rail" id="diary-template-rail" aria-label="日记模板">
-                <button class="template-chip" data-template-id="daily-review">每日复盘</button>
-                <button class="template-chip" data-template-id="weekly-review">周度回顾</button>
-                <button class="template-chip" data-template-id="decision-log">决策记录</button>
-              </div>
-              <div class="markdown-editor" id="markdown-editor">
-                <div class="markdown-editor-head">
-                  <input id="markdown-editor-title" placeholder="给这篇日记一个标题">
-                  <div class="writing-meta"><span id="writing-word-count">0 字</span><span id="writing-read-time">约 1 分钟</span></div>
-                </div>
-                <div class="markdown-editor-grid">
-                  <textarea id="markdown-editor-body" placeholder="使用 Markdown 记录想法、任务和复盘。内容会在右侧实时预览。"></textarea>
-                  <div class="markdown-preview" id="markdown-preview"></div>
-                </div>
-                <div class="attachment-drop-zone" id="attachment-drop-zone" tabindex="0">
-                  <strong>拖拽附件到这里</strong>
-                  <span id="attachment-summary">支持把设计稿、截图、Markdown 文件作为本地线索挂到当前日记。</span>
-                </div>
-                <aside class="writing-analysis-panel" id="writing-analysis-panel">
-                  <div>
-                    <div class="calendar-panel-title">写作分析</div>
-                    <p id="writing-analysis-summary">开始写作后，这里会显示节奏、结构和可执行线索。</p>
-                  </div>
-                  <div class="focus-meter" id="writing-focus-meter">
-                    <span></span>
-                  </div>
-                </aside>
-                <div class="ai-context-actions" id="ai-context-actions">
-                  <button class="ai-context-action" data-ai-action="summarize">总结当前内容</button>
-                  <button class="ai-context-action" data-ai-action="extract-tasks">提取待办</button>
-                  <button class="ai-context-action" data-ai-action="rewrite">整理表达</button>
-                </div>
-              </div>
-            </section>
-          </section>
-        </div>
-
-        <!-- Timeline View -->
-        <div class="view" id="view-timeline">
-          <section class="timeline-page timeline-review-page">
-            <div class="calendar-toolbar page-hero">
-              <div>
-                <p class="eyebrow">时间线</p>
-                <h2 class="calendar-month" id="cal-month-label">时间线回顾</h2>
-                <p>按时间看任务与日记的连续性，热力和里程碑放到辅助区域。</p>
-              </div>
-              <div class="calendar-toolbar-actions page-action-row">
-                <button class="calendar-nav-btn" id="btn-timeline-today">今天</button>
-                <button class="calendar-nav-btn" id="timeline-prev">上一段</button>
-                <button class="calendar-nav-btn" id="timeline-next">下一段</button>
-              </div>
-            </div>
-            <div class="timeline-layout">
-              <div class="timeline-main-panel">
-                <div class="timeline-stream" id="timeline-stream"></div>
-              </div>
-              <aside class="timeline-side-panel">
-                <div class="calendar-panel-card">
-                  <div class="calendar-panel-title">写作热力</div>
-                  <div class="calendar-heatmap" id="timeline-heatmap"></div>
-                </div>
-                <div class="calendar-panel-card">
-                  <div class="calendar-panel-title">阶段里程碑</div>
-                  <div class="timeline-milestones" id="timeline-milestones"></div>
-                </div>
-              </aside>
-            </div>
-          </section>
-        </div>
-
-        <!-- Stats View -->
-        <div class="view" id="view-stats">
-          <section class="stats-page stats-review-page">
-            <div class="stats-hero page-hero">
-              <div>
-                <p class="eyebrow">复盘中心</p>
-                <h2>桌面端复盘中心</h2>
-                <p>趋势、完成率和文字洞察各自成区，避免数字卡片铺满屏幕。</p>
-              </div>
-              <div class="completion-ring" id="stats-completion-ring" aria-label="完成率环形图">
-                <span id="stats-ring-value">0%</span>
-              </div>
-            </div>
-            <div class="stats-grid" id="stats-grid">
-              <div class="stat-card">
-                <div class="stat-value" id="stat-tasks-total">0</div>
-                <div class="stat-label">总任务</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-tasks-done">0</div>
-                <div class="stat-label">已完成</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-tasks-active">0</div>
-                <div class="stat-label">进行中</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-diaries">0</div>
-                <div class="stat-label">日记篇数</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-streak">0</div>
-                <div class="stat-label">连续记录天数</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-completion">0%</div>
-                <div class="stat-label">完成率</div>
-              </div>
-            </div>
-            <div class="stats-insight-grid">
-              <div class="trend-chart" id="stats-trend-chart"></div>
-              <div class="stats-insight-panel" id="stats-insight-panel"></div>
-            </div>
-            <section class="monthly-report-panel" id="monthly-report-panel">
-              <div>
-                <div class="calendar-panel-title">月度报告</div>
-                <p id="monthly-report-summary">本地根据日记和任务生成月度复盘，不依赖云端 AI。</p>
-              </div>
-              <div class="monthly-report-actions" id="monthly-report-actions"></div>
-            </section>
-          </section>
-        </div>
-
-        <!-- Sync View -->
-        <div class="view" id="view-sync">
-          <section class="sync-verify-page">
-            <div class="page-hero">
-              <div>
-                <p class="eyebrow">互通验证</p>
-                <h2>用手机号确认桌面端与 APP 已连通</h2>
-                <p>桌面端登录同一个手机号后，手动同步即可检查 Android 实验版是否能拉到同一份数据。</p>
-              </div>
-              <div class="page-action-row">
-                <button class="btn btn-secondary" id="btn-force-sync">立即同步</button>
-              </div>
-            </div>
-          <div class="sync-page-grid">
-            <section class="settings-section sync-card">
-              <div class="settings-section-title">手机号互通</div>
-              <div class="sync-account-summary" id="sync-account-summary"></div>
-              <div class="sync-form-grid">
-                <div class="input-group">
-                  <label class="input-label" for="sync-phone">手机号</label>
-                  <input type="tel" id="sync-phone" placeholder="输入 APP 端使用的手机号" autocomplete="tel">
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="sync-pin">PIN</label>
-                  <input type="password" id="sync-pin" placeholder="至少 4 位" autocomplete="current-password">
-                </div>
-                <div class="input-group sync-endpoint-row">
-                  <label class="input-label" for="sync-endpoint">同步服务地址</label>
-                   <input type="url" id="sync-endpoint" placeholder="https://diary-app-sync.2453759261.workers.dev">
-                </div>
-              </div>
-              <div class="sync-action-row">
-                <button class="btn btn-primary" id="btn-sync-login">登录并连接</button>
-                <button class="btn btn-secondary" id="btn-sync-register">注册新账号</button>
-                <button class="btn btn-ghost" id="btn-sync-logout">断开</button>
-              </div>
-            </section>
-            <section class="settings-section sync-card">
-              <div class="settings-section-title">桌面端同步检查</div>
-              <div class="sync-check-list">
-                <div class="sync-check-item">
-                  <span class="sync-check-dot"></span>
-                  <div>
-                    <div class="settings-label">账号一致</div>
-                    <div class="settings-hint">桌面端和 Android 端使用同一个手机号与 PIN。</div>
-                  </div>
-                </div>
-                <div class="sync-check-item">
-                  <span class="sync-check-dot"></span>
-                  <div>
-                    <div class="settings-label">Worker 后端</div>
-                    <div class="settings-hint">登录、注册和备份都走 diary-app-sync Workers 接口。</div>
-                  </div>
-                </div>
-                <div class="sync-check-item">
-                  <span class="sync-check-dot"></span>
-                  <div>
-                    <div class="settings-label">手动校验</div>
-                    <div class="settings-hint">连接后点击右上角同步，确认 APP 端可拉取同一份备份。</div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-          </section>
-        </div>
-
-        <!-- Settings View -->
-        <div class="view" id="view-settings">
-          <div class="settings-section">
-            <div class="settings-section-title">外观主题</div>
-            <div class="theme-settings-grid">
-              <div>
-                <div class="settings-label">APP 同源主题</div>
-                <div class="settings-hint">桌面端使用与 Android 端同一组雾蓝、苔绿、海潮、陶粉、沙金、陶土、墨蓝方向。</div>
-              </div>
-              <div class="theme-palette" id="theme-palette" aria-label="主题色">
-                <button class="theme-swatch active" data-theme-choice="fog"><span>雾蓝</span></button>
-                <button class="theme-swatch" data-theme-choice="moss"><span>苔绿</span></button>
-                <button class="theme-swatch" data-theme-choice="ocean"><span>海潮</span></button>
-                <button class="theme-swatch" data-theme-choice="petal"><span>陶粉</span></button>
-                <button class="theme-swatch" data-theme-choice="sand"><span>沙金</span></button>
-                <button class="theme-swatch" data-theme-choice="clay"><span>陶土</span></button>
-                <button class="theme-swatch" data-theme-choice="ink"><span>墨蓝</span></button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">字体尺度</div>
-                <div class="settings-hint">桌面端默认放大正文，避免现在这种过小的工具感文字。</div>
-              </div>
-              <div class="segmented-control" id="font-scale-control" aria-label="字体尺度">
-                <button class="segment" data-font-scale="0.95">紧凑</button>
-                <button class="segment" data-font-scale="1">标准</button>
-                <button class="segment active" data-font-scale="1.1">舒展</button>
-                <button class="segment" data-font-scale="1.2">大字</button>
-                <button class="segment" data-font-scale="1.3">超大</button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">明暗模式</div>
-                <div class="settings-hint">补齐 Android 同源主题的 Light / Dark / 跟随系统模式。</div>
-              </div>
-              <div class="segmented-control" id="theme-mode-control" aria-label="明暗模式">
-                <button class="segment active" data-theme-mode="light">浅色</button>
-                <button class="segment" data-theme-mode="dark">深色</button>
-                <button class="segment" data-theme-mode="system">跟随系统</button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-section">
-            <div class="settings-section-title">AI 助手设置</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">AI 提供商</div>
-                <div class="settings-hint">选择 AI 模型提供商（留空使用本地智能助手）</div>
-              </div>
-              <div class="settings-control">
-                <div class="segmented-control provider-control" id="setting-provider">
-                  <button class="segment active" data-provider-choice="local">本地助手（无需配置）</button>
-                  <button class="segment" data-provider-choice="deepseek">DeepSeek</button>
-                  <button class="segment" data-provider-choice="openai">OpenAI</button>
-                  <button class="segment" data-provider-choice="custom">自定义</button>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row" id="setting-api-key-row">
-              <div>
-                <div class="settings-label">API Key</div>
-                <div class="settings-hint">配置 API Key 后可获得更强大的 AI 能力</div>
-              </div>
-              <div class="settings-control">
-                  <input class="setting-text-control" type="password" id="setting-api-key" placeholder="sk-...">
-              </div>
-            </div>
-            <div class="settings-row" id="setting-endpoint-row">
-              <div>
-                <div class="settings-label">API 地址</div>
-                <div class="settings-hint">默认为所选提供商的标准地址</div>
-              </div>
-              <div class="settings-control">
-                  <input class="setting-text-control" type="text" id="setting-endpoint" placeholder="https://api.example.com/v1/chat/completions">
-              </div>
-            </div>
-            <div class="settings-row" id="setting-model-row">
-              <div>
-                <div class="settings-label">模型</div>
-                <div class="settings-hint">模型名称（如 deepseek-chat, gpt-4o-mini）</div>
-              </div>
-              <div class="settings-control">
-                  <input class="setting-text-control" type="text" id="setting-model" placeholder="deepseek-chat">
-              </div>
-            </div>
-            <div class="settings-row">
-              <div></div>
-              <div class="settings-action-row">
-                <button class="btn btn-secondary" id="btn-test-ai">测试连接</button>
-                <button class="btn btn-primary" id="btn-save-settings">保存设置</button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-section">
-            <div class="settings-section-title">数据管理</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">导出格式</div>
-                <div class="settings-hint">桌面端支持 JSON 备份、Markdown 写作归档和 HTML 阅读包。</div>
-              </div>
-              <div class="segmented-control" id="export-format-control" aria-label="导出格式">
-                <button class="segment active" data-export-format="json">JSON</button>
-                <button class="segment" data-export-format="md">Markdown</button>
-                <button class="segment" data-export-format="html">HTML</button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">导出数据</div>
-                <div class="settings-hint">将所有数据导出为 JSON 文件</div>
-              </div>
-              <button class="btn btn-secondary" id="btn-export">导出</button>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">导入数据</div>
-                <div class="settings-hint">从 JSON 备份或 Markdown 文件导入，导入配置收纳在独立面板里。</div>
-              </div>
-              <button class="btn btn-secondary" id="btn-open-import-center">导入中心</button>
-            </div>
-            <div class="data-import-center" id="data-import-center" aria-hidden="true">
-              <div>
-                <div class="settings-label">导入格式</div>
-                <div class="settings-hint">支持 JSON 备份、Markdown 文稿，以及 Day One / Bear 的日记导出。</div>
-              </div>
-              <div class="segmented-control" id="import-format-control" aria-label="导入格式">
-                <button class="segment active" data-import-format="json">JSON</button>
-                <button class="segment" data-import-format="markdown">Markdown</button>
-                <button class="segment" data-import-format="day-one">Day One</button>
-                <button class="segment" data-import-format="bear">Bear</button>
-              </div>
-              <button class="btn btn-secondary" id="btn-import">选择文件导入</button>
-            </div>
-          </div>
-          <div class="settings-section">
-            <div class="settings-section-title">原生通知</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">通知策略</div>
-                <div class="settings-hint">让桌面端负责截止提醒，同步完成只在需要时提示。</div>
-              </div>
-              <div class="segmented-control" id="notification-control" aria-label="通知策略">
-                <button class="segment active" data-notification-choice="deadline">截止提醒</button>
-                <button class="segment" data-notification-choice="sync">同步结果</button>
-                <button class="segment" data-notification-choice="quiet">安静模式</button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-section" id="shortcut-settings">
-            <div class="settings-section-title">快捷键自定义</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label">快捷键配置</div>
-                <div class="settings-hint">桌面端保留键盘驱动，可切换默认、写作、规划三种配置。</div>
-              </div>
-              <div class="segmented-control" id="shortcut-profile-control" aria-label="快捷键配置">
-                <button class="segment active" data-shortcut-profile="default">默认</button>
-                <button class="segment" data-shortcut-profile="writer">写作</button>
-                <button class="segment" data-shortcut-profile="planner">规划</button>
-              </div>
-            </div>
-            <div class="shortcut-settings-grid" id="shortcut-settings-grid">
-              <button class="shortcut-row" data-shortcut-action="global-search"><span>全局搜索</span><kbd>Ctrl+K</kbd></button>
-              <button class="shortcut-row" data-shortcut-action="new-task"><span>新建任务</span><kbd>Ctrl+N</kbd></button>
-              <button class="shortcut-row" data-shortcut-action="new-diary"><span>写日记</span><kbd>Ctrl+Shift+D</kbd></button>
-              <button class="shortcut-row" data-shortcut-action="settings"><span>设置</span><kbd>Ctrl+,</kbd></button>
-            </div>
-          </div>
-          <div class="settings-section" id="desktop-native-settings">
-            <div class="settings-section-title">桌面原生能力</div>
-            <div class="native-status-grid" id="native-status-grid">
-              <div class="native-status-item">
-                <span>系统托盘</span>
-                <strong id="native-status-tray">已启用</strong>
-              </div>
-              <div class="native-status-item">
-                <span>原生通知</span>
-                <strong id="native-status-notification">截止提醒</strong>
-              </div>
-              <div class="native-status-item">
-                <span>后台同步</span>
-                <strong id="native-status-background-sync">2 小时</strong>
-              </div>
-            </div>
-            <div class="desktop-native-grid">
-              <button class="desktop-native-card" data-native-action="tray">
-                <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 8h14M7 8l1.2-3h7.6L17 8M8 16h8M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/>
-                </svg>
-                <span>
-                  <strong>系统托盘</strong>
-                  <small>常驻、快速唤起和后台同步提醒。</small>
-                </span>
-              </button>
-              <button class="desktop-native-card" data-native-action="export">
-                <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 4v10M8 10l4 4 4-4"/>
-                  <path d="M5 18h14"/>
-                </svg>
-                <span>
-                  <strong>多格式输出</strong>
-                  <small>JSON、Markdown、HTML 分别服务备份、写作和阅读。</small>
-                </span>
-              </button>
-              <button class="desktop-native-card" data-native-action="phone">
-                <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
-                  <path d="M11 18h2"/>
-                </svg>
-                <span>
-                  <strong>手机互通验证</strong>
-                  <small>用同一手机号和 PIN 检查桌面端、APP 端是否联通。</small>
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
       </div>
-      <footer class="desktop-statusbar">
+
+      <footer class="status-bar">
         <span id="status-word-count">字数 0</span>
         <span id="status-sync-state">同步就绪</span>
-        <span>Ctrl+K 搜索 · Ctrl+N 新建待办 · Ctrl+Shift+D 写日记</span>
+        <span>Ctrl+K 搜索 · Ctrl+N 新建待办</span>
       </footer>
     </main>
   </div>
 
-  <!-- Toast container -->
   <div id="toast-container"></div>
-  <div class="desktop-context-menu" id="desktop-context-menu" aria-hidden="true">
-    <button data-context-action="open">打开</button>
-    <button data-context-action="duplicate">复制为草稿</button>
-    <button data-context-action="extract">提取待办</button>
-    <button data-context-action="archive">归档</button>
-  </div>
-
-  <div class="global-search-overlay" id="global-search-overlay" aria-hidden="true">
-    <div class="global-search-panel">
-      <div class="global-search-head">
-        <svg class="icon icon-search" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="6"/>
-          <path d="m16 16 4 4"/>
-        </svg>
-        <input type="text" id="global-search-input" placeholder="搜索待办、日记，或输入命令">
-        <kbd>Esc</kbd>
-      </div>
-      <div class="global-search-results" id="global-search-results"></div>
-      <div class="shortcut-grid">
-        <span><kbd>Ctrl+K</kbd> 全局搜索</span>
-        <span><kbd>Ctrl+N</kbd> 新建待办</span>
-        <span><kbd>Ctrl+Shift+D</kbd> 写日记</span>
-        <span><kbd>Ctrl+,</kbd> 设置</span>
-      </div>
-    </div>
-  </div>
-
   <script src="./renderer.js"></script>
 </body>
 </html>

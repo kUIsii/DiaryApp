@@ -84,6 +84,7 @@ fun NotificationScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit = { _, _ -> },
     onNavigateToAnnualReport: () -> Unit = {},
+    onNavigateToWeatherAlertDetail: (String) -> Unit = {},
     viewModel: NotificationViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -110,7 +111,8 @@ fun NotificationScreen(
                     onNavigateToCapsule = onNavigateToCapsule,
                     onNavigateToDetail = onNavigateToDetail,
                     onNavigateToMonthlyReport = onNavigateToMonthlyReport,
-                    onNavigateToAnnualReport = onNavigateToAnnualReport
+                    onNavigateToAnnualReport = onNavigateToAnnualReport,
+                    onNavigateToWeatherAlertDetail = onNavigateToWeatherAlertDetail
                 )
             } else {
                 // 主内容区，支持左右滑切换分类
@@ -162,7 +164,8 @@ fun NotificationScreen(
                         onNavigateToCapsule = onNavigateToCapsule,
                         onNavigateToDetail = onNavigateToDetail,
                         onNavigateToMonthlyReport = onNavigateToMonthlyReport,
-                        onNavigateToAnnualReport = onNavigateToAnnualReport
+                        onNavigateToAnnualReport = onNavigateToAnnualReport,
+                        onNavigateToWeatherAlertDetail = onNavigateToWeatherAlertDetail
                     )
                 }
                 } // end swipe Column
@@ -302,7 +305,8 @@ private fun NotificationList(
     onNavigateToCapsule: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit,
-    onNavigateToAnnualReport: () -> Unit
+    onNavigateToAnnualReport: () -> Unit,
+    onNavigateToWeatherAlertDetail: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -334,6 +338,7 @@ private fun NotificationList(
                             is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
                             is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
                             is AnnualReportNotification -> onNavigateToAnnualReport()
+                            is WeatherAlertNotification -> onNavigateToWeatherAlertDetail(item.alertId)
                             else -> {}
                         }
                     }
@@ -551,7 +556,8 @@ private fun TrashView(
     onNavigateToCapsule: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToMonthlyReport: (Int, Int) -> Unit,
-    onNavigateToAnnualReport: () -> Unit
+    onNavigateToAnnualReport: () -> Unit,
+    onNavigateToWeatherAlertDetail: (String) -> Unit
 ) {
     if (trashedItems.isEmpty()) {
         EmptyTrashView()
@@ -588,6 +594,7 @@ private fun TrashView(
                                     is OnThisDayNotification -> onNavigateToDetail(item.entry.id)
                                     is MonthlyReportNotification -> onNavigateToMonthlyReport(item.year, item.month)
                                     is AnnualReportNotification -> onNavigateToAnnualReport()
+                                    is WeatherAlertNotification -> onNavigateToWeatherAlertDetail(item.alertId)
                                     else -> {}
                                 }
                             }

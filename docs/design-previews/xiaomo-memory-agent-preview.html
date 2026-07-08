@@ -1,0 +1,2621 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 小墨长期记忆与主动陪伴预览</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2623;
+      --muted: #68736d;
+      --soft: #8b9690;
+      --paper: #fffaf0;
+      --paper-2: #f7efe1;
+      --line: rgba(45, 54, 49, 0.16);
+      --line-strong: rgba(45, 54, 49, 0.28);
+      --grid-line: rgba(80, 66, 40, 0.055);
+      --bg-base: #f5efe3;
+      --bg-a: rgba(246, 216, 168, 0.78);
+      --bg-b: rgba(184, 215, 238, 0.7);
+      --bg-c: rgba(203, 193, 232, 0.56);
+      --bg-d: rgba(220, 235, 216, 0.78);
+      --mesh-a: rgba(245, 216, 168, 0.36);
+      --mesh-b: rgba(184, 215, 238, 0.38);
+      --mesh-c: rgba(203, 193, 232, 0.32);
+      --mesh-d: rgba(220, 235, 216, 0.36);
+      --mesh-e: rgba(239, 196, 173, 0.32);
+      --teal: #4ea89b;
+      --sage: #b7cba7;
+      --mint: #dcebd8;
+      --peach: #efc4ad;
+      --apricot: #f5d8a8;
+      --rose: #e9b8be;
+      --lilac: #cbc1e8;
+      --blue: #b8d7ee;
+      --card: rgba(255, 252, 244, 0.84);
+      --card-solid: #fffaf1;
+      --brand-gradient: linear-gradient(135deg, #4ea89b, #e6a683);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(245, 216, 168, 0.92), transparent 34%), radial-gradient(circle at 85% 18%, rgba(184, 215, 238, 0.8), transparent 34%), radial-gradient(circle at 20% 86%, rgba(203, 193, 232, 0.45), transparent 30%), linear-gradient(180deg, #fff9f0 0%, #f4efe4 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.9), transparent 30%), linear-gradient(135deg, rgba(184, 215, 238, 0.82), rgba(245, 216, 168, 0.78) 48%, rgba(220, 235, 216, 0.72));
+      --persona-gradient: linear-gradient(135deg, rgba(220, 235, 216, 0.74), rgba(255, 250, 241, 0.72)), rgba(255, 255, 255, 0.52);
+      --note-a: #f6ead3;
+      --note-b: #dce7c6;
+      --note-c: #efc4ad;
+      --ticket-a: rgba(255, 252, 244, 0.72);
+      --ticket-b: rgba(220, 235, 216, 0.54);
+      --ticket-c: rgba(245, 216, 168, 0.54);
+      --shadow: 0 22px 55px rgba(68, 56, 39, 0.14);
+      --phone-shadow: 0 34px 90px rgba(43, 50, 46, 0.22);
+      --radius: 26px;
+      --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body[data-theme="mist"] {
+      --bg-base: #eef8f6;
+      --bg-a: rgba(205, 238, 226, 0.86);
+      --bg-b: rgba(174, 215, 234, 0.76);
+      --bg-c: rgba(232, 226, 250, 0.48);
+      --bg-d: rgba(244, 232, 205, 0.66);
+      --mesh-a: rgba(198, 238, 226, 0.42);
+      --mesh-b: rgba(166, 212, 232, 0.42);
+      --mesh-c: rgba(232, 226, 250, 0.28);
+      --mesh-d: rgba(244, 232, 205, 0.34);
+      --mesh-e: rgba(182, 229, 214, 0.34);
+      --teal: #479b92;
+      --sage: #a8cfc5;
+      --mint: #d8f0e9;
+      --peach: #efd0bd;
+      --apricot: #f2dfb4;
+      --rose: #e8c4cc;
+      --lilac: #d7d1ee;
+      --blue: #b6dced;
+      --brand-gradient: linear-gradient(135deg, #479b92, #83b9de);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(201, 238, 226, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(179, 222, 238, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 223, 180, 0.55), transparent 30%), linear-gradient(180deg, #f9fffc 0%, #edf7f4 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(182, 220, 237, .85), rgba(216, 240, 233, .82), rgba(242, 223, 180, .66));
+      --persona-gradient: linear-gradient(135deg, rgba(216, 240, 233, 0.82), rgba(255, 252, 244, 0.72)), rgba(255, 255, 255, 0.54);
+      --note-a: #e5f5ee;
+      --note-b: #cde8ef;
+      --note-c: #f0dbc2;
+      --ticket-a: rgba(252, 255, 251, 0.75);
+      --ticket-b: rgba(216, 240, 233, 0.58);
+      --ticket-c: rgba(197, 226, 238, 0.56);
+    }
+
+    body[data-theme="rose"] {
+      --bg-base: #fbf0ef;
+      --bg-a: rgba(249, 214, 210, 0.86);
+      --bg-b: rgba(242, 191, 205, 0.62);
+      --bg-c: rgba(231, 218, 246, 0.54);
+      --bg-d: rgba(255, 237, 215, 0.78);
+      --mesh-a: rgba(249, 214, 210, 0.42);
+      --mesh-b: rgba(242, 191, 205, 0.34);
+      --mesh-c: rgba(231, 218, 246, 0.32);
+      --mesh-d: rgba(255, 237, 215, 0.38);
+      --mesh-e: rgba(230, 197, 177, 0.28);
+      --teal: #bc7f86;
+      --sage: #d2b8b0;
+      --mint: #f0ddd8;
+      --peach: #f3c0af;
+      --apricot: #f8ddb9;
+      --rose: #e7aebd;
+      --lilac: #d7c5ec;
+      --blue: #c8d9ec;
+      --brand-gradient: linear-gradient(135deg, #c77b87, #df9b77);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(249, 214, 210, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(231, 218, 246, 0.72), transparent 34%), radial-gradient(circle at 18% 84%, rgba(248, 221, 185, 0.62), transparent 30%), linear-gradient(180deg, #fff8f7 0%, #f9eeec 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(231, 174, 189, .82), rgba(248, 221, 185, .78), rgba(215, 197, 236, .62));
+      --persona-gradient: linear-gradient(135deg, rgba(240, 221, 216, 0.8), rgba(255, 248, 246, 0.74)), rgba(255, 255, 255, 0.54);
+      --note-a: #f8e0dc;
+      --note-b: #ecd8f3;
+      --note-c: #f1c0af;
+      --ticket-a: rgba(255, 248, 246, 0.78);
+      --ticket-b: rgba(247, 219, 220, 0.62);
+      --ticket-c: rgba(248, 221, 185, 0.58);
+    }
+
+    body[data-theme="moon"] {
+      --bg-base: #eef2f6;
+      --bg-a: rgba(207, 221, 232, 0.84);
+      --bg-b: rgba(186, 207, 226, 0.76);
+      --bg-c: rgba(213, 205, 232, 0.52);
+      --bg-d: rgba(238, 232, 218, 0.72);
+      --mesh-a: rgba(207, 221, 232, 0.42);
+      --mesh-b: rgba(186, 207, 226, 0.42);
+      --mesh-c: rgba(213, 205, 232, 0.34);
+      --mesh-d: rgba(238, 232, 218, 0.3);
+      --mesh-e: rgba(172, 193, 210, 0.3);
+      --teal: #647e91;
+      --sage: #b3c0bd;
+      --mint: #e1e9e8;
+      --peach: #dec8bd;
+      --apricot: #ead9bd;
+      --rose: #d8bdc7;
+      --lilac: #c8c1df;
+      --blue: #bbd1e7;
+      --brand-gradient: linear-gradient(135deg, #667e92, #a69ed2);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(207, 221, 232, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(200, 193, 223, 0.76), transparent 34%), radial-gradient(circle at 18% 84%, rgba(234, 217, 189, 0.55), transparent 30%), linear-gradient(180deg, #fbfcfd 0%, #edf1f5 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(187, 209, 231, .84), rgba(225, 233, 232, .76), rgba(200, 193, 223, .58));
+      --persona-gradient: linear-gradient(135deg, rgba(225, 233, 232, 0.82), rgba(251, 252, 253, 0.72)), rgba(255, 255, 255, 0.54);
+      --note-a: #e5edf4;
+      --note-b: #d8d3ea;
+      --note-c: #e7dac6;
+      --ticket-a: rgba(251, 252, 253, 0.78);
+      --ticket-b: rgba(225, 233, 232, 0.62);
+      --ticket-c: rgba(206, 219, 231, 0.58);
+    }
+
+    body[data-theme="apricot"] {
+      --bg-base: #fbf1df;
+      --bg-a: rgba(250, 218, 166, 0.88);
+      --bg-b: rgba(242, 190, 153, 0.68);
+      --bg-c: rgba(216, 231, 206, 0.58);
+      --bg-d: rgba(255, 245, 218, 0.82);
+      --mesh-a: rgba(250, 218, 166, 0.44);
+      --mesh-b: rgba(242, 190, 153, 0.38);
+      --mesh-c: rgba(216, 231, 206, 0.34);
+      --mesh-d: rgba(255, 245, 218, 0.4);
+      --mesh-e: rgba(235, 165, 125, 0.3);
+      --teal: #c17f51;
+      --sage: #c8c894;
+      --mint: #e8edd1;
+      --peach: #efb28e;
+      --apricot: #f5cf8f;
+      --rose: #eab6a7;
+      --lilac: #d7c4e5;
+      --blue: #bdd7e5;
+      --brand-gradient: linear-gradient(135deg, #d58f55, #e9b66f);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(250, 218, 166, 0.96), transparent 34%), radial-gradient(circle at 84% 18%, rgba(216, 231, 206, 0.72), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 190, 153, 0.58), transparent 30%), linear-gradient(180deg, #fffaf0 0%, #faeedb 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(245, 207, 143, .86), rgba(232, 237, 209, .74), rgba(239, 178, 142, .62));
+      --persona-gradient: linear-gradient(135deg, rgba(232, 237, 209, 0.78), rgba(255, 250, 240, 0.76)), rgba(255, 255, 255, 0.52);
+      --note-a: #f8dfaa;
+      --note-b: #e4e9bf;
+      --note-c: #efb28e;
+      --ticket-a: rgba(255, 250, 240, 0.78);
+      --ticket-b: rgba(232, 237, 209, 0.58);
+      --ticket-c: rgba(248, 221, 170, 0.62);
+    }
+
+    body[data-theme="iris"] {
+      --bg-base: #f1eff8;
+      --bg-a: rgba(224, 213, 245, 0.82);
+      --bg-b: rgba(192, 214, 237, 0.72);
+      --bg-c: rgba(242, 218, 230, 0.55);
+      --bg-d: rgba(232, 237, 222, 0.68);
+      --mesh-a: rgba(224, 213, 245, 0.42);
+      --mesh-b: rgba(192, 214, 237, 0.4);
+      --mesh-c: rgba(242, 218, 230, 0.32);
+      --mesh-d: rgba(232, 237, 222, 0.32);
+      --mesh-e: rgba(187, 174, 224, 0.32);
+      --teal: #8076b7;
+      --sage: #c2cbb6;
+      --mint: #e5eadf;
+      --peach: #efc3b7;
+      --apricot: #edd6ad;
+      --rose: #e7c3d4;
+      --lilac: #cabfec;
+      --blue: #bfd6ed;
+      --brand-gradient: linear-gradient(135deg, #8076b7, #6da2c5);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(224, 213, 245, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(192, 214, 237, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 218, 230, 0.58), transparent 30%), linear-gradient(180deg, #fcfbff 0%, #f1eff8 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(202, 191, 236, .82), rgba(191, 214, 237, .78), rgba(231, 195, 212, .58));
+      --persona-gradient: linear-gradient(135deg, rgba(229, 234, 223, 0.76), rgba(252, 251, 255, 0.76)), rgba(255, 255, 255, 0.52);
+      --note-a: #e5daf7;
+      --note-b: #d6e3f2;
+      --note-c: #efc3b7;
+      --ticket-a: rgba(252, 251, 255, 0.78);
+      --ticket-b: rgba(229, 234, 223, 0.58);
+      --ticket-c: rgba(218, 209, 243, 0.62);
+    }
+
+    body[data-theme="matcha"] {
+      --bg-base: #f0f5df;
+      --bg-a: rgba(212, 231, 174, 0.82);
+      --bg-b: rgba(181, 216, 193, 0.78);
+      --bg-c: rgba(239, 218, 181, 0.58);
+      --bg-d: rgba(252, 246, 222, 0.84);
+      --mesh-a: rgba(212, 231, 174, 0.42);
+      --mesh-b: rgba(181, 216, 193, 0.4);
+      --mesh-c: rgba(239, 218, 181, 0.34);
+      --mesh-d: rgba(252, 246, 222, 0.38);
+      --mesh-e: rgba(159, 196, 137, 0.3);
+      --teal: #6d9a62;
+      --sage: #b8cc95;
+      --mint: #e3edcc;
+      --peach: #e8c1a6;
+      --apricot: #eed99e;
+      --rose: #dfbdba;
+      --lilac: #cbc8e4;
+      --blue: #bdd9df;
+      --brand-gradient: linear-gradient(135deg, #79a76a, #b4b86b);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(212, 231, 174, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(181, 216, 193, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(239, 218, 181, 0.58), transparent 30%), linear-gradient(180deg, #fbfff1 0%, #eef5dd 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(184, 204, 149, .86), rgba(189, 217, 223, .62), rgba(238, 217, 158, .7));
+      --persona-gradient: linear-gradient(135deg, rgba(227, 237, 204, 0.82), rgba(251, 255, 241, 0.76)), rgba(255, 255, 255, 0.52);
+      --note-a: #e7efcf;
+      --note-b: #d0e5cd;
+      --note-c: #e8c1a6;
+      --ticket-a: rgba(251, 255, 241, 0.78);
+      --ticket-b: rgba(227, 237, 204, 0.62);
+      --ticket-c: rgba(238, 217, 158, 0.58);
+    }
+
+    body[data-theme="lagoon"] {
+      --bg-base: #edf7fa;
+      --bg-a: rgba(191, 232, 236, 0.84);
+      --bg-b: rgba(170, 209, 232, 0.76);
+      --bg-c: rgba(218, 224, 246, 0.52);
+      --bg-d: rgba(242, 229, 201, 0.68);
+      --mesh-a: rgba(191, 232, 236, 0.42);
+      --mesh-b: rgba(170, 209, 232, 0.42);
+      --mesh-c: rgba(218, 224, 246, 0.32);
+      --mesh-d: rgba(242, 229, 201, 0.34);
+      --mesh-e: rgba(145, 203, 213, 0.32);
+      --teal: #4d9ca8;
+      --sage: #b8cabd;
+      --mint: #dcf0ee;
+      --peach: #e7c5b2;
+      --apricot: #f1dcaf;
+      --rose: #dfbfcb;
+      --lilac: #ccd0ec;
+      --blue: #add5ed;
+      --brand-gradient: linear-gradient(135deg, #4d9ca8, #6f9bd3);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(191, 232, 236, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(170, 209, 232, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 229, 201, 0.58), transparent 30%), linear-gradient(180deg, #f8feff 0%, #edf7fa 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(173, 213, 237, .86), rgba(220, 240, 238, .76), rgba(204, 208, 236, .56));
+      --persona-gradient: linear-gradient(135deg, rgba(220, 240, 238, 0.82), rgba(248, 254, 255, 0.76)), rgba(255, 255, 255, 0.52);
+      --note-a: #dcf0ee;
+      --note-b: #cfe3f3;
+      --note-c: #f1dcaf;
+      --ticket-a: rgba(248, 254, 255, 0.78);
+      --ticket-b: rgba(220, 240, 238, 0.62);
+      --ticket-c: rgba(205, 225, 239, 0.58);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 18% 14%, var(--bg-a), transparent 28%),
+        radial-gradient(circle at 76% 7%, var(--bg-b), transparent 25%),
+        radial-gradient(circle at 73% 78%, var(--bg-c), transparent 31%),
+        radial-gradient(circle at 18% 82%, var(--bg-d), transparent 32%),
+        var(--bg-base);
+      background-size: 42px 42px, 42px 42px, auto, auto, auto, auto, auto;
+      transition: background 260ms ease, color 260ms ease;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        conic-gradient(from 72deg at 42% 42%,
+          var(--mesh-a),
+          var(--mesh-b),
+          var(--mesh-c),
+          var(--mesh-d),
+          var(--mesh-e),
+          var(--mesh-a));
+      filter: blur(38px);
+      opacity: 0.92;
+      animation: softDrift 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes softDrift {
+      from { transform: translate3d(-1.5%, -1%, 0) rotate(-2deg) scale(1); }
+      to { transform: translate3d(1.5%, 1%, 0) rotate(2deg) scale(1.03); }
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1540px, calc(100% - 44px));
+      margin: 0 auto;
+      padding: 36px 0 72px;
+    }
+
+    .topbar {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 34px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand-gradient);
+      box-shadow: 0 12px 24px rgba(78, 168, 155, 0.22);
+    }
+
+    .brand-mark svg,
+    .icon svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .brand span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .link-chip {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #42524c;
+      background: rgba(255, 250, 241, 0.68);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .palette-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin: -12px 0 28px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.58);
+      box-shadow: 0 12px 32px rgba(43, 50, 46, 0.07);
+    }
+
+    .palette-copy b {
+      display: block;
+      font-family: var(--font-serif);
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .palette-copy span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .palette-options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .palette-btn {
+      min-height: 42px;
+      padding: 6px 10px 6px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #3b4742;
+      background: rgba(255, 255, 255, 0.48);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 800;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .palette-btn:hover,
+    .palette-btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      background: rgba(255, 255, 255, 0.72);
+      outline: none;
+    }
+
+    .palette-btn[aria-pressed="true"] {
+      border-color: rgba(45, 54, 49, 0.34);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 8px 18px rgba(43, 50, 46, 0.08);
+    }
+
+    .swatches {
+      display: inline-flex;
+      gap: 3px;
+    }
+
+    .swatches i {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 38, 35, 0.15);
+      font-style: normal;
+    }
+
+    .link-chip:hover,
+    .link-chip:focus-visible {
+      background: rgba(255, 250, 241, 0.96);
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.92fr) minmax(340px, 1.1fr) minmax(300px, 0.86fr);
+      gap: 30px;
+      align-items: start;
+    }
+
+    .hero-copy {
+      position: sticky;
+      top: 24px;
+      min-height: 640px;
+      padding-top: 16px;
+    }
+
+    .kicker {
+      margin: 0 0 12px;
+      color: #ad513b;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 520px;
+      font-family: var(--font-serif);
+      font-size: clamp(44px, 5vw, 78px);
+      line-height: 0.98;
+      font-weight: 900;
+    }
+
+    .lead {
+      max-width: 520px;
+      margin: 24px 0 0;
+      color: #3d4642;
+      font-size: 17px;
+      line-height: 1.9;
+    }
+
+    .lead strong {
+      color: #1f2623;
+      font-weight: 800;
+    }
+
+    .desk-notes {
+      position: relative;
+      min-height: 290px;
+      margin-top: 38px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 252, 244, 0.42);
+      overflow: hidden;
+    }
+
+    .desk-note {
+      position: absolute;
+      width: 230px;
+      min-height: 112px;
+      padding: 18px 18px 16px;
+      border: 1px solid rgba(42, 45, 40, 0.68);
+      box-shadow: 12px 12px 0 rgba(75, 66, 48, 0.11);
+      font-size: 16px;
+      line-height: 1.55;
+      font-weight: 700;
+      background: var(--note-a);
+    }
+
+    .desk-note small {
+      display: block;
+      margin-top: 8px;
+      color: rgba(31, 38, 35, 0.62);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .note-a {
+      left: 32px;
+      top: 52px;
+      transform: rotate(-7deg);
+    }
+
+    .note-b {
+      right: 26px;
+      top: 102px;
+      background: var(--note-b);
+      transform: rotate(5deg);
+    }
+
+    .note-c {
+      left: 92px;
+      bottom: 32px;
+      background: var(--note-c);
+      transform: rotate(-1deg);
+    }
+
+    .scene-tabs {
+      display: grid;
+      gap: 10px;
+      margin-top: 34px;
+    }
+
+    .scene-tab {
+      min-height: 58px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 11px;
+      align-items: center;
+      color: #33413b;
+      background: rgba(255, 250, 241, 0.58);
+      text-align: left;
+      cursor: pointer;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .scene-tab:hover,
+    .scene-tab:focus-visible {
+      transform: translateX(3px);
+      border-color: rgba(78, 168, 155, 0.44);
+      outline: none;
+    }
+
+    .scene-tab[aria-selected="true"] {
+      border-color: rgba(78, 168, 155, 0.58);
+      background: rgba(255, 250, 241, 0.94);
+      box-shadow: 0 12px 28px rgba(78, 168, 155, 0.1);
+    }
+
+    .scene-tab .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: #25655e;
+      background: rgba(78, 168, 155, 0.14);
+    }
+
+    .scene-tab b {
+      display: block;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .scene-tab span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .stage {
+      display: grid;
+      justify-items: center;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .phone-wrap {
+      position: sticky;
+      top: 24px;
+      width: min(100%, 430px);
+      padding: 18px;
+      border: 1px solid rgba(45, 54, 49, 0.22);
+      background: rgba(255, 252, 244, 0.34);
+      box-shadow: var(--shadow);
+    }
+
+    .phone {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 390 / 812;
+      border: 10px solid #252b28;
+      border-radius: 46px;
+      background: #f9f3e8;
+      box-shadow: var(--phone-shadow);
+      overflow: hidden;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      z-index: 5;
+      width: 112px;
+      height: 28px;
+      border-radius: 999px;
+      background: #252b28;
+      transform: translateX(-50%);
+    }
+
+    .phone-screen {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--phone-gradient);
+      transition: background 260ms ease;
+    }
+
+    .mobile-scene {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 54px 17px 16px;
+      animation: sceneIn 260ms ease both;
+    }
+
+    .mobile-scene.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes sceneIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .mobile-top {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .mobile-title small {
+      display: block;
+      color: rgba(31, 38, 35, 0.54);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .mobile-title strong {
+      display: block;
+      margin-top: 2px;
+      font-family: var(--font-serif);
+      font-size: 24px;
+      line-height: 1.05;
+    }
+
+    .round-btn {
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      color: #375851;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: 0 8px 18px rgba(57, 68, 64, 0.08);
+    }
+
+    .content-scroll {
+      min-height: 0;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 11px;
+      overflow: hidden;
+    }
+
+    .mobile-card {
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.56);
+      box-shadow: 0 10px 25px rgba(59, 66, 60, 0.08);
+    }
+
+    .mobile-card.pad {
+      padding: 14px;
+    }
+
+    .xm-row {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand-gradient);
+    }
+
+    .avatar svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .bubble {
+      padding: 12px 13px;
+      border-radius: 18px 18px 18px 6px;
+      background: rgba(255, 252, 244, 0.84);
+      color: #303936;
+      font-size: 13px;
+      line-height: 1.65;
+      box-shadow: 0 8px 18px rgba(70, 62, 46, 0.08);
+    }
+
+    .user-bubble {
+      width: fit-content;
+      max-width: 86%;
+      margin-left: auto;
+      padding: 11px 13px;
+      border-radius: 18px 18px 6px 18px;
+      color: #fff;
+      background: var(--brand-gradient);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .mini-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      color: #4e655d;
+      background: rgba(78, 168, 155, 0.12);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      min-height: 72px;
+      padding: 11px;
+      border: 1px solid rgba(52, 62, 57, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .metric b {
+      display: block;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .signal-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .signal {
+      min-height: 48px;
+      padding: 10px 11px;
+      border: 1px solid rgba(52, 62, 57, 0.1);
+      border-radius: 16px;
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      background: rgba(255, 252, 244, 0.52);
+    }
+
+    .signal i {
+      width: 8px;
+      height: 8px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: var(--teal);
+      font-style: normal;
+    }
+
+    .signal b {
+      display: block;
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .signal span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .persona-card {
+      padding: 13px;
+      border-radius: 21px;
+      background: var(--persona-gradient);
+      border: 1px solid rgba(79, 107, 92, 0.16);
+    }
+
+    .persona-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .persona-head b {
+      display: block;
+      font-family: var(--font-serif);
+      font-size: 18px;
+    }
+
+    .persona-head span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .slider-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .slider-line {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) 36px;
+      gap: 8px;
+      align-items: center;
+      font-size: 10px;
+      color: #50625c;
+      font-weight: 800;
+    }
+
+    .track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+
+    .track i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--brand-gradient);
+    }
+
+    .quote-card {
+      padding: 12px;
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.52);
+      color: #3d4642;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .memory-strip {
+      display: flex;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .memory-chip {
+      flex: 0 0 auto;
+      max-width: 176px;
+      padding: 9px 10px;
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.48);
+      font-size: 10px;
+      line-height: 1.45;
+      color: #42524c;
+    }
+
+    .memory-chip b {
+      display: block;
+      margin-bottom: 3px;
+      color: #26302c;
+      font-size: 11px;
+    }
+
+    .summary-box {
+      padding: 13px;
+      border-radius: 20px;
+      border: 1px dashed rgba(52, 62, 57, 0.26);
+      background: rgba(255, 250, 241, 0.58);
+    }
+
+    .summary-box b {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+    }
+
+    .summary-box p {
+      margin: 0;
+      color: #4f5d58;
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .report-hero {
+      padding: 14px;
+      border-radius: 24px;
+      color: #26302c;
+      background: var(--report-gradient);
+    }
+
+    .report-hero h3 {
+      margin-top: 10px;
+      font-family: var(--font-serif);
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .report-hero p {
+      margin: 8px 0 0;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .action-card {
+      padding: 13px;
+      border: 1px solid rgba(78, 168, 155, 0.24);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    .action-card h3 {
+      font-size: 15px;
+      margin-bottom: 9px;
+    }
+
+    .todo-preview {
+      display: grid;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+
+    .todo-item {
+      min-height: 44px;
+      padding: 9px 10px;
+      border: 1px solid rgba(52, 62, 57, 0.1);
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: rgba(255, 250, 241, 0.54);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .check-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 8px;
+      border: 2px solid rgba(78, 168, 155, 0.58);
+      flex: 0 0 auto;
+    }
+
+    .mobile-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 9px;
+    }
+
+    .mobile-pill {
+      min-height: 37px;
+      padding: 0 13px;
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      color: #31423d;
+      background: rgba(255, 255, 255, 0.6);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .mobile-pill.primary {
+      color: #fff;
+      border-color: transparent;
+      background: var(--brand-gradient);
+    }
+
+    .phone-caption {
+      width: min(100%, 430px);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .caption-card {
+      min-height: 94px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 250, 241, 0.68);
+    }
+
+    .caption-card b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .caption-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .right-panel {
+      position: sticky;
+      top: 24px;
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.72);
+      box-shadow: 0 16px 42px rgba(43, 50, 46, 0.08);
+    }
+
+    .panel.tilt {
+      transform: rotate(1.2deg);
+    }
+
+    .panel h2 {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1.12;
+    }
+
+    .panel p {
+      margin: 12px 0 0;
+      color: #4b5752;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 11px;
+      margin-top: 16px;
+    }
+
+    .detail-item {
+      padding: 12px;
+      border: 1px solid rgba(52, 62, 57, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .detail-item b {
+      display: block;
+      font-size: 12px;
+    }
+
+    .detail-item span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.58;
+    }
+
+    .flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .flow-step {
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid rgba(52, 62, 57, 0.12);
+      border-radius: 15px;
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.48);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .flow-step i {
+      width: 26px;
+      height: 26px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(78, 168, 155, 0.14);
+      color: #326b63;
+      font-style: normal;
+      font-weight: 900;
+    }
+
+    .lifecycle {
+      margin-top: 42px;
+      padding: 28px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 250, 241, 0.5);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(32px, 4vw, 58px);
+      line-height: 1.02;
+    }
+
+    .section-head p {
+      max-width: 560px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .time-card {
+      min-height: 250px;
+      padding: 17px;
+      border: 1px solid rgba(42, 45, 40, 0.36);
+      background: var(--ticket-a);
+      box-shadow: 9px 10px 0 rgba(75, 66, 48, 0.08);
+    }
+
+    .time-card:nth-child(2n) {
+      background: var(--ticket-b);
+      transform: rotate(1deg);
+    }
+
+    .time-card:nth-child(3n) {
+      background: var(--ticket-c);
+      transform: rotate(-1deg);
+    }
+
+    .time-card b {
+      display: block;
+      color: #ad513b;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .time-card h3 {
+      margin-top: 9px;
+      font-family: var(--font-serif);
+      font-size: 24px;
+      line-height: 1.12;
+    }
+
+    .time-card p {
+      margin: 12px 0 0;
+      color: #4a5651;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .blueprint {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 28px;
+    }
+
+    .blueprint-card {
+      min-height: 250px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.72);
+    }
+
+    .blueprint-card h3 {
+      font-family: var(--font-serif);
+      font-size: 30px;
+    }
+
+    .blueprint-card ul {
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .blueprint-card li {
+      position: relative;
+      padding-left: 18px;
+      color: #4a5651;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .blueprint-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.75em;
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: #4ea89b;
+    }
+
+    .material-board {
+      margin-top: 34px;
+      padding: 26px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 250, 241, 0.48);
+    }
+
+    .material-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .material-card {
+      position: relative;
+      min-height: 230px;
+      padding: 20px;
+      border: 1px solid rgba(42, 45, 40, 0.34);
+      background: rgba(255, 252, 244, 0.72);
+      box-shadow: 10px 12px 0 rgba(75, 66, 48, 0.08);
+      overflow: hidden;
+    }
+
+    .material-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 16px 16px auto;
+      width: 92px;
+      height: 92px;
+      border-radius: 30px;
+      background: var(--report-gradient);
+      opacity: 0.72;
+      transform: rotate(10deg);
+    }
+
+    .material-card:nth-child(2) {
+      background: var(--ticket-b);
+      transform: rotate(-1.2deg);
+    }
+
+    .material-card:nth-child(3) {
+      background: var(--ticket-c);
+      transform: rotate(1deg);
+    }
+
+    .material-card h3 {
+      position: relative;
+      z-index: 1;
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1.08;
+    }
+
+    .material-card p {
+      position: relative;
+      z-index: 1;
+      margin: 12px 0 0;
+      color: #4a5651;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .asset-stack {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .asset-pill {
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid rgba(42, 45, 40, 0.16);
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.42);
+      color: #3d4b45;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .asset-pill i {
+      width: 22px;
+      height: 22px;
+      border-radius: 9px;
+      background: var(--brand-gradient);
+      font-style: normal;
+    }
+
+    .stamp-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .stamp {
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid rgba(42, 45, 40, 0.22);
+      border-radius: 12px;
+      display: inline-grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.44);
+      color: #4a5651;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transform: rotate(-2deg);
+    }
+
+    .stamp:nth-child(2n) {
+      transform: rotate(2deg);
+    }
+
+    .gradient-ticket {
+      position: relative;
+      z-index: 1;
+      min-height: 100px;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 22px;
+      background: var(--phone-gradient);
+      border: 1px solid rgba(42, 45, 40, 0.14);
+    }
+
+    .gradient-ticket b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .gradient-ticket span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .card-lab {
+      margin-top: 34px;
+      padding: 26px;
+      border: 1px solid var(--line-strong);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.18)),
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.78), transparent 30%),
+        var(--phone-gradient);
+      overflow: hidden;
+    }
+
+    .card-lab-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .decor-stage {
+      position: relative;
+      min-height: 430px;
+      border: 1px solid rgba(42, 45, 40, 0.18);
+      background:
+        linear-gradient(rgba(72, 78, 67, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(72, 78, 67, 0.05) 1px, transparent 1px),
+        rgba(255, 252, 244, 0.62);
+      background-size: 26px 26px;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .decor-stage::before,
+    .decor-stage::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .decor-stage::before {
+      width: 150px;
+      height: 150px;
+      right: -44px;
+      top: -38px;
+      border-radius: 46px;
+      background: var(--brand-gradient);
+      opacity: 0.5;
+      transform: rotate(13deg);
+    }
+
+    .decor-stage::after {
+      left: 28px;
+      bottom: 24px;
+      width: 130px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(42, 45, 40, 0.08);
+      filter: blur(9px);
+    }
+
+    .decor-demo {
+      position: relative;
+      z-index: 1;
+      min-height: 100%;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+    }
+
+    .demo-card {
+      position: relative;
+      width: min(100%, 300px);
+      min-height: 210px;
+      margin: 0 auto;
+      padding: 22px;
+      border: 1px solid rgba(42, 45, 40, 0.23);
+      background: rgba(255, 253, 247, 0.86);
+      box-shadow: 14px 16px 0 rgba(77, 67, 49, 0.1);
+      transform: rotate(-4deg);
+      transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+      overflow: hidden;
+    }
+
+    .demo-card::before,
+    .demo-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .demo-card::before {
+      inset: 12px auto auto 12px;
+      width: 54px;
+      height: 18px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(42, 45, 40, 0.12);
+      transform: rotate(-8deg);
+    }
+
+    .demo-card::after {
+      right: 0;
+      bottom: 0;
+      width: 82px;
+      height: 82px;
+      background: var(--brand-gradient);
+      opacity: 0.34;
+      border-radius: 28px 0 0 0;
+    }
+
+    .demo-card small {
+      display: inline-grid;
+      min-height: 26px;
+      padding: 0 10px;
+      place-items: center;
+      border: 1px solid rgba(42, 45, 40, 0.16);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      color: #52635b;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .demo-card h3 {
+      margin-top: 36px;
+      max-width: 220px;
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1.08;
+    }
+
+    .demo-card p {
+      margin: 12px 0 0;
+      max-width: 220px;
+      color: #485650;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .decor-caption {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 300px);
+      margin: 0 auto;
+      padding: 12px 14px;
+      border: 1px solid rgba(42, 45, 40, 0.14);
+      background: rgba(255, 255, 255, 0.5);
+      color: #4c5b55;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .decor-stage[data-pattern="fold"] .demo-card {
+      transform: rotate(0deg);
+      border-radius: 3px 22px 3px 3px;
+      box-shadow: 0 16px 34px rgba(76, 73, 61, 0.12);
+    }
+
+    .decor-stage[data-pattern="fold"] .demo-card::after {
+      top: 0;
+      right: 0;
+      bottom: auto;
+      width: 58px;
+      height: 58px;
+      border-radius: 0 0 0 18px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0 50%, rgba(42,45,40,0.1) 51% 100%);
+      opacity: 1;
+    }
+
+    .decor-stage[data-pattern="ticket"] .demo-card {
+      border-radius: 22px;
+      transform: rotate(1.2deg);
+      box-shadow: 8px 10px 0 rgba(77, 67, 49, 0.08);
+    }
+
+    .decor-stage[data-pattern="ticket"] .demo-card::before {
+      left: -12px;
+      top: 78px;
+      width: 24px;
+      height: 24px;
+      border-radius: 99px;
+      background: rgba(238, 231, 217, 0.9);
+      box-shadow: 300px 0 0 rgba(238, 231, 217, 0.9);
+      border: 0;
+      transform: none;
+    }
+
+    .decor-stage[data-pattern="ticket"] .demo-card::after {
+      inset: 0 auto 0 70px;
+      width: 1px;
+      height: auto;
+      border-radius: 0;
+      background: linear-gradient(to bottom, rgba(42,45,40,0.22) 45%, transparent 45%);
+      background-size: 1px 10px;
+      opacity: 0.6;
+    }
+
+    .decor-stage[data-pattern="stack"] .demo-card {
+      transform: rotate(-2deg);
+      box-shadow: 12px 12px 0 rgba(255, 255, 255, 0.62), 22px 22px 0 rgba(82, 74, 55, 0.09);
+    }
+
+    .decor-stage[data-pattern="stack"] .demo-card::before {
+      inset: auto 18px 18px auto;
+      width: 76px;
+      height: 76px;
+      border-radius: 26px;
+      background: var(--report-gradient);
+      transform: rotate(12deg);
+      border: 0;
+    }
+
+    .decor-stage[data-pattern="tab"] .demo-card {
+      transform: rotate(0.8deg);
+      border-left-width: 12px;
+      border-left-color: rgba(73, 132, 121, 0.5);
+    }
+
+    .decor-stage[data-pattern="tab"] .demo-card::before {
+      top: 22px;
+      left: auto;
+      right: -1px;
+      width: 52px;
+      height: 34px;
+      border-radius: 16px 0 0 16px;
+      background: var(--brand-gradient);
+      border: 1px solid rgba(42,45,40,0.12);
+      transform: none;
+    }
+
+    .decor-stage[data-pattern="quiet"] .demo-card {
+      transform: rotate(-1deg);
+      border-style: dashed;
+      box-shadow: 0 12px 28px rgba(76, 73, 61, 0.11);
+    }
+
+    .decor-stage[data-pattern="quiet"] .demo-card::before {
+      width: 100%;
+      height: 7px;
+      inset: 0 auto auto 0;
+      border: 0;
+      border-radius: 0;
+      background: var(--brand-gradient);
+      transform: none;
+      opacity: 0.8;
+    }
+
+    .decor-tools {
+      display: grid;
+      gap: 12px;
+    }
+
+    .decor-choice {
+      min-height: 70px;
+      padding: 12px 14px;
+      border: 1px solid rgba(42, 45, 40, 0.16);
+      background: rgba(255, 253, 247, 0.58);
+      text-align: left;
+      color: #33423c;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .decor-choice:hover,
+    .decor-choice:focus-visible,
+    .decor-choice[aria-pressed="true"] {
+      transform: translateY(-2px);
+      border-color: rgba(42, 45, 40, 0.32);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 26px rgba(72, 66, 49, 0.08);
+      outline: none;
+    }
+
+    .decor-choice b,
+    .font-card b,
+    .theme-tile b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .decor-choice span,
+    .theme-tile span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .font-board,
+    .theme-matrix {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .font-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .font-card {
+      min-height: 172px;
+      padding: 16px;
+      border: 1px solid rgba(42, 45, 40, 0.16);
+      background: rgba(255, 253, 247, 0.58);
+      overflow: hidden;
+    }
+
+    .font-card p {
+      margin: 12px 0 0;
+      color: #485650;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .font-poem b {
+      font-family: "Songti SC", "SimSun", var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .font-clean b {
+      font-family: "PingFang SC", "Microsoft YaHei", var(--font-sans);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .font-editorial b {
+      font-family: Georgia, "Songti SC", serif;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .font-warm b {
+      font-family: "Microsoft YaHei UI", "PingFang SC", var(--font-sans);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .theme-tile {
+      position: relative;
+      min-height: 150px;
+      padding: 14px;
+      border: 1px solid rgba(42, 45, 40, 0.15);
+      background: rgba(255, 253, 247, 0.6);
+      box-shadow: 5px 7px 0 rgba(77, 67, 49, 0.06);
+      overflow: hidden;
+      transform: rotate(var(--tilt, -1deg));
+    }
+
+    .theme-tile::before {
+      content: "";
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: var(--chip, var(--brand-gradient));
+      opacity: 0.72;
+      transform: rotate(10deg);
+    }
+
+    .theme-tile:nth-child(2n) {
+      --tilt: 1.2deg;
+    }
+
+    .theme-tile:nth-child(3n) {
+      --tilt: -0.4deg;
+    }
+
+    .theme-tile b,
+    .theme-tile span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .theme-tile[data-chip="ink"] { --chip: linear-gradient(135deg, #2f3b46, #8aa0a8); color: #263139; }
+    .theme-tile[data-chip="forest"] { --chip: linear-gradient(135deg, #8fbf9c, #d7e7bd); }
+    .theme-tile[data-chip="salt"] { --chip: linear-gradient(135deg, #9ed6dd, #c5d8f0); }
+    .theme-tile[data-chip="rose"] { --chip: linear-gradient(135deg, #efbac7, #f5dcc9); }
+    .theme-tile[data-chip="amber"] { --chip: linear-gradient(135deg, #efc06f, #f0d7a7); }
+    .theme-tile[data-chip="violet"] { --chip: linear-gradient(135deg, #cbb8ef, #bfd5ea); }
+    .theme-tile[data-chip="paper"] { --chip: linear-gradient(135deg, #eadbbd, #d8e3cf); }
+
+    .footer-note {
+      margin-top: 34px;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 1240px) {
+      .hero {
+        grid-template-columns: minmax(300px, 0.88fr) minmax(340px, 1fr);
+      }
+
+      .right-panel {
+        grid-column: 1 / -1;
+        position: static;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .timeline-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        width: min(100% - 28px, 620px);
+        padding-top: 22px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 16px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy,
+      .phone-wrap,
+      .right-panel {
+        position: static;
+      }
+
+      .hero-copy {
+        min-height: auto;
+      }
+
+      .desk-notes {
+        min-height: 250px;
+      }
+
+      .desk-note {
+        width: 190px;
+        min-height: 96px;
+        font-size: 13px;
+      }
+
+      .note-a { left: 18px; top: 40px; }
+      .note-b { right: 16px; top: 92px; }
+      .note-c { left: 72px; bottom: 26px; }
+
+      .right-panel,
+      .blueprint {
+        grid-template-columns: 1fr;
+      }
+
+      .palette-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .palette-options {
+        justify-content: flex-start;
+      }
+
+      .phone-caption {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .timeline-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .material-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card-lab-grid,
+      .font-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 460px) {
+      .page {
+        width: min(100% - 18px, 420px);
+      }
+
+      .phone-wrap {
+        padding: 8px;
+      }
+
+      .phone {
+        border-width: 7px;
+        border-radius: 38px;
+      }
+
+      .mobile-scene {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .mobile-title strong {
+        font-size: 21px;
+      }
+
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-actions {
+        flex-wrap: wrap;
+      }
+
+      .card-lab,
+      .material-board,
+      .lifecycle {
+        padding: 18px;
+      }
+
+      .decor-stage {
+        min-height: 380px;
+        padding: 18px;
+      }
+
+      .theme-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="预览导航">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 5.5c0-1.1.9-2 2-2h7.5c.8 0 1.5.7 1.5 1.5v13.5c0 .8-.7 1.5-1.5 1.5H8.2A2.2 2.2 0 0 1 6 17.8V6.5c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M9 7h6M9 10h5M9 13h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span>
+          <strong>DiaryApp Xiaomo Lab</strong>
+          <span>长期记忆 · 主动陪伴 · 工具确认</span>
+        </span>
+      </div>
+      <div class="top-actions">
+        <a class="link-chip" href="#card-lab">卡片实验</a>
+        <a class="link-chip" href="#lifecycle">体验周期</a>
+        <a class="link-chip" href="#blueprint">实现拆分</a>
+        <a class="link-chip" href="index.html">返回预览目录</a>
+      </div>
+    </nav>
+
+    <section class="palette-bar" aria-label="色系实验台">
+      <div class="palette-copy">
+        <b>色系实验台</b>
+        <span>点击切换整页氛围：背景、手机、按钮、便签和素材会一起换色，方便比较小墨适合哪种气质。</span>
+      </div>
+      <div class="palette-options" role="group" aria-label="选择页面色系">
+        <button class="palette-btn" type="button" data-theme="paper" aria-pressed="true">
+          <span class="swatches"><i style="background:#f5d8a8"></i><i style="background:#dcebd8"></i><i style="background:#b8d7ee"></i></span>书桌暖纸
+        </button>
+        <button class="palette-btn" type="button" data-theme="mist" aria-pressed="false">
+          <span class="swatches"><i style="background:#cdeee2"></i><i style="background:#aed7ea"></i><i style="background:#f4e8cd"></i></span>晨雾青绿
+        </button>
+        <button class="palette-btn" type="button" data-theme="rose" aria-pressed="false">
+          <span class="swatches"><i style="background:#f9d6d2"></i><i style="background:#f2bfcd"></i><i style="background:#e7daf6"></i></span>樱桃牛奶
+        </button>
+        <button class="palette-btn" type="button" data-theme="moon" aria-pressed="false">
+          <span class="swatches"><i style="background:#cfdde8"></i><i style="background:#bacfe2"></i><i style="background:#d5cde8"></i></span>月光蓝灰
+        </button>
+        <button class="palette-btn" type="button" data-theme="apricot" aria-pressed="false">
+          <span class="swatches"><i style="background:#fadaA6"></i><i style="background:#f2be99"></i><i style="background:#d8e7ce"></i></span>杏橙日记
+        </button>
+        <button class="palette-btn" type="button" data-theme="iris" aria-pressed="false">
+          <span class="swatches"><i style="background:#e0d5f5"></i><i style="background:#c0d6ed"></i><i style="background:#f2dae6"></i></span>鸢尾薄紫
+        </button>
+        <button class="palette-btn" type="button" data-theme="matcha" aria-pressed="false">
+          <span class="swatches"><i style="background:#d4e7ae"></i><i style="background:#b5d8c1"></i><i style="background:#efdab5"></i></span>抹茶晨光
+        </button>
+        <button class="palette-btn" type="button" data-theme="lagoon" aria-pressed="false">
+          <span class="swatches"><i style="background:#bfe8ec"></i><i style="background:#aad1e8"></i><i style="background:#dae0f6"></i></span>浅海玻璃
+        </button>
+      </div>
+    </section>
+
+    <section class="hero" aria-label="小墨功能拓展总览">
+      <aside class="hero-copy">
+        <p class="kicker">01 / Xiaomo Memory Agent</p>
+        <h1>先让小墨成为同一个小墨，再让它慢慢活起来。</h1>
+        <p class="lead">
+          这不是给 AI 对话页再加几个按钮，而是把小墨设计成 DiaryApp 里的长期陪伴层：
+          <strong>记得你的偏好、继承你喜欢的性格、能读日记和待办、会在合适的时候留下消息。</strong>
+        </p>
+
+        <div class="desk-notes" aria-label="桌边便签">
+          <div class="desk-note note-a">
+            不要让用户手写完美提示词。
+            <small>Persona distillation</small>
+          </div>
+          <div class="desk-note note-b">
+            从喜欢的对话里，把那个小墨提炼出来。
+            <small>Save this Xiaomo</small>
+          </div>
+          <div class="desk-note note-c">
+            任何写入操作，都先变成确认卡。
+            <small>Guarded tools</small>
+          </div>
+        </div>
+
+        <div class="scene-tabs" role="tablist" aria-label="手机场景切换">
+          <button class="scene-tab" type="button" role="tab" aria-selected="true" data-scene="inbox">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8.5h14v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 5h8l3 3.5H5L8 5Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 13h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span><b>小墨信箱</b><span>你不在时，它把观察留在通知中心。</span></span>
+          </button>
+          <button class="scene-tab" type="button" role="tab" aria-selected="false" data-scene="persona">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c1.4-3 3.8-4.5 7-4.5S17.6 17 19 20" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span><b>人格卡</b><span>新对话仍然继承你喜欢的语气。</span></span>
+          </button>
+          <button class="scene-tab" type="button" role="tab" aria-selected="false" data-scene="distill">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 19h12M8 5h8l-1 7a3 3 0 0 1-6 0L8 5Z" stroke="currentColor" stroke-width="1.7"/><path d="M10 9h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span><b>从对话提炼</b><span>把第 5 个对话的“对味”固化。</span></span>
+          </button>
+          <button class="scene-tab" type="button" role="tab" aria-selected="false" data-scene="memory">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6.5A2.5 2.5 0 0 1 8.5 4H18v14.5A1.5 1.5 0 0 1 16.5 20h-8A2.5 2.5 0 0 1 6 17.5v-11Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 8h6M9 11h5M9 14h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span><b>长聊不失忆</b><span>摘要、原文、长期记忆分层管理。</span></span>
+          </button>
+          <button class="scene-tab" type="button" role="tab" aria-selected="false" data-scene="weekly">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 4.5h12A1.5 1.5 0 0 1 19.5 6v12A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 3v4M16 3v4M5 9h14M8 13h2M12 13h2M16 13h1M8 16h2M12 16h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span><b>周报与留言</b><span>把一周记录整理成可继续聊的报告。</span></span>
+          </button>
+          <button class="scene-tab" type="button" role="tab" aria-selected="false" data-scene="tools">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 7h10M7 12h10M7 17h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h12a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.7"/></svg></span>
+            <span><b>工具确认</b><span>小墨可以做事，但先让你看见。</span></span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="stage" aria-label="手机原型">
+        <div class="phone-wrap">
+          <div class="phone" aria-label="DiaryApp 手机界面预览">
+            <div class="phone-screen">
+              <section class="mobile-scene active" id="scene-inbox">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Monday 08:12</small><strong>小墨信箱</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="mobile-card pad">
+                    <span class="mini-label">昨晚自动整理</span>
+                    <div style="height:10px"></div>
+                    <div class="xm-row">
+                      <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5l1.2 4.1L17 10.4l-3.8 1.4L12 16l-1.2-4.2L7 10.4l3.8-1.3L12 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+                      <div class="bubble">我翻了翻这周的记录。你有三次提到“想把事情收小一点”，但待办里还没有对应的行动。我给你留了一份周回顾，里面有两个很轻的下一步。</div>
+                    </div>
+                  </div>
+                  <div class="metric-row">
+                    <div class="metric"><b>5</b><span>本周日记</span></div>
+                    <div class="metric"><b>3</b><span>反复主题</span></div>
+                    <div class="metric"><b>2</b><span>建议行动</span></div>
+                  </div>
+                  <div class="signal-list">
+                    <div class="signal"><i></i><span><b>主题回声</b><span>“不要一次长完”在 3 篇日记里出现。</span></span></div>
+                    <div class="signal"><i style="background:#d99673"></i><span><b>语气保持</b><span>使用默认小墨人格卡，不切换成报告腔。</span></span></div>
+                    <div class="signal"><i style="background:#7c87b8"></i><span><b>等待确认</b><span>所有待办建议都只是草稿，不自动写入。</span></span></div>
+                  </div>
+                  <div class="mobile-actions">
+                    <span class="mobile-pill primary">打开周回顾</span>
+                    <span class="mobile-pill">稍后提醒</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mobile-scene" id="scene-persona">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>New Chat</small><strong>仍然是小墨</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="user-bubble">新对话了，你还记得我喜欢你怎么说话吗？</div>
+                  <div class="xm-row">
+                    <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5l1.2 4.1L17 10.4l-3.8 1.4L12 16l-1.2-4.2L7 10.4l3.8-1.3L12 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+                    <div class="bubble">记得。你不太喜欢我像客服一样总结，也不喜欢我把每句话都变成建议。你更喜欢我先接住你说的感觉，再慢慢把事情放到桌面上。</div>
+                  </div>
+                  <div class="persona-card">
+                    <div class="persona-head">
+                      <span><b>默认小墨人格</b><span>来自“第五个对话”的提炼版本</span></span>
+                      <span class="mini-label">已启用</span>
+                    </div>
+                    <div class="slider-stack">
+                      <div class="slider-line"><span>亲近感</span><span class="track"><i style="width:86%"></i></span><span>高</span></div>
+                      <div class="slider-line"><span>条列度</span><span class="track"><i style="width:32%"></i></span><span>低</span></div>
+                      <div class="slider-line"><span>主见</span><span class="track"><i style="width:72%"></i></span><span>中高</span></div>
+                    </div>
+                  </div>
+                  <div class="quote-card">风格锚点：先回应人，再回应问题；像熟悉的伙伴，不像流程化产品助手。</div>
+                </div>
+              </section>
+
+              <section class="mobile-scene" id="scene-distill">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Conversation 05</small><strong>提炼性格</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 6h10M8 11h8M10 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="mobile-card pad">
+                    <span class="mini-label">这个小墨很对</span>
+                    <div style="height:10px"></div>
+                    <div class="quote-card">“你不是想偷懒，你是在找一个能继续走下去的形状。我们先把它缩到 30 分钟能结束。”</div>
+                    <div style="height:10px"></div>
+                    <div class="mobile-actions">
+                      <span class="mobile-pill primary">保存为默认性格</span>
+                      <span class="mobile-pill">只收藏这句</span>
+                    </div>
+                  </div>
+                  <div class="summary-box">
+                    <b>提炼结果</b>
+                    <p>小墨会保留这种“温柔但不软塌”的表达：先帮用户确认真实处境，再把下一步缩小；避免鸡汤、避免过度道歉、避免机械建议。</p>
+                  </div>
+                  <div class="memory-strip">
+                    <div class="memory-chip"><b>保留</b>“把事情放小一点”的陪伴策略</div>
+                    <div class="memory-chip"><b>避免</b>过度列表和模板式开头</div>
+                    <div class="memory-chip"><b>示例</b>短句、具体、带一点主见</div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mobile-scene" id="scene-memory">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Long Chat</small><strong>记忆分层</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 5h12v14H6z" stroke="currentColor" stroke-width="1.7"/><path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="mobile-card pad">
+                    <span class="mini-label">自动压缩上下文</span>
+                    <div style="height:10px"></div>
+                    <div class="summary-box">
+                      <b>当前对话摘要</b>
+                      <p>用户正在探索小墨长期记忆。核心担心是新对话人格漂移、长聊失忆、喜欢的第五个对话难以复现。用户倾向于先稳定性格，再加入工具能力。</p>
+                    </div>
+                  </div>
+                  <div class="signal-list">
+                    <div class="signal"><i></i><span><b>原始消息</b><span>完整保存，可搜索、可回看、可收藏。</span></span></div>
+                    <div class="signal"><i style="background:#d99673"></i><span><b>滚动摘要</b><span>超过阈值后压缩旧上下文，继续参与聊天。</span></span></div>
+                    <div class="signal"><i style="background:#7c87b8"></i><span><b>长期记忆</b><span>只有被确认的偏好跨对话保存。</span></span></div>
+                  </div>
+                  <div class="mobile-actions">
+                    <span class="mobile-pill primary">查看记忆</span>
+                    <span class="mobile-pill">修正一条</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mobile-scene" id="scene-weekly">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Weekly Review</small><strong>本周回顾</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 4.5h12v15H6z" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="report-hero">
+                    <span class="mini-label">7 月第 2 周</span>
+                    <h3>不是没推进，是你在重新定形状。</h3>
+                    <p>这周你写了 5 篇日记，最明显的线索是“想把复杂愿望变成能落地的系统”。</p>
+                  </div>
+                  <div class="metric-row">
+                    <div class="metric"><b>4210</b><span>字数</span></div>
+                    <div class="metric"><b>4/7</b><span>记录天数</span></div>
+                    <div class="metric"><b>68%</b><span>待办闭环</span></div>
+                  </div>
+                  <div class="signal-list">
+                    <div class="signal"><i></i><span><b>关键片段</b><span>“不要把每个想法都升级成产品。”</span></span></div>
+                    <div class="signal"><i style="background:#d99673"></i><span><b>小墨建议</b><span>下周只保留一个 30 分钟实验。</span></span></div>
+                  </div>
+                  <div class="mobile-actions">
+                    <span class="mobile-pill primary">继续聊这周</span>
+                    <span class="mobile-pill">保存为日记</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mobile-scene" id="scene-tools">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Tool Confirmation</small><strong>操作前确认</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="action-card">
+                    <span class="mini-label">小墨想帮你做 2 件事</span>
+                    <h3>这些只是草稿，确认后才写入 DiaryApp。</h3>
+                    <div class="todo-preview">
+                      <div class="todo-item"><span class="check-dot"></span><span>周五 20:00 整理“小墨记忆系统”第一期边界</span></div>
+                      <div class="todo-item"><span class="check-dot"></span><span>明天午后花 30 分钟挑选一个可落地的原型场景</span></div>
+                    </div>
+                    <div class="mobile-actions">
+                      <span class="mobile-pill primary">确认创建</span>
+                      <span class="mobile-pill">只保存建议</span>
+                    </div>
+                  </div>
+                  <div class="summary-box">
+                    <b>工具边界</b>
+                    <p>查询类工具可直接执行；新增草稿可低风险保存；修改、删除、批量写入必须出现确认卡，并记录执行日志。</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone-caption" aria-label="手机原型说明">
+          <div class="caption-card"><b>不是演示图</b><span>场景按真实日常组织：收到留言、开新对话、保存人格、看周报、确认工具。</span></div>
+          <div class="caption-card"><b>不是无限上下文</b><span>通过摘要和记忆取回，控制每次请求只带必要内容。</span></div>
+          <div class="caption-card"><b>不是自动乱动</b><span>所有 App 写操作先以确认卡出现，用户保留最终控制权。</span></div>
+        </div>
+      </section>
+
+      <aside class="right-panel" aria-label="当前设计说明">
+        <section class="panel">
+          <p class="kicker">02 / Product Shape</p>
+          <h2>它的核心不是更聪明，而是更连续。</h2>
+          <p>小墨 2.0 的体验重心是“同一性”：同一个人格、同一段关系、同一套记忆边界。工具调用和周报都要服务于这个连续性，而不是把它变成另一个任务管理机器人。</p>
+          <div class="detail-list">
+            <div class="detail-item"><b>Persona Card</b><span>从喜欢的对话提炼，不强迫用户写提示词。可以编辑、回滚、设为默认。</span></div>
+            <div class="detail-item"><b>Memory Bank</b><span>事实、偏好、关系、事件、目标分开存。每条记忆有来源和可信度。</span></div>
+            <div class="detail-item"><b>Xiaomo Inbox</b><span>主动留言先进入 App 内信箱，系统通知只用于真正值得打断的内容。</span></div>
+          </div>
+        </section>
+
+        <section class="panel tilt">
+          <p class="kicker">03 / Data Flow</p>
+          <h2>一次聊天请求应该这样组装。</h2>
+          <div class="flow">
+            <div class="flow-step"><i>1</i><span>读取默认人格卡和用户确认过的风格偏好。</span></div>
+            <div class="flow-step"><i>2</i><span>读取当前对话摘要和最近 10-20 条消息。</span></div>
+            <div class="flow-step"><i>3</i><span>按用户问题检索相关记忆、日记片段、待办状态。</span></div>
+            <div class="flow-step"><i>4</i><span>把可用工具作为受限能力列表提供给模型。</span></div>
+            <div class="flow-step"><i>5</i><span>模型给出回复或操作意图，App 决定是否展示确认卡。</span></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <p class="kicker">04 / Safety</p>
+          <h2>让小墨活起来，但不要失控。</h2>
+          <p>主动性必须有节制：低频、可关闭、可解释、可删除。它可以观察和建议，但不能伪造记忆，不能替用户做高风险决定，不能在未确认时修改日记或删除数据。</p>
+        </section>
+      </aside>
+    </section>
+
+    <section class="material-board" aria-label="适配素材方向">
+      <div class="section-head">
+        <h2>可继续长出来的素材语言</h2>
+        <p>这些不是装饰贴图，而是以后能落到 App 里的 UI 资产方向：人格卡纹理、信箱标签、周报票据、记忆贴纸和渐变纸片。它们会跟随上方色系一起变。</p>
+      </div>
+      <div class="material-grid">
+        <article class="material-card">
+          <h3>记忆贴纸</h3>
+          <p>用于标记“从这段对话学到的偏好”，可以出现在小墨信箱、对话详情和记忆管理页。</p>
+          <div class="asset-stack">
+            <span class="asset-pill"><i></i>语气偏好 · 已确认</span>
+            <span class="asset-pill"><i></i>关系记忆 · 可修正</span>
+            <span class="asset-pill"><i></i>重要主题 · 来自日记</span>
+          </div>
+        </article>
+        <article class="material-card">
+          <h3>小墨信箱票据</h3>
+          <p>主动留言不做打扰弹窗，而像一张放在桌面的票据。用户打开 App 时再慢慢看。</p>
+          <div class="stamp-row">
+            <span class="stamp">Unread</span>
+            <span class="stamp">Weekly</span>
+            <span class="stamp">Memory</span>
+            <span class="stamp">Need Confirm</span>
+          </div>
+          <div class="gradient-ticket">
+            <b>我给你留了一张纸条</b>
+            <span>这周你不是没推进，是一直在试着把复杂事情重新放小。</span>
+          </div>
+        </article>
+        <article class="material-card">
+          <h3>渐变纸片</h3>
+          <p>参考 shadergradient 的浅色混合，但控制饱和度。适合作为报告封面、人格卡背景和空状态插画。</p>
+          <div class="gradient-ticket">
+            <b>Persona Card</b>
+            <span>亲近感 86 · 条列度 32 · 主见 72</span>
+          </div>
+          <div class="asset-stack">
+            <span class="asset-pill"><i></i>轻量动画，避免眩光</span>
+            <span class="asset-pill"><i></i>浅色玻璃，不压内容</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card-lab" id="card-lab" aria-label="卡片装饰与字体方向实验">
+      <div class="section-head">
+        <h2>卡片装饰实验室</h2>
+        <p>这块专门给后续 UI 深入做参考：尽量用轻量 CSS 做出“桌面上正在使用”的感觉，保留倾斜、折角、票据、侧签和低频留言这些能落到移动端的卡片语言。</p>
+      </div>
+
+      <div class="card-lab-grid">
+        <div class="decor-stage" data-pattern="tilt" aria-live="polite">
+          <div class="decor-demo">
+            <article class="demo-card">
+              <small>小墨信箱</small>
+              <h3>我把这周的反复想法叠好了。</h3>
+              <p>你可以先看 3 条，不需要马上处理。真正重要的是把“还没想清楚”也算作进展。</p>
+            </article>
+            <p class="decor-caption">当前样式：倾斜便签。适合信箱、记忆确认、轻量提醒，像桌面上被随手放下的一张纸。</p>
+          </div>
+        </div>
+
+        <div class="decor-tools" role="group" aria-label="选择卡片装饰样式">
+          <button class="decor-choice" type="button" data-pattern="tilt" data-copy="当前样式：倾斜便签。适合信箱、记忆确认、轻量提醒，像桌面上被随手放下的一张纸。" aria-pressed="true">
+            <b>倾斜便签</b>
+            <span>保留你提到的斜卡片方向，靠阴影和轻微旋转建立亲近感。</span>
+          </button>
+          <button class="decor-choice" type="button" data-pattern="fold" data-copy="当前样式：折角报告。适合周报、月报、人格卡版本记录，让内容像被认真归档过。 " aria-pressed="false">
+            <b>折角报告</b>
+            <span>右上角折页暗示“可保存、可回看”，比普通卡片更有日记属性。</span>
+          </button>
+          <button class="decor-choice" type="button" data-pattern="ticket" data-copy="当前样式：票据卡。适合工具确认、待办摘要、同步结果，能清楚表达这是一条可执行记录。" aria-pressed="false">
+            <b>票据卡</b>
+            <span>打孔和虚线分隔适合确认类操作，不需要复杂插画就能有仪式感。</span>
+          </button>
+          <button class="decor-choice" type="button" data-pattern="stack" data-copy="当前样式：层叠记忆。适合长期记忆、旧对话摘要、相似日记引用，表达背后有多层来源。" aria-pressed="false">
+            <b>层叠记忆</b>
+            <span>用两层纸张阴影表达“来自多个片段”，后续可以映射检索来源。</span>
+          </button>
+          <button class="decor-choice" type="button" data-pattern="tab" data-copy="当前样式：侧签卡。适合人格卡、分类记忆、主题文件夹，左侧色条可以对应 7 个内置主题。" aria-pressed="false">
+            <b>侧签卡</b>
+            <span>侧边标签更像资料夹，适合“偏好、目标、关系、事件”等记忆分类。</span>
+          </button>
+          <button class="decor-choice" type="button" data-pattern="quiet" data-copy="当前样式：低频留言。适合小墨不打扰地留下观察和关心，视觉上更轻，不抢主流程。" aria-pressed="false">
+            <b>低频留言</b>
+            <span>虚线、细边、顶部色带，给主动陪伴留一点存在感，但不做弹窗压力。</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="font-board" aria-label="字体气质样张">
+        <div class="section-head">
+          <h2>字体气质样张</h2>
+          <p>先不引入远程字体，优先用系统中文字体栈做方向验证。后续真进 App 时，可以按端侧可用字体再细化。</p>
+        </div>
+        <div class="font-grid">
+          <article class="font-card font-poem">
+            <b>宋体标题 + 无衬线正文</b>
+            <p>适合更日记、更文学的页面：周报封面、月度回看、深夜留言。</p>
+          </article>
+          <article class="font-card font-clean">
+            <b>系统黑体高权重</b>
+            <p>适合工具确认、设置页、记忆管理：清楚、稳定、不会抢内容。</p>
+          </article>
+          <article class="font-card font-editorial">
+            <b>Editorial Serif</b>
+            <p>适合人格卡和重要节点回顾，让“小墨”有一点杂志感和收藏感。</p>
+          </article>
+          <article class="font-card font-warm">
+            <b>圆润 UI 字体</b>
+            <p>适合聊天气泡、信箱空状态、轻提醒，保持柔和但不幼稚。</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="theme-matrix" aria-label="7 个内置主题的卡片适配建议">
+        <div class="section-head">
+          <h2>7 主题适配矩阵</h2>
+          <p>不强行替换现有主题，而是给每个主题配一套“卡片装饰规则”：同一功能在不同主题里换边条、纸张、印章和阴影。</p>
+        </div>
+        <div class="theme-grid">
+          <article class="theme-tile" data-chip="paper"><b>纯净浅纸</b><span>纸纹、浅阴影、细网格，适合默认日记阅读。</span></article>
+          <article class="theme-tile" data-chip="ink"><b>深色墨蓝</b><span>减少大面积发光，用细边框和低亮色签强调层级。</span></article>
+          <article class="theme-tile" data-chip="forest"><b>森林绿</b><span>适合习惯、恢复、长期目标，卡片可用植物感边签。</span></article>
+          <article class="theme-tile" data-chip="salt"><b>海盐青</b><span>适合清爽整理、同步状态、周计划和轻工具入口。</span></article>
+          <article class="theme-tile" data-chip="rose"><b>玫瑰粉</b><span>适合情绪接住、私密留言、关系记忆，但要控制甜度。</span></article>
+          <article class="theme-tile" data-chip="amber"><b>琥珀暖</b><span>适合复盘、成就感、晚间回顾，票据感会更自然。</span></article>
+          <article class="theme-tile" data-chip="violet"><b>薄紫鸢尾</b><span>适合人格卡、灵感箱、梦境记录，保留一点神秘感。</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="lifecycle" id="lifecycle" aria-label="完整体验周期">
+      <div class="section-head">
+        <h2>一条更真实的使用周期</h2>
+        <p>这部分不是功能列表，而是把小墨从“第一天接入”到“几个月后成为固定陪伴”的节奏排出来。每个阶段都可以独立开发和验证。</p>
+      </div>
+      <div class="timeline-grid">
+        <article class="time-card">
+          <b>Day 0</b>
+          <h3>保存喜欢的小墨</h3>
+          <p>用户从第 5 个对话里点“这个小墨很对”。系统提炼人格卡，生成风格锚点，让新对话继承这份语气。</p>
+        </article>
+        <article class="time-card">
+          <b>Day 1</b>
+          <h3>新对话不再重开人格</h3>
+          <p>新建对话时，小墨仍知道用户不喜欢客服腔，也知道要先接住情绪，再把行动缩小。</p>
+        </article>
+        <article class="time-card">
+          <b>Week 1</b>
+          <h3>长聊开始自动整理</h3>
+          <p>对话超过阈值后生成滚动摘要。旧消息仍保留，但每次请求只带摘要、近期消息和相关记忆。</p>
+        </article>
+        <article class="time-card">
+          <b>Week 2</b>
+          <h3>第一份周回顾</h3>
+          <p>小墨把日记、待办、习惯串起来，生成一份有语气的周报，并提供可确认的下周待办草稿。</p>
+        </article>
+        <article class="time-card">
+          <b>Month 1</b>
+          <h3>记忆开始可管理</h3>
+          <p>用户可以查看“它记住了什么”，删除不准的记忆，修正人物、偏好、表达边界。</p>
+        </article>
+        <article class="time-card">
+          <b>Month 3+</b>
+          <h3>成为日记的连续意识</h3>
+          <p>小墨能在旧日记、新待办、习惯断点之间发现线索，但仍保持克制，只在合适时留言。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="blueprint" id="blueprint" aria-label="实现拆分">
+      <article class="blueprint-card">
+        <h3>第一期，先稳定灵魂</h3>
+        <ul>
+          <li>新增 Persona Card 数据模型和设置入口。</li>
+          <li>从指定对话提炼人格，支持设为默认。</li>
+          <li>对话收藏、搜索、摘要和长聊压缩。</li>
+          <li>每次 AI 请求统一走 Context Builder。</li>
+          <li>保留现有聊天 UI，但加入人格状态提示。</li>
+        </ul>
+      </article>
+      <article class="blueprint-card">
+        <h3>第二期，再让它行动</h3>
+        <ul>
+          <li>建立 Memory Bank，分事实、偏好、关系、事件和目标。</li>
+          <li>加入工具调用意图解析和确认卡。</li>
+          <li>接入日记检索、待办查询、周报生成。</li>
+          <li>新增小墨信箱，承载主动留言和报告。</li>
+          <li>用 WorkManager 做低频后台观察，不追求常驻在线。</li>
+        </ul>
+      </article>
+    </section>
+
+    <p class="footer-note">
+      视觉说明：这个预览采用浅色纸张网格、倾斜便签和柔和混色渐变，参考 shadergradient.co 的浅色动态混合氛围，并收敛到 DiaryApp 更适合长期阅读的温柔低对比风格。
+      页面为静态 HTML 原型，主要用于确认小墨长期记忆、主动陪伴和工具确认的产品感觉。
+    </p>
+  </main>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll(".scene-tab"));
+    const scenes = Array.from(document.querySelectorAll(".mobile-scene"));
+    const paletteButtons = Array.from(document.querySelectorAll(".palette-btn"));
+    const decorButtons = Array.from(document.querySelectorAll(".decor-choice"));
+    const decorStage = document.querySelector(".decor-stage");
+    const decorCaption = document.querySelector(".decor-caption");
+
+    function activateScene(sceneId) {
+      tabs.forEach((tab) => {
+        const selected = tab.dataset.scene === sceneId;
+        tab.setAttribute("aria-selected", String(selected));
+      });
+      scenes.forEach((scene) => {
+        scene.classList.toggle("active", scene.id === `scene-${sceneId}`);
+      });
+    }
+
+    function activateTheme(themeId, persist = true) {
+      if (!themeId || themeId === "paper") {
+        document.body.removeAttribute("data-theme");
+      } else {
+        document.body.dataset.theme = themeId;
+      }
+      paletteButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.theme === themeId));
+      });
+      if (persist) {
+        localStorage.setItem("xiaomo-preview-theme", themeId);
+      }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => activateScene(tab.dataset.scene));
+    });
+
+    paletteButtons.forEach((button) => {
+      button.addEventListener("click", () => activateTheme(button.dataset.theme));
+    });
+
+    decorButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!decorStage || !decorCaption) return;
+        decorStage.dataset.pattern = button.dataset.pattern;
+        decorCaption.textContent = button.dataset.copy;
+        decorButtons.forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+      });
+    });
+
+    const savedTheme = localStorage.getItem("xiaomo-preview-theme");
+    const hasSavedTheme = paletteButtons.some((button) => button.dataset.theme === savedTheme);
+    if (hasSavedTheme) {
+      activateTheme(savedTheme, false);
+    }
+  </script>
+</body>
+</html>

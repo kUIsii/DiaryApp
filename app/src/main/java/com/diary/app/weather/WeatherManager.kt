@@ -15,11 +15,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class WeatherAlert(
+    val alertId: String = "",
     val province: String,
     val city: String,
     val level: String,
     val type: String,
-    val text: String
+    val text: String,
+    val publishTime: String = "",
+    val source: String = ""
 )
 
 data class HourlyForecast(
@@ -90,8 +93,16 @@ object WeatherManager {
 
             val alertsList = jsonArr("weather_alerts")?.let { arr ->
                 (0 until arr.length()).map { i -> val o = arr.getJSONObject(i)
-                    WeatherAlert(o.optString("province",""), o.optString("city",""), o.optString("level",""),
-                        o.optString("type",""), o.optString("text","")) }
+                    WeatherAlert(
+                        alertId = "",
+                        province = o.optString("province",""),
+                        city = o.optString("city",""),
+                        level = o.optString("level",""),
+                        type = o.optString("type",""),
+                        text = o.optString("text",""),
+                        publishTime = o.optString("publishTime",""),
+                        source = o.optString("source","")
+                    ) }
             } ?: emptyList()
 
             CurrentWeather(
@@ -133,7 +144,7 @@ object WeatherManager {
         else -> "晴天"
     }
 
-    private fun getAdcode(context: Context): Pair<String, String>? {
+    fun getAdcode(context: Context): Pair<String, String>? {
         if (hasLocationPermission(context)) {
             try {
                 val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -167,6 +178,21 @@ object WeatherManager {
             } catch (_: Exception) {}
         }
         return Pair("110101", "北京市东城区")
+    }
+
+    fun getLocationCoordinates(context: Context): Pair<Double, Double>? {
+        if (!hasLocationPermission(context)) return null
+        return try {
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            for (provider in listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)) {
+                try {
+                    if (!locationManager.isProviderEnabled(provider)) continue
+                    val location = locationManager.getLastKnownLocation(provider) ?: continue
+                    return Pair(location.longitude, location.latitude)
+                } catch (_: Exception) {}
+            }
+            null
+        } catch (_: Exception) { null }
     }
 
     private fun callAmapWeatherApi(adcode: String, cityName: String): CurrentWeather? {
@@ -289,7 +315,8 @@ object WeatherManager {
         fun alertToJsonArr(list: List<WeatherAlert>): String = JSONArray().apply {
             list.forEach { a -> put(JSONObject().apply {
                 put("province", a.province); put("city", a.city); put("level", a.level)
-                put("type", a.type); put("text", a.text) }) }
+                put("type", a.type); put("text", a.text)
+                put("publishTime", a.publishTime); put("source", a.source) }) }
         }.toString()
 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
