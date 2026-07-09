@@ -32,11 +32,15 @@ class WeatherAlertWorker(
     override suspend fun doWork(): Result {
         return try {
             if (!NotificationPreferencesManager.isWeatherAlertsEnabled(applicationContext)) {
+                // 总开关关闭：清空横幅残留，避免首页继续显示已失效的预警
+                WeatherAlertStore.saveActiveAlerts(applicationContext, emptyList())
                 return Result.success()
             }
             val alerts = WeatherAlertFetcher.fetchAlerts(applicationContext)
             // 始终把当前生效的预警写入本地仓库，供首页横幅展示（与系统推送 / APP 内开关无关）
             WeatherAlertStore.saveActiveAlerts(applicationContext, alerts)
+            WeatherAlertStore.recordCheck(applicationContext, success = true, count = alerts.size)
+
             if (alerts.isEmpty()) return Result.success()
 
             val newAlerts = filterNewAlerts(applicationContext, alerts)
@@ -54,6 +58,8 @@ class WeatherAlertWorker(
             Result.success()
         } catch (e: Exception) {
             Log.w(TAG, "Weather alert refresh failed", e)
+            // 记录失败供设置页"是否生效"展示；此处不覆盖 Store，保留横幅（避免瞬时网络故障清空预警）
+            WeatherAlertStore.recordCheck(applicationContext, success = false, count = 0, error = e.message)
             Result.retry()
         }
     }
@@ -165,14 +171,33 @@ class WeatherAlertWorker(
         private const val STALE_MS = 24 * 60 * 60 * 1000L // 去重记录保留 24 小时
 
         fun schedule(context: Context) {
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
             // WorkManager 最短周期 15 分钟，足够满足"暴雨来临前及时通知"
-            val request = PeriodicWorkRequestBuilder<WeatherAlertWorker>(15, TimeUnit.MINUTES).build()
+            val request = PeriodicWorkRequestBuilder<WeatherAlertWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(constraints)
+                .build()
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
 
-            val oneTime = androidx.work.OneTimeWorkRequestBuilder<WeatherAlertWorker>().build()
+            val oneTime = androidx.work.OneTimeWorkRequestBuilder<WeatherAlertWorker>()
+                .setConstraints(constraints)
+                .build()
             WorkManager.getInstance(context)
                 .enqueueUniqueWork("weather_alert_initial", androidx.work.ExistingWorkPolicy.REPLACE, oneTime)
+        }
+
+        /** 立即触发一次预警巡检（供设置页"立即检查"按钮调用）。 */
+        fun runNow(context: Context) {
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+            val oneTime = androidx.work.OneTimeWorkRequestBuilder<WeatherAlertWorker>()
+                .setConstraints(constraints)
+                .build()
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork("weather_alert_manual", androidx.work.ExistingWorkPolicy.REPLACE, oneTime)
         }
 
         fun ensureChannel(context: Context) {

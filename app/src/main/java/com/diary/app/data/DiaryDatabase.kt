@@ -1062,71 +1062,149 @@ abstract class DiaryDatabase : RoomDatabase() {
         val MIGRATION_37_38 = object : Migration(37, 38) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 天气预警详情字段（province / 发布时间 / 来源）
-                db.execSQL("ALTER TABLE notifications ADD COLUMN alertProvince TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN alertPublishTime TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN alertSource TEXT NOT NULL DEFAULT ''")
+                // 幂等加列：若列已存在则跳过，避免中断恢复/重复迁移时报 "duplicate column name"
+                addColumnIfMissing(db, "notifications", "alertProvince", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "notifications", "alertPublishTime", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "notifications", "alertSource", "TEXT NOT NULL DEFAULT ''")
             }
         }
 
-        fun getDatabase(context: Context): DiaryDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val allMigrations = arrayOf(
-                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-                    MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-                    MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                    MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
-                    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
-                    MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38
-                )
-                val callback = object : RoomDatabase.Callback() {
-                    override fun onOpen(db: SupportSQLiteDatabase) {
-                        super.onOpen(db)
-                        try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) {
-                            android.util.Log.w("DiaryDatabase", "Failed to drop index", e)
-                        }
-                        try { backfillDiaryImages(db, context) } catch (e: Exception) {
-                            android.util.Log.w("DiaryDatabase", "Failed to backfill diary images", e)
-                        }
+        /**
+         * 幂等加列：仅当目标列不存在时才执行 ALTER TABLE ADD COLUMN。
+         * 让迁移在中断恢复/重复执行时不会因 "duplicate column name" 而失败。
+         */
+        private fun addColumnIfMissing(db: SupportSQLiteDatabase, table: String, column: String, definition: String) {
+            db.query("SELECT COUNT(*) FROM pragma_table_info('$table') WHERE name = '$column'").use { cursor ->
+                if (cursor.moveToFirst() && cursor.getInt(0) == 0) {
+                    db.execSQL("ALTER TABLE $table ADD COLUMN $column $definition")
+                }
+            }
+        }
+
+        private val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+            MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+            MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
+            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
+            MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
+            MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
+            MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38
+        )
+
+        private fun buildCallback(context: Context): RoomDatabase.Callback {
+            return object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    try { db.execSQL("DROP INDEX IF EXISTS index_countdown_items_targetDate") } catch (e: Exception) {
+                        android.util.Log.w("DiaryDatabase", "Failed to drop index", e)
+                    }
+                    try { backfillDiaryImages(db, context) } catch (e: Exception) {
+                        android.util.Log.w("DiaryDatabase", "Failed to backfill diary images", e)
                     }
                 }
+            }
+        }
 
-                val instance = try {
-                    Room.databaseBuilder(
-                        context.applicationContext,
-                        DiaryDatabase::class.java,
-                        "diary_database"
-                    ).addMigrations(*allMigrations)
-                    .addCallback(callback)
-                    .build()
-                } catch (e: Exception) {
-                    android.util.Log.e("DiaryDatabase", "Migration failed, backing up database before surfacing open error", e)
-                    try {
-                        val dbFile = context.getDatabasePath("diary_database")
-                        val backupDir = java.io.File(context.filesDir, "db_backup")
-                        if (!backupDir.exists()) backupDir.mkdirs()
-                        val timestamp = System.currentTimeMillis()
-                        val suffixes = listOf("", "-wal", "-shm", "-journal")
-                        for (suffix in suffixes) {
-                            val src = java.io.File(dbFile.parentFile, "diary_database$suffix")
-                            if (src.exists()) {
-                                val dst = java.io.File(backupDir, "diary_database${suffix}_$timestamp")
-                                src.copyTo(dst, overwrite = true)
-                            }
-                        }
-                        android.util.Log.e("DiaryDatabase", "Database backed up to: ${backupDir.absolutePath}/diary_database*_$timestamp")
-                    } catch (backupError: Exception) {
-                        android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
+        private fun buildDatabase(context: Context): DiaryDatabase {
+            return Room.databaseBuilder(
+                context.applicationContext,
+                DiaryDatabase::class.java,
+                "diary_database"
+            ).addMigrations(*ALL_MIGRATIONS)
+                .addCallback(buildCallback(context.applicationContext))
+                .build()
+        }
+
+        /**
+         * 将当前数据库文件（含 wal/shm/journal）备份到 filesDir/db_backup/。
+         * 备份失败仅记录日志，不中断流程。
+         */
+        private fun backupDatabaseFiles(context: Context) {
+            try {
+                val dbFile = context.getDatabasePath("diary_database")
+                val backupDir = java.io.File(context.filesDir, "db_backup")
+                if (!backupDir.exists()) backupDir.mkdirs()
+                val timestamp = System.currentTimeMillis()
+                val suffixes = listOf("", "-wal", "-shm", "-journal")
+                for (suffix in suffixes) {
+                    val src = java.io.File(dbFile.parentFile, "diary_database$suffix")
+                    if (src.exists()) {
+                        val dst = java.io.File(backupDir, "diary_database${suffix}_$timestamp")
+                        src.copyTo(dst, overwrite = true)
                     }
-                    throw DiaryDatabaseOpenException(
-                        message = "Unable to open diary database safely. A backup was created before aborting startup.",
-                        cause = e
-                    )
+                }
+                android.util.Log.e("DiaryDatabase", "Database backed up to: ${backupDir.absolutePath}/diary_database*_$timestamp")
+            } catch (backupError: Exception) {
+                android.util.Log.e("DiaryDatabase", "Failed to backup database files", backupError)
+            }
+        }
+
+        /**
+         * 获取数据库实例（懒构建，不在调用线程触发迁移/打开，主线程安全）。
+         * 若构建阶段本身异常，会先备份再删除损坏文件并重建，避免 App 卡死。
+         */
+        fun getDatabase(context: Context): DiaryDatabase {
+            INSTANCE?.let { return it }
+            return synchronized(this) {
+                INSTANCE?.let { return it }
+                val instance = try {
+                    buildDatabase(context)
+                } catch (e: Exception) {
+                    android.util.Log.e("DiaryDatabase", "Database build failed; backing up and rebuilding fresh", e)
+                    backupDatabaseFiles(context.applicationContext)
+                    context.applicationContext.deleteDatabase("diary_database")
+                    try {
+                        buildDatabase(context)
+                    } catch (e2: Exception) {
+                        throw DiaryDatabaseOpenException(
+                            message = "Unable to open diary database safely. A backup was created before aborting startup.",
+                            cause = e2
+                        )
+                    }
                 }
                 INSTANCE = instance
                 instance
+            }
+        }
+
+        /**
+         * 在后台线程真正打开数据库（触发迁移与 schema 校验）。
+         * 若打开/迁移失败：先备份旧库 → 删除损坏文件 → 以最新 schema 重建并打开，
+         * 保证 App 永远能进入可用状态（旧数据已备份到 filesDir/db_backup/）。
+         *
+         * 仅应在后台线程（如 Dispatchers.IO）调用，避免主线程 ANR。
+         *
+         * @return 已成功打开的数据库实例
+         * @throws DiaryDatabaseOpenException 若重建后仍无法打开
+         */
+        fun openSafely(context: Context): DiaryDatabase {
+            val ctx = context.applicationContext
+            val db = getDatabase(ctx)
+            return try {
+                // 强制打开：执行迁移链 + schema 校验
+                db.openHelper.writableDatabase
+                db
+            } catch (e: Exception) {
+                android.util.Log.e("DiaryDatabase", "Database open/migration failed; backing up and recovering with fresh schema", e)
+                backupDatabaseFiles(ctx)
+                synchronized(this) {
+                    INSTANCE = null
+                    ctx.deleteDatabase("diary_database")
+                }
+                val fresh = getDatabase(ctx)
+                try {
+                    fresh.openHelper.writableDatabase
+                    android.util.Log.w("DiaryDatabase", "Database recovered via fresh rebuild; previous data backed up under filesDir/db_backup/")
+                    fresh
+                } catch (e2: Exception) {
+                    android.util.Log.e("DiaryDatabase", "Database recovery failed after fresh rebuild", e2)
+                    throw DiaryDatabaseOpenException(
+                        message = "Unable to open diary database safely. A backup was created before aborting startup.",
+                        cause = e2
+                    )
+                }
             }
         }
 

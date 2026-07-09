@@ -8,7 +8,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 /**
  * 天气预警抓取器（独立于每小时天气刷新）。
@@ -25,7 +24,9 @@ object WeatherAlertFetcher {
     private const val TAG = "WeatherAlertFetcher"
 
     // 中央气象台预警列表接口（https，避免明文被系统拦截）
-    private const val NMC_URL = "https://www.nmc.cn/rest/findAlarm?pageNo=1&pageSize=50"
+    // 注意：不要拼接 province 参数——实测带 province 会让 nmc 返回 500，
+    // 改为拉取全国最近预警后按 adcode 前缀在客户端过滤（见下方 cityPrefix/provPrefix）。
+    private const val NMC_URL = "https://www.nmc.cn/rest/findAlarm?pageNo=1&pageSize=200"
 
     // ===== 可插拔：和风天气（留空则用 nmc）=====
     private const val QWEATHER_API_KEY = "" // 填入和风天气免费 Key 后自动启用
@@ -60,7 +61,8 @@ object WeatherAlertFetcher {
     private fun fetchFromNmc(context: Context): List<WeatherAlert> {
         val (adcode, cityName) = WeatherManager.getAdcode(context) ?: return emptyList()
         val province = PROVINCE_BY_CODE[adcode.take(2)] ?: return emptyList()
-        val url = "$NMC_URL&province=${URLEncoder.encode(province, "UTF-8")}"
+        // 不再传 province 参数（nmc 对该参数返回 500），拉全国最近 200 条后客户端按 adcode 过滤
+        val url = NMC_URL
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = 10000
@@ -68,7 +70,8 @@ object WeatherAlertFetcher {
         conn.setRequestProperty("User-Agent", "DiaryApp/1.0")
         val result = mutableListOf<WeatherAlert>()
         try {
-            if (conn.responseCode != 200) return emptyList()
+            // 网络故障/服务端错误时抛出，由 Worker 捕获后 retry，避免把"拉取失败"误当成"无预警"而清空横幅
+            if (conn.responseCode != 200) throw java.io.IOException("nmc response code ${conn.responseCode}")
             val json = JSONObject(conn.inputStream.bufferedReader().readText())
             val data = json.optJSONObject("data") ?: return emptyList()
             val list = data.optJSONArray("list") ?: return emptyList()
@@ -108,7 +111,7 @@ object WeatherAlertFetcher {
             Log.d(TAG, "nmc: 命中 ${result.size} 条预警 ($province, 前缀 $cityPrefix)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch nmc alerts", e)
-            return emptyList()
+            throw e
         } finally {
             conn.disconnect()
         }
@@ -159,7 +162,7 @@ object WeatherAlertFetcher {
         conn.setRequestProperty("User-Agent", "DiaryApp/1.0")
         val result = mutableListOf<WeatherAlert>()
         try {
-            if (conn.responseCode != 200) return emptyList()
+            if (conn.responseCode != 200) throw java.io.IOException("QWeather response code ${conn.responseCode}")
             val json = JSONObject(conn.inputStream.bufferedReader().readText())
             val alerts = json.optJSONArray("alerts") ?: return emptyList()
             for (i in 0 until alerts.length()) {
@@ -190,7 +193,7 @@ object WeatherAlertFetcher {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch QWeather alerts", e)
-            return emptyList()
+            throw e
         } finally {
             conn.disconnect()
         }

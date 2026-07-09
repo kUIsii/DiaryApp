@@ -142,6 +142,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadActiveWeatherAlerts() {
         viewModelScope.launch {
+            // 总开关关闭时不展示横幅（Worker 也会清空 Store，此处二次保险）
+            if (!com.diary.app.reminder.NotificationPreferencesManager.isWeatherAlertsEnabled(getApplication())) {
+                _activeWeatherAlerts.value = emptyList()
+                return@launch
+            }
             _activeWeatherAlerts.value = WeatherAlertStore.getActiveAlerts(getApplication())
         }
     }

@@ -111,7 +111,9 @@ class DiaryApplication : Application() {
     private fun warmUpCoreData() {
         appScope.launch {
             runCatching {
-                val db = database
+                // 先在后台线程真正打开数据库（执行迁移 + schema 校验）。
+                // 失败时会自动备份旧库并按最新 schema 重建，保证 App 不会卡在启动错误屏。
+                val db = DiaryDatabase.openSafely(this@DiaryApplication)
                 _coreDataWarm.value = true
 
                 if (BackupManager.shouldAutoBackup(this@DiaryApplication)) {
@@ -124,7 +126,16 @@ class DiaryApplication : Application() {
                 AchievementNotificationManager.scheduleCheck(this@DiaryApplication)
             }.onFailure {
                 android.util.Log.w("DiaryApplication", "Core data warm-up skipped", it)
-                _startupError.value = it.message ?: "应用启动时未能安全打开本地数据。"
+                val cause = it.cause?.message
+                _startupError.value = buildString {
+                    append("应用启动时未能安全打开本地数据。")
+                    if (!it.message.isNullOrEmpty() && it.message != "应用启动时未能安全打开本地数据。") {
+                        append("\n").append(it.message)
+                    }
+                    if (!cause.isNullOrEmpty()) {
+                        append("\n原因：").append(cause)
+                    }
+                }
             }
         }
     }

@@ -62,4 +62,54 @@ object WeatherAlertStore {
 
     fun getAlertById(context: Context, alertId: String): WeatherAlert? =
         getActiveAlerts(context).firstOrNull { it.alertId == alertId }
+
+    // ── 上次巡检记录（供"是否生效"可见性展示）──────────────
+    private const val KEY_LAST_CHECK_TIME = "last_check_time"
+    private const val KEY_LAST_CHECK_SUCCESS = "last_check_success"
+    private const val KEY_LAST_CHECK_COUNT = "last_check_count"
+    private const val KEY_LAST_CHECK_ERROR = "last_check_error"
+
+    data class LastCheck(
+        val timeMs: Long,
+        val success: Boolean,
+        val count: Int,
+        val error: String?
+    )
+
+    fun recordCheck(context: Context, success: Boolean, count: Int, error: String? = null) {
+        getPrefs(context).edit()
+            .putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis())
+            .putBoolean(KEY_LAST_CHECK_SUCCESS, success)
+            .putInt(KEY_LAST_CHECK_COUNT, count)
+            .putString(KEY_LAST_CHECK_ERROR, error)
+            .apply()
+    }
+
+    fun getLastCheck(context: Context): LastCheck? {
+        val prefs = getPrefs(context)
+        val time = prefs.getLong(KEY_LAST_CHECK_TIME, 0L)
+        if (time == 0L) return null
+        return LastCheck(
+            timeMs = time,
+            success = prefs.getBoolean(KEY_LAST_CHECK_SUCCESS, false),
+            count = prefs.getInt(KEY_LAST_CHECK_COUNT, 0),
+            error = prefs.getString(KEY_LAST_CHECK_ERROR, null)
+        )
+    }
+
+    /** 人类可读的"上次检查"摘要，供设置页展示。 */
+    fun getLastCheckSummary(context: Context): String {
+        val lc = getLastCheck(context) ?: return "尚未检查"
+        val minsAgo = ((System.currentTimeMillis() - lc.timeMs) / 60000).coerceAtLeast(0)
+        val when_ = when {
+            minsAgo < 1 -> "刚刚"
+            minsAgo < 60 -> "${minsAgo}分钟前"
+            else -> "${minsAgo / 60}小时前"
+        }
+        return if (lc.success) {
+            "$when_ 检查 · 命中 ${lc.count} 条"
+        } else {
+            "$when_ 检查失败 · ${lc.error ?: "未知原因"}"
+        }
+    }
 }

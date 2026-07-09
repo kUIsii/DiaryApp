@@ -118,6 +118,8 @@ import com.diary.app.ui.theme.ThemeMode
 import com.diary.app.ui.theme.isDarkStatic
 import com.diary.app.data.BackupManager
 import com.diary.app.reminder.NotificationPreferencesManager
+import com.diary.app.weather.WeatherAlertStore
+import com.diary.app.weather.WeatherAlertWorker
 import com.diary.app.update.ApkInstaller
 import com.diary.app.update.DownloadState
 import com.diary.app.update.UpdateChecker
@@ -224,6 +226,8 @@ fun ProfileScreen(
     var weatherAlertsEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertsEnabled(context)) }
     var weatherAlertSystemEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertSystemEnabled(context)) }
     var weatherAlertInAppEnabled by remember { mutableStateOf(NotificationPreferencesManager.isWeatherAlertInAppEnabled(context)) }
+    var weatherCheckSummary by remember { mutableStateOf(WeatherAlertStore.getLastCheckSummary(context)) }
+    var isCheckingWeather by remember { mutableStateOf(false) }
     var achievementsNotifEnabled by remember { mutableStateOf(NotificationPreferencesManager.isAchievementsEnabled(context)) }
     var biometricLockEnabled by remember { mutableStateOf(BiometricHelper.isBiometricLockEnabled(context)) }
     var screenshotProtectionEnabled by remember { mutableStateOf(ScreenshotProtectionHelper.isEnabled(context)) }
@@ -709,6 +713,47 @@ fun ProfileScreen(
                             weatherAlertInAppEnabled = newValue
                         }
                     )
+                    // 天气预警巡检状态 + 立即检查：让用户能直观判断功能是否在生效
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "预警巡检状态",
+                                color = textColor,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = if (isCheckingWeather) "正在检查…" else weatherCheckSummary,
+                                color = textTertiary,
+                                fontSize = 13.sp
+                            )
+                        }
+                        TextButton(
+                            onClick = {
+                                if (isCheckingWeather || !weatherAlertsEnabled) return@TextButton
+                                isCheckingWeather = true
+                                val beforeMs = WeatherAlertStore.getLastCheck(context)?.timeMs ?: 0L
+                                WeatherAlertWorker.runNow(context)
+                                scope.launch {
+                                    var waited = 0
+                                    while (waited < 20000) {
+                                        delay(1000)
+                                        waited += 1000
+                                        val lc = WeatherAlertStore.getLastCheck(context)
+                                        if (lc != null && lc.timeMs > beforeMs) break
+                                    }
+                                    weatherCheckSummary = WeatherAlertStore.getLastCheckSummary(context)
+                                    isCheckingWeather = false
+                                }
+                            },
+                            enabled = weatherAlertsEnabled && !isCheckingWeather
+                        ) {
+                            Text(if (isCheckingWeather) "检查中" else "立即检查")
+                        }
+                    }
                     SettingDivider()
                     SwitchSettingRow(
                         icon = Icons.Default.Notifications,

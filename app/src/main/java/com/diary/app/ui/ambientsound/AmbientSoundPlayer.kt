@@ -23,6 +23,8 @@ class AmbientSoundPlayer private constructor() {
     private var vol = 0.5f
     private var sleepEndTime = 0L
     private var sleepActive = false
+    private var sleepHandler: Handler? = null
+    private var sleepRunnable: Runnable? = null
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusHeld = false
@@ -165,8 +167,7 @@ class AmbientSoundPlayer private constructor() {
         player = null
         track = null
         paused = false
-        sleepActive = false
-        sleepEndTime = 0L
+        cancelSleepTimer()
         abandonAudioFocus()
         if (playbackSessionGate.shouldDispatchStopCallback()) {
             stopCallback?.invoke()
@@ -192,15 +193,26 @@ class AmbientSoundPlayer private constructor() {
     }
 
     fun startSleepTimer(minutes: Int) {
-        if (minutes <= 0) {
-            cancelSleepTimer()
-            return
-        }
+        cancelSleepTimer()
+        if (minutes <= 0) return
         sleepEndTime = System.currentTimeMillis() + (minutes * 60_000L)
         sleepActive = true
+        // 用 Handler 在到点自动停止：保证离开环境音页面（迷你条继续播放）也能按时停止，
+        // 不再依赖页面内的轮询。
+        sleepHandler = Handler(Looper.getMainLooper())
+        sleepRunnable = Runnable {
+            if (sleepActive) {
+                sleepActive = false
+                stop()
+            }
+        }
+        sleepHandler?.postDelayed(sleepRunnable!!, minutes * 60_000L)
     }
 
     fun cancelSleepTimer() {
+        sleepRunnable?.let { sleepHandler?.removeCallbacks(it) }
+        sleepHandler = null
+        sleepRunnable = null
         sleepActive = false
         sleepEndTime = 0L
     }
