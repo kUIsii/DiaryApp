@@ -1,15 +1,22 @@
 package com.diary.app.ui.focus
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.DiaryApplication
 import com.diary.app.data.FocusSession
+import com.diary.app.data.ambientsound.AudioCacheManager
+import com.diary.app.data.ambientsound.AudioRepository
+import com.diary.app.ui.ambientsound.AmbientSoundPlayer
+import com.diary.app.ui.ambientsound.AmbientSoundService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FocusModeViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as DiaryApplication
@@ -33,8 +40,20 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
     private var timerJob: Job? = null
     private var currentSessionId: Long? = null
 
+    // 复用场景环境音的同一播放器与曲目，避免两套互不连通的声音系统
+    private val player = AmbientSoundPlayer.getInstance()
+    private val cacheManager = AudioCacheManager(app)
+    private var focusSoundActive = false
+
     init {
         loadSessions()
+    }
+
+    private fun soundTrackId(sound: String?): String? = when (sound) {
+        "rain" -> "rain_thunder"
+        "cafe" -> "sea_waves"
+        "whitenoise" -> "stream_flow"
+        else -> null
     }
 
     fun setDuration(minutes: Int) {
@@ -46,6 +65,32 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setSound(sound: String?) {
         _selectedSound.value = sound
+        if (_isRunning.value) applyFocusSound()
+    }
+
+    private fun applyFocusSound() {
+        val trackId = soundTrackId(_selectedSound.value)
+        if (trackId == null) {
+            stopFocusSound()
+            return
+        }
+        val track = AudioRepository.getTrack(trackId) ?: return
+        viewModelScope.launch {
+            val prep = withContext(Dispatchers.IO) { cacheManager.prepare(track.id, null) }
+            if (!prep.isSuccess || _selectedSound.value != trackId || !_isRunning.value) return@launch
+            val file = prep.getOrNull() ?: return@launch
+            withContext(Dispatchers.IO) { player.play(app, track, file) }
+            focusSoundActive = true
+            AmbientSoundService.start(app)
+        }
+    }
+
+    private fun stopFocusSound() {
+        if (focusSoundActive) {
+            player.stop()
+            AmbientSoundService.stop(app)
+            focusSoundActive = false
+        }
     }
 
     fun startSession() {
@@ -65,6 +110,7 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
         _remainingSeconds.value = _selectedDuration.value * 60
         _isRunning.value = true
 
+        applyFocusSound()
 
         timerJob = viewModelScope.launch {
             while (_remainingSeconds.value > 0) {
@@ -78,11 +124,13 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
     fun pauseSession() {
         timerJob?.cancel()
         _isRunning.value = false
+        if (focusSoundActive) player.pause()
     }
 
     fun resumeSession() {
         if (_remainingSeconds.value <= 0) return
         _isRunning.value = true
+        if (focusSoundActive) player.resume()
 
         timerJob = viewModelScope.launch {
             while (_remainingSeconds.value > 0) {
@@ -96,6 +144,7 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
     fun stopSession() {
         timerJob?.cancel()
         _isRunning.value = false
+        stopFocusSound()
         _remainingSeconds.value = _selectedDuration.value * 60
         currentSessionId?.let { id ->
             viewModelScope.launch {
@@ -111,6 +160,7 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun completeSession() {
         _isRunning.value = false
+        stopFocusSound()
         currentSessionId?.let { id ->
             viewModelScope.launch {
                 dao.completeFocusSession(
@@ -131,5 +181,10 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
                 _completedSessions.value = sessions
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopFocusSound()
     }
 }

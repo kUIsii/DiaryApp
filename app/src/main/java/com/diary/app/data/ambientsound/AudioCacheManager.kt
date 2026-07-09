@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 
 class AudioCacheManager(private val context: Context) {
@@ -15,11 +16,15 @@ class AudioCacheManager(private val context: Context) {
 
     fun getFile(trackId: String): File = File(cacheDir, "${trackId}.mp3")
 
+    // 写入前的「中毒缓存」防护阈值：小于该体积的文件视为无效（错误页 / 空响应）
+    private val MIN_VALID_BYTES = 1024
+
     suspend fun prepare(trackId: String, url: String? = null): Result<File> = withContext(Dispatchers.IO) {
         try {
             val file = getFile(trackId)
             if (file.exists()) return@withContext Result.success(file)
 
+            // 1) 本地 assets 优先（用户打包进 APK 的真实音频）
             try {
                 val assetPath = "ambient_sounds/${trackId}.mp3"
                 context.assets.open(assetPath).use { input ->
@@ -27,20 +32,49 @@ class AudioCacheManager(private val context: Context) {
                         input.copyTo(output)
                     }
                 }
-                return@withContext Result.success(file)
+                if (file.length() > MIN_VALID_BYTES) {
+                    return@withContext Result.success(file)
+                }
+                file.delete()
             } catch (_: Exception) { }
 
+            // 2) 远程兜底：加入中毒缓存防护，绝不把错误页 / 空文件写进缓存
             if (url != null) {
-                val conn = URL(url).openConnection()
-                conn.setRequestProperty("User-Agent", "DiaryApp/1.0")
-                conn.connectTimeout = 10000
-                conn.readTimeout = 60000
-                conn.getInputStream().use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
+                try {
+                    val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                        setRequestProperty("User-Agent", "DiaryApp/1.0")
+                        connectTimeout = 10000
+                        readTimeout = 60000
+                        instanceFollowRedirects = true
                     }
+                    val code = conn.responseCode
+                    if (code != HttpURLConnection.HTTP_OK) {
+                        conn.disconnect()
+                        return@withContext Result.failure(Exception("音频下载失败 (HTTP $code)"))
+                    }
+                    val contentType = conn.contentType ?: ""
+                    val contentLength = conn.contentLength
+                    val looksLikeAudio = contentType.contains("audio", ignoreCase = true)
+                        || contentType.contains("mpeg", ignoreCase = true)
+                    if (contentLength <= MIN_VALID_BYTES || (!looksLikeAudio && contentType.isNotBlank())) {
+                        conn.disconnect()
+                        return@withContext Result.failure(Exception("音频来源无效"))
+                    }
+                    conn.inputStream.use { input ->
+                        FileOutputStream(file).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    // 二次校验：写入后仍需为有效音频
+                    if (!file.exists() || file.length() <= MIN_VALID_BYTES) {
+                        file.delete()
+                        return@withContext Result.failure(Exception("音频文件无效"))
+                    }
+                    return@withContext Result.success(file)
+                } catch (e: Exception) {
+                    file.delete()
+                    return@withContext Result.failure(e)
                 }
-                return@withContext Result.success(file)
             }
 
             Result.failure(Exception("No audio source available"))

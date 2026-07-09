@@ -826,23 +826,26 @@ popExitTransition = {
             }
         }
 
-        AmbientSoundMiniBar(
-            state = ambientSoundState,
-            onTogglePlay = {
-                ambientSoundState.currentTrack?.let {
-                    ambientSoundViewModel.togglePlay(it)
+        // 同一时间内只保留一个播放控件：在环境音页面内本身就有播放器，不再叠加全局 MiniBar
+        if (currentRoute != Screen.AmbientSound.route) {
+            AmbientSoundMiniBar(
+                state = ambientSoundState,
+                onTogglePlay = {
+                    ambientSoundState.currentTrack?.let {
+                        ambientSoundViewModel.togglePlay(it)
+                    }
+                },
+                onStop = { ambientSoundViewModel.stop() },
+                onVolumeChange = { ambientSoundViewModel.setVolume(it) },
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onNavigateToFullScreen = {
+                    ambientSoundViewModel.showFullscreenPlayer()
+                    navController.navigate(Screen.AmbientSound.route) {
+                        launchSingleTop = true
+                    }
                 }
-            },
-            onStop = { ambientSoundViewModel.stop() },
-            onVolumeChange = { ambientSoundViewModel.setVolume(it) },
-            modifier = Modifier.align(Alignment.BottomCenter),
-            onNavigateToFullScreen = {
-                ambientSoundViewModel.showFullscreenPlayer()
-                navController.navigate(Screen.AmbientSound.route) {
-                    launchSingleTop = true
-                }
-            }
-        )
+            )
+        }
         }
     }
 }

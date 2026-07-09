@@ -1,75 +1,20 @@
 package com.diary.app.data.ambientsound
 
 object AudioRepository {
-    // CDN base path for Freesound previews (HQ = ~128kbps mp3)
-    private const val FS = "https://cdn.freesound.org/previews"
-
-    private fun hq(sid: Int, uid: Int) = "$FS/${sid / 1000}/$sid${"_"}$uid-hq.mp3"
-
+    // 真实音频已放入 assets/ambient_sounds/{id}.mp3（用户提供的 5 个真实录音）
+    // 拆为「水声」「林间」两类；backgroundImageUrl 统一为 null -> 全屏走主题化色调背景
     val categories = listOf(
-        AudioCategory("sleep", "助眠",
-            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80"),
-        AudioCategory("nature", "自然",
-            "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&q=80"),
-        AudioCategory("reading", "伴读",
-            "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=400&q=80"),
-        AudioCategory("meditation", "冥想",
-            "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400&q=80")
+        AudioCategory("water", "水声", null),
+        AudioCategory("forest", "林间", null)
     )
 
+    // audioUrl 统一为 null -> 仅走本地 assets；缺失时 UI 提示「音频待添加」
     private val allTracks = listOf(
-        // Sleep
-        AudioTrack("s1", "sleep", "雨打芭蕉", "白噪音助眠", 30, hq(720153, 1504845),
-            "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=400&q=80"),
-        AudioTrack("s2", "sleep", "壁炉篝火", "温暖柴火声", 30, hq(508844, 1934171),
-            "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&q=80"),
-        AudioTrack("s3", "sleep", "海浪白噪音", "舒缓海浪声", 30, hq(578524, 5487341),
-            "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=80"),
-        AudioTrack("s4", "sleep", "深层宁静", "深度放松音频", 30, hq(810260, 5287430),
-            "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=80"),
-        AudioTrack("s5", "sleep", "细雨微风", "轻柔雨声伴眠", 30, hq(607228, 11069322),
-            "https://images.unsplash.com/photo-1438449805896-28a666819a20?w=400&q=80"),
-        AudioTrack("s6", "sleep", "炉边夜读", "静谧阅读时光", 30, hq(508844, 1934171),
-            "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80"),
-        // Nature
-        AudioTrack("n1", "nature", "山间溪流", "潺潺流水声", 30, hq(401127, 7724516),
-            "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=400&q=80"),
-        AudioTrack("n2", "nature", "森林晨鸟", "清晨鸟鸣声", 30, hq(639985, 5487341),
-            "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&q=80"),
-        AudioTrack("n3", "nature", "林风习习", "林间清风拂面", 30, hq(401127, 7724516),
-            "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=400&q=80"),
-        AudioTrack("n4", "nature", "夏日蝉鸣", "盛夏蝉鸣声", 30, hq(421955, 377690),
-            "https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=400&q=80"),
-        AudioTrack("n5", "nature", "瀑布水声", "飞瀑流泉声", 30, hq(489073, 7707368),
-            "https://images.unsplash.com/photo-1497294815431-9365093b7331?w=400&q=80"),
-        AudioTrack("n6", "nature", "山谷回声", "山谷回音环绕", 30, hq(401127, 7724516),
-            "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&q=80"),
-        // Reading
-        AudioTrack("r1", "reading", "月光钢琴", "柔光钢琴曲", 30, hq(789314, 16936704),
-            "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=400&q=80"),
-        AudioTrack("r2", "reading", "时光吉他", "慢弹拨弦乐", 30, hq(656124, 16292291),
-            "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&q=80"),
-        AudioTrack("r3", "reading", "低语大提琴", "低沉弦音", 30, hq(34580, 220751),
-            "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80"),
-        AudioTrack("r4", "reading", "书页之间", "翻书背景音", 30, hq(789314, 16936704),
-            "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&q=80"),
-        AudioTrack("r5", "reading", "午后阳光", "温暖和煦时光", 30, hq(639985, 5487341),
-            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400&q=80"),
-        AudioTrack("r6", "reading", "星空夜曲", "星空下的旋律", 30, hq(789314, 16936704),
-            "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=80"),
-        // Meditation
-        AudioTrack("m1", "meditation", "颂钵之音", "治愈音波振动", 30, hq(473813, 2979910),
-            "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80"),
-        AudioTrack("m2", "meditation", "432Hz谐振", "432Hz频率共振", 30, hq(810260, 5287430),
-            "https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=400&q=80"),
-        AudioTrack("m3", "meditation", "呼吸引导", "正念呼吸练习", 30, hq(810260, 5287430),
-            "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=400&q=80"),
-        AudioTrack("m4", "meditation", "空灵钟声", "空灵梵音", 30, hq(473813, 2979910),
-            "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80"),
-        AudioTrack("m5", "meditation", "竹林风铃", "竹林静心风铃", 30, hq(39832, 362262),
-            "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80"),
-        AudioTrack("m6", "meditation", "晨曦鸟鸣", "晨间冥想鸟鸣", 30, hq(639985, 5487341),
-            "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80")
+        AudioTrack("rain_thunder", "water", "雷雨", "雨声与远雷，适合安眠与专注", 0, null, null),
+        AudioTrack("sea_waves", "water", "海浪", "平稳起伏，放松身心", 0, null, null),
+        AudioTrack("stream_flow", "water", "涓涓细流", "溪流潺潺，轻柔绵长", 0, null, null),
+        AudioTrack("waterfall", "water", "瀑布", "水流倾泻，白噪掩蔽", 0, null, null),
+        AudioTrack("forest_birds", "forest", "森林晨鸟", "清晨鸟鸣，唤醒自然感", 0, null, null)
     )
 
     fun getTracks(categoryId: String): List<AudioTrack> = allTracks.filter { it.categoryId == categoryId }

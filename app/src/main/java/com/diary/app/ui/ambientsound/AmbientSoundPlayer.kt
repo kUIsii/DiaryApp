@@ -27,6 +27,7 @@ class AmbientSoundPlayer private constructor() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusHeld = false
     private var ducked = false
+    private var pausedForFocusLoss = false
     private var playCallback: (() -> Unit)? = null
     private var stopCallback: (() -> Unit)? = null
 
@@ -36,13 +37,31 @@ class AmbientSoundPlayer private constructor() {
     private var meanderRunnable: Runnable? = null
     private var meanderPeriodMs = 10000L
     private var meanderPhase = 0.0
+    private val meanderDepth = 0.12f
 
     private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
-            AudioManager.AUDIOFOCUS_LOSS -> { pause() }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> { pause() }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                // 永久失去焦点（被其他应用长期占用）：不自动续播
+                pausedForFocusLoss = false
+                pause()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // 瞬时失去（来电/其他 App 短暂出声）：暂停并标记，待恢复时自动续播
+                pausedForFocusLoss = true
+                pause()
+            }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> { ducked = true; applyVolume() }
-            AudioManager.AUDIOFOCUS_GAIN -> { ducked = false; applyVolume() }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                ducked = false
+                if (pausedForFocusLoss) {
+                    // 因焦点瞬失而暂停的，恢复焦点后自动续播
+                    pausedForFocusLoss = false
+                    resume()
+                } else {
+                    applyVolume()
+                }
+            }
         }
     }
 
@@ -196,13 +215,6 @@ class AmbientSoundPlayer private constructor() {
         return sleepActive && System.currentTimeMillis() >= sleepEndTime
     }
 
-    fun checkAndExpireSleepTimer() {
-        if (isSleepExpired()) {
-            stop()
-            cancelSleepTimer()
-        }
-    }
-
     private fun startMeander() {
         stopMeander()
         meanderFactor = 1f
@@ -213,7 +225,8 @@ class AmbientSoundPlayer private constructor() {
             if (!meanderEnabled || player == null) return@Runnable
             meanderPhase += 2.0 * PI * 200.0 / meanderPeriodMs
             val normalized = (sin(meanderPhase) + 1.0) / 2.0
-            meanderFactor = 0.5f + 0.5f * normalized.toFloat()
+            // 在用户设定音量(vol)之上做 ±meanderDepth 的轻微呼吸式调制，不覆盖音量条
+            meanderFactor = 1f - meanderDepth * (1f - normalized.toFloat())
             applyVolume()
             meanderHandler?.postDelayed(meanderRunnable!!, 200)
         }

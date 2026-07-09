@@ -9,8 +9,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,6 +74,7 @@ import coil.request.ImageRequest
 import com.diary.app.data.ambientsound.AudioCategory
 import com.diary.app.data.ambientsound.AudioRepository
 import com.diary.app.data.ambientsound.AudioTrack
+import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.PageHeader
 
 @Composable
@@ -120,15 +119,12 @@ fun AmbientSoundScreen(
                 track = state.currentTrack!!,
                 isPlaying = state.isPlaying,
                 volume = state.volume,
-                progress = state.progress,
-                duration = state.duration,
                 sleepRemaining = state.sleepRemainingSeconds,
                 isFavorite = state.currentTrack!!.id in state.favoriteIds,
                 backgroundImageUrl = category?.backgroundImageUrl,
                 categoryId = category?.id,
                 onTogglePlay = { viewModel.togglePlay(state.currentTrack!!) },
                 onStop = { viewModel.stop() },
-                onSeek = { viewModel.seekTo(it) },
                 onVolumeChange = { viewModel.setVolume(it) },
                 onToggleFavorite = { viewModel.toggleFavorite(state.currentTrack!!.id) },
                 onSleepTimer = { viewModel.startSleepTimer(it) },
@@ -367,38 +363,32 @@ private fun TrackCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-
     val pulseTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by pulseTransition.animateFloat(
         initialValue = 1f, targetValue = 1.08f,
         animationSpec = infiniteRepeatable(animation = tween(1200), repeatMode = RepeatMode.Reverse),
         label = "pulseScale"
     )
-
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val baseBg = MaterialTheme.colorScheme.surfaceVariant
-    val bgColor = when {
-        isPlaying -> accent.copy(alpha = 0.1f)
-        pressed -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-        else -> baseBg.copy(alpha = 0.4f)
-    }
-    val borderColor = if (isPlaying) accent.copy(alpha = 0.3f) else Color.Transparent
 
-    Surface(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        color = bgColor,
-        tonalElevation = 0.dp
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        enableShadow = isPlaying,
+        innerPadding = 0.dp,
+        onClick = onClick
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                .background(borderColor, RoundedCornerShape(14.dp))
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(accent.copy(alpha = 0.08f))
+                )
+            }
             Row(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable(interactionSource = interaction, indication = null) { onClick() }
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -429,7 +419,7 @@ private fun TrackCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(track.name, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                        color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         if (isPreparing) {
@@ -452,7 +442,7 @@ private fun TrackCard(
                     Icon(
                         if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = null,
-                        tint = if (isFavorite) Color(0xFFE07070) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -482,15 +472,12 @@ private fun FullscreenPlayer(
     track: AudioTrack,
     isPlaying: Boolean,
     volume: Float,
-    progress: Int,
-    duration: Int,
     sleepRemaining: Int,
     isFavorite: Boolean,
     backgroundImageUrl: String?,
     categoryId: String?,
     onTogglePlay: () -> Unit,
     onStop: () -> Unit,
-    onSeek: (Int) -> Unit,
     onVolumeChange: (Float) -> Unit,
     onToggleFavorite: () -> Unit,
     onSleepTimer: (Int) -> Unit,
@@ -498,8 +485,8 @@ private fun FullscreenPlayer(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val accent = MaterialTheme.colorScheme.tertiary
-    val onAccent = MaterialTheme.colorScheme.onTertiary
+    val accent = MaterialTheme.colorScheme.primary
+    val onAccent = MaterialTheme.colorScheme.onPrimary
     val textPrimary = MaterialTheme.colorScheme.onSurface
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
     val overlay = MaterialTheme.colorScheme.scrim.copy(alpha = 0.75f)
@@ -540,13 +527,11 @@ private fun FullscreenPlayer(
         } else {
             Box(modifier = Modifier.fillMaxSize().background(
                 when (categoryId) {
-                    "sleep" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    "nature" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
-                    "reading" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
-                    "meditation" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    "water" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    "forest" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
-            ).then(Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))))
+            )                .then(Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))))
         }
         Box(modifier = Modifier.fillMaxSize().background(overlay))
 
@@ -565,7 +550,7 @@ private fun FullscreenPlayer(
                     Icon(
                         if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = null,
-                        tint = if (isFavorite) Color(0xFFE07070) else textPrimary
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else textPrimary
                     )
                 }
             }
@@ -600,22 +585,6 @@ private fun FullscreenPlayer(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-
-            Text("进度", fontSize = 12.sp, color = textSecondary)
-            Slider(
-                value = if (duration > 0) progress.toFloat() / duration else 0f,
-                onValueChange = { onSeek((it * duration).toInt()) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = accent,
-                    activeTrackColor = accent,
-                    inactiveTrackColor = textSecondary.copy(alpha = 0.3f)
-                )
-            )
-            Text("${formatDuration(progress)}/${formatDuration(duration)}",
-                fontSize = 11.sp, color = textSecondary)
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text("音量", fontSize = 12.sp, color = textSecondary)
             Row(
@@ -676,9 +645,4 @@ private fun FullscreenPlayer(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
-
-private fun formatDuration(ms: Int): String {
-    val totalSec = ms / 1000
-    return "${totalSec / 60}:${(totalSec % 60).toString().padStart(2, '0')}"
 }

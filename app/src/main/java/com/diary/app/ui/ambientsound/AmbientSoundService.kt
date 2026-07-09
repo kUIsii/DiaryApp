@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.diary.app.MainActivity
+import com.diary.app.R
 
 class AmbientSoundService : Service() {
     private val player = AmbientSoundPlayer.getInstance()
@@ -98,17 +99,17 @@ class AmbientSoundService : Service() {
         val paused = player.isPausedState
 
         val playPauseAction = if (paused)
-            NotificationCompat.Action(android.R.drawable.ic_media_play, "\u64AD\u653E",
+            NotificationCompat.Action(R.drawable.ic_ambient_play, "\u64AD\u653E",
                 PendingIntent.getService(this, 2,
                     Intent(this, AmbientSoundService::class.java).setAction(ACTION_RESUME),
                     PendingIntent.FLAG_IMMUTABLE))
         else
-            NotificationCompat.Action(android.R.drawable.ic_media_pause, "\u6682\u505C",
+            NotificationCompat.Action(R.drawable.ic_ambient_pause, "\u6682\u505C",
                 PendingIntent.getService(this, 2,
                     Intent(this, AmbientSoundService::class.java).setAction(ACTION_PAUSE),
                     PendingIntent.FLAG_IMMUTABLE))
 
-        val stopAction = NotificationCompat.Action(android.R.drawable.ic_menu_close_clear_cancel, "\u505C\u6B62",
+        val stopAction = NotificationCompat.Action(R.drawable.ic_ambient_stop, "\u505C\u6B62",
             PendingIntent.getService(this, 1,
                 Intent(this, AmbientSoundService::class.java).setAction(ACTION_STOP_ALL),
                 PendingIntent.FLAG_IMMUTABLE))
@@ -116,7 +117,7 @@ class AmbientSoundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("\u573A\u666F\u73AF\u5883\u97F3")
             .setContentText(if (paused) "\u5DF2\u6682\u505C\uFF1A$trackName" else "\u6B63\u5728\u64AD\u653E\uFF1A$trackName")
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(openIntent)
             .addAction(playPauseAction)
             .addAction(stopAction)
