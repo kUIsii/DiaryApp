@@ -108,6 +108,8 @@ import com.diary.app.biometric.BiometricHelper
 import com.diary.app.reminder.ReminderManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.components.IconCircle
 import com.diary.app.ui.components.SettingDivider
 import com.diary.app.ui.editor.APP_FONT_SIZE_PREF_KEY
@@ -184,6 +186,7 @@ fun ProfileScreen(
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToTrash: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
+    onNavigateToWeatherAlertList: () -> Unit = {},
     onMainScreenSwipe: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -409,29 +412,32 @@ fun ProfileScreen(
     val scrollState = rememberScrollState()
 
     GradientBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp)
-                .pointerInput(onMainScreenSwipe) {
-                    var totalDrag = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { totalDrag = 0f },
-                        onHorizontalDrag = { change, dragAmount ->
-                            totalDrag += dragAmount
-                            change.consume()
-                        },
-                        onDragEnd = {
-                            onMainScreenSwipe?.invoke(totalDrag)
-                        }
-                    )
-                },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(48.dp))
+        Column(modifier = Modifier.fillMaxSize()) {
+            ScreenTopBar(title = "\u6211\u7684")
 
-            HeaderSection(textColor = textColor, textTertiary = textTertiary, phoneNumber = if (authManager.isLoggedIn) authManager.savedPhone else null)
+            Spacer(modifier = Modifier.height(DesignTokens.TopBarGap))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = DesignTokens.PageMargin)
+                    .pointerInput(onMainScreenSwipe) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                totalDrag += dragAmount
+                                change.consume()
+                            },
+                            onDragEnd = {
+                                onMainScreenSwipe?.invoke(totalDrag)
+                            }
+                        )
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HeaderSection(textColor = textColor, textTertiary = textTertiary, phoneNumber = if (authManager.isLoggedIn) authManager.savedPhone else null)
 
             Spacer(modifier = Modifier.height(28.dp))
 
@@ -753,6 +759,12 @@ fun ProfileScreen(
                         ) {
                             Text(if (isCheckingWeather) "检查中" else "立即检查")
                         }
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(
+                            onClick = onNavigateToWeatherAlertList
+                        ) {
+                            Text("查看详情")
+                        }
                     }
                     SettingDivider()
                     SwitchSettingRow(
@@ -931,6 +943,8 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
+
 }
 
 // --- Collapsible Section ---

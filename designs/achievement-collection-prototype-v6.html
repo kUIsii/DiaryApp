@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 成就收藏 · 生活痕迹馆 v6</title>
+  <style>
+    /* ═══════════════════════════════════════
+       v6 — 生活痕迹馆 (Life Traces Archive)
+       Design direction: private archive,
+       not game hall. Two-layer color system.
+       Neutral base + semantic accents only.
+       ═══════════════════════════════════════ */
+
+    :root, [data-theme="light"] {
+      color-scheme: light;
+      /* ── neutral layer ── */
+      --bg: #f5f2ec;           --bg-grad: linear-gradient(180deg,#f5f2ec,#efebe3);
+      --surface: #fffdf7;
+      --ink: #3a3733;          --muted: #8c887f;
+      --line: #e8e4dc;         --line-strong: #d6d2c9;
+      --locked-bg: #ede9e2;    --locked-text: #b5b1a8;
+      --accent: #6b9080;
+
+      /* ── semantic: category dots ── */
+      --cat-time: #7a9e89;      --cat-mood: #7a8fa3;
+      --cat-weather: #8a94a1;   --cat-writing: #a38e74;
+      --cat-habit: #8a9868;     --cat-explorer: #9a8674;
+      --cat-collector: #a48a88; --cat-legendary: #b89968;
+
+      /* ── semantic: rarity tags ── */
+      --tier-com: #9a9690;      --tier-rare: #6b8094;
+      --tier-epic: #a07878;     --tier-leg: #b89968;
+
+      /* ── misc ── */
+      --progress-bg: #ebe7df;
+      --filter-active: rgba(107,144,128,.12);
+      --toast-bg: rgba(58,55,51,.88);
+      --shadow-card: 0 1px 3px rgba(57,53,47,.04);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #1b1a18;           --bg-grad: linear-gradient(180deg,#1b1a18,#161513);
+      --surface: #252320;
+      --ink: #e6e2da;          --muted: #84827a;
+      --line: #35332e;         --line-strong: #4a4843;
+      --locked-bg: #2a2824;    --locked-text: #6e6b64;
+      --accent: #7aa892;
+
+      /* brighter semantics in dark */
+      --cat-time: #8fb09d;      --cat-mood: #8fa3b5;
+      --cat-weather: #9ea8b4;   --cat-writing: #b39e84;
+      --cat-habit: #99a87a;     --cat-explorer: #a99684;
+      --cat-collector: #b49a98; --cat-legendary: #c8aa78;
+
+      --tier-com: #a8a49c;      --tier-rare: #7b92a8;
+      --tier-epic: #b08888;     --tier-leg: #c8aa78;
+
+      --progress-bg: #33312d;
+      --filter-active: rgba(122,168,146,.14);
+      --toast-bg: rgba(230,226,218,.9);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      color: var(--ink);
+      background: var(--bg-grad);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* ─── external controls (outside phone) ─── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    .ctrl-btn {
+      height: 34px; padding: 0 14px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--surface);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      color: var(--ink); transition: background .15s, transform .15s;
+    }
+    .ctrl-btn:active { transform: scale(.96); }
+    .ctrl-label { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing:.04em; }
+    .demo-note { font-size: 10px; color: var(--muted); text-align: center; max-width: 380px; line-height:1.5; }
+
+    /* ─── phone shell ─── */
+    .phone {
+      width: min(390px, 100%); aspect-ratio: 390/820;
+      background: #222; border-radius: 46px;
+      padding: 11px; position: relative;
+      box-shadow: 0 40px 80px rgba(30,28,26,.25);
+    }
+    .phone::before {
+      content:""; position:absolute; top:15px; left:50%; transform:translateX(-50%);
+      width:120px; height:26px; background:#222; border-radius:999px; z-index:30;
+    }
+    .screen {
+      height:100%; border-radius:36px; overflow:hidden;
+      background: var(--bg-grad); position:relative;
+      display:flex; flex-direction:column;
+    }
+
+    /* status bar */
+    .sbar {
+      flex:0 0 auto; height:44px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 24px; font-size:12px; font-weight:800; color:var(--muted);
+      z-index:5;
+    }
+    .sbar .dots { display:inline-flex; gap:4px; }
+    .sbar .dots i { width:6px; height:6px; border-radius:999px; background:var(--muted); display:inline-block; font-style:normal; }
+
+    /* header — minimal per master prompt */
+    .hdr {
+      flex:0 0 auto; padding:2px 20px 10px;
+    }
+    .hdr h1 {
+      font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:26px; font-weight:900; line-height:1.1;
+    }
+    .hdr .sub {
+      font-size:11.5px; color:var(--muted); margin-top:2px;
+    }
+    .hdr .counter {
+      display:inline-flex; align-items:center; gap:6px;
+      margin-top:6px; font-size:11px; font-weight:700; color:var(--muted);
+    }
+    .counter-num {
+      font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:15px; font-weight:900; color:var(--ink);
+    }
+
+    /* spotlight — one featured card */
+    .spotlight {
+      flex:0 0 auto; padding:0 16px 8px;
+    }
+    .spot {
+      display:flex; gap:12px; align-items:center;
+      padding:12px; border-radius:14px; border:1px solid var(--line);
+      background:var(--surface); box-shadow:var(--shadow-card);
+      cursor:pointer; transition:transform .18s ease;
+    }
+    .spot:active { transform:scale(.985); }
+    .spot-img {
+      width:80px; height:80px; flex:0 0 auto; border-radius:12px;
+      background-size:cover; background-position:center;
+      border:1px solid var(--line);
+    }
+    .spot-info { flex:1; min-width:0; }
+    .spot-name {
+      font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:16px; font-weight:800; line-height:1.2;
+    }
+    .spot-meta { display:flex; gap:8px; align-items:center; margin-top:4px; }
+    .dot {
+      width:7px; height:7px; border-radius:999px; flex-shrink:0;
+    }
+    .spot-tag { font-size:10px; font-weight:800; color:var(--muted); }
+    .spot-hint { font-size:11px; color:var(--muted); margin-top:5px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .spot-arrow { color:var(--muted); flex-shrink:0; opacity:.45; }
+
+    /* filter row — single row + more button */
+    .frow {
+      flex:0 0 auto; padding:0 16px 6px;
+      display:flex; gap:6px; align-items:center;
+    }
+    .fpill {
+      height:30px; padding:0 13px; border-radius:999px;
+      border:1px solid var(--line); background:transparent;
+      font-size:11.5px; font-weight:700; color:var(--muted);
+      cursor:pointer; white-space:nowrap; transition:all .15s;
+    }
+    .fpill.on { background:var(--filter-active); border-color:var(--accent); color:var(--accent); }
+    .fpill:active { transform:scale(.95); }
+    .fmore {
+      width:30px; height:30px; border-radius:999px; border:1px solid var(--line);
+      background:transparent; cursor:pointer; display:grid; place-items:center;
+      color:var(--muted); flex-shrink:0; transition:background .15s;
+    }
+    .fmore svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; }
+
+    /* scrollable body */
+    .body {
+      flex:1 1 auto; overflow-y:auto; padding:0 16px 20px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .body::-webkit-scrollbar { width:0; }
+
+    /* achievement grid — three columns, compact */
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+
+    /* card — grounded, not floating */
+    .card {
+      border-radius:12px; border:1px solid var(--line);
+      background:var(--surface); box-shadow:var(--shadow-card);
+      cursor:pointer; overflow:hidden; transition:transform .18s ease;
+      text-align:center; padding-bottom:10px;
+    }
+    .card:active { transform:scale(.96); }
+
+    .card-cover {
+      width:100%; aspect-ratio:1; background-size:cover; background-position:center;
+      position:relative;
+    }
+    .card.locked .card-cover { filter:saturate(.55) brightness(.94); }
+    .card-lock {
+      position:absolute; inset:0; display:grid; place-items:center;
+    }
+    .card-lock svg { width:22px; height:22px; color:rgba(var(--locked-rgb),.5); stroke:currentColor; fill:none; stroke-width:1.7; }
+
+    .card-name {
+      font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:12.5px; font-weight:800; line-height:1.2;
+      padding:0 6px; margin-top:7px;
+    }
+    .card-row { display:flex; justify-content:center; align-items:center; gap:5px; margin-top:4px; }
+    .card-tier {
+      font-size:9px; font-weight:800; padding:1px 7px; border-radius:999px;
+      background:color-mix(in srgb,var(--tier-current) 14%, transparent);
+      color:var(--tier-current);
+    }
+    .card-prog {
+      width:72%; height:3px; border-radius:999px;
+      background:var(--progress-bg); margin-top:5px; overflow:hidden;
+    }
+    .card-prog i { display:block; height:100%; background:var(--accent); border-radius:999px; transition:width .4s ease; }
+
+    /* empty state */
+    .empty { grid-column:1/-1; text-align:center; padding:32px 0; color:var(--muted); font-size:12.5px; }
+
+    /* ─── detail sheet (slides up) ─── */
+    .sheet {
+      position:absolute; inset:0; z-index:20;
+      background:var(--bg-grad); display:flex; flex-direction:column;
+      transform:translateY(100%); transition:transform .28s cubic-bezier(.22,1,.36,1);
+    }
+    .sheet.open { transform:none; }
+    .sheet-top {
+      flex:0 0 auto; display:flex; align-items:center; gap:10px;
+      padding:46px 18px 8px;
+    }
+    .sheet-back {
+      width:34px; height:34px; border-radius:10px;
+      border:1px solid var(--line); background:var(--surface);
+      display:grid; place-items:center; cursor:pointer; color:var(--ink);
+    }
+    .sheet-back svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
+    .sheet-title { font-family:"Songti SC","Noto Serif SC",Georgia,serif; font-size:15px; font-weight:800; }
+
+    .sheet-body {
+      flex:1 1 auto; overflow-y:auto; padding:4px 18px 12px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .sheet-body::-webkit-scrollbar { width:0; }
+
+    .d-cover {
+      width:130px; height:130px; margin:8px auto 14px; border-radius:18px;
+      background-size:cover; background-position:center;
+      border:1px solid var(--line);
+    }
+    .d-name {
+      text-align:center; font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:23px; font-weight:900; line-height:1.15;
+    }
+    .d-meta {
+      text-align:center; font-size:10.5px; font-weight:800;
+      letter-spacing:.06em; color:var(--muted); margin-top:5px;
+    }
+    .d-flavor {
+      margin:14px 0; padding:14px 16px; border-radius:13px;
+      border:1px dashed var(--line-strong);
+      background:var(--surface); font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+      font-size:14px; line-height:1.75; color:var(--ink); font-style:italic;
+    }
+    .d-snippet {
+      margin:0 0 14px; padding:12px 14px; border-radius:12px;
+      background:var(--surface); border:1px solid var(--line);
+    }
+    .d-snippet-lbl { font-size:9.5px; font-weight:800; letter-spacing:.06em; color:var(--muted); }
+    .d-snippet-txt { margin-top:5px; font-size:12.5px; line-height:1.65; color:var(--ink); }
+    .d-prog-row { display:flex; align-items:center; gap:10px; margin:12px 0; }
+    .d-prog-bar { flex:1; height:6px; border-radius:999px; background:var(--progress-bg); overflow:hidden; }
+    .d-prog-bar i { display:block; height:100%; background:var(--accent); border-radius:999px; }
+    .d-prog-txt { font-size:11.5px; font-weight:800; color:var(--muted); white-space:nowrap; }
+    .d-trail-head { font-size:10.5px; font-weight:800; letter-spacing:.06em; color:var(--muted); margin-bottom:10px; }
+    .trail { border-left:2px solid var(--line-strong); padding-left:16px; display:grid; gap:10px; list-style:none; }
+    .trail li { position:relative; }
+    .trail li::before {
+      content:""; position:absolute; left:-21px; top:5px;
+      width:8px; height:8px; border-radius:999px;
+      background:var(--accent); border:2px solid var(--surface);
+      box-shadow:0 0 0 2px var(--accent);
+    }
+    .trail b { font-size:12.5px; display:block; }
+    .trail span { font-size:10.5px; color:var(--muted); }
+
+    .sheet-actions {
+      flex:0 0 auto; padding:10px 18px calc(10px + env(safe-area-inset-bottom));
+      display:flex; gap:8px; border-top:1px solid var(--line); background:var(--surface);
+    }
+    .act {
+      flex:1; min-height:42px; border-radius:999px; border:1px solid var(--line);
+      background:var(--surface); font-size:12px; font-weight:800;
+      cursor:pointer; display:grid; place-items:center; color:var(--ink);
+      transition:background .15s, transform .15s;
+    }
+    .act:active { transform:scale(.96); }
+    .act.primary { border-color:transparent; background:var(--accent); color:#fff; }
+    .act.gold { color:var(--tier-leg); border-color:color-mix(in srgb,var(--tier-leg) 30%, transparent); background:color-mix(in srgb,var(--tier-leg) 8%, transparent); }
+
+    /* ─── tab bar ─── */
+    .tbar {
+      flex:0 0 auto; display:flex;
+      border-top:1px solid var(--line); background:var(--surface);
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    .tbtn {
+      flex:1; min-height:50px; border:0; background:none;
+      display:grid; place-items:center; gap:3px;
+      color:var(--muted); font-size:10px; font-weight:800; cursor:pointer;
+    }
+    .tbtn svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; }
+    .tbtn[aria-selected="true"] { color:var(--accent); }
+
+    /* ─── filter bottom sheet ─── */
+    .fsheet {
+      position:absolute; inset:0; z-index:19;
+      background:rgba(0,0,0,.3); opacity:0; pointer-events:none;
+      transition:opacity .22s;
+    }
+    .fsheet.open { opacity:1; pointer-events:auto; }
+    .fsheet-inner {
+      position:absolute; bottom:0; left:0; right:0;
+      background:var(--surface); border-radius:20px 20px 0 0;
+      padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+      transform:translateY(100%); transition:transform .28s cubic-bezier(.22,1,.36,1);
+    }
+    .fsheet.open .fsheet-inner { transform:none; }
+    .fsheet h3 { font-size:15px; font-weight:900; margin-bottom:14px; }
+    .fsec { margin-bottom:16px; }
+    .fsec-lbl { font-size:10.5px; font-weight:800; letter-spacing:.05em; color:var(--muted); margin-bottom:8px; }
+    .fchips { display:flex; flex-wrap:wrap; gap:6px; }
+    .fchip {
+      height:32px; padding:0 13px; border-radius:999px; border:1px solid var(--line);
+      background:transparent; font-size:11.5px; font-weight:700; color:var(--ink);
+      cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .15s;
+    }
+    .fchip.on { background:var(--filter-active); border-color:var(--accent); color:var(--accent); }
+    .fchip .fdot { width:8px; height:8px; border-radius:999px; flex-shrink:0; }
+    .frow-btns { display:flex; gap:8px; margin-top:16px; }
+    .frow-btns button { flex:1; height:38px; border-radius:999px; border:1px solid var(--line); background:transparent; font-size:12.5px; font-weight:800; cursor:pointer; }
+    .frow-btns .apply { background:var(--accent); color:#fff; border-color:transparent; }
+
+    /* ─── case view (display cabinet) ─── */
+    .case-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .case-item {
+      border-radius:12px; border:1px solid var(--line); background:var(--surface);
+      box-shadow:var(--shadow-card); overflow:hidden; cursor:pointer; transition:transform .18s;
+    }
+    .case-item:active { transform:scale(.97); }
+    .case-ci { width:100%; aspect-ratio:4/3; background-size:cover; background-position:center; }
+    .case-info { padding:10px; }
+    .case-name { font-family:"Songti SC","Noto Serif SC",Georgia,serif; font-size:13px; font-weight:800; }
+    .case-date { font-size:10px; color:var(--muted); margin-top:3px; }
+
+    /* ─── challenge view ─── */
+    .chal {
+      padding:18px; border-radius:16px; border:1px solid var(--line-strong);
+      background:var(--surface); box-shadow:var(--shadow-card);
+    }
+    .chal-icon {
+      width:76px; height:76px; margin:0 auto 12px; border-radius:18px;
+      background-size:cover; background-position:center; border:1.5px solid var(--tier-leg);
+    }
+    .chal-name { font-family:"Songti SC","Noto Serif SC",Georgia,serif; font-size:19px; font-weight:900; text-align:center; }
+    .chal-desc { margin:8px 0 12px; font-size:12.5px; line-height:1.7; color:var(--ink); text-align:center; }
+    .chal-quote { font-style:italic; color:var(--muted); }
+    .chal-bar { height:7px; border-radius:999px; background:var(--progress-bg); overflow:hidden; }
+    .chal-bar i { display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--cat-legendary)); border-radius:999px; }
+    .chal-status { margin-top:6px; font-size:11px; font-weight:800; color:var(--muted); text-align:center; }
+
+    /* ─── toast ─── */
+    .toast {
+      position:absolute; left:50%; bottom:70px; z-index:60;
+      transform:translateX(-50%) translateY(12px);
+      min-height:36px; padding:0 16px; border-radius:999px;
+      background:var(--toast-bg); color:inherit; font-size:11.5px; font-weight:700;
+      display:inline-flex; align-items:center; pointer-events:none;
+      opacity:0; transition:opacity .2s, transform .2s;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* unlock flash animation — restrained ≤1.2s */
+    @keyframes unflash {
+      0%   { box-shadow:0 0 0 0 color-mix(in srgb,var(--tier-leg) 45%,transparent); }
+      50%  { box-shadow:0 0 0 10px color-mix(in srgb,var(--tier-leg) 0%,transparent); }
+      100% { box-shadow:var(--shadow-card); }
+    }
+    .unflash { animation:unflash 1s ease forwards; }
+
+    /* reduce motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration:0ms!important; animation-duration:0ms!important; }
+    }
+  </style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ── external controls ── -->
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-theme" type="button">切换深色</button>
+    <span class="ctrl-label">|</span>
+    <button class="ctrl-btn" id="btn-demo" type="button">原型演示解锁</button>
+    <p class="demo-note">标注：模拟解锁为原型演示功能，真实产品不提供。</p>
+  </div>
+
+  <!-- ── phone ── -->
+  <div class="phone">
+  <div class="screen" data-theme="light" id="screen">
+
+    <!-- status bar -->
+    <div class="sbar"><span id="clock">22:00</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+    <!-- header -->
+    <header class="hdr" id="hdr">
+      <h1>成就收藏</h1>
+      <div class="sub">这些日子被你留下来了</div>
+      <div class="counter"><span class="counter-num" id="count-unlock">12</span><span>/ 51 已解锁</span></div>
+    </header>
+
+    <!-- spotlight (recent unlocked / closest to complete) -->
+    <section class="spotlight" id="spotlight"></section>
+
+    <!-- filter row -->
+    <div class="frow" id="frow"></div>
+
+    <!-- scrollable area -->
+    <main class="body" id="body"></main>
+
+    <!-- tab bar -->
+    <nav class="tbar" id="tbar">
+      <button class="tbtn" data-v="gallery" aria-selected="true">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>画廊
+      </button>
+      <button class="tbtn" data-v="case" aria-selected="false">
+        <svg viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H18v12.5A1.5 1.5 0 0 1 16.5 20h-10A2.5 2.5 0 0 1 4 17.5v-9Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 9.5h6M8 13h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>陈列柜
+      </button>
+      <button class="tbtn" data-v="challenge" aria-selected="false">
+        <svg viewBox="0 0 24 24"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>挑战
+      </button>
+    </nav>
+
+    <!-- detail sheet -->
+    <div class="sheet" id="sheet">
+      <div class="sheet-top">
+        <button class="sheet-back" id="sheet-back" aria-label="返回"><svg viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="sheet-title">成就详情</span>
+      </div>
+      <div class="sheet-body" id="sheet-body"></div>
+      <div class="sheet-actions" id="sheet-actions"></div>
+    </div>
+
+    <!-- filter bottom sheet -->
+    <div class="fsheet" id="fsheet">
+      <div class="fsheet-inner" id="fsheet-inner">
+        <h3>筛选</h3>
+        <div class="fsec">
+          <div class="fsec-lbl">分类</div>
+          <div class="fchips" id="fchip-cat"></div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-lbl">稀有度</div>
+          <div class="fchips" id="fchip-tier"></div>
+        </div>
+        <div class="frow-btns">
+          <button type="button" id="freset">重置</button>
+          <button type="button" class="apply" id="fapply">应用</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.screen -->
+  </div><!-- /.phone -->
+
+  <div class="toast" id="toast"></div>
+
+</div><!-- /.stage -->
+
+<script>
+/* ═══════════════════════════════════════
+   v6 data & logic — 生活痕迹馆
+   ═══════════════════════════════════════ */
+
+const IMG = {
+  time:'achievement-assets-v6/cat-time.webp', mood:'achievement-assets-v6/cat-mood.webp',
+  weather:'achievement-assets-v6/cat-weather.webp', writing:'achievement-assets-v6/cat-writing.webp',
+  habit:'achievement-assets-v6/cat-habit.webp', explorer:'achievement-assets-v6/cat-explorer.webp',
+  collector:'achievement-assets-v6/cat-collector.webp', legendary:'achievement-assets-v6/cat-legendary.webp'
+};
+
+const CAT = { time:'时间', mood:'心情', weather:'天气', writing:'写作', habit:'习惯', explorer:'探索', collector:'收藏', legendary:'传奇' };
+const TIER = { com:'普通', rare:'稀有', epic:'史诗', leg:'传奇' };
+
+/* 23 achievements from real seed data */
+const DATA = [
+  { id:'time_first',     name:'晨光初现',     cat:'time',     tier:'com',  status:'unlocked', flavor:'在清晨六到九点写下第一篇日记。一日的开头，先留一句话给自己。', date:'2025-03-12', entry:'今天醒得早，窗外有鸟。' },
+  { id:'time_night',     name:'夜航者',       cat:'time',     tier:'rare', status:'unlocked', flavor:'在夜晚二十三点之后累计写下十篇。夜里的字迹，往往最诚实。', date:'2025-06-02', entry:'地铁空了，城市安静下来。' },
+  { id:'time_century',   name:'百年孤独',     cat:'time',     tier:'leg',  status:'progress',flavor:'连续记录满 365 天。不为打卡，只为不缺席自己的生活。', target:'365 天', progress:312 },
+  { id:'mood_first',     name:'初见心情',     cat:'mood',     tier:'com',  status:'unlocked', flavor:'第一次为日记打上心情标签。情绪被看见，才算被记录。', date:'2025-02-20', entry:'有点累，但还好。' },
+  { id:'mood_rainbow',   name:'七色情绪',     cat:'mood',     tier:'epic', status:'progress',flavor:'在日记里集齐全部六种心情。喜怒哀乐，都值得留一份。', target:'6 种', progress:4 },
+  { id:'mood_calm',      name:'心如止水',     cat:'mood',     tier:'rare', status:'locked',  flavor:'在连续七天的日记中，心情都标记为平静。' },
+  { id:'weather_rain',   name:'听雨人',       cat:'weather',  tier:'com',  status:'unlocked', flavor:'在一个雨天写下日记。雨声是最好的白噪音。', date:'2025-04-08', entry:'雨一直下，反而安心。' },
+  { id:'weather_snow',   name:'踏雪寻梅',     cat:'weather',  tier:'rare', status:'locked',  flavor:'在下雪天写下日记。' },
+  { id:'weather_storm',  name:'风暴之子',     cat:'weather',  tier:'epic', status:'locked',  flavor:'在暴雨或台风预警日完成记录。' },
+  { id:'write_first',    name:'落笔成章',     cat:'writing', tier:'com',  status:'unlocked', flavor:'写下你的第一篇日记。起点总是最珍贵的。', date:'2025-01-15', entry:'试试看这个 App。' },
+  { id:'write_marathon', name:'千字文',       cat:'writing', tier:'rare', status:'unlocked', flavor:'单篇日记突破 1000 字。把一件事说透的感觉，很爽。', date:'2025-05-19', entry:'今天想认真写写那次旅行……' },
+  { id:'write_novel',    name:'著作等身',     cat:'writing', tier:'leg',  status:'progress',flavor:'累计写下 10 万字。回头看，是一整座文字的房子。', target:'10万字', progress:73400 },
+  { id:'habit_seed',     name:'习惯之种',     cat:'habit',   tier:'com',  status:'unlocked', flavor:'创建你的第一个习惯追踪。种下，就会生长。', date:'2025-03-30', entry:'决定每天走 8000 步。' },
+  { id:'habit_streak',   name:'三十而砺',     cat:'habit',   tier:'epic', status:'progress',flavor:'任意一个习惯连续坚持 30 天。', target:'30 天', progress:21 },
+  { id:'habit_year',     name:'一岁一礼',     cat:'habit',   tier:'rare', status:'locked',  flavor:'坚持同一习惯满一整年。' },
+  { id:'explore_map',    name:'地图收藏家',   cat:'explorer',tier:'com',  status:'unlocked', flavor:'在日记中标记第一个地点。把足迹变成坐标。', date:'2025-04-22', entry:'海边的小馆子。' },
+  { id:'explore_city',   name:'城市漫游者',   cat:'explorer',tier:'rare', status:'progress',flavor:'在 10 个不同城市留下记录。', target:'10 城', progress:6 },
+  { id:'explore_world',  name:'环游日记',     cat:'explorer',tier:'leg',  status:'locked',  flavor:'在 30 个城市写下日记。地球很小，你很大。' },
+  { id:'collect_first',  name:'初藏',         cat:'collector',tier:'com',  status:'unlocked', flavor:'收藏第一条日记。收藏，是另一种书写。', date:'2025-02-11', entry:'这段想留着。' },
+  { id:'collect_hoard',  name:'集腋成裘',     cat:'collector',tier:'rare', status:'unlocked', flavor:'收藏满 50 条日记。抽屉越来越满。', date:'2025-07-01', entry:'第五十张收藏卡。' },
+  { id:'collect_master', name:'收藏大师',     cat:'collector',tier:'epic', status:'progress',flavor:'收藏满 200 条。你已是这座私人博物馆的馆长。', target:'200 条', progress:128 },
+  { id:'legend_dawn',    name:'破晓',         cat:'legendary',tier:'leg',  status:'unlocked', flavor:'解锁任意 10 枚传奇成就。天快亮了。', date:'2025-07-10', entry:'第十枚传奇，落定。' },
+  { id:'legend_all',     name:'圆满',         cat:'legendary',tier:'leg',  status:'locked',  flavor:'解锁全部成就。那一刻，收藏柜会为你亮一次。' }
+];
+
+let wish = new Set(['mood_rainbow','explore_world','write_novel']);
+let fStatus='all', fCat='all', fTier='all';
+let view='gallery';
+
+const $ = s => document.querySelector(s);
+const get = id => DATA.find(d=>d.id===id);
+
+function pct(d){
+  if(d.status==='unlocked') return 100;
+  if(d.target){
+    const n = Number(String(d.progress).replace(/[^\d]/g,''));
+    const t = String(d.target).includes('万') ? n : Number(String(d.target).replace(/[^\d]/g,''));
+    return Math.min(100, Math.round(n/t*100));
+  }
+  return d.progress||0;
+}
+function pctLabel(d){
+  if(d.status==='unlocked') return '已解锁';
+  if(d.target){
+    return (typeof d.progress==='number'? d.progress.toLocaleString():d.progress)+' / '+d.target;
+  }
+  return (d.progress||0)+'%';
+}
+
+/* ── render helpers ── */
+
+function updateCounter(){
+  const u = DATA.filter(d=>d.status==='unlocked').length;
+  $('#count-unlock').textContent = u;
+}
+
+function renderSpotlight(){
+  /* pick most recently unlocked or closest-to-complete */
+  const recent = [...DATA].sort((a,b)=>((b.date||'')<(a.date||''))?1:-1)[0];
+  const close = DATA.filter(d=>d.status==='progress').sort((a,b)=>pct(b)-pct(a))[0];
+  const featured = recent || close;
+  if(!featured){ $('#spotlight').innerHTML=''; return; }
+  const d = featured;
+  $('#spotlight').innerHTML =
+    '<div class="spot" data-id="'+d.id+'">'+
+      '<div class="spot-img" style="background-image:url('+IMG[d.cat]+')"></div>'+
+      '<div class="spot-info">'+
+        '<div class="spot-name">'+d.name+'</div>'+
+        '<div class="spot-meta">'+
+          '<span class="dot" style="background:var(--cat-'+d.cat+')"></span>'+
+          '<span class="spot-tag">'+CAT[d.cat]+'</span>'+
+          '<span class="spot-tag" style="color:var(--tier-'+d.tier+')">'+TIER[d.tier]+'</span>'+
+        '</div>'+
+        '<div class="spot-hint">'+(d.date?'解锁于 '+d.date:(d.status==='progress'?'还差 '+(100-pct(d))+'%':''))+'</div>'+
+      '</div>'+
+      '<svg class="spot-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+    '</div>';
+  $('#spotlight .spot').onclick=()=>openDetail(d.id);
+}
+
+function renderFilterRow(){
+  const st = [['all','全部'],['unlocked','已解锁'],['progress','进行中'],['locked','未解锁']];
+  let h='';
+  st.forEach(([v,l])=>{
+    h += '<button class="fpill'+(fStatus===v?' on':'')+'" data-fs="'+v+'">'+l+'</button>';
+  });
+  h += '<button class="fmore" id="fmore-btn" title="更多筛选">'+
+    '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></button>';
+  $('#frow').innerHTML = h;
+  $('#frow').querySelectorAll('.fpill').forEach(b=>{
+    b.onclick=()=>{ fStatus=b.dataset.fs; renderAll(); };
+  });
+  $('#fmore-btn').onclick=()=>openFilterSheet();
+}
+
+function cardEl(d){
+  const div=document.createElement('div');
+  div.className='card'+(d.status==='locked'?' locked':'');
+  div.style.setProperty('--tier-current','var(--tier-'+d.tier+')');
+  /* cover */
+  const cv=document.createElement('div'); cv.className='card-cover';
+  cv.style.backgroundImage='url('+IMG[d.cat]+')';
+  if(d.status==='locked'){
+    cv.innerHTML='<div class="card-lock"><svg viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2" stroke-width="1.7"/><path d="M9 11V8a3 3 0 0 1 6 0v3" stroke-width="1.7"/></svg></div>';
+  }
+  div.appendChild(cv);
+  /* name */
+  const nm=document.createElement('div'); nm.className='card-name'; nm.textContent=d.name; div.appendChild(nm);
+  /* meta row */
+  const mr=document.createElement('div'); mr.className='card-row';
+  mr.innerHTML='<span class="dot" style="background:var(--cat-'+d.cat+')"></span>' +
+    '<span class="card-tier">'+TIER[d.tier]+'</span>';
+  div.appendChild(mr);
+  /* progress */
+  if(d.status==='progress'){
+    const pb=document.createElement('div'); pb.className='card-prog';
+    pb.innerHTML='<i style="width:'+pct(d)+'%"></i>';
+    div.appendChild(pb);
+  }
+  div.onclick=()=>openDetail(d.id);
+  return div;
+}
+
+function renderGallery(){
+  const list = DATA.filter(d =>
+    (fTier==='all'||d.tier===fTier) &&
+    (fCat==='all'||d.cat===fCat) &&
+    (fStatus==='all'||d.status===fStatus)
+  );
+  const b=$('#body');
+  b.innerHTML='';
+  if(!list.length){
+    const e=document.createElement('p'); e.className='empty'; e.textContent='这个筛选下还没有成就。'; b.appendChild(e); return;
+  }
+  const g=document.createElement('div'); g.className='grid';
+  list.forEach(d=>g.appendChild(cardEl(d)));
+  b.appendChild(g);
+}
+
+function renderCase(){
+  const unlocked = DATA.filter(d=>d.status==='unlocked');
+  const b=$('#body');
+  if(!unlocked.length){ b.innerHTML='<p class="empty">还没有解锁任何成就。</p>'; return; }
+  let h='<p style="font-size:11.5px;color:var(--muted);margin:0 0 12px;line-height:1.5">已经解锁的成就，像一张张被收好的旧照片。</p><div class="case-grid">';
+  unlocked.forEach(d=>{
+    h+='<div class="case-item" data-id="'+d.id+'">'+
+      '<div class="case-ci" style="background-image:url('+IMG[d.cat]+')"></div>'+
+      '<div class="case-info"><div class="case-name">'+d.name+'</div>'+
+      '<div class="case-date">'+(d.date?'解锁于 '+d.date:'')+'</div></div></div>';
+  });
+  h+='</div>';
+  b.innerHTML=h;
+  b.querySelectorAll('.case-item').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));
+}
+
+function renderChallenge(){
+  $('#body').innerHTML =
+    '<div class="chal">'+
+      '<div class="chal-icon" style="background-image:url('+IMG.habit+')"></div>'+
+      '<div class="chal-name">七月挑战 · 三十而砺</div>'+
+      '<div class="chal-desc">本月让任意一个习惯连续坚持 30 天。<br>完成后获得「三十而砺」史诗成就。<br><span class="chal-quote">"把一天过好，就是过好了一生。"</span></div>'+
+      '<div class="chal-bar"><i style="width:70%"></i></div>'+
+      '<div class="chal-status">21 / 30 天 · 还差 9 天，不急，慢慢来</div>'+
+    '</div>';
+}
+
+/* ── views ── */
+
+function switchView(v){
+  view=v;
+  document.querySelectorAll('.tbtn,.seg button').forEach(b=>{
+    const on=b.dataset.v===v;
+    b.setAttribute('aria-selected',on);
+    b.setAttribute('aria-pressed',on);
+  });
+  renderAll();
+}
+
+function renderAll(){
+  updateCounter();
+  if(view==='gallery'){ renderSpotlight(); renderFilterRow(); renderGallery(); }
+  else if(view==='case'){ $('#spotlight').innerHTML=''; $('#frow').innerHTML=''; renderCase(); }
+  else { $('#spotlight').innerHTML=''; $('#frow').innerHTML=''; renderChallenge(); }
+}
+
+/* ── detail sheet ── */
+
+function openDetail(id){
+  const d=get(id); if(!d)return;
+  const sb=$('#sheet-body');
+  let h=
+    '<div class="d-cover" style="background-image:url('+IMG[d.cat]+')"></div>'+
+    '<h2 class="d-name">'+d.name+'</h2>'+
+    '<div class="d-meta">'+CAT[d.cat]+' · '+TIER[d.tier]+'</div>'+
+    '<div class="d-flavor">"'+d.flavor+'"</div>';
+
+  if(d.entry)
+    h+='<div class="d-snippet"><div class="d-snippet-lbl">关联的日记片段</div><div class="d-snippet-txt">'+d.entry+'</div></div>';
+
+  if(d.status==='progress'){
+    h+='<div class="d-prog-row"><div class="d-prog-bar"><i style="width:'+pct(d)+'%"></i></div><span class="d-prog-txt">'+pctLabel(d)+'</span></div>'+
+      '<div class="trail"><li><b>开始追踪</b><span>目标 '+d.target+'</span></li>'+
+      '<li><b>当前进度</b><span>'+pctLabel(d)+'</span></li>'+
+      '<li><b>距达成</b><span>还差 '+(100-pct(d))+'%</span></li></div>';
+  }else if(d.status==='unlocked'){
+    h+='<div class="trail"><li><b>写下那篇日记</b><span>'+d.date+' · 触发解锁</span></li>'+
+      (d.entry?'<li><b>关联日记</b><span>"'+d.entry+'"</span></li>':'')+
+      '<li><b>收入档案册</b><span>已陈列</span></li></div>';
+  }else{
+    h+='<p style="font-size:12px;color:var(--muted);padding:8px 0;">完成特定条件后即可解锁此成就。</p>';
+  }
+
+  sb.innerHTML=h;
+  const sa=$('#sheet-actions'); sa.innerHTML='';
+  /* wishlist btn */
+  const wb=document.createElement('button');
+  wb.className='act'+(wish.has(d.id)?' gold':'');
+  wb.textContent=wish.has(d.id)?'已在心愿单':'加入心愿单';
+  wb.onclick=()=>toggleWish(d.id);
+  sa.appendChild(wb);
+  /* demo unlock for non-unlocked */
+  if(d.status!=='unlocked'){
+    const db=document.createElement('button');
+    db.className='act primary';
+    db.textContent='原型演示解锁';
+    db.onclick=()=>simulate(d.id);
+    sa.appendChild(db);
+  }
+  $('#sheet').classList.add('open');
+}
+
+function closeDetail(){ $('#sheet').classList.remove('open'); }
+
+/* ── actions ── */
+
+function toggleWish(id){
+  if(wish.has(id)) wish.delete(id); else wish.add(id);
+  renderAll();
+  if($('#sheet').classList.contains('open')) openDetail(id);
+  toast(wish.has(id)?'已加入心愿单':'已移出心愿单');
+}
+
+function simulate(id){
+  const d=get(id); if(!d)return;
+  d.status='unlocked'; d.progress=100;
+  d.date=new Date().toISOString().slice(0,10);
+  d.entry=d.entry||'刚刚达成了它。';
+  renderAll();
+  /* find and flash card */
+  const cards=[...document.querySelectorAll('.card')];
+  const c=cards.find(x=>x.textContent.includes(d.name));
+  if(c)c.classList.add('unflash');
+  toast('解锁成功：'+d.name);
+  if($('#sheet').classList.contains('open')) openDetail(id);
+}
+
+let _tt;
+function toast(m){
+  const t=$('#toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ── filter bottom sheet ── */
+
+let _tmpCat='all', _tmpTier='all';
+
+function openFilterSheet(){
+  _tmpCat=fCat; _tmpTier=fTier;
+  buildFilterChips();
+  $('#fsheet').classList.add('open');
+}
+
+function buildFilterChips(){
+  /* category chips */
+  let hc='<div class="fchip'+(_tmpCat==='all'?' on':'')+'" data-fc="all">全部</div>';
+  Object.keys(CAT).forEach(c=>{
+    hc+='<div class="fchip'+(_tmpCat===c?' on':'')+'" data-fc="'+c+'">'+
+      '<span class="fdot" style="background:var(--cat-'+c+')"></span>'+CAT[c]+'</div>';
+  });
+  $('#fchip-cat').innerHTML=hc;
+  /* tier chips */
+  let ht='<div class="fchip'+( _tmpTier==="all"?" on":"")+'" data-ft="all">全部</div>';
+  ['com','rare','epic','leg'].forEach(t=>{
+    ht+='<div class="fchip'+( _tmpTier===t?" on":"")+'" data-ft="'+t+'">'+TIER[t]+'</div>';
+  });
+  $('#fchip-tier').innerHTML=ht;
+  /* bind */
+  $('#fchip-cat').querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{_tmpCat=b.dataset.fc;buildFilterChips();});
+  $('#fchip-tier').querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{_tmpTier=b.dataset.ft;buildFilterChips();});
+  $('#freset').onclick=()=>{ _tmpCat='all'; _tmpTier='all'; buildFilterChips(); };
+  $('#fapply').onclick=()=>{
+    fCat=_tmpCat; fTier=_tmpTier;
+    $('#fsheet').classList.remove('open');
+    renderAll();
+  };
+  /* close on backdrop click */
+  $('#fsheet').onclick=e=>{ if(e.target===$('#fsheet')[0])$('#fsheet').classList.remove('open'); };
+}
+
+/* ── external controls ── */
+
+$('#btn-theme').onclick=()=>{
+  const scr=$('#screen');
+  const cur=scr.getAttribute('data-theme');
+  const nxt=cur==='light'?'dark':'light';
+  scr.setAttribute('data-theme',nxt);
+  $('#btn-theme').textContent=nxt==='light'?'切换深色':'切换浅色';
+};
+
+$('#btn-demo').onclick=()=>{
+  const locked=DATA.find(d=>d.status==='locked');
+  if(locked)simulate(locked.id);
+  else toast('没有锁定的成就可演示');
+};
+
+/* ── bindings ── */
+
+document.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>switchView(b.dataset.v));
+$('#sheet-back').onclick=closeDetail;
+
+/* init clock */
+(function(){
+  function tick(){
+    const now=new Date();
+    $('#clock').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  }
+  tick(); setInterval(tick,30000);
+})();
+
+renderAll();
+</script>
+</body>
+</html>

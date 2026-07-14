@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 时间线 redesign 原型 v5</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --font-sans: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+      --font-serif: "Songti SC", "Noto Serif SC", "SimSun", serif;
+
+      --bg: #f4efe6;
+      --bg-soft: #faf6ee;
+      --surface: rgba(255, 252, 246, 0.86);
+      --surface-solid: #fffaf2;
+      --surface-2: rgba(248, 241, 229, 0.86);
+      --ink: #202823;
+      --muted: #69746f;
+      --soft: #99a39d;
+      --line: rgba(42, 52, 46, 0.12);
+      --line-strong: rgba(42, 52, 46, 0.22);
+      --accent: #4f9b8e;
+      --accent-deep: #347769;
+      --accent-soft: rgba(79, 155, 142, 0.13);
+      --warm: #d8a45f;
+      --rose: #d98c92;
+      --blue: #7fa9ce;
+      --green: #8daf70;
+      --grad-1: linear-gradient(135deg, #fffaf2 0%, #dceee6 48%, #f0d7aa 100%);
+      --grad-2: linear-gradient(135deg, rgba(127,169,206,0.24), rgba(217,140,146,0.18), rgba(216,164,95,0.22));
+      --grad-3: linear-gradient(135deg, rgba(79,155,142,0.18), rgba(127,169,206,0.22));
+      --shadow: 0 18px 44px rgba(63, 55, 40, 0.13);
+      --shadow-card: 0 10px 26px rgba(61, 69, 62, 0.08);
+      --radius-lg: 30px;
+      --radius: 22px;
+      --radius-sm: 15px;
+      --phone: #171d1a;
+    }
+
+    [data-theme="mist"] {
+      --bg: #edf3f3;
+      --bg-soft: #f7fbfb;
+      --surface: rgba(250, 253, 253, 0.88);
+      --surface-solid: #fbfefe;
+      --surface-2: rgba(232, 241, 241, 0.88);
+      --ink: #1f3033;
+      --muted: #5d7478;
+      --soft: #8fa1a5;
+      --line: rgba(44, 73, 78, 0.12);
+      --line-strong: rgba(44, 73, 78, 0.23);
+      --accent: #4c9baa;
+      --accent-deep: #2f7380;
+      --accent-soft: rgba(76, 155, 170, 0.13);
+      --warm: #c7a86b;
+      --blue: #82aeda;
+      --green: #8ab596;
+      --grad-1: linear-gradient(135deg, #fbfefe 0%, #d3edf1 52%, #d9e5f5 100%);
+      --grad-2: linear-gradient(135deg, rgba(76,155,170,0.22), rgba(130,174,218,0.18), rgba(199,168,107,0.2));
+      --grad-3: linear-gradient(135deg, rgba(76,155,170,0.16), rgba(130,174,218,0.24));
+    }
+
+    [data-theme="mori"] {
+      --bg: #f1f5ec;
+      --bg-soft: #f8fbf4;
+      --surface: rgba(252, 254, 249, 0.88);
+      --surface-solid: #fcfef9;
+      --surface-2: rgba(232, 240, 221, 0.88);
+      --ink: #263322;
+      --muted: #63765a;
+      --soft: #90a287;
+      --line: rgba(55, 85, 45, 0.12);
+      --line-strong: rgba(55, 85, 45, 0.22);
+      --accent: #6d9e5c;
+      --accent-deep: #4d7b3e;
+      --accent-soft: rgba(109, 158, 92, 0.14);
+      --warm: #c59b52;
+      --rose: #ca8a7a;
+      --blue: #78a7b5;
+      --grad-1: linear-gradient(135deg, #fcfef9 0%, #dcecca 50%, #f0ddb0 100%);
+      --grad-2: linear-gradient(135deg, rgba(109,158,92,0.2), rgba(141,175,112,0.16), rgba(197,155,82,0.2));
+      --grad-3: linear-gradient(135deg, rgba(109,158,92,0.16), rgba(120,167,181,0.2));
+    }
+
+    [data-theme="dawn"] {
+      --bg: #f7efe8;
+      --bg-soft: #fff8f3;
+      --surface: rgba(255, 251, 247, 0.9);
+      --surface-solid: #fffaf6;
+      --surface-2: rgba(247, 231, 220, 0.88);
+      --ink: #352821;
+      --muted: #7a665a;
+      --soft: #a38f83;
+      --line: rgba(92, 62, 45, 0.12);
+      --line-strong: rgba(92, 62, 45, 0.22);
+      --accent: #c37d62;
+      --accent-deep: #985b43;
+      --accent-soft: rgba(195, 125, 98, 0.13);
+      --warm: #d6a75a;
+      --rose: #cf8588;
+      --blue: #809fbf;
+      --green: #8ca77b;
+      --grad-1: linear-gradient(135deg, #fff8f3 0%, #f1d2c1 48%, #efd7aa 100%);
+      --grad-2: linear-gradient(135deg, rgba(195,125,98,0.2), rgba(207,133,136,0.16), rgba(214,167,90,0.22));
+      --grad-3: linear-gradient(135deg, rgba(195,125,98,0.16), rgba(128,159,191,0.2));
+    }
+
+    [data-theme="night"] {
+      color-scheme: dark;
+      --bg: #151a1d;
+      --bg-soft: #1d2427;
+      --surface: rgba(36, 44, 47, 0.88);
+      --surface-solid: #242c2f;
+      --surface-2: rgba(43, 52, 55, 0.9);
+      --ink: #edf2ee;
+      --muted: #b3c0ba;
+      --soft: #7f9088;
+      --line: rgba(227, 238, 232, 0.12);
+      --line-strong: rgba(227, 238, 232, 0.22);
+      --accent: #72c3b4;
+      --accent-deep: #93ddd1;
+      --accent-soft: rgba(114, 195, 180, 0.16);
+      --warm: #d9b46f;
+      --rose: #dc9aa0;
+      --blue: #8cb9df;
+      --green: #a4c284;
+      --grad-1: linear-gradient(135deg, #253135 0%, #315257 52%, #62513c 100%);
+      --grad-2: linear-gradient(135deg, rgba(114,195,180,0.22), rgba(140,185,223,0.16), rgba(217,180,111,0.16));
+      --grad-3: linear-gradient(135deg, rgba(114,195,180,0.18), rgba(140,185,223,0.18));
+      --phone: #080b0c;
+      --shadow: 0 22px 58px rgba(0, 0, 0, 0.38);
+      --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+        radial-gradient(circle at 88% 16%, color-mix(in srgb, var(--blue) 22%, transparent), transparent 30%),
+        linear-gradient(180deg, var(--bg-soft), var(--bg));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(75, 67, 54, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(75, 67, 54, 0.04) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 72%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .board {
+      width: min(100% - 32px, 1120px);
+      margin: 0 auto;
+      padding: 34px 0 44px;
+      display: grid;
+      grid-template-columns: minmax(250px, 0.78fr) minmax(360px, 430px) minmax(250px, 0.86fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .side-note {
+      position: sticky;
+      top: 24px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent-deep);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .side-note h1,
+    .side-note h2 {
+      margin: 10px 0 0;
+      font-family: var(--font-serif);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .side-note h1 {
+      font-size: 32px;
+    }
+
+    .side-note h2 {
+      font-size: 22px;
+    }
+
+    .side-note p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .theme-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .effect-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .theme-btn {
+      min-height: 44px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .theme-btn:hover,
+    .theme-btn:focus-visible,
+    .theme-btn[aria-pressed="true"] {
+      background: var(--surface-solid);
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 10px;
+      background: var(--swatch);
+      border: 1px solid var(--line);
+      flex: 0 0 auto;
+    }
+
+    .theme-btn span:last-child {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .effect-btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--surface-solid) 70%, transparent);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 850;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .effect-btn:hover,
+    .effect-btn:focus-visible,
+    .effect-btn[aria-pressed="true"] {
+      transform: translateY(-1px);
+      background: var(--grad-3);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+      color: var(--accent-deep);
+      outline: none;
+    }
+
+    .principles {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .principle {
+      padding: 13px 14px;
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--surface-solid) 68%, transparent);
+      border: 1px solid var(--line);
+    }
+
+    .principle b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .principle span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .phone-shell {
+      padding: 14px;
+      border-radius: 46px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.04)),
+        var(--phone);
+      box-shadow: var(--shadow);
+    }
+
+    .screen {
+      position: relative;
+      height: 844px;
+      overflow: hidden;
+      border-radius: 35px;
+      background:
+        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30%),
+        radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--blue) 16%, transparent), transparent 32%),
+        linear-gradient(180deg, var(--bg-soft), var(--bg));
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .screen-grid {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(color-mix(in srgb, var(--line) 38%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--line) 34%, transparent) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.5;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 58%);
+    }
+
+    .status-bar {
+      position: relative;
+      z-index: 1;
+      height: 48px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .status-pill {
+      width: 72px;
+      height: 22px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--ink) 86%, transparent);
+      justify-self: center;
+      opacity: 0.92;
+    }
+
+    .status-icons {
+      justify-self: end;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .status-icons i {
+      display: block;
+      width: 13px;
+      height: 8px;
+      border-radius: 3px;
+      border: 1.5px solid currentColor;
+      opacity: 0.72;
+    }
+
+    .scroll {
+      position: relative;
+      z-index: 1;
+      height: calc(100% - 48px);
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding: 0 18px 86px;
+    }
+
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .top-area {
+      padding: 4px 0 14px;
+    }
+
+    .top-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .page-title {
+      margin: 0;
+    }
+
+    .page-title small {
+      display: block;
+      color: var(--soft);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .page-title strong {
+      display: block;
+      margin-top: 2px;
+      font-family: var(--font-serif);
+      font-size: 29px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .today-chip {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 6px 18px rgba(60, 64, 58, 0.06);
+      white-space: nowrap;
+    }
+
+    .summary-card {
+      margin-top: 14px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(16px);
+    }
+
+    .summary-main {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .summary-main b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .summary-main span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .summary-ring {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(var(--surface-solid), var(--surface-solid)) padding-box,
+        conic-gradient(var(--accent), var(--warm), var(--blue), var(--accent)) border-box;
+      border: 2px solid transparent;
+      color: var(--accent-deep);
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .search-row {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 8px;
+    }
+
+    .search-box,
+    .icon-button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface-solid) 74%, transparent);
+      box-shadow: 0 7px 18px rgba(59, 66, 60, 0.05);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 13px;
+      border-radius: 16px;
+    }
+
+    .search-box svg,
+    .icon-button svg,
+    .entry-action svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .search-box input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .search-box input::placeholder { color: var(--soft); }
+
+    .icon-button {
+      border-radius: 16px;
+      color: var(--accent-deep);
+      cursor: pointer;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 9px 1px 2px;
+      scrollbar-width: none;
+    }
+
+    .chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface-solid) 66%, transparent);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .chip.active {
+      border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+      background: var(--accent-soft);
+      color: var(--accent-deep);
+    }
+
+    .capsule-deck {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .capsule-card {
+      position: relative;
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.2), transparent 48%),
+        var(--capsule-bg, var(--grad-1));
+      box-shadow: 0 14px 30px rgba(59, 66, 60, 0.09);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .capsule-card::before,
+    .capsule-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .capsule-card::before {
+      right: -26px;
+      top: -26px;
+      width: 96px;
+      height: 96px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.32);
+      border: 1px solid rgba(255,255,255,0.28);
+    }
+
+    .capsule-card::after {
+      inset: 0;
+      background: linear-gradient(110deg, transparent 12%, rgba(255,255,255,0.25) 42%, transparent 68%);
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+
+    .capsule-card b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .capsule-card span {
+      display: block;
+      margin-top: 7px;
+      color: color-mix(in srgb, var(--muted) 88%, var(--ink));
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.55;
+    }
+
+    .capsule-card.small {
+      min-height: 86px;
+      --capsule-bg: linear-gradient(135deg, color-mix(in srgb, var(--blue) 22%, var(--surface-solid)), color-mix(in srgb, var(--rose) 16%, var(--surface-solid)));
+    }
+
+    .capsule-meter {
+      display: flex;
+      gap: 4px;
+      margin-top: 10px;
+    }
+
+    .capsule-meter i {
+      height: 5px;
+      flex: 1;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 56%, white);
+      opacity: 0.36;
+    }
+
+    .capsule-meter i:nth-child(-n + 4) {
+      opacity: 0.95;
+    }
+
+    .month-section {
+      margin-top: 16px;
+    }
+
+    .month-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 2px 8px 52px;
+      color: var(--muted);
+    }
+
+    .month-header b {
+      color: var(--ink);
+      font-family: var(--font-serif);
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .month-line {
+      height: 1px;
+      background: linear-gradient(90deg, var(--line-strong), transparent);
+    }
+
+    .month-count {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--soft);
+    }
+
+    .timeline {
+      position: relative;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 30px;
+      width: 1.5px;
+      background: linear-gradient(to bottom, transparent, var(--line-strong) 20px, var(--line-strong) calc(100% - 20px), transparent);
+    }
+
+    .day-block {
+      position: relative;
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 8px;
+      padding: 3px 0 10px;
+    }
+
+    .date-pin {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      z-index: 2;
+      width: 48px;
+      margin-top: 9px;
+      padding: 7px 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface-solid);
+      box-shadow: 0 8px 20px rgba(57, 65, 59, 0.07);
+      text-align: center;
+    }
+
+    .date-pin.today {
+      color: white;
+      border-color: transparent;
+      background: linear-gradient(145deg, var(--accent), var(--accent-deep));
+    }
+
+    .date-pin b {
+      display: block;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .date-pin span {
+      display: block;
+      margin-top: 4px;
+      color: currentColor;
+      opacity: 0.72;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .dot {
+      position: absolute;
+      left: 26px;
+      top: 75px;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 2px solid var(--bg-soft);
+      box-shadow: 0 0 0 5px var(--accent-soft);
+    }
+
+    .entry-list {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .entry-card {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background 200ms ease;
+    }
+
+    .entry-card:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+      box-shadow: 0 16px 34px rgba(58, 64, 58, 0.12);
+    }
+
+    .entry-card.featured {
+      border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 36%),
+        var(--surface);
+    }
+
+    .entry-card.aurora {
+      background:
+        radial-gradient(circle at 6% 4%, color-mix(in srgb, var(--mood, var(--accent)) 18%, transparent), transparent 34%),
+        linear-gradient(135deg, color-mix(in srgb, var(--blue) 10%, transparent), color-mix(in srgb, var(--rose) 8%, transparent)),
+        var(--surface);
+    }
+
+    .entry-card.ticket {
+      border-style: dashed;
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, transparent 0 64px, color-mix(in srgb, var(--line) 70%, transparent) 64px 65px, transparent 65px),
+        var(--surface);
+    }
+
+    .entry-card.ticket .entry-inner {
+      padding-left: 18px;
+    }
+
+    .entry-card.stack {
+      overflow: visible;
+    }
+
+    .entry-card.stack::after {
+      content: "";
+      position: absolute;
+      inset: 8px 8px -8px 8px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--surface-solid) 68%, transparent);
+      z-index: -1;
+      transform: rotate(1.2deg);
+      box-shadow: 0 12px 24px rgba(58, 64, 58, 0.06);
+    }
+
+    .entry-card.float-photo .thumb {
+      transform: rotate(2deg);
+      box-shadow: 0 10px 18px rgba(48, 55, 50, 0.12);
+    }
+
+    .entry-card.ribbon::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: -1px;
+      width: 32px;
+      height: 44px;
+      border-radius: 0 0 13px 13px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--mood, var(--accent)) 72%, white), color-mix(in srgb, var(--mood, var(--accent)) 34%, transparent));
+      opacity: 0.72;
+    }
+
+    [data-effect="jelly"] .entry-card,
+    [data-effect="jelly"] .capsule-card,
+    [data-effect="jelly"] .summary-card {
+      border-radius: 28px;
+      box-shadow: 0 18px 34px rgba(58, 64, 58, 0.12);
+    }
+
+    [data-effect="glass"] .entry-card,
+    [data-effect="glass"] .summary-card,
+    [data-effect="glass"] .capsule-card,
+    [data-effect="glass"] .search-box,
+    [data-effect="glass"] .icon-button {
+      background-color: color-mix(in srgb, var(--surface-solid) 52%, transparent);
+      backdrop-filter: blur(22px) saturate(1.2);
+      border-color: rgba(255,255,255,0.26);
+    }
+
+    [data-effect="shine"] .entry-card::after,
+    [data-effect="shine"] .capsule-card::after,
+    [data-effect="shine"] .entry-inner::before {
+      opacity: 1;
+      animation: sheen 4.8s ease-in-out infinite;
+    }
+
+    [data-effect="shine"] .entry-card {
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--mood, var(--accent)) 8%, transparent), transparent 44%),
+        var(--surface);
+    }
+
+    @keyframes sheen {
+      0%, 42% { transform: translateX(-120%); }
+      70%, 100% { transform: translateX(120%); }
+    }
+
+    .entry-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 14px;
+      bottom: 14px;
+      width: 4px;
+      border-radius: 0 99px 99px 0;
+      background: var(--mood, var(--accent));
+      opacity: 0.92;
+    }
+
+    .entry-inner {
+      position: relative;
+      padding: 14px 14px 13px 16px;
+      display: grid;
+      gap: 10px;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+
+    .entry-inner::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(110deg, transparent 12%, rgba(255,255,255,0.22) 42%, transparent 68%);
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .entry-kicker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .mood-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--mood, var(--accent));
+      flex: 0 0 auto;
+    }
+
+    .entry-action {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: var(--soft);
+      background: transparent;
+    }
+
+    .entry-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .entry-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.42;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .entry-preview {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.72;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .thumb {
+      width: 68px;
+      height: 68px;
+      border-radius: 17px;
+      border: 1px solid var(--line);
+      background: var(--thumb);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+      flex: 0 0 auto;
+      overflow: hidden;
+    }
+
+    .entry-meta {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--surface-solid) 60%, transparent);
+      border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .meta.tag {
+      color: var(--accent-deep);
+      background: var(--accent-soft);
+      border-color: transparent;
+    }
+
+    .mini-report {
+      margin-top: 2px;
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+      background: color-mix(in srgb, var(--accent) 8%, var(--surface-solid));
+      display: grid;
+      gap: 5px;
+    }
+
+    .mini-report b {
+      font-size: 13px;
+    }
+
+    .mini-report span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .empty-spacer {
+      height: 16px;
+    }
+
+    .scroll-top {
+      position: absolute;
+      right: 18px;
+      bottom: 82px;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+      box-shadow: 0 10px 22px rgba(52, 62, 57, 0.09);
+      color: var(--accent-deep);
+      font-weight: 900;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      height: 62px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+      box-shadow: 0 16px 36px rgba(54, 61, 55, 0.13);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-item {
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      color: var(--soft);
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .nav-icon {
+      width: 21px;
+      height: 21px;
+      border-radius: 9px;
+      border: 1.6px solid currentColor;
+      opacity: 0.62;
+    }
+
+    .nav-item.active {
+      color: var(--accent-deep);
+    }
+
+    .nav-item.active .nav-icon {
+      background: var(--accent-soft);
+      opacity: 1;
+    }
+
+    @media (max-width: 980px) {
+      .board {
+        width: min(100% - 22px, 680px);
+        grid-template-columns: 1fr;
+      }
+
+      .side-note {
+        position: static;
+      }
+
+      .side-note.secondary {
+        order: 3;
+      }
+
+      .phone-shell {
+        justify-self: center;
+        width: min(100%, 430px);
+      }
+    }
+
+    @media (max-width: 460px) {
+      .board {
+        width: 100%;
+        padding: 0;
+      }
+
+      .side-note {
+        margin: 14px;
+      }
+
+      .phone-shell {
+        width: 100%;
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .screen {
+        min-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+        border: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body data-theme="paper" data-effect="jelly">
+  <main class="board">
+    <section class="side-note">
+      <p class="eyebrow">Timeline Redesign / v5</p>
+      <h1>把时间线重新变成“可以扫读”的日记流。</h1>
+      <p>上一版最大的问题不是不够花，而是太像卡片装饰实验室。时间线页面应该先让日期、内容、心情和照片自然排好，再用少量纸张质感增加温度。</p>
+      <div class="theme-list" aria-label="选择主题">
+        <button class="theme-btn" type="button" data-theme="paper" aria-pressed="true">
+          <span class="swatch" style="--swatch:linear-gradient(135deg,#fffaf2,#dfeee5,#e8d7b8)"></span>
+          <span>暖纸默认</span>
+        </button>
+        <button class="theme-btn" type="button" data-theme="mist" aria-pressed="false">
+          <span class="swatch" style="--swatch:linear-gradient(135deg,#fbfefe,#cde9ee,#c5d7ef)"></span>
+          <span>雾蓝清晨</span>
+        </button>
+        <button class="theme-btn" type="button" data-theme="mori" aria-pressed="false">
+          <span class="swatch" style="--swatch:linear-gradient(135deg,#fcfef9,#dcecca,#98be82)"></span>
+          <span>森绿阅读</span>
+        </button>
+        <button class="theme-btn" type="button" data-theme="dawn" aria-pressed="false">
+          <span class="swatch" style="--swatch:linear-gradient(135deg,#fff8f3,#f3d3c2,#d69b62)"></span>
+          <span>晨光暖橙</span>
+        </button>
+        <button class="theme-btn" type="button" data-theme="night" aria-pressed="false">
+          <span class="swatch" style="--swatch:linear-gradient(135deg,#151a1d,#2b3d41,#72c3b4)"></span>
+          <span>夜读墨青</span>
+        </button>
+      </div>
+      <div class="effect-list" aria-label="选择卡片效果">
+        <button class="effect-btn" type="button" data-effect="calm" aria-pressed="false">稳态</button>
+        <button class="effect-btn" type="button" data-effect="jelly" aria-pressed="true">果冻胶囊</button>
+        <button class="effect-btn" type="button" data-effect="glass" aria-pressed="false">浅玻璃</button>
+        <button class="effect-btn" type="button" data-effect="shine" aria-pressed="false">流光高光</button>
+      </div>
+    </section>
+
+    <section class="phone-shell" aria-label="手机时间线原型">
+      <div class="screen">
+        <div class="screen-grid"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="status-pill"></span>
+          <span class="status-icons"><i></i><i></i></span>
+        </div>
+
+        <div class="scroll">
+          <header class="top-area">
+            <div class="top-line">
+              <h1 class="page-title">
+                <small>Diary Timeline</small>
+                <strong>时间线</strong>
+              </h1>
+              <span class="today-chip">127 篇 · 32 天连续</span>
+            </div>
+
+            <section class="summary-card" aria-label="本月概览">
+              <div class="summary-main">
+                <div>
+                  <b>七月目前写了 8 篇，最常出现的是“平静”。</b>
+                  <span>这不是报告卡，只是让时间线顶部有一个温和的阅读入口。</span>
+                </div>
+                <div class="summary-ring">8</div>
+              </div>
+            </section>
+
+            <div class="search-row">
+              <label class="search-box">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <input type="text" placeholder="搜索日记、地点、标签">
+              </label>
+              <button class="icon-button" type="button" aria-label="筛选">
+                <svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>
+              </button>
+            </div>
+
+            <div class="capsule-deck" aria-label="胶囊卡片实验">
+              <article class="capsule-card">
+                <b>今天的日记密度刚好</b>
+                <span>2 篇记录 · 1 张照片 · 1 个天气线索</span>
+                <div class="capsule-meter"><i></i><i></i><i></i><i></i><i></i></div>
+              </article>
+              <article class="capsule-card small">
+                <b>本周主色</b>
+                <span>平静、雨声、拆小任务</span>
+                <div class="capsule-meter"><i></i><i></i><i></i><i></i><i></i></div>
+              </article>
+            </div>
+
+            <div class="chips" aria-label="快速筛选">
+              <span class="chip active">全部</span>
+              <span class="chip">有照片</span>
+              <span class="chip">收藏</span>
+              <span class="chip">平静</span>
+              <span class="chip">雨天</span>
+              <span class="chip">旅行</span>
+            </div>
+          </header>
+
+          <section class="month-section">
+            <div class="month-header">
+              <b>2026 年 7 月</b>
+              <span class="month-line"></span>
+              <span class="month-count">8 篇</span>
+            </div>
+
+            <div class="timeline">
+              <article class="day-block">
+                <div>
+                  <div class="date-pin today"><b>09</b><span>周四</span></div>
+                  <span class="dot"></span>
+                </div>
+                <div class="entry-list">
+                  <article class="entry-card featured aurora" style="--mood:var(--accent)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>今天 · 平静 · 雨天</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">台风天在家整理书架</h2>
+                          <p class="entry-preview">雨从下午开始变大，把窗边的书重新按颜色排了一遍，发现去年买的几本还没拆封。泡了壶茶，听雨声写日记。</p>
+                        </div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">居家</span>
+                        <span class="meta">18:42</span>
+                        <span class="meta">642 字</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="entry-card float-photo ribbon" style="--mood:var(--warm)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>晚上 · 愉快</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">散步遇到便利店门口的橘猫</h2>
+                          <p class="entry-preview">它蹲了很久，我买了根火腿肠分给它。它吃东西的时候尾巴尖一直抖。</p>
+                        </div>
+                        <div class="thumb" style="--thumb:linear-gradient(135deg,#dfeac4,#f1d08f)"></div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">散步</span>
+                        <span class="meta">21:10</span>
+                        <span class="meta">1 张照片</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </article>
+
+              <article class="day-block">
+                <div>
+                  <div class="date-pin"><b>06</b><span>周一</span></div>
+                  <span class="dot"></span>
+                </div>
+                <div class="entry-list">
+                  <article class="entry-card ticket" style="--mood:var(--blue)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>下午 · 专注</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">新项目启动会</h2>
+                          <p class="entry-preview">比预想中顺利，大家对方向没有分歧。我把待办拆成了这周可以完成的小块。</p>
+                        </div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">工作</span>
+                        <span class="meta">16:28</span>
+                        <span class="meta">已关联 3 个待办</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <div class="mini-report">
+                    <b>小墨可以在这里轻轻出现，但不要抢主线。</b>
+                    <span>例如“这天你把一个大任务拆小了”，更像时间线旁注，不像广告卡。</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="month-section">
+            <div class="month-header">
+              <b>2026 年 6 月</b>
+              <span class="month-line"></span>
+              <span class="month-count">14 篇</span>
+            </div>
+
+            <div class="timeline">
+              <article class="day-block">
+                <div>
+                  <div class="date-pin"><b>28</b><span>周日</span></div>
+                  <span class="dot"></span>
+                </div>
+                <div class="entry-list">
+                  <article class="entry-card stack float-photo" style="--mood:var(--green)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>清晨 · 开心 · 晴天</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">海边一日</h2>
+                          <p class="entry-preview">早上六点就出发了，沙很细，海水比想象中凉。在礁石缝里看到几只小螃蟹。</p>
+                        </div>
+                        <div class="thumb" style="--thumb:linear-gradient(135deg,#86c5d2,#c7dfaa)"></div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">旅行</span>
+                        <span class="meta">09:18</span>
+                        <span class="meta">4 张照片</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </article>
+
+              <article class="day-block">
+                <div>
+                  <div class="date-pin"><b>21</b><span>周日</span></div>
+                  <span class="dot"></span>
+                </div>
+                <div class="entry-list">
+                  <article class="entry-card ribbon" style="--mood:var(--accent)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>夜晚 · 充实</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">读完《置身事内》</h2>
+                          <p class="entry-preview">最后几章讲地方债和城市化，比前面好读。做了几页笔记，准备下周写个短总结。</p>
+                        </div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">读书</span>
+                        <span class="meta">23:04</span>
+                        <span class="meta">收藏</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="month-section">
+            <div class="month-header">
+              <b>2026 年 5 月</b>
+              <span class="month-line"></span>
+              <span class="month-count">22 篇</span>
+            </div>
+
+            <div class="timeline">
+              <article class="day-block">
+                <div>
+                  <div class="date-pin"><b>12</b><span>周二</span></div>
+                  <span class="dot"></span>
+                </div>
+                <div class="entry-list">
+                  <article class="entry-card aurora" style="--mood:var(--rose)">
+                    <div class="entry-inner">
+                      <div class="entry-top">
+                        <span class="entry-kicker"><i class="mood-dot"></i>清晨 · 怀旧 · 阴天</span>
+                        <button class="entry-action" type="button" aria-label="更多"><svg viewBox="0 0 24 24"><path d="M12 5v.01"></path><path d="M12 12v.01"></path><path d="M12 19v.01"></path></svg></button>
+                      </div>
+                      <div class="entry-body">
+                        <div>
+                          <h2 class="entry-title">梦见小时候住过的院子</h2>
+                          <p class="entry-preview">醒来以后发了很久的呆。院子里的石榴树还在，但房子已经拆掉了。有些事只能写在日记里。</p>
+                        </div>
+                      </div>
+                      <div class="entry-meta">
+                        <span class="meta tag">梦</span>
+                        <span class="meta">07:35</span>
+                        <span class="meta">491 字</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <div class="empty-spacer"></div>
+        </div>
+
+        <button class="scroll-top" type="button" aria-label="回到顶部">↑</button>
+
+        <nav class="bottom-nav" aria-label="底部导航">
+          <div class="nav-item"><span class="nav-icon"></span><span>首页</span></div>
+          <div class="nav-item active"><span class="nav-icon"></span><span>时间线</span></div>
+          <div class="nav-item"><span class="nav-icon"></span><span>记录</span></div>
+          <div class="nav-item"><span class="nav-icon"></span><span>待办</span></div>
+          <div class="nav-item"><span class="nav-icon"></span><span>我的</span></div>
+        </nav>
+      </div>
+    </section>
+
+    <aside class="side-note secondary">
+      <p class="eyebrow">Why It Feels Better</p>
+      <h2>这一版把装饰降级成“气氛”，把内容重新放到第一层。</h2>
+      <div class="principles">
+        <div class="principle">
+          <b>统一卡片，不再六种风格混用</b>
+          <span>时间线是扫读页面，不适合每张卡片都换一种装饰语言。</span>
+        </div>
+        <div class="principle">
+          <b>日期轴更稳定</b>
+          <span>日期固定在左侧，月份和日期分组清楚，旧日记不会变成素材展示。</span>
+        </div>
+        <div class="principle">
+          <b>主题色只做状态，不做主角</b>
+          <span>心情色、标签色、按钮色有用途，背景渐变收敛到很轻。</span>
+        </div>
+        <div class="principle">
+          <b>小墨入口变成旁注</b>
+          <span>AI 可以辅助回顾，但不能抢走时间线的主叙事。</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const themeButtons = Array.from(document.querySelectorAll(".theme-btn"));
+    const effectButtons = Array.from(document.querySelectorAll(".effect-btn"));
+    themeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        document.body.dataset.theme = button.dataset.theme;
+        themeButtons.forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+      });
+    });
+    effectButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        document.body.dataset.effect = button.dataset.effect;
+        effectButtons.forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

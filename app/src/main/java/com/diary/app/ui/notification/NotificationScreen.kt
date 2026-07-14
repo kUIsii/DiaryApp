@@ -27,7 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -73,6 +72,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -96,10 +96,29 @@ fun NotificationScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            NotificationTopBar(
-                showTrash = uiState.showTrash,
-                onNavigateBack = onNavigateBack,
-                onToggleTrash = { viewModel.toggleTrashView() }
+            ScreenTopBar(
+                title = if (uiState.showTrash) "回收站" else "通知",
+                onBack = onNavigateBack,
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.toggleTrashView() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (uiState.showTrash) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else Color.Transparent
+                            )
+                    ) {
+                        Icon(
+                            imageVector = if (uiState.showTrash) Icons.Default.Notifications else Icons.Default.RestoreFromTrash,
+                            contentDescription = if (uiState.showTrash) "返回通知" else "打开回收站",
+                            tint = if (uiState.showTrash) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             )
 
             if (uiState.showTrash) {
@@ -174,63 +193,7 @@ fun NotificationScreen(
     }
 }
 
-// region 标题栏
-@Composable
-private fun NotificationTopBar(
-    showTrash: Boolean,
-    onNavigateBack: () -> Unit,
-    onToggleTrash: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        ) {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "返回",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = if (showTrash) "回收站" else "通知",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(
-            onClick = onToggleTrash,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(
-                    if (showTrash) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    else Color.Transparent
-                )
-        ) {
-            Icon(
-                imageVector = if (showTrash) Icons.Default.Notifications else Icons.Default.RestoreFromTrash,
-                contentDescription = if (showTrash) "返回通知" else "打开回收站",
-                tint = if (showTrash) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-// endregion
+// 顶栏已统一为 ScreenTopBar（见 ui/components/ScreenTopBar.kt）
 
 // region 分类 Tab
 

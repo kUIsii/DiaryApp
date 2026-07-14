@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 首页视觉精修预览</title>
+  <style>
+    :root {
+      --canvas: #e8e8e2;
+      --canvas-2: #dfe6df;
+      --phone: #f8f7f1;
+      --surface: #fffdf7;
+      --surface-soft: #f2f0e8;
+      --ink: #263339;
+      --muted: #6e7a79;
+      --faint: #9ba6a2;
+      --line: rgba(38, 51, 57, .13);
+      --line-strong: rgba(38, 51, 57, .22);
+      --accent: #6b927c;
+      --accent-2: #a8bd91;
+      --accent-soft: #e2ecde;
+      --warm: #d68c69;
+      --shadow: 0 18px 44px rgba(48, 56, 51, .14);
+      --shadow-soft: 0 8px 18px rgba(48, 56, 51, .08);
+      --serif: Georgia, "Noto Serif SC", "Songti SC", serif;
+      --sans: Inter, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+
+    [data-theme="paper"] {
+      --canvas: #ece6d8;
+      --canvas-2: #e2d7c3;
+      --phone: #fbf4e7;
+      --surface: #fffaf0;
+      --surface-soft: #f1e7d5;
+      --ink: #3b3730;
+      --muted: #7d7669;
+      --faint: #aca08d;
+      --line: rgba(59, 55, 48, .14);
+      --line-strong: rgba(59, 55, 48, .24);
+      --accent: #b47c50;
+      --accent-2: #d4a36d;
+      --accent-soft: #f2e3ce;
+      --warm: #c06f64;
+    }
+
+    [data-theme="ocean"] {
+      --canvas: #e0e7e8;
+      --canvas-2: #d5e0e5;
+      --phone: #f5f8f6;
+      --surface: #fbfdfb;
+      --surface-soft: #e8f0f1;
+      --ink: #27363b;
+      --muted: #6d7f84;
+      --faint: #9aaeb2;
+      --line: rgba(39, 54, 59, .13);
+      --line-strong: rgba(39, 54, 59, .22);
+      --accent: #5d8fa1;
+      --accent-2: #8db2bd;
+      --accent-soft: #dcecef;
+      --warm: #c98d68;
+    }
+
+    [data-mode="dark"] {
+      --canvas: #171b1e;
+      --canvas-2: #20272a;
+      --phone: #121719;
+      --surface: #1d2528;
+      --surface-soft: #242e31;
+      --ink: #f0efe8;
+      --muted: #aab4b0;
+      --faint: #77847f;
+      --line: rgba(240, 239, 232, .13);
+      --line-strong: rgba(240, 239, 232, .23);
+      --accent-soft: rgba(120, 166, 145, .15);
+      --warm: #d99a76;
+      --shadow: 0 18px 44px rgba(0, 0, 0, .3);
+      --shadow-soft: 0 8px 18px rgba(0, 0, 0, .2);
+    }
+
+    [data-mode="dark"][data-theme="mist"] {
+      --accent: #93bca1;
+      --accent-2: #72998a;
+    }
+
+    [data-mode="dark"][data-theme="paper"] {
+      --accent: #d3a06e;
+      --accent-2: #a97a58;
+      --accent-soft: rgba(211, 160, 110, .16);
+    }
+
+    [data-mode="dark"][data-theme="petal"] {
+      --accent: #d19a9d;
+      --accent-2: #a8737c;
+      --accent-soft: rgba(209, 154, 157, .16);
+    }
+
+    [data-mode="dark"][data-theme="ocean"] {
+      --accent: #8ebdca;
+      --accent-2: #5f8e9d;
+      --accent-soft: rgba(142, 189, 202, .16);
+    }
+
+    [data-theme="petal"] {
+      --canvas: #eadfdd;
+      --canvas-2: #e3d8e2;
+      --phone: #fff9f5;
+      --surface: #fffdfb;
+      --surface-soft: #f6ece9;
+      --ink: #3e3638;
+      --muted: #7e7073;
+      --faint: #b29fa2;
+      --line: rgba(62, 54, 56, .13);
+      --line-strong: rgba(62, 54, 56, .22);
+      --accent: #b97578;
+      --accent-2: #d99b95;
+      --accent-soft: #f5dfde;
+      --warm: #c38e61;
+    }
+
+    [data-mode="dark"][data-theme="petal"] {
+      --canvas: #171b1e;
+      --canvas-2: #20272a;
+      --phone: #121719;
+      --surface: #1d2528;
+      --surface-soft: #242e31;
+      --ink: #f0efe8;
+      --muted: #aab4b0;
+      --faint: #77847f;
+      --line: rgba(240, 239, 232, .13);
+      --line-strong: rgba(240, 239, 232, .23);
+      --accent: #d19a9d;
+      --accent-2: #a8737c;
+      --accent-soft: rgba(209, 154, 157, .16);
+      --warm: #d99a76;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255,255,255,.7), transparent 26%),
+        linear-gradient(135deg, var(--canvas), var(--canvas-2));
+      transition: background .25s ease, color .25s ease;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+    .preview-shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 28px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p { margin: 0; }
+    .preview-header h1 {
+      max-width: 650px;
+      font-family: var(--serif);
+      font-size: clamp(30px, 5vw, 54px);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .preview-copy {
+      max-width: 520px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .theme-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 230px;
+    }
+
+    .mode-switcher {
+      display: inline-flex;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
+    }
+
+    .mode-switcher .theme-btn {
+      min-height: 28px;
+      padding: 0 9px;
+      border-color: transparent;
+      background: transparent;
+      font-size: 11px;
+    }
+
+    .mode-switcher .theme-btn.active {
+      border-color: var(--line);
+      background: var(--surface);
+    }
+
+    .theme-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.26);
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .theme-btn:hover, .theme-btn.active {
+      border-color: color-mix(in srgb, var(--accent) 56%, transparent);
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--swatch);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(360px, 430px) minmax(260px, 1fr);
+      gap: 28px;
+      align-items: center;
+    }
+
+    .note-column {
+      display: grid;
+      gap: 14px;
+    }
+
+    .note {
+      position: relative;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--surface) 82%, transparent);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .note:nth-child(1) { transform: rotate(-.6deg); }
+    .note:nth-child(2), .note:nth-child(3) { transform: none; }
+
+    .note::before {
+      content: "";
+      display: block;
+      width: 46px;
+      height: 5px;
+      margin: -25px auto 14px;
+      border-radius: 1px;
+      background: color-mix(in srgb, var(--warm) 65%, var(--surface));
+      opacity: .75;
+      transform: rotate(-3deg);
+    }
+
+    .note-label {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .note strong {
+      display: block;
+      margin-top: 9px;
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .note p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .phone {
+      position: relative;
+      width: 100%;
+      padding: 9px;
+      border: 1px solid rgba(255,255,255,.5);
+      border-radius: 32px;
+      background: #1d2527;
+      box-shadow: 0 28px 70px rgba(40, 48, 44, .25);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      width: 92px;
+      height: 20px;
+      border-radius: 999px;
+      background: #1d2527;
+      transform: translateX(-50%);
+      z-index: 5;
+    }
+
+    .screen {
+      position: relative;
+      height: 790px;
+      overflow: hidden;
+      border-radius: 24px;
+      background: var(--phone);
+    }
+
+    .screen-scroll {
+      height: 100%;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .screen-scroll::-webkit-scrollbar { display: none; }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 44px 20px 14px;
+    }
+
+    .app-header small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .app-header h2 {
+      margin-top: 6px;
+      font-family: var(--serif);
+      font-size: 29px;
+      font-weight: 500;
+      line-height: 1.05;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 7px;
+      padding-top: 2px;
+    }
+
+    .icon-btn {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--surface) 82%, transparent);
+      color: var(--muted);
+      cursor: pointer;
+      transition: transform .18s ease, color .18s ease, border-color .18s ease;
+    }
+
+    .icon-btn:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
+
+    .search-drawer {
+      display: none;
+      margin: 0 20px 12px;
+      padding: 7px 10px;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .search-drawer.open { display: flex; }
+    .search-drawer input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .content {
+      display: grid;
+      gap: 14px;
+      padding: 0 20px 98px;
+    }
+
+    .calendar-paper {
+      position: relative;
+      padding: 14px 12px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .calendar-paper::before {
+      content: "";
+      position: absolute;
+      top: -7px;
+      left: 24%;
+      right: 24%;
+      height: 11px;
+      border: 1px solid color-mix(in srgb, var(--warm) 35%, transparent);
+      background: color-mix(in srgb, var(--warm) 25%, var(--surface));
+      transform: rotate(-1deg);
+    }
+
+    .calendar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .calendar-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .calendar-view-switch {
+      display: inline-flex;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+    }
+
+    .calendar-view-switch button {
+      min-width: 22px;
+      height: 21px;
+      padding: 0;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--faint);
+      font-size: 9px;
+      cursor: pointer;
+    }
+
+    .calendar-view-switch button.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .mini-icon-btn {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .mini-icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .mini-icon-btn .icon { width: 13px; height: 13px; }
+
+    .calendar-top strong {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .calendar-top span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .weekdays, .week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .weekdays { margin-bottom: 4px; }
+    .weekdays span {
+      color: var(--faint);
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .day {
+      position: relative;
+      display: grid;
+      min-height: 49px;
+      place-items: center;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .day:hover { transform: translateY(-1px); }
+    .day strong { font-size: 13px; font-weight: 600; }
+    .day small { margin-top: -10px; color: var(--faint); font-size: 8px; }
+    .day.has-entry::after {
+      content: "";
+      position: absolute;
+      bottom: 7px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .day.has-photo::before {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--warm);
+    }
+
+    .day.active {
+      border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .day.active::after { background: var(--warm); }
+
+    .calendar-legend {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      color: var(--faint);
+      font-size: 8px;
+    }
+
+    .calendar-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .calendar-legend i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+    .calendar-legend i.photo { background: var(--warm); }
+
+    .section-kicker {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0 2px;
+    }
+
+    .section-kicker strong {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .section-kicker span {
+      color: var(--faint);
+      font-size: 10px;
+    }
+
+    .today-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .summary-cell {
+      padding: 10px 9px;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .summary-cell strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 19px;
+      font-weight: 500;
+    }
+
+    .summary-cell span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    .diary-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .entry {
+      padding: 12px 12px 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      box-shadow: 0 3px 10px rgba(48, 56, 51, .04);
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .entry:hover {
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      box-shadow: var(--shadow-soft);
+      transform: translateX(2px);
+    }
+
+    .entry-photo {
+      position: relative;
+      min-height: 238px;
+      overflow: hidden;
+      padding: 0;
+      border-color: transparent;
+      background:
+        url("../../designs/Mobile_app_UI_mockup__diary_ap_2026-07-09T14-48-25.png") center 40% / cover;
+      color: #fff;
+    }
+
+    .entry-photo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(21, 29, 30, .32), rgba(21, 29, 30, .68));
+    }
+
+    .entry-photo .entry-top,
+    .entry-photo > .mood,
+    .entry-photo > p,
+    .entry-photo > .meta {
+      position: relative;
+      z-index: 1;
+      margin-left: 12px;
+      margin-right: 12px;
+    }
+
+    .entry-photo .entry-top {
+      padding-top: 12px;
+    }
+
+    .entry-photo time,
+    .entry-photo h3,
+    .entry-photo p,
+    .entry-photo .entry-action,
+    .entry-photo .tag {
+      color: rgba(255, 255, 255, .92);
+    }
+
+    .entry-photo .entry-action:hover {
+      background: rgba(255, 255, 255, .16);
+      color: #fff;
+    }
+
+    .entry-photo .mood { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.14); color: #fff; }
+    .entry-photo .entry-media { display: none; }
+
+    .entry-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .entry-actions {
+      display: flex;
+      gap: 3px;
+      margin-left: auto;
+    }
+
+    .entry-action {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--faint);
+      cursor: pointer;
+    }
+
+    .entry-action:hover { background: var(--accent-soft); color: var(--accent); }
+    .entry-action .icon { width: 14px; height: 14px; }
+
+    .entry time {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+
+    .entry h3 {
+      margin-top: 4px;
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .mood {
+      flex: none;
+      min-height: 24px;
+      padding: 0 8px;
+      border: 1px solid color-mix(in srgb, var(--warm) 34%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--warm) 12%, transparent);
+      color: var(--warm);
+      font-size: 9px;
+      line-height: 22px;
+    }
+
+    .entry p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .entry-media {
+      height: 74px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 6px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.08)),
+        url("../../designs/Mobile_app_UI_mockup__diary_ap_2026-07-09T14-48-25.png") center 42% / cover;
+      filter: saturate(.72);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 9px;
+    }
+
+    .tag {
+      color: var(--accent);
+      font-size: 9px;
+    }
+
+    .tag + .tag::before {
+      content: "·";
+      margin-right: 5px;
+      color: var(--faint);
+    }
+
+    .insight {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      padding: 11px 12px;
+      border-left: 3px solid var(--accent);
+      background: color-mix(in srgb, var(--accent-soft) 62%, transparent);
+    }
+
+    .insight .icon { flex: none; margin-top: 1px; color: var(--accent); }
+    .insight strong { display: block; font-size: 11px; font-weight: 800; }
+    .insight span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+
+    .tool-shelf {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .tool {
+      display: grid;
+      min-height: 62px;
+      place-items: center;
+      align-content: center;
+      gap: 5px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--surface) 68%, transparent);
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .tool:hover {
+      background: var(--surface);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .tool span { font-size: 9px; }
+
+    .bottom-nav {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 10px 8px 16px;
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--phone) 92%, transparent);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-item {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      color: var(--faint);
+      font-size: 9px;
+    }
+
+    .nav-item.active { color: var(--accent); }
+    .nav-item .icon { width: 17px; height: 17px; }
+
+    .fab {
+      position: absolute;
+      right: 17px;
+      bottom: 70px;
+      z-index: 2;
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 10px 18px color-mix(in srgb, var(--accent) 28%, transparent);
+      cursor: pointer;
+      transition: transform .2s ease;
+    }
+
+    .fab:hover { transform: translateY(-3px) rotate(5deg); }
+    .fab .icon { width: 21px; height: 21px; }
+
+    .design-notes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .design-note {
+      padding: 14px 16px;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .design-note strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .design-note span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: 260px;
+      padding: 11px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      color: var(--ink);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 980px) {
+      .board { grid-template-columns: minmax(330px, 430px) minmax(240px, 1fr); justify-content: center; }
+      .note-column.left { display: none; }
+      .preview-header { align-items: flex-start; flex-direction: column; }
+      .theme-switcher { justify-content: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+      .preview-shell { width: min(100% - 24px, 430px); padding-top: 28px; }
+      .preview-header h1 { font-size: 38px; }
+      .preview-copy { font-size: 13px; }
+      .board { display: block; }
+      .note-column.right, .design-notes { display: none; }
+      .phone { margin-top: 18px; }
+      .screen { height: 760px; }
+    }
+  </style>
+</head>
+<body data-theme="mist" data-mode="light">
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-3 7-3 9h18c0-2-3-3-3-9"></path><path d="M10 21h4"></path></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3z"></path><path d="M9 20v-6h6v6"></path></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z"></path></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path><rect x="3" y="3" width="18" height="18" rx="4"></rect></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c2-4 14-4 16 0"></path></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="9" cy="9" r="1.5"></circle><path d="m5 17 4-4 3 3 2-2 5 5"></path></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3 2"></path></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="m4 5 6-2 8 3 3-1v14l-6 2-8-3-3 1z"></path><path d="M10 3v16M18 6v15"></path></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20 8.5c0 5-8 10-8 10s-8-5-8-10a4.5 4.5 0 0 1 8-2.6 4.5 4.5 0 0 1 8 2.6Z"></path></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"></path></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"></path></symbol>
+  </svg>
+
+  <main class="preview-shell">
+    <header class="preview-header">
+      <div>
+        <p class="eyebrow">DiaryApp / Home Refinement</p>
+        <h1>保留功能，让首页更像一张正在展开的生活桌面。</h1>
+        <p class="preview-copy">这是首页的视觉精修方向。日历、每日日记预览、搜索和功能栏仍然存在，只把区块从“统一卡片列表”调整成更有阅读感的纸张、时间线和工具架。</p>
+      </div>
+      <div class="theme-switcher" aria-label="主题和显示模式选择">
+        <div class="mode-switcher" aria-label="显示模式">
+          <button class="theme-btn active" type="button" data-mode-choice="light">浅色</button>
+          <button class="theme-btn" type="button" data-mode-choice="dark">深色</button>
+        </div>
+        <button class="theme-btn active" type="button" data-theme-choice="mist"><i class="swatch" style="--swatch:#6b927c"></i>雾青</button>
+        <button class="theme-btn" type="button" data-theme-choice="paper"><i class="swatch" style="--swatch:#b47c50"></i>暖纸</button>
+        <button class="theme-btn" type="button" data-theme-choice="petal"><i class="swatch" style="--swatch:#b97578"></i>陶粉</button>
+        <button class="theme-btn" type="button" data-theme-choice="ocean"><i class="swatch" style="--swatch:#5d8fa1"></i>海潮</button>
+      </div>
+    </header>
+
+    <section class="board">
+      <aside class="note-column left" aria-label="设计说明">
+        <article class="note">
+          <span class="note-label">01 / 保留</span>
+          <strong>日历仍然是首页的骨架</strong>
+          <p>不改变现有使用习惯，只把日期选择做成更有辨识度的“桌面纸片”。有记录的日期留下小标记，当前日期有清楚但克制的强调。</p>
+        </article>
+        <article class="note">
+          <span class="note-label">02 / 改变</span>
+          <strong>日记预览回到内容本身</strong>
+          <p>无图记录保持紧凑，图片记录直接铺满卡片并叠加文字。继续沿用现有卡片逻辑，只让状态和操作更容易被看见。</p>
+        </article>
+        <article class="note">
+          <span class="note-label">03 / 借用</span>
+          <strong>小墨预览里的“纸张感”</strong>
+          <p>只借用私人书桌、档案和便签的气质，不把首页变成 AI 页面，也不让装饰盖过真实日记。</p>
+        </article>
+      </aside>
+
+      <div class="phone" aria-label="DiaryApp 首页手机预览">
+        <div class="screen">
+          <div class="screen-scroll">
+            <header class="app-header">
+              <div>
+                <small id="date-caption">Monday · 08:12</small>
+                <h2 id="greeting">今天</h2>
+              </div>
+              <div class="header-actions">
+                <button class="icon-btn" type="button" title="搜索日记" aria-label="搜索日记" id="search-button"><svg class="icon"><use href="#i-search"></use></svg></button>
+                <button class="icon-btn" type="button" title="通知" aria-label="通知" id="notification-button"><svg class="icon"><use href="#i-bell"></use></svg></button>
+              </div>
+            </header>
+
+            <div class="search-drawer" id="search-drawer">
+              <svg class="icon" style="color:var(--accent)"><use href="#i-search"></use></svg>
+              <input type="search" placeholder="搜索日记、标签或地点" aria-label="搜索日记">
+            </div>
+
+            <div class="content">
+              <section class="calendar-paper" aria-label="日期选择">
+                <div class="calendar-top">
+                  <strong id="month-label">2026 年 7 月</strong>
+                  <div class="calendar-actions">
+                    <div class="calendar-view-switch" aria-label="日历视图">
+                      <button class="active" type="button" data-calendar-view="week">周</button>
+                      <button type="button" data-calendar-view="month">月</button>
+                    </div>
+                    <button class="mini-icon-btn" type="button" title="上一个月" aria-label="上一个月" data-month-step="-1"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+                    <button class="mini-icon-btn" type="button" title="下一个月" aria-label="下一个月" data-month-step="1"><svg class="icon"><use href="#i-chevron-right"></use></svg></button>
+                  </div>
+                </div>
+                <div class="weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+                <div class="week" id="week">
+                  <button class="day has-entry" type="button" data-day="13"><strong>13</strong><small>一</small></button>
+                  <button class="day" type="button" data-day="14"><strong>14</strong><small>二</small></button>
+                  <button class="day has-entry has-photo" type="button" data-day="15"><strong>15</strong><small>三</small></button>
+                  <button class="day has-entry has-photo active" type="button" data-day="16"><strong>16</strong><small>四</small></button>
+                  <button class="day has-entry" type="button" data-day="17"><strong>17</strong><small>五</small></button>
+                  <button class="day" type="button" data-day="18"><strong>18</strong><small>六</small></button>
+                  <button class="day" type="button" data-day="19"><strong>19</strong><small>日</small></button>
+                </div>
+                <div class="calendar-legend"><span><i></i>有记录</span><span><i class="photo"></i>有照片</span></div>
+              </section>
+
+              <div class="section-kicker">
+                <strong id="selected-label">7 月 16 日 · 今天</strong>
+                <span id="entry-count">2 篇记录</span>
+              </div>
+
+              <section class="today-summary" aria-label="当天概览">
+                <div class="summary-cell"><strong id="word-count">1,248</strong><span>今天写下的字</span></div>
+                <div class="summary-cell"><strong id="photo-count">3</strong><span>带回来的照片</span></div>
+                <div class="summary-cell"><strong id="mood-label">平静</strong><span>今天的心情</span></div>
+              </section>
+
+              <section class="insight" aria-label="轻提示">
+                <svg class="icon"><use href="#i-spark"></use></svg>
+                <div>
+                  <strong>今天的记录有一条共同线索</strong>
+                  <span>你在慢慢把复杂的事情写小。先保存这个观察，不急着把它变成结论。</span>
+                </div>
+              </section>
+
+              <div class="section-kicker">
+                <strong>今天写下的内容</strong>
+                <span>按时间顺序</span>
+              </div>
+
+              <section class="diary-list" id="diary-list" aria-label="当天日记">
+                <article class="entry entry-note" data-entry="1">
+                  <div class="entry-top">
+                    <div><time>22:16</time><h3>把事情放小一点，反而更容易继续</h3></div>
+                    <div class="entry-actions">
+                      <button class="entry-action" type="button" title="收藏" aria-label="收藏这篇日记" data-toast="已收藏这篇日记"><svg class="icon"><use href="#i-heart"></use></svg></button>
+                      <button class="entry-action" type="button" title="更多操作" aria-label="更多操作" data-toast="打开日记操作菜单"><svg class="icon"><use href="#i-dots"></use></svg></button>
+                    </div>
+                  </div>
+                  <span class="mood">平静</span>
+                  <p>今天梳理了很多想法。它们没有被一次性解决，但终于被放到了可以继续看的位置。</p>
+                  <div class="meta"><span class="tag">感悟</span><span class="tag">整理</span><span class="tag">晚间</span><span class="tag">1,248 字</span></div>
+                </article>
+                <article class="entry entry-photo" data-entry="2">
+                  <div class="entry-top">
+                    <div><time>18:33</time><h3>晚饭后走了一圈，回来只想把界面收干净</h3></div>
+                    <div class="entry-actions">
+                      <button class="entry-action" type="button" title="收藏" aria-label="收藏这篇日记" data-toast="已收藏这篇日记"><svg class="icon"><use href="#i-heart"></use></svg></button>
+                      <button class="entry-action" type="button" title="更多操作" aria-label="更多操作" data-toast="打开日记操作菜单"><svg class="icon"><use href="#i-dots"></use></svg></button>
+                    </div>
+                  </div>
+                  <span class="mood">放松</span>
+                  <div class="entry-media" aria-label="日记中的照片预览"></div>
+                  <p>路上的风比想象中舒服。回到家之后，看了几张以前的照片，突然觉得记录本身已经很珍贵。</p>
+                  <div class="meta"><span class="tag">杭州</span><span class="tag">散步</span><span class="tag">照片 3</span><span class="tag">晚间</span></div>
+                </article>
+              </section>
+
+              <div class="section-kicker">
+                <strong>常用功能</strong>
+                <span>轻量工具架</span>
+              </div>
+
+              <section class="tool-shelf" aria-label="常用功能">
+                <button class="tool" type="button" data-toast="打开完整时间线"><svg class="icon"><use href="#i-calendar"></use></svg><span>时间线</span></button>
+                <button class="tool" type="button" data-toast="打开媒体库"><svg class="icon"><use href="#i-image"></use></svg><span>媒体库</span></button>
+                <button class="tool" type="button" data-toast="打开倒数日"><svg class="icon"><use href="#i-clock"></use></svg><span>倒数日</span></button>
+                <button class="tool" type="button" data-toast="打开心情地图"><svg class="icon"><use href="#i-map"></use></svg><span>地图</span></button>
+              </section>
+            </div>
+          </div>
+
+          <button class="fab" type="button" title="新建日记" aria-label="新建日记" data-toast="新建一篇日记"><svg class="icon"><use href="#i-plus"></use></svg></button>
+
+          <nav class="bottom-nav" aria-label="底部导航">
+            <span class="nav-item active"><svg class="icon"><use href="#i-home"></use></svg>首页</span>
+            <span class="nav-item"><svg class="icon"><use href="#i-calendar"></use></svg>时间线</span>
+            <span class="nav-item"><svg class="icon"><use href="#i-grid"></use></svg>工具</span>
+            <span class="nav-item"><svg class="icon"><use href="#i-check"></use></svg>待办</span>
+            <span class="nav-item"><svg class="icon"><use href="#i-user"></use></svg>我的</span>
+          </nav>
+        </div>
+      </div>
+
+      <aside class="note-column right" aria-label="视觉说明">
+        <article class="note">
+          <span class="note-label">Visual rhythm</span>
+          <strong>同样的功能，轻一点的外形</strong>
+          <p>日历有自己的纸张感，日记沿用内容卡，照片直接展示，AI 只做边注，功能栏保持轻量。页面不再刻意制造造型。</p>
+        </article>
+        <article class="note">
+          <span class="note-label">Content first</span>
+          <strong>让照片成为真实的视觉锚点</strong>
+          <p>有照片时给它一个自然的展示位置，没有照片时不生成空洞的装饰图。媒体库的存在感来自内容，而不是入口数量。</p>
+        </article>
+        <article class="note">
+          <span class="note-label">Micro motion</span>
+          <strong>只留下有意义的反馈</strong>
+          <p>日期切换、记录按压、工具确认和新建按钮有轻微动作；页面本身保持安静，不用持续漂浮或大幅动画。</p>
+        </article>
+      </aside>
+    </section>
+
+    <section class="design-notes" aria-label="本轮设计重点">
+      <div class="design-note"><strong>不改功能</strong><span>继续保留日历、每日预览、搜索、天气、AI、回顾和功能栏。</span></div>
+      <div class="design-note"><strong>回到现有卡片</strong><span>保留图片铺底、文字叠加和紧凑预览的使用习惯，只精修状态和间距。</span></div>
+      <div class="design-note"><strong>不抢日记</strong><span>首页仍然首先服务于今天的记录，其他功能只在需要时出现。</span></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const root = document.body;
+    const themeButtons = document.querySelectorAll("[data-theme-choice]");
+    const modeButtons = document.querySelectorAll("[data-mode-choice]");
+    const toast = document.getElementById("toast");
+    const searchButton = document.getElementById("search-button");
+    const searchDrawer = document.getElementById("search-drawer");
+    const days = document.querySelectorAll(".day");
+    const monthLabel = document.getElementById("month-label");
+    const monthSteps = document.querySelectorAll("[data-month-step]");
+    const calendarViews = document.querySelectorAll("[data-calendar-view]");
+    const monthStates = [
+      { label: "2026 年 6 月", month: 6, days: ["29", "30", "1", "2", "3", "4", "5"], entries: [0, 2, 3], photos: [2], active: 2 },
+      { label: "2026 年 7 月", month: 7, days: ["13", "14", "15", "16", "17", "18", "19"], entries: [0, 2, 3, 4], photos: [2, 3], active: 3 },
+      { label: "2026 年 8 月", month: 8, days: ["27", "28", "29", "30", "31", "1", "2"], entries: [1, 4, 6], photos: [4], active: 4 }
+    ];
+    let monthIndex = 1;
+    let toastTimer;
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.modeChoice;
+        root.dataset.mode = mode;
+        modeButtons.forEach((item) => item.classList.toggle("active", item === button));
+      });
+    });
+
+    themeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const theme = button.dataset.themeChoice;
+        root.dataset.theme = theme;
+        themeButtons.forEach((item) => item.classList.toggle("active", item === button));
+      });
+    });
+
+    searchButton.addEventListener("click", () => {
+      searchDrawer.classList.toggle("open");
+      if (searchDrawer.classList.contains("open")) {
+        searchDrawer.querySelector("input").focus();
+      }
+    });
+
+    monthSteps.forEach((button) => {
+      button.addEventListener("click", () => {
+        monthIndex = Math.max(0, Math.min(monthStates.length - 1, monthIndex + Number(button.dataset.monthStep)));
+        renderMonth();
+        showToast("已切换到 " + monthStates[monthIndex].label);
+      });
+    });
+
+    calendarViews.forEach((button) => {
+      button.addEventListener("click", () => {
+        calendarViews.forEach((item) => item.classList.toggle("active", item === button));
+        showToast(button.dataset.calendarView === "month" ? "月视图预览" : "周视图预览");
+      });
+    });
+
+    days.forEach((day) => {
+      day.addEventListener("click", () => {
+        days.forEach((item) => item.classList.remove("active"));
+        day.classList.add("active");
+        const value = day.dataset.day;
+        const state = monthStates[monthIndex];
+        document.getElementById("selected-label").textContent = state.month === 7 && value === "16"
+          ? "7 月 16 日 · 今天"
+          : state.month + " 月 " + value + " 日";
+        const hasEntry = day.classList.contains("has-entry");
+        document.getElementById("entry-count").textContent = hasEntry ? "2 篇记录" : "还没有记录";
+        document.getElementById("word-count").textContent = hasEntry ? "1,248" : "0";
+        document.getElementById("photo-count").textContent = hasEntry ? "3" : "0";
+        document.getElementById("mood-label").textContent = hasEntry ? "平静" : "未记录";
+        showToast(hasEntry ? "已切换到 " + state.month + " 月 " + value + " 日" : "这一天还没有记录");
+        document.getElementById("diary-list").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    function renderMonth() {
+      const state = monthStates[monthIndex];
+      monthLabel.textContent = state.label;
+      days.forEach((day, index) => {
+        const value = state.days[index];
+        day.dataset.day = value;
+        day.querySelector("strong").textContent = value;
+        day.classList.toggle("has-entry", state.entries.includes(index));
+        day.classList.toggle("has-photo", state.photos.includes(index));
+        day.classList.toggle("active", state.active === index);
+      });
+      const activeDay = state.days[state.active];
+      document.getElementById("selected-label").textContent = state.month === 7 && activeDay === "16"
+        ? "7 月 16 日 · 今天"
+        : state.month + " 月 " + activeDay + " 日";
+      const hasEntry = state.entries.includes(state.active);
+      document.getElementById("entry-count").textContent = hasEntry ? "2 篇记录" : "还没有记录";
+      document.getElementById("word-count").textContent = hasEntry ? "1,248" : "0";
+      document.getElementById("photo-count").textContent = hasEntry ? "3" : "0";
+      document.getElementById("mood-label").textContent = hasEntry ? "平静" : "未记录";
+    }
+
+    document.querySelectorAll("[data-toast]").forEach((button) => {
+      button.addEventListener("click", () => showToast(button.dataset.toast));
+    });
+
+    document.getElementById("notification-button").addEventListener("click", () => showToast("暂无新的通知"));
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+  </script>
+</body>
+</html>

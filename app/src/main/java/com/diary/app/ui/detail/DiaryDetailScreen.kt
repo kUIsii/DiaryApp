@@ -82,6 +82,7 @@ import com.diary.app.data.Tag
 import com.diary.app.data.DiaryMediaManager
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
 import com.diary.app.ui.components.WebViewAssetHelper
 import com.diary.app.ui.components.moodIconForLevel
 import com.diary.app.ui.components.moodLabelForLevel
@@ -189,22 +190,10 @@ fun DiaryDetailScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar - minimal
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = stringResource(R.string.navigate_back),
-                        tint = textSecondary
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-            }
+            ScreenTopBar(
+                title = entry?.title ?: "",
+                onBack = onNavigateBack
+            )
 
             // Error state
             if (loadError) {

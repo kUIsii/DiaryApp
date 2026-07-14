@@ -77,6 +77,8 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.formatWordCount
 import com.diary.app.ui.components.moodColorForLevel
@@ -118,7 +120,12 @@ fun StatsScreen(
     }
 
     GradientBackground {
-        when {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ScreenTopBar(title = "\u7EDF\u8BA1")
+
+            Spacer(modifier = Modifier.height(DesignTokens.TopBarGap))
+
+            when {
             state.isLoading -> LoadingState()
             state.totalEntries == 0 -> {
                 EmptyState(
@@ -135,7 +142,7 @@ fun StatsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = DesignTokens.PageMargin),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
@@ -278,7 +285,7 @@ fun StatsScreen(
                                 if (state.weatherDistribution.isNotEmpty()) {
                                     GlassCard(
                                         modifier = Modifier.weight(1f),
-                                        cornerRadius = 22.dp,
+                                        cornerRadius = DesignTokens.CornerXLarge,
                                         innerPadding = 16.dp
                                     ) {
                                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -302,7 +309,7 @@ fun StatsScreen(
                                 if (state.tagUsage.isNotEmpty()) {
                                     GlassCard(
                                         modifier = Modifier.weight(1f),
-                                        cornerRadius = 22.dp,
+                                        cornerRadius = DesignTokens.CornerXLarge,
                                         innerPadding = 16.dp
                                     ) {
                                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -343,6 +350,7 @@ fun StatsScreen(
                     }
                 }
             }
+        }
         }
     }
 

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DiaryApp · 时间线（小墨设计语言）</title>
+<style>
+  /* ===== 小墨设计语言：主题变量（取自 xiaomo 参考，温暖纸感 + pastel 柔光） ===== */
+  :root{
+    color-scheme:light;
+    --ink:#1f2623; --muted:#68736d; --soft:#8b9690;
+    --paper:#fffaf0; --paper-2:#f7efe1;
+    --line:rgba(45,54,49,.16); --line-strong:rgba(45,54,49,.28);
+    --grid-line:rgba(80,66,40,.055);
+    --bg-base:#f5efe3;
+    --bg-a:rgba(246,216,168,.78); --bg-b:rgba(184,215,238,.7);
+    --bg-c:rgba(203,193,232,.56); --bg-d:rgba(220,235,216,.78);
+    --mesh-a:rgba(245,216,168,.36); --mesh-b:rgba(184,215,238,.38);
+    --mesh-c:rgba(203,193,232,.32); --mesh-d:rgba(220,235,216,.36); --mesh-e:rgba(239,196,173,.32);
+    --teal:#4ea89b; --sage:#b7cba7; --mint:#dcebd8; --peach:#efc4ad;
+    --apricot:#f5d8a8; --rose:#e9b8be; --lilac:#cbc1e8; --blue:#b8d7ee;
+    --card:rgba(255,252,244,.84); --card-solid:#fffaf1;
+    --brand-gradient:linear-gradient(135deg,#4ea89b,#e6a683);
+    --phone-gradient:radial-gradient(circle at 18% 8%,rgba(245,216,168,.92),transparent 34%),
+      radial-gradient(circle at 85% 18%,rgba(184,215,238,.8),transparent 34%),
+      radial-gradient(circle at 20% 86%,rgba(203,193,232,.45),transparent 30%),
+      linear-gradient(180deg,#fff9f0 0%,#f4efe4 100%);
+    --radius:26px;
+    --font-serif:"Songti SC","Noto Serif SC","STSong",Georgia,serif;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  body[data-theme="mist"]{--bg-base:#eef8f6;--bg-a:rgba(205,238,226,.86);--bg-b:rgba(174,215,234,.76);--bg-c:rgba(232,226,250,.48);--bg-d:rgba(244,232,205,.66);--mesh-a:rgba(198,238,226,.42);--mesh-b:rgba(166,212,232,.42);--mesh-c:rgba(232,226,250,.28);--mesh-d:rgba(244,232,205,.34);--mesh-e:rgba(182,229,214,.34);--teal:#479b92;--sage:#a8cfc5;--mint:#d8f0e9;--peach:#efd0bd;--apricot:#f2dfb4;--rose:#e8c4cc;--lilac:#d7d1ee;--blue:#b6dced;--brand-gradient:linear-gradient(135deg,#479b92,#83b9de);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(201,238,226,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(179,222,238,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,223,180,.55),transparent 30%),linear-gradient(180deg,#f9fffc 0%,#edf7f4 100%);}
+  body[data-theme="rose"]{--bg-base:#fbf0ef;--bg-a:rgba(249,214,210,.86);--bg-b:rgba(242,191,205,.62);--bg-c:rgba(231,218,246,.54);--bg-d:rgba(255,237,215,.78);--mesh-a:rgba(249,214,210,.42);--mesh-b:rgba(242,191,205,.34);--mesh-c:rgba(231,218,246,.32);--mesh-d:rgba(255,237,215,.38);--mesh-e:rgba(230,197,177,.28);--teal:#bc7f86;--sage:#d2b8b0;--mint:#f0ddd8;--peach:#f3c0af;--apricot:#f8ddb9;--rose:#e7aebd;--lilac:#d7c5ec;--blue:#c8d9ec;--brand-gradient:linear-gradient(135deg,#c77b87,#df9b77);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(249,214,210,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(231,218,246,.72),transparent 34%),radial-gradient(circle at 18% 84%,rgba(248,221,185,.62),transparent 30%),linear-gradient(180deg,#fff8f7 0%,#f9eeec 100%);}
+  body[data-theme="moon"]{--bg-base:#eef2f6;--bg-a:rgba(207,221,232,.84);--bg-b:rgba(186,207,226,.76);--bg-c:rgba(213,205,232,.52);--bg-d:rgba(238,232,218,.72);--mesh-a:rgba(207,221,232,.42);--mesh-b:rgba(186,207,226,.42);--mesh-c:rgba(213,205,232,.34);--mesh-d:rgba(238,232,218,.3);--mesh-e:rgba(172,193,210,.3);--teal:#647e91;--sage:#b3c0bd;--mint:#e1e9e8;--peach:#dec8bd;--apricot:#ead9bd;--rose:#d8bdc7;--lilac:#c8c1df;--blue:#bbd1e7;--brand-gradient:linear-gradient(135deg,#667e92,#a69ed2);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(207,221,232,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(200,193,223,.76),transparent 34%),radial-gradient(circle at 18% 84%,rgba(234,217,189,.55),transparent 30%),linear-gradient(180deg,#fbfcfd 0%,#edf1f5 100%);}
+  body[data-theme="apricot"]{--bg-base:#fbf1df;--bg-a:rgba(250,218,166,.88);--bg-b:rgba(242,190,153,.68);--bg-c:rgba(216,231,206,.58);--bg-d:rgba(255,245,218,.82);--mesh-a:rgba(250,218,166,.44);--mesh-b:rgba(242,190,153,.38);--mesh-c:rgba(216,231,206,.34);--mesh-d:rgba(255,245,218,.4);--mesh-e:rgba(235,165,125,.3);--teal:#c17f51;--sage:#c8c894;--mint:#e8edd1;--peach:#efb28e;--apricot:#f5cf8f;--rose:#eab6a7;--lilac:#d7c4e5;--blue:#bdd7e5;--brand-gradient:linear-gradient(135deg,#d58f55,#e9b66f);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(250,218,166,.96),transparent 34%),radial-gradient(circle at 84% 18%,rgba(216,231,206,.72),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,190,153,.58),transparent 30%),linear-gradient(180deg,#fffaf0 0%,#faeedb 100%);}
+  body[data-theme="iris"]{--bg-base:#f1eff8;--bg-a:rgba(224,213,245,.82);--bg-b:rgba(192,214,237,.72);--bg-c:rgba(242,218,230,.55);--bg-d:rgba(232,237,222,.68);--mesh-a:rgba(224,213,245,.42);--mesh-b:rgba(192,214,237,.4);--mesh-c:rgba(242,218,230,.32);--mesh-d:rgba(232,237,222,.32);--mesh-e:rgba(187,174,224,.32);--teal:#8076b7;--sage:#c2cbb6;--mint:#e5eadf;--peach:#efc3b7;--apricot:#edd6ad;--rose:#e7c3d4;--lilac:#cabfec;--blue:#bfd6ed;--brand-gradient:linear-gradient(135deg,#8076b7,#6da2c5);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(224,213,245,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(192,214,237,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,218,230,.58),transparent 30%),linear-gradient(180deg,#fcfbff 0%,#f1eff8 100%);}
+  body[data-theme="matcha"]{--bg-base:#f0f5df;--bg-a:rgba(212,231,174,.82);--bg-b:rgba(181,216,193,.78);--bg-c:rgba(239,218,181,.58);--bg-d:rgba(252,246,222,.84);--mesh-a:rgba(212,231,174,.42);--mesh-b:rgba(181,216,193,.4);--mesh-c:rgba(239,218,181,.34);--mesh-d:rgba(252,246,222,.38);--mesh-e:rgba(159,196,137,.3);--teal:#6d9a62;--sage:#b8cc95;--mint:#e3edcc;--peach:#e8c1a6;--apricot:#eed99e;--rose:#dfbdba;--lilac:#cbc8e4;--blue:#bdd9df;--brand-gradient:linear-gradient(135deg,#79a76a,#b4b86b);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(212,231,174,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(181,216,193,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(239,218,181,.58),transparent 30%),linear-gradient(180deg,#fbfff1 0%,#eef5dd 100%);}
+  body[data-theme="lagoon"]{--bg-base:#edf7fa;--bg-a:rgba(191,232,236,.84);--bg-b:rgba(170,209,232,.76);--bg-c:rgba(218,224,246,.52);--bg-d:rgba(242,229,201,.68);--mesh-a:rgba(191,232,236,.42);--mesh-b:rgba(170,209,232,.42);--mesh-c:rgba(218,224,246,.32);--mesh-d:rgba(242,229,201,.34);--mesh-e:rgba(145,203,213,.32);--teal:#4d9ca8;--sage:#b8cabd;--mint:#dcf0ee;--peach:#e7c5b2;--apricot:#f1dcaf;--rose:#dfbfcb;--lilac:#ccd0ec;--blue:#add5ed;--brand-gradient:linear-gradient(135deg,#4d9ca8,#6f9bd3);--phone-gradient:radial-gradient(circle at 18% 8%,rgba(191,232,236,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(170,209,232,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,229,201,.58),transparent 30%),linear-gradient(180deg,#f8feff 0%,#edf7fa 100%);}
+
+  *{box-sizing:border-box;}
+  body{margin:0;min-width:320px;color:var(--ink);font-family:var(--font-sans);
+    background:
+      linear-gradient(var(--grid-line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid-line) 1px,transparent 1px),
+      radial-gradient(circle at 18% 14%,var(--bg-a),transparent 28%),
+      radial-gradient(circle at 76% 7%,var(--bg-b),transparent 25%),
+      radial-gradient(circle at 73% 78%,var(--bg-c),transparent 31%),
+      radial-gradient(circle at 18% 82%,var(--bg-d),transparent 32%),
+      var(--bg-base);
+    background-size:42px 42px,42px 42px,auto,auto,auto,auto,auto;
+    transition:background 260ms ease,color 260ms ease;
+    display:flex;justify-content:center;align-items:flex-start;gap:30px;flex-wrap:wrap;padding:34px 16px 64px;}
+  body::before{content:"";position:fixed;inset:-18%;pointer-events:none;z-index:-1;
+    background:conic-gradient(from 72deg at 42% 42%,var(--mesh-a),var(--mesh-b),var(--mesh-c),var(--mesh-d),var(--mesh-e),var(--mesh-a));
+    filter:blur(38px);opacity:.92;animation:softDrift 18s ease-in-out infinite alternate;}
+  @keyframes softDrift{from{transform:translate3d(-1.5%,-1%,0) rotate(-2deg) scale(1);}to{transform:translate3d(1.5%,1%,0) rotate(2deg) scale(1.03);}}
+
+  /* ===== 主题切换条（小墨风格） ===== */
+  .palette-bar{width:236px;flex:0 0 auto;align-self:flex-start;position:sticky;top:34px;
+    padding:16px;border:1px solid var(--line);background:rgba(255,250,241,.6);box-shadow:0 12px 32px rgba(43,50,46,.07);border-radius:22px;}
+  .palette-bar b{display:block;font-family:var(--font-serif);font-size:17px;margin-bottom:3px;}
+  .palette-bar span{display:block;color:var(--muted);font-size:11px;line-height:1.6;margin-bottom:13px;}
+  .palette-options{display:flex;flex-wrap:wrap;gap:8px;}
+  .palette-btn{min-height:38px;padding:6px 9px 6px 7px;border:1px solid var(--line);border-radius:999px;
+    display:inline-flex;align-items:center;gap:7px;color:#3b4742;background:rgba(255,255,255,.48);
+    cursor:pointer;font-size:10.5px;font-weight:800;transition:transform 160ms ease,border-color 160ms ease,background 160ms ease;}
+  .palette-btn:hover{transform:translateY(-1px);border-color:var(--line-strong);background:rgba(255,255,255,.72);}
+  .palette-btn[aria-pressed="true"]{border-color:rgba(45,54,49,.34);background:rgba(255,255,255,.86);box-shadow:0 8px 18px rgba(43,50,46,.08);}
+  .swatches{display:inline-flex;gap:3px;}
+  .swatches i{width:15px;height:15px;border-radius:999px;border:1px solid rgba(31,38,35,.15);font-style:normal;}
+
+  /* ===== 手机 ===== */
+  .phone-wrap{position:sticky;top:34px;width:min(100%,430px);padding:18px;border:1px solid rgba(45,54,49,.22);
+    background:rgba(255,252,244,.34);box-shadow:0 22px 55px rgba(68,56,39,.14);border-radius:34px;}
+  .phone{position:relative;width:100%;aspect-ratio:390/812;border:10px solid #252b28;border-radius:46px;
+    background:#f9f3e8;box-shadow:0 34px 90px rgba(43,50,46,.22);overflow:hidden;}
+  .phone::before{content:"";position:absolute;top:10px;left:50%;z-index:6;width:112px;height:28px;border-radius:999px;background:#252b28;transform:translateX(-50%);}
+  .phone-screen{position:absolute;inset:0;overflow:hidden;background:var(--phone-gradient);transition:background 260ms ease;}
+  .mobile-scene{position:absolute;inset:0;display:flex;flex-direction:column;padding:54px 17px 14px;animation:sceneIn 260ms ease both;}
+  @keyframes sceneIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+  .mobile-top{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .mobile-title small{display:block;color:rgba(31,38,35,.54);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+  .mobile-title strong{display:block;margin-top:2px;font-family:var(--font-serif);font-size:25px;line-height:1.05;}
+  .round-btn{width:38px;height:38px;border:1px solid rgba(52,62,57,.12);border-radius:16px;display:grid;place-items:center;
+    color:#375851;background:rgba(255,255,255,.58);box-shadow:0 8px 18px rgba(57,68,64,.08);cursor:pointer;transition:transform 160ms ease,background 160ms ease;}
+  .round-btn:hover{background:rgba(255,255,255,.86);}
+  .round-btn:active{transform:scale(.94);}
+  .round-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;}
+
+  /* 过滤药丸 */
+  .tl-filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none;}
+  .tl-filters::-webkit-scrollbar{display:none;}
+  .tl-pill{min-height:34px;padding:0 13px;border:1px solid rgba(52,62,57,.12);border-radius:999px;display:inline-grid;place-items:center;
+    color:#31423d;background:rgba(255,255,255,.6);font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:all 160ms ease;}
+  .tl-pill:hover{background:rgba(255,255,255,.86);}
+  .tl-pill[aria-pressed="true"]{color:#fff;border-color:transparent;background:var(--brand-gradient);box-shadow:0 6px 16px rgba(78,168,155,.22);}
+
+  .content-scroll{flex:1;display:flex;flex-direction:column;gap:18px;overflow-y:auto;padding-right:2px;scrollbar-width:thin;}
+  .content-scroll::-webkit-scrollbar{width:5px;}
+  .content-scroll::-webkit-scrollbar-thumb{background:rgba(45,54,49,.18);border-radius:3px;}
+
+  /* 分组 */
+  .tl-group{display:flex;flex-direction:column;gap:11px;}
+  .tl-group-head{display:flex;align-items:baseline;gap:9px;margin:2px 4px -2px;}
+  .tl-group-head b{font-family:var(--font-serif);font-size:19px;font-weight:700;}
+  .tl-group-head span{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .tl-group-head i{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted);background:rgba(78,168,155,.12);padding:1px 9px;border-radius:999px;}
+
+  /* 通用卡 */
+  .card{border:1px solid rgba(52,62,57,.12);border-radius:22px;background:rgba(255,255,255,.56);
+    box-shadow:0 10px 25px rgba(59,66,60,.08);padding:14px;transition:transform 180ms ease,border-color 180ms ease,box-shadow 180ms ease;cursor:pointer;}
+  .card:hover{transform:translateY(-2px);border-color:rgba(78,168,155,.4);box-shadow:0 16px 34px rgba(59,66,60,.12);}
+  .card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .ico{width:28px;height:28px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;color:#fff;background:var(--brand-gradient);}
+  .ico svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;}
+  .card h4{margin:0;font-family:var(--font-serif);font-size:16px;font-weight:700;line-height:1.3;flex:1;color:#26302c;}
+  .card .time{font-size:11px;color:var(--muted);flex:0 0 auto;}
+  .excerpt{font-size:13px;line-height:1.62;color:#4f5d58;margin:0 0 10px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .tag{font-size:11px;padding:2px 9px;border-radius:999px;color:#4e655d;background:rgba(78,168,155,.12);font-weight:700;}
+  .mini{display:inline-flex;align-items:center;gap:5px;min-height:22px;padding:0 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.02em;}
+  .mini svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;}
+
+  /* 日记卡：心情色点 */
+  .mood{width:11px;height:11px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.5);}
+  .mood-label{color:#42524c;background:rgba(255,255,255,.5);}
+
+  /* 任务卡 */
+  .task-row{display:flex;align-items:center;gap:11px;}
+  .check-dot{width:20px;height:20px;border-radius:9px;border:2px solid rgba(78,168,155,.58);flex:0 0 auto;display:grid;place-items:center;}
+  .check-dot svg{width:13px;height:13px;stroke:var(--teal);fill:none;stroke-width:2.6;}
+  .card.done h4{text-decoration:line-through;color:var(--muted);}
+  .prio{font-size:10.5px;padding:1px 8px;border-radius:999px;font-weight:800;}
+  .prio.p1{color:#b5635a;background:rgba(231,138,123,.16);}
+  .prio.p2{color:#bd8a4e;background:rgba(239,196,143,.2);}
+  .prio.p3{color:var(--muted);background:rgba(104,115,109,.12);}
+
+  /* 成就卡：票券质感（轻微旋转 + 虚线 + 偏移硬阴影） */
+  .card.ticket{background:rgba(220,235,216,.5);transform:rotate(.8deg);border:1px dashed rgba(52,62,57,.2);
+    box-shadow:8px 10px 0 rgba(77,67,49,.07);}
+  .card.ticket:hover{transform:rotate(0) translateY(-2px);}
+  .card.ticket .ico{background:linear-gradient(135deg,#cbb8ef,#bfd5ea);}
+  .ach-bar{height:6px;border-radius:999px;background:rgba(255,255,255,.7);overflow:hidden;margin-top:10px;}
+  .ach-bar i{display:block;height:100%;border-radius:999px;background:var(--brand-gradient);}
+
+  /* 倒数日卡：杏色暖调 */
+  .card.count{background:rgba(245,216,168,.4);}
+  .card.count .ico{background:linear-gradient(135deg,#f5d8a8,#efc4ad);}
+  .count-num{font-family:var(--font-serif);font-size:30px;font-weight:800;line-height:1;color:#3a3026;margin-top:2px;}
+  .count-num small{font-size:13px;font-weight:700;margin-left:4px;color:#6a5a44;}
+
+  .tl-empty{display:none;flex-direction:column;align-items:center;justify-content:center;padding:54px 20px;text-align:center;color:var(--muted);}
+  .tl-empty svg{width:50px;height:50px;fill:none;stroke:var(--muted);stroke-width:1.4;opacity:.55;margin-bottom:12px;}
+  .tl-empty b{font-family:var(--font-serif);font-size:16px;color:#4f5d58;margin-bottom:5px;}
+  .tl-empty span{font-size:12.5px;line-height:1.7;}
+
+  .tl-more{margin:4px auto 2px;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;
+    border-radius:16px;cursor:pointer;border:1px dashed rgba(52,62,57,.24);background:transparent;color:var(--muted);
+    font-size:12.5px;font-weight:700;font-family:var(--font-sans);transition:all 160ms ease;}
+  .tl-more:hover{color:#375851;border-color:rgba(78,168,155,.5);}
+
+  /* 底部导航（小墨：半透明、安静） */
+  .nav{height:60px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-around;gap:4px;
+    background:rgba(255,252,244,.6);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:5px;margin-top:10px;}
+  .nav .item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10px;flex:1;}
+  .nav .item svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;}
+  .nav .item[aria-current="true"]{color:var(--teal);}
+  .nav .fab{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin-top:-20px;color:#fff;
+    background:var(--brand-gradient);box-shadow:0 8px 20px rgba(78,168,155,.32);}
+  .nav .fab svg{width:23px;height:23px;stroke:#fff;}
+</style>
+</head>
+<body>
+
+  <!-- 主题切换 -->
+  <aside class="palette-bar">
+    <b>小墨 · 时间线</b>
+    <span>温暖纸感 + pastel 柔光。点色板切换主题，实时预览。</span>
+    <div class="palette-options" id="themes">
+      <button class="palette-btn" data-theme=""><span class="swatches"><i style="background:#f5d8a8"></i><i style="background:#b8d7ee"></i><i style="background:#cbc1e8"></i></span>纸</button>
+      <button class="palette-btn" data-theme="mist"><span class="swatches"><i style="background:#cdeee6"></i><i style="background:#b6dced"></i><i style="background:#d7d1ee"></i></span>雾</button>
+      <button class="palette-btn" data-theme="rose"><span class="swatches"><i style="background:#f9d6d2"></i><i style="background:#e7aebd"></i><i style="background:#d7c5ec"></i></span>蔷</button>
+      <button class="palette-btn" data-theme="moon"><span class="swatches"><i style="background:#cfddE8"></i><i style="background:#c8c1df"></i><i style="background:#ead9bd"></i></span>月</button>
+      <button class="palette-btn" data-theme="apricot"><span class="swatches"><i style="background:#fad aa6"></i><i style="background:#f2be99"></i><i style="background:#d8e7ce"></i></span>杏</button>
+      <button class="palette-btn" data-theme="iris"><span class="swatches"><i style="background:#e0d5f5"></i><i style="background:#c0d6ed"></i><i style="background:#f2dae6"></i></span>鸢</button>
+      <button class="palette-btn" data-theme="matcha"><span class="swatches"><i style="background:#d4e7ae"></i><i style="background:#b5d8c1"></i><i style="background:#f2dab5"></i></span>抹</button>
+      <button class="palette-btn" data-theme="lagoon"><span class="swatches"><i style="background:#bfe8ec"></i><i style="background:#aad1e8"></i><i style="background:#dae0f6"></i></span>潟</button>
+    </div>
+  </aside>
+
+  <!-- 手机 -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="mobile-scene">
+          <div class="mobile-top">
+            <div class="mobile-title">
+              <small>YOUR STORY</small>
+              <strong>时间线</strong>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="round-btn" title="搜索"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+              <button class="round-btn" title="筛选"><svg viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg></button>
+            </div>
+          </div>
+
+          <div class="tl-filters" id="filters">
+            <button class="tl-pill" data-f="all" aria-pressed="true">全部</button>
+            <button class="tl-pill" data-f="diary" aria-pressed="false">日记</button>
+            <button class="tl-pill" data-f="task" aria-pressed="false">任务</button>
+            <button class="tl-pill" data-f="achievement" aria-pressed="false">成就</button>
+            <button class="tl-pill" data-f="countdown" aria-pressed="false">倒数日</button>
+          </div>
+
+          <div class="content-scroll" id="scroll">
+
+            <div class="tl-group" data-g="today">
+              <div class="tl-group-head"><b>今天</b><span>July 13</span><i>3 条</i></div>
+
+              <div class="card" data-type="diary">
+                <div class="card-top">
+                  <span class="mood" style="background:#7bc9a0"></span>
+                  <span class="mini mood-label">平静</span>
+                  <h4>把天气预警的坑填完了</h4>
+                  <span class="time">21:12</span>
+                </div>
+                <p class="excerpt">今天终于把 nmc 分页截断和 adcode 回退北京两个根因都修了，华为设备也能收到高温预警了。长出一口气。</p>
+                <div class="meta"><span class="tag">开发</span><span class="tag">复盘</span>
+                  <span class="mini"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>118 字</span></div>
+              </div>
+
+              <div class="card done" data-type="task">
+                <div class="card-top"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h12M4 12h12M4 17h8"/></svg></span>
+                  <h4>提交设计稿给客户</h4><span class="time">18:30</span></div>
+                <div class="task-row"><span class="check-dot"><svg viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></svg></span>
+                  <span class="prio p1">P1</span><span class="mini">已完成 · 按时</span></div>
+              </div>
+
+              <div class="card" data-type="diary">
+                <div class="card-top">
+                  <span class="mood" style="background:#7ba7c9"></span>
+                  <span class="mini mood-label">舒缓</span>
+                  <h4>傍晚散步想到的事</h4><span class="time">19:40</span>
+                </div>
+                <p class="excerpt">沿着河边走，风很轻。想明白一件事：重设计不是为了炫技，是让每天写日记这件事更顺手。</p>
+                <div class="meta"><span class="tag">生活</span>
+                  <span class="mini"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>64 字</span></div>
+              </div>
+            </div>
+
+            <div class="tl-group" data-g="yesterday">
+              <div class="tl-group-head"><b>昨天</b><span>July 12</span><i>2 条</i></div>
+
+              <div class="card ticket" data-type="achievement">
+                <div class="card-top"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13 7 22l5-3 5 3-2-9"/></svg></span>
+                  <h4>连续记录 30 天</h4><span class="time">解锁</span></div>
+                <p class="excerpt">坚持写作一个月，记下 32 篇日记。下个目标：连续 100 天。</p>
+                <div class="ach-bar"><i style="width:30%"></i></div>
+              </div>
+
+              <div class="card" data-type="diary">
+                <div class="card-top">
+                  <span class="mood" style="background:#a88bc9"></span>
+                  <span class="mini mood-label">雀跃</span>
+                  <h4>和团队评审设计方案</h4><span class="time">15:05</span>
+                </div>
+                <p class="excerpt">大家对多面板工作区的想法比较买账，但担心工作量。决定先做时间线和详情两屏验证观感。</p>
+                <div class="meta"><span class="tag">工作</span><span class="tag">设计</span></div>
+              </div>
+            </div>
+
+            <div class="tl-group" data-g="week">
+              <div class="tl-group-head"><b>本周</b><span>Jul 7 – 13</span><i>3 条</i></div>
+
+              <div class="card" data-type="task">
+                <div class="card-top"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h12M4 12h12M4 17h8"/></svg></span>
+                  <h4>整理桌面文件</h4><span class="time">周三</span></div>
+                <div class="task-row"><span class="check-dot" style="border-color:rgba(104,115,109,.4)"><svg viewBox="0 0 24 24" style="stroke:var(--muted)"><path d="m4 12 5 5L20 6"/></svg></span>
+                  <span class="prio p3">P3</span><span class="mini">待办</span></div>
+              </div>
+
+              <div class="card count" data-type="countdown">
+                <div class="card-top"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 3h6"/></svg></span>
+                  <h4>项目里程碑评审</h4><span class="time">07-18 周五</span></div>
+                <p class="excerpt">把这一轮重设计原型整理成可演示的版本。</p>
+                <div class="count-num">5<small>天后</small></div>
+              </div>
+
+              <div class="card" data-type="diary">
+                <div class="card-top">
+                  <span class="mood" style="background:#d4a06a"></span>
+                  <span class="mini mood-label">微倦</span>
+                  <h4>有点累，但踏实</h4><span class="time">周一</span>
+                </div>
+                <p class="excerpt">这周节奏很快，晚上回家只想放空。明天开始给自己留点空白时间。</p>
+                <div class="meta"><span class="tag">随笔</span></div>
+              </div>
+            </div>
+
+            <div class="tl-group" data-g="earlier">
+              <div class="tl-group-head"><b>更早</b><span>June</span><i>2 条</i></div>
+
+              <div class="card ticket" data-type="achievement">
+                <div class="card-top"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13 7 22l5-3 5 3-2-9"/></svg></span>
+                  <h4>首次时间胶囊开启</h4><span class="time">06-20</span></div>
+                <p class="excerpt">给一年前的自己写了信，今天拆开，那时候的焦虑现在看竟有点可爱。</p>
+                <div class="ach-bar"><i style="width:100%"></i></div>
+              </div>
+
+              <div class="card" data-type="diary">
+                <div class="card-top">
+                  <span class="mood" style="background:#7bc9a0"></span>
+                  <span class="mini mood-label">感恩</span>
+                  <h4>旅行最后一天</h4><span class="time">06-12</span>
+                </div>
+                <p class="excerpt">海边看了场日落，把这一程的见闻都记下来了。下次想带爸妈来。</p>
+                <div class="meta"><span class="tag">旅行</span><span class="tag">感恩</span></div>
+              </div>
+            </div>
+
+            <button class="tl-more" id="more">加载更多</button>
+
+            <div class="tl-empty" id="empty">
+              <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+              <b>这里还很安静</b>
+              <span>切换筛选条件，或写下第一篇日记。</span>
+            </div>
+          </div>
+
+          <nav class="nav">
+            <div class="item"><svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7M6 10v9h12v-9"/></svg>首页</div>
+            <div class="item" aria-current="true"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 4v16M5 9h4"/></svg>时间线</div>
+            <div class="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div class="item"><svg viewBox="0 0 24 24"><path d="M4 7h12M4 12h12M4 17h8"/><path d="m17 11 3 3 5-5" transform="translate(-9 -2)"/></svg>待办</div>
+            <div class="item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>我的</div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const body=document.body;
+  // 主题
+  const savedT=localStorage.getItem('xm-theme');
+  function applyTheme(t){
+    if(t) body.setAttribute('data-theme',t); else body.removeAttribute('data-theme');
+    document.querySelectorAll('#themes .palette-btn').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.theme||'')===t?'true':'false'));
+  }
+  applyTheme(savedT||'');
+  document.querySelectorAll('#themes .palette-btn').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.theme; applyTheme(t); localStorage.setItem('xm-theme',t||'');
+  }));
+
+  // 过滤
+  const filters=document.getElementById('filters'), scroll=document.getElementById('scroll'), empty=document.getElementById('empty');
+  filters.addEventListener('click',e=>{
+    const p=e.target.closest('.tl-pill'); if(!p)return;
+    filters.querySelectorAll('.tl-pill').forEach(x=>x.setAttribute('aria-pressed','false'));
+    p.setAttribute('aria-pressed','true');
+    const f=p.dataset.f; let vis=0;
+    document.querySelectorAll('.card').forEach(c=>{
+      const show = f==='all' || c.dataset.type===f; c.style.display = show?'':'none'; if(show)vis++;
+    });
+    empty.style.display = vis?'none':'flex';
+    scroll.scrollTop=0;
+  });
+  document.getElementById('more').addEventListener('click',function(){
+    this.textContent='没有更多了'; this.style.opacity=.6; this.style.pointerEvents='none';
+  });
+</script>
+</body>
+</html>

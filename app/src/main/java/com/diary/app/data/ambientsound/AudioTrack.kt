@@ -1,17 +1,13 @@
 package com.diary.app.data.ambientsound
 
-data class AudioCategory(
-    val id: String,
-    val name: String,
-    val backgroundImageUrl: String?
-)
+import androidx.annotation.DrawableRes
 
 data class AudioTrack(
     val id: String,
-    val categoryId: String,
     val name: String,
     val subtitle: String,
     val durationSeconds: Int,
-    val audioUrl: String?,
-    val imageUrl: String?
+    val audioUrl: String? = null,
+    val imageUrl: String? = null,
+    @DrawableRes val imageRes: Int = 0
 )

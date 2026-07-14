@@ -46,4 +46,14 @@ object DesignTokens {
     val LineHeightTight = 1.4f
     val LineHeightNormal = 1.6f
     val LineHeightRelaxed = 2.0f
+
+    // --- Screen-level layout (consistency across all pages) ---
+    // Uniform left/right padding for every screen body
+    val PageMargin = 20.dp
+    // Unified top bar height so every page's header lines up
+    val TopBarHeight = 56.dp
+    // Unified page title text size (previously 20~32.sp, inconsistent)
+    val PageTitleSize = 22.sp
+    // Standard gap between the top bar and the first content block
+    val TopBarGap = 8.dp
 }

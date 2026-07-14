@@ -20,9 +20,11 @@ import com.diary.app.data.defaultPresetTags
 import com.diary.app.data.normalizeTagNameForMatching
 import androidx.room.withTransaction
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class DraftData(
     val id: String = java.util.UUID.randomUUID().toString(),
@@ -306,7 +308,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         longitude: Double? = null
     ): Long {
         // Strip Base64 data URLs from content before saving to prevent OOM on load
-        val safeContent = DiaryMediaManager.contentToStableMediaRefs(stripBase64FromContent(content))
+        // 长文逐字符处理很重，切到 IO 线程，避免主线程卡 UI
+        val safeContent = withContext(Dispatchers.IO) {
+            DiaryMediaManager.contentToStableMediaRefs(stripBase64FromContent(content))
+        }
 
         val durationSeconds = _writingDuration.value.toInt().takeIf { it > 0 }
 

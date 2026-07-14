@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="fog" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DiaryApp 时间线 · 多色主题 v7</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+
+/* ============ BASE TOKENS ============ */
+:root{
+  --font-display:"Noto Serif SC","Songti SC",serif;
+  --font-body:"LXGW WenKai","PingFang SC","Microsoft YaHei",serif;
+  --font-ui:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --radius-card:18px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+/* ===== A 雾蓝 Fog （蓝+薰衣草+薄荷+暖沙，同系多色不冲突） ===== */
+[data-theme="fog"][data-mode="light"]{
+  --bg1:#EDF1F8; --bg2:#E7EDF6; --bg3:#E2E9F3;
+  --surface:#FCFDFF; --text:#2B3346; --muted:#5C6678; --faint:#8C96A8;
+  --accent:#5E83B8; --accent2:#B79BD0; --card:#FCFDFF; --border:rgba(94,131,184,.30);
+  --hair:rgba(43,51,68,.10);
+  --mesh1:#D7E4FA; --mesh2:#E8E1F4; --mesh3:#E0F0EC; --mesh4:#F2E8D6; --mesh5:#DCE6F2;
+}
+[data-theme="fog"][data-mode="dark"]{
+  --bg1:#0B0E16; --bg2:#0E121C; --bg3:#11151F;
+  --surface:#151A26; --text:#D6E0F2; --muted:#9AA8C0; --faint:#697690;
+  --accent:#8FB0E0; --accent2:#B79BD0; --card:#181D2B; --border:rgba(143,176,224,.22);
+  --hair:rgba(214,224,242,.10);
+  --mesh1:#21324F; --mesh2:#2E2742; --mesh3:#172C2C; --mesh4:#2A2418; --mesh5:#1A2236;
+}
+/* ===== B 苔绿 Moss （草绿+橄榄+鼠尾草+奶+薄荷） ===== */
+[data-theme="moss"][data-mode="light"]{
+  --bg1:#EFF3EA; --bg2:#E9EFE3; --bg3:#E1E9D8;
+  --surface:#FBFDF9; --text:#2C3326; --muted:#566049; --faint:#889480;
+  --accent:#6E9A5E; --accent2:#C9A86A; --card:#FBFDF9; --border:rgba(110,154,94,.28);
+  --hair:rgba(44,51,38,.10);
+  --mesh1:#DCE9C8; --mesh2:#ECF0D2; --mesh3:#E2EEDD; --mesh4:#F4EFDD; --mesh5:#DCEDE6;
+}
+[data-theme="moss"][data-mode="dark"]{
+  --bg1:#0A0D09; --bg2:#0E120D; --bg3:#11160F;
+  --surface:#141A12; --text:#D6E2CC; --muted:#9AAA90; --faint:#697A60;
+  --accent:#94C07E; --accent2:#D4B078; --card:#171C14; --border:rgba(148,192,126,.20);
+  --hair:rgba(214,226,204,.10);
+  --mesh1:#1F331B; --mesh2:#323F1E; --mesh3:#15260F; --mesh4:#2A2415; --mesh5:#152A22;
+}
+/* ===== C 海洋 Ocean （青+天蓝+海沫+钢蓝） ===== */
+[data-theme="ocean"][data-mode="light"]{
+  --bg1:#E9F5F7; --bg2:#DDF1F4; --bg3:#D2EBF0;
+  --surface:#FCFFFF; --text:#163A43; --muted:#4C6A75; --faint:#7E9AA4;
+  --accent:#3FA0A2; --accent2:#6E9BCB; --card:#FCFFFF; --border:rgba(63,160,162,.28);
+  --hair:rgba(22,58,67,.09);
+  --mesh1:#CEEFF2; --mesh2:#DCF2F4; --mesh3:#D6E7F4; --mesh4:#E2F4EE; --mesh5:#D2EBF0;
+}
+[data-theme="ocean"][data-mode="dark"]{
+  --bg1:#07161B; --bg2:#0A1D24; --bg3:#0E232C;
+  --surface:#101E26; --text:#D2ECF0; --muted:#9AB7C0; --faint:#688E98;
+  --accent:#5FC4C6; --accent2:#7DA0D4; --card:#13212B; --border:rgba(95,196,198,.20);
+  --hair:rgba(210,236,240,.10);
+  --mesh1:#0F3C42; --mesh2:#123A44; --mesh3:#142E3A; --mesh4:#10302E; --mesh5:#0C2A30;
+}
+/* ===== D 花瓣 Petal （玫+蜜桃+丁香+珊瑚+奶，去重去刺） ===== */
+[data-theme="petal"][data-mode="light"]{
+  --bg1:#FCF3F2; --bg2:#FBEDEA; --bg3:#F6E0DC;
+  --surface:#FFFCFB; --text:#432A2E; --muted:#6E5456; --faint:#A48688;
+  --accent:#D89A96; --accent2:#B98AC4; --card:#FFFCFB; --border:rgba(208,138,134,.28);
+  --hair:rgba(67,42,46,.09);
+  --mesh1:#F8DBE0; --mesh2:#FCE6D8; --mesh3:#F4E2EE; --mesh4:#FADDD2; --mesh5:#FBEFE6;
+}
+[data-theme="petal"][data-mode="dark"]{
+  --bg1:#180F12; --bg2:#1E1417; --bg3:#271A1D;
+  --surface:#221619; --text:#F4DCDC; --muted:#C3A7A7; --faint:#8E7272;
+  --accent:#E2A09A; --accent2:#C49BC4; --card:#2A1B1E; --border:rgba(226,160,154,.20);
+  --hair:rgba(244,220,220,.10);
+  --mesh1:#3A2730; --mesh2:#382A38; --mesh3:#3C2C2A; --mesh4:#2A1A20; --mesh5:#331E26;
+}
+/* ===== E 沙琥珀 Sand （沙+麦+琥珀+奶+腮红，柔和暖调） ===== */
+[data-theme="sand"][data-mode="light"]{
+  --bg1:#FBF5EB; --bg2:#F6EEDD; --bg3:#EFE3CC;
+  --surface:#FFFBF3; --text:#43381D; --muted:#6A5A3E; --faint:#A09070;
+  --accent:#C9A86A; --accent2:#C2877A; --card:#FFFBF3; --border:rgba(195,154,85,.28);
+  --hair:rgba(67,56,29,.09);
+  --mesh1:#F7E7C6; --mesh2:#FAEFD9; --mesh3:#F3E1BE; --mesh4:#F8ECDF; --mesh5:#F6DDCB;
+}
+[data-theme="sand"][data-mode="dark"]{
+  --bg1:#16120C; --bg2:#1C1710; --bg3:#251F16;
+  --surface:#231D15; --text:#F0E5CF; --muted:#C0AD8A; --faint:#8E7E60;
+  --accent:#D9B36E; --accent2:#CCA088; --card:#2A2219; --border:rgba(217,179,110,.20);
+  --hair:rgba(240,229,207,.10);
+  --mesh1:#352C1C; --mesh2:#42321F; --mesh3:#2A2114; --mesh4:#3A2618; --mesh5:#33241A;
+}
+/* ===== F 陶土 Clay （陶+赤陶+玫瑰陶+奶+鼠尾草） ===== */
+[data-theme="clay"][data-mode="light"]{
+  --bg1:#FAF1EA; --bg2:#F3E6DA; --bg3:#EAD7C9;
+  --surface:#FFFCF9; --text:#3F2E27; --muted:#695850; --faint:#9A8579;
+  --accent:#C0876F; --accent2:#7E9A86; --card:#FFFCF9; --border:rgba(192,135,111,.28);
+  --hair:rgba(63,46,39,.09);
+  --mesh1:#F5D8C8; --mesh2:#F7DED4; --mesh3:#F1D6C8; --mesh4:#EFE6D6; --mesh5:#E9EDE0;
+}
+[data-theme="clay"][data-mode="dark"]{
+  --bg1:#17110D; --bg2:#1C1511; --bg3:#241B15;
+  --surface:#211711; --text:#F2E2D7; --muted:#C3AEA0; --faint:#8D7769;
+  --accent:#D89E86; --accent2:#90A898; --card:#281D17; --border:rgba(216,158,134,.20);
+  --hair:rgba(242,226,215,.10);
+  --mesh1:#3E2820; --mesh2:#30241E; --mesh3:#281C16; --mesh4:#26301F; --mesh5:#341F18;
+}
+/* ===== G 墨石 Ink （靛+紫罗兰+石板+淡紫，设计感冷调） ===== */
+[data-theme="ink"][data-mode="light"]{
+  --bg1:#EEF0F6; --bg2:#E4E8F2; --bg3:#D9DFEE;
+  --surface:#FCFDFF; --text:#1E2636; --muted:#4D5A70; --faint:#7A8698;
+  --accent:#4F6AAA; --accent2:#7A6FB8; --card:#FCFDFF; --border:rgba(79,106,170,.28);
+  --hair:rgba(30,38,54,.09);
+  --mesh1:#DDE1F6; --mesh2:#E6DEF4; --mesh3:#DDE4F1; --mesh4:#E8E4EE; --mesh5:#DAE0F4;
+}
+[data-theme="ink"][data-mode="dark"]{
+  --bg1:#090C14; --bg2:#0D111B; --bg3:#111725;
+  --surface:#151A27; --text:#D8E1EF; --muted:#9AA8C1; --faint:#6D7893;
+  --accent:#8AA8E0; --accent2:#A48BD4; --card:#1A2030; --border:rgba(138,168,224,.20);
+  --hair:rgba(216,225,239,.10);
+  --mesh1:#232852; --mesh2:#342A54; --mesh3:#181C36; --mesh4:#2A2448; --mesh5:#1B2138;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--font-ui);color:var(--text);
+  background:
+    radial-gradient(120% 90% at 4% -6%, var(--mesh1), transparent 60%),
+    radial-gradient(110% 96% at 94% 4%, var(--mesh2), transparent 56%),
+    radial-gradient(130% 120% at 12% 64%, var(--mesh3), transparent 60%),
+    radial-gradient(120% 110% at 88% 72%, var(--mesh4), transparent 58%),
+    radial-gradient(150% 130% at 50% 112%, var(--mesh5), transparent 64%),
+    linear-gradient(165deg, color-mix(in srgb,var(--mesh5) 14%, var(--bg1)), var(--bg2) 52%, var(--bg3));
+  background-attachment:fixed;
+  transition:background .8s var(--ease), color .5s var(--ease);
+  min-height:100%;
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;}
+
+/* ============ TOOLBAR ============ */
+.wrap{position:relative;z-index:1;max-width:460px;margin:0 auto;padding:0 0 60px}
+.bar{position:sticky;top:0;z-index:5;padding:10px 12px 8px;
+  background:linear-gradient(var(--bg1), color-mix(in srgb,var(--bg1) 82%, transparent));
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+.bar h1{font-family:var(--font-display);font-size:17px;font-weight:600;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px}
+.bar h1 .sub{font-family:var(--font-ui);font-size:11px;font-weight:400;color:var(--faint)}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-family:var(--font-ui);font-size:12px;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);white-space:nowrap;
+  cursor:pointer;transition:all .25s var(--ease)}
+.chip[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:transparent;
+  box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 35%, transparent)}
+.bar2{display:flex;gap:7px;margin-top:2px;align-items:center}
+.toggle{flex:0 0 auto;font-family:var(--font-ui);font-size:12px;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer}
+.toggle[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+
+/* ============ PHONE ============ */
+.phone{position:relative;margin:14px 12px 0;border-radius:34px;overflow:hidden;
+  background:linear-gradient(170deg,var(--bg1),var(--bg3));
+  box-shadow:0 30px 70px rgba(40,40,55,.18), inset 0 1px 0 rgba(255,255,255,.5);
+  border:1px solid var(--hair);min-height:78vh}
+[data-mode="dark"] .phone{box-shadow:0 30px 70px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06)}
+.screen{position:relative;z-index:2;padding:14px 12px 26px}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:6px 6px 10px}
+.appbar .ttl{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:.5px}
+.appbar .ic{width:34px;height:34px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.month{display:flex;align-items:center;gap:9px;padding:10px 6px 4px;
+  font-family:var(--font-display);font-size:16px;font-weight:600}
+.month .cnt{width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--accent) 16%,transparent);
+  color:var(--accent);font-family:var(--font-ui);font-size:10px;font-weight:600;
+  display:flex;align-items:center;justify-content:center}
+
+/* ============ DAY NODE ============ */
+.day{display:flex;align-items:flex-start;padding:20px 0 2px}
+.day .axis-col{width:46px;flex:0 0 46px;display:flex;flex-direction:column;align-items:center;position:relative}
+.day .axis-col .line{position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:-6px;width:2.5px;background:var(--hair)}
+.day .cap{position:relative;z-index:2;font-family:var(--font-ui);text-align:center;
+  background:color-mix(in srgb,var(--surface) 90%, transparent);
+  border:1px solid var(--border);border-radius:13px;padding:5px 9px;
+  box-shadow:0 4px 12px rgba(50,55,70,.08);transition:all .3s var(--ease)}
+.day .cap.today{background:var(--accent);border-color:transparent;color:#fff;
+  box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 38%, transparent)}
+.day .cap .d{font-size:12px;font-weight:700;line-height:1.12}
+.day .cap .w{font-size:9px;opacity:.72;line-height:1.12;margin-top:1px}
+.day .cap.today .d,.day .cap.today .w{color:#fff}
+
+/* ============ ENTRY / AXIS ============ */
+.entry{display:flex;align-items:stretch;gap:0;opacity:0;transform:translateY(14px);
+  transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.entry.in{opacity:1;transform:none}
+.axis-col{width:46px;flex:0 0 46px;display:flex;flex-direction:column;align-items:center;position:relative}
+.axis-col .line{position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:0;width:2.5px;background:var(--hair)}
+.axis-col .dot{position:relative;z-index:2;width:11px;height:11px;border-radius:50%;
+  background:var(--mood);margin-top:24px;box-shadow:0 0 0 4px var(--bg1)}
+
+/* ============ CARD SHELL ============ */
+.card{flex:1;margin:12px 0 4px;border-radius:var(--radius-card);position:relative;
+  background:var(--card);border:1px solid var(--border);padding:14px;
+  box-shadow:0 8px 22px rgba(50,55,70,.06);overflow:hidden;
+  transition:transform .35s var(--ease), box-shadow .35s var(--ease), background .5s var(--ease)}
+[data-mode="dark"] .card{box-shadow:0 8px 22px rgba(0,0,0,.28)}
+.card:active{transform:scale(.985)}
+.title{font-family:var(--font-display);font-size:15.5px;font-weight:600;color:var(--text);
+  line-height:1.4;letter-spacing:.2px}
+.title.dim{color:var(--faint);font-style:italic;font-weight:600}
+.body{display:flex;flex-direction:column;gap:6px;min-width:0}
+.preview{font-family:var(--font-body);font-size:14px;color:var(--muted);line-height:1.75;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--font-ui);font-size:11.5px}
+.meta .m{display:flex;align-items:center;gap:5px;color:var(--mood);font-weight:600}
+.meta .m .dotmini{width:9px;height:9px;border-radius:50%;background:var(--mood);display:inline-block;
+  box-shadow:0 0 8px color-mix(in srgb,var(--mood) 60%, transparent)}
+.meta .m.pill{background:color-mix(in srgb,var(--mood) 16%,transparent);padding:3px 9px;border-radius:999px}
+.meta .wt{display:flex;align-items:center;gap:4px;color:var(--muted)}
+.meta .tag{color:var(--accent2);background:color-mix(in srgb,var(--accent2) 12%,transparent);
+  padding:2px 7px;border-radius:6px;font-weight:600}
+.loc{display:flex;align-items:center;gap:4px;color:var(--faint);font-family:var(--font-ui);font-size:11.5px}
+.thumb{flex:0 0 84px;width:84px;height:84px;border-radius:12px;overflow:hidden;position:relative;
+  background:linear-gradient(135deg,var(--mood),color-mix(in srgb,var(--accent) 55%,var(--mood)))}
+.thumb svg{position:absolute;inset:0;width:100%;height:100%}
+.row{display:flex;gap:11px;align-items:flex-start}
+
+/* ---- 1 纸笺折角 PAPER（深做：折角+蜡封印+纸纹+手写） ---- */
+.v-paper{background-color:color-mix(in srgb,var(--card) 97%, #fff);border:1px solid var(--border);
+  box-shadow:0 10px 26px rgba(40,45,60,.07), inset 0 0 0 1px rgba(255,255,255,.5);transform:none}
+.v-paper .fold{position:absolute;top:0;right:0;width:0;height:0;
+  border-top:24px solid color-mix(in srgb,var(--mood) 40%,var(--card));
+  border-left:24px solid transparent;border-top-right-radius:var(--radius-card);
+  filter:drop-shadow(-2px 2px 2px rgba(0,0,0,.05))}
+.v-paper .seal{position:absolute;top:6px;right:6px;z-index:3;filter:drop-shadow(0 2px 4px rgba(0,0,0,.18))}
+.v-paper .rule{height:1px;background:linear-gradient(90deg,color-mix(in srgb,var(--mood) 55%,transparent),transparent 72%);margin:2px 0 9px}
+.v-paper .title{font-family:var(--font-body);font-size:18px;font-weight:700;color:var(--text);margin-right:48px;letter-spacing:.3px}
+.v-paper .preview{font-family:var(--font-body);font-size:14px;line-height:1.85}
+.v-paper .body{padding-right:2px}
+
+/* ---- 2 信纸横纹 LINED ---- */
+.v-lined{background:
+  repeating-linear-gradient(var(--card),var(--card) 27px, color-mix(in srgb,var(--hair) 70%,transparent) 27px, color-mix(in srgb,var(--hair) 70%,transparent) 28px);
+  border-left:2.5px solid color-mix(in srgb,var(--mood) 55%,transparent)}
+.v-lined .title{font-family:var(--font-body);font-size:16px;font-weight:700;margin-left:10px;color:var(--text)}
+.v-lined .preview{margin-left:10px;-webkit-line-clamp:3}
+.v-lined .meta{margin-left:10px;margin-top:2px}
+
+/* ---- 3 拍立得 POLAROID ---- */
+.v-polaroid{padding:10px;background:#FDFDFB;border-radius:14px}
+[data-mode="dark"] .v-polaroid{background:#20242E}
+.v-polaroid .photo{height:148px;border-radius:9px;overflow:hidden;position:relative;
+  background:linear-gradient(150deg,var(--mood),color-mix(in srgb,var(--accent) 50%,var(--mood)))}
+.v-polaroid .photo svg{position:absolute;inset:0;width:100%;height:100%}
+.v-polaroid .cap-strip{padding:9px 4px 2px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.v-polaroid .cap-strip .t{font-family:var(--font-body);font-size:15px;font-weight:700;color:var(--text)}
+.v-polaroid .cap-strip .m{font-family:var(--font-ui);font-size:11px;color:var(--mood);font-weight:700;
+  display:flex;align-items:center;gap:5px}
+.v-polaroid .mini-meta{display:flex;gap:8px;padding:0 4px 2px;color:var(--faint);
+  font-family:var(--font-ui);font-size:10.5px;flex-wrap:wrap;align-items:center}
+.v-polaroid .mini-meta .tag{color:var(--accent2)}
+
+/* ---- 4 月相 MOON（深做：真实相位+星点+相位名） ---- */
+.v-moon{display:flex;gap:12px;align-items:flex-start}
+.v-moon .moon-wrap{flex:0 0 58px;width:58px;display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding-top:4px;position:relative}
+.v-moon .moon-wrap .ml{font-family:var(--font-ui);font-size:10px;color:var(--mood);font-weight:700}
+.v-moon .moon-wrap .phase{font-family:var(--font-ui);font-size:9px;color:var(--faint)}
+.v-moon .star{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--mood);
+  opacity:.55;box-shadow:0 0 5px var(--mood)}
+.v-moon .body{flex:1;min-width:0}
+
+/* ---- 5 天气窗 WINDOW ---- */
+.v-window{padding:0;overflow:hidden}
+.v-window .sky{height:74px;position:relative;display:flex;align-items:flex-end;justify-content:space-between;
+  padding:10px 14px;overflow:hidden}
+.v-window .sky .wtxt{font-family:var(--font-display);font-size:13px;font-weight:600;color:rgba(255,255,255,.92);
+  text-shadow:0 1px 4px rgba(0,0,0,.25)}
+.v-window .sky .wico{color:rgba(255,255,255,.9)}
+.v-window .win-body{padding:12px 14px 14px}
+.v-window .win-body .title{margin-top:0}
+
+/* ---- 6 诗集 POEM ---- */
+.v-poem{text-align:center;padding:20px 18px}
+.v-poem .dropcap{font-family:var(--font-display);font-size:46px;line-height:.9;color:var(--mood);
+  font-weight:700;display:block;margin-bottom:6px;text-shadow:0 2px 10px color-mix(in srgb,var(--mood) 30%,transparent)}
+.v-poem .title{font-family:var(--font-display);font-size:19px;font-weight:600;color:var(--text)}
+.v-poem .preview{font-family:var(--font-body);-webkit-line-clamp:4;margin:8px auto 0;max-width:30ch}
+.v-poem .pmeta{justify-content:center;margin-top:10px;color:var(--faint)}
+
+/* ---- 7 拼贴 SCRAP（深做：胶带+回形针+拍立得+心情贴纸+微旋） ---- */
+.v-scrap{transform:rotate(-1.2deg);display:flex;gap:11px;align-items:flex-start;padding:14px;
+  background-color:color-mix(in srgb,var(--card) 98%, #fff);border:1px solid var(--border);
+  box-shadow:0 12px 28px rgba(40,45,60,.10), 0 2px 0 rgba(0,0,0,.03)}
+.v-scrap .tape{position:absolute;width:56px;height:20px;
+  background:repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 4px, rgba(255,255,255,.32) 4px 8px);
+  box-shadow:0 1px 3px rgba(0,0,0,.08);border-radius:2px;z-index:2}
+[data-mode="dark"] .v-scrap .tape{background:repeating-linear-gradient(45deg, rgba(255,255,255,.14) 0 4px, rgba(255,255,255,.06) 4px 8px)}
+.v-scrap .tape.t1{top:-8px;left:16px;transform:rotate(-6deg)}
+.v-scrap .tape.t2{top:42%;right:-14px;transform:rotate(90deg) rotate(-4deg);width:48px}
+.v-scrap .clip{position:absolute;top:-10px;left:-6px;transform:rotate(-12deg);z-index:3;opacity:.8}
+.v-scrap .photo{flex:0 0 92px;width:92px;height:92px;border-radius:10px;overflow:hidden;position:relative;
+  border:5px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+[data-mode="dark"] .v-scrap .photo{border-color:#23272F}
+.v-scrap .photo svg{position:absolute;inset:0;width:100%;height:100%}
+.v-scrap .scrap-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-left:2px}
+.v-scrap .sticker{display:inline-flex;align-items:center;background:var(--mood);color:#fff;
+  font-family:var(--font-ui);font-size:10px;font-weight:700;padding:3px 9px;border-radius:7px;
+  transform:rotate(-2deg);box-shadow:0 3px 8px color-mix(in srgb,var(--mood) 40%,transparent);align-self:flex-start}
+.v-scrap .title{font-family:var(--font-body);font-size:17px;font-weight:700;color:var(--text)}
+.v-scrap .meta{margin-top:2px}
+
+/* ---- 8 墨痕 INK ---- */
+.v-ink{padding:16px 16px 14px;border-color:color-mix(in srgb,var(--hair) 60%,transparent);
+  background:color-mix(in srgb,var(--card) 97%, transparent)}
+.v-ink .brush{width:54px;height:14px;margin-bottom:10px}
+.v-ink .title{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text)}
+.v-ink .preview{font-family:var(--font-body);-webkit-line-clamp:2;line-height:1.9}
+.v-ink .imeta{margin-top:8px;color:var(--faint)}
+
+/* ---- 9 时间胶囊 TIME CAPSULE（深做：时间块+虚线缝+封缄点+心情胶囊） ---- */
+.v-timecap{display:flex;gap:0;align-items:stretch;padding:0;overflow:hidden;
+  border:1px solid var(--border);box-shadow:0 10px 26px rgba(40,45,60,.08)}
+.v-timecap .tc-time{flex:0 0 64px;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 6px;
+  background:linear-gradient(165deg, color-mix(in srgb,var(--mood) 20%,var(--card)), color-mix(in srgb,var(--mood) 7%,var(--card)));
+  border-right:1px dashed color-mix(in srgb,var(--mood) 35%,transparent);position:relative}
+.v-timecap .tc-time .h{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--mood);line-height:1;letter-spacing:-.5px}
+.v-timecap .tc-time .d{font-family:var(--font-ui);font-size:9px;color:var(--faint)}
+.v-timecap .mood-pill{font-family:var(--font-ui);font-size:9px;font-weight:700;color:#fff;background:var(--mood);padding:2px 8px;border-radius:999px;margin-top:2px;box-shadow:0 2px 6px color-mix(in srgb,var(--mood) 40%,transparent)}
+.v-timecap .tc-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+.v-timecap .seal-dot{position:absolute;left:-7px;top:18px;width:14px;height:14px;border-radius:50%;background:var(--mood);
+  box-shadow:0 0 0 3px var(--card),0 2px 6px color-mix(in srgb,var(--mood) 50%,transparent);z-index:2}
+.v-timecap .title{font-family:var(--font-display);font-size:15.5px;font-weight:600;color:var(--text)}
+
+/* ---- 10 玻璃浮卡 GLASS（深做：磨砂+光晕+顶部发丝线+心情胶囊） ---- */
+.v-glass{background:color-mix(in srgb,var(--card) 62%, transparent);
+  backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 16px 38px rgba(50,55,70,.14);
+  border-color:color-mix(in srgb,var(--border) 60%, transparent);overflow:hidden}
+[data-mode="dark"] .v-glass{box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 16px 38px rgba(0,0,0,.32)}
+.v-glass .glow{position:absolute;inset:0;background:radial-gradient(120% 80% at 80% -10%, color-mix(in srgb,var(--mood) 16%, transparent), transparent 60%);pointer-events:none}
+.v-glass .orb{position:absolute;right:-34px;top:-34px;width:130px;height:130px;border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb,var(--mood) 34%, transparent), transparent 70%);pointer-events:none}
+.v-glass .top-line{position:absolute;left:14px;right:14px;top:0;height:2px;
+  background:linear-gradient(90deg,transparent, color-mix(in srgb,var(--mood) 70%,transparent), transparent);opacity:.85}
+.v-glass .title{color:var(--text);font-family:var(--font-display);font-weight:600}
+.v-glass .m.pill{margin-top:2px}
+
+.foot{text-align:center;color:var(--faint);font-family:var(--font-ui);font-size:11px;padding:22px 0 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>时间线 · 多色主题 <span class="sub">v7 · 深度卡片</span></h1>
+    <div class="chips" id="themeChips"></div>
+    <div class="bar2">
+      <div class="chips" id="variantChips" style="flex:1"></div>
+      <button class="toggle" id="modeBtn" aria-pressed="false">深色</button>
+    </div>
+  </div>
+  <div class="phone"><div class="screen" id="screen"></div></div>
+</div>
+
+<script>
+const MOODS=[
+  {label:"沮丧",c1:"#C77B7B",c2:"#B86060"},
+  {label:"低落",c1:"#CF9E63",c2:"#C08A50"},
+  {label:"平静",c1:"#6FA3C9",c2:"#6090B5"},
+  {label:"开心",c1:"#6FC09A",c2:"#5FB88A"},
+  {label:"愉快",c1:"#5FBEAE",c2:"#50A898"},
+  {label:"兴奋",c1:"#A684C9",c2:"#9070B8"}
+];
+const THEMES=[
+  {k:"fog",n:"雾蓝"},{k:"moss",n:"苔绿"},{k:"ocean",n:"海洋"},
+  {k:"petal",n:"花瓣"},{k:"sand",n:"沙琥珀"},{k:"clay",n:"陶土"},{k:"ink",n:"墨石"}
+];
+const VARIANTS=[
+  {k:"paper",n:"纸笺"},{k:"lined",n:"信纸"},{k:"polaroid",n:"拍立得"},
+  {k:"moon",n:"月相"},{k:"window",n:"天气窗"},{k:"poem",n:"诗集"},
+  {k:"scrap",n:"拼贴"},{k:"ink",n:"墨痕"},{k:"timecap",n:"时间胶囊"},{k:"glass",n:"玻璃浮卡"}
+];
+const DATA=[
+  {day:"today",d:"今天",w:"周日",items:[
+    {t:"07:24",title:"雨后的清晨",mood:4,weather:"rain",weatherT:"雨",tags:["随手记"],loc:"家",
+     preview:"窗外的雨停了，空气里有一股潮湿的泥土味。泡一杯热茶，什么都不想，就看着玻璃上的水珠慢慢滑下来。"},
+    {t:"21:40",title:"关于那本旧书",mood:3,weather:null,tags:["读书"],
+     preview:"重读《人间值得》，有些句子三年前划过线，今天才真正读懂。平静原来不是没有波澜，是波澜过后还愿意继续。"},
+    {t:"14:05",title:"周会杂感",mood:2,weather:"cloud",weatherT:"阴",tags:["工作"],
+     preview:"又是一周的同步会。议程很长，结论很短。我在笔记本角落画了一只打瞌睡的猫。"}
+  ]},
+  {day:"yesterday",d:"昨天",w:"周六",items:[
+    {t:"09:12",title:"周末的咖啡",mood:5,weather:"sun",weatherT:"晴",tags:["生活"],loc:"街角咖啡",
+     preview:"点了一杯的手冲，坐在靠窗的位置晒太阳。隔壁桌的小孩在认真给妈妈画画，画里的太阳是紫色的。"},
+    {t:"22:30",title:"",mood:6,weather:"sun",weatherT:"晴",tags:["旅行"],
+     preview:"订好了下个月去海边的票。行李还没收拾，但心情已经先出发了。兴奋得半夜醒来又睡着了一次。"}
+  ]}
+];
+
+function weatherSVG(t){
+  if(t==="sun")return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>`;
+  if(t==="rain")return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 14a4 4 0 1 1 1-7.9A5 5 0 0 1 18 8a3.5 3.5 0 0 1 .5 7"/><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"/></svg>`;
+  if(t==="cloud")return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 18a4 4 0 1 1 1-7.9A5 5 0 0 1 18 11a3.5 3.5 0 0 1 .5 7z"/></svg>`;
+  return "";
+}
+function weatherSky(t){
+  if(t==="sun")return "linear-gradient(160deg,#FFE3B0,#FFC99A 70%,#FFB6A0)";
+  if(t==="rain")return "linear-gradient(160deg,#AEBFD2,#8FA6BE 75%,#7E95AC)";
+  if(t==="cloud")return "linear-gradient(160deg,#D2D9E2,#B7C0CC 75%,#A8B3C2)";
+  return "linear-gradient(160deg, color-mix(in srgb,var(--mood) 40%,var(--card)), color-mix(in srgb,var(--mood) 12%,var(--card)))";
+}
+function photoSVG(){
+  return `<svg viewBox="0 0 300 150" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.55)"/><stop offset="1" stop-color="rgba(0,0,0,.12)"/></linearGradient></defs><circle cx="230" cy="42" r="26" fill="rgba(255,255,255,.6)"/><path d="M0 110 Q70 86 130 108 T300 100 V150 H0 Z" fill="rgba(255,255,255,.3)"/><path d="M0 130 Q90 112 160 128 T300 122 V150 H0 Z" fill="rgba(255,255,255,.18)"/></svg>`;
+}
+function sealSVG(m){
+  return `<svg width="44" height="44" viewBox="0 0 42 42">
+    <circle cx="21" cy="21" r="18" fill="var(--mood)"/>
+    <circle cx="21" cy="21" r="18" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.2" stroke-dasharray="2 2.4"/>
+    <circle cx="21" cy="21" r="13.5" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+    <text x="21" y="25.5" text-anchor="middle" font-size="12" fill="#fff" font-family="Noto Serif SC,serif" font-weight="700">${m.label}</text>
+  </svg>`;
+}
+function clipSVG(){
+  return `<svg class="clip" width="22" height="46" viewBox="0 0 22 46" fill="none" stroke="color-mix(in srgb,var(--muted) 70%,transparent)" stroke-width="2" stroke-linecap="round"><path d="M7 14 V34 a4 4 0 0 0 8 0 V11 a6 6 0 0 0-12 0 V32 a8 8 0 0 0 16 0 V15"/></svg>`;
+}
+let _mid=0;
+function moonSVG(m,lvl){
+  const id='mg'+(_mid++);
+  const R=18,cx=20,cy=20;
+  const illum=(lvl-1)/5;
+  const k=Math.cos((1-illum)*Math.PI);
+  const rx=Math.max(0.001,Math.abs(R*k)).toFixed(2);
+  const sweep = illum<=0.5?1:0;
+  const lit=`M${cx},${cy-R} A${R},${R} 0 0,1 ${cx},${cy+R} A${rx},${R} 0 0,${sweep} ${cx},${cy-R} Z`;
+  return `<svg width="54" height="54" viewBox="0 0 40 40">
+    <defs>
+      <radialGradient id="${id}" cx="36%" cy="34%" r="72%">
+        <stop offset="0" stop-color="rgba(255,255,255,.92)"/>
+        <stop offset="52%" stop-color="var(--mood)"/>
+        <stop offset="100%" stop-color="var(--mood2)"/>
+      </radialGradient>
+      <radialGradient id="${id}b" cx="40%" cy="38%" r="70%">
+        <stop offset="0" stop-color="rgba(255,255,255,.5)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </radialGradient>
+    </defs>
+    <circle cx="${cx}" cy="${cy}" r="${R+3}" fill="color-mix(in srgb,var(--mood) 22%,transparent)" opacity=".5"/>
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="color-mix(in srgb,var(--mood) 20%,var(--card))"/>
+    <path d="${lit}" fill="url(#${id})"/>
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${id}b)" opacity=".35"/>
+    <circle cx="15" cy="16" r="1.6" fill="rgba(255,255,255,.55)"/>
+    <circle cx="24" cy="22" r="2.1" fill="rgba(255,255,255,.45)"/>
+    <circle cx="17" cy="25" r="1.2" fill="rgba(255,255,255,.45)"/>
+  </svg>`;
+}
+function phaseName(l){return l<=1?"微光":l===2?"蛾眉":l===3?"上弦":l===4?"盈凸":l===5?"渐盈":"满月";}
+function inkBrush(){
+  return `<svg class="brush" viewBox="0 0 54 14" fill="none" stroke="var(--mood)" stroke-width="6" stroke-linecap="round"><path d="M3 8 Q14 2 27 7 T51 6"/></svg>`;
+}
+function metaHTML(e,m,opts){
+  opts=opts||{};
+  const tagHtml=opts.hideTags?"":(e.tags||[]).map(t=>`<span class="tag">${t}</span>`).join("");
+  const wt=e.weather?`<span class="wt">${weatherSVG(e.weather)}<span>${e.weatherT}</span></span>`:"";
+  const loc=e.loc?`<span class="loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span>${e.loc}</span></span>`:"";
+  const mood=opts.hideMood?"":(opts.moodPill?`<span class="m pill"><span class="dotmini"></span>${m.label}</span>`:`<span class="m"><span class="dotmini"></span>${m.label}</span>`);
+  return `<div class="meta ${opts.center?'pmeta':''}">${mood}${wt}${tagHtml}${loc}</div>`;
+}
+const BUILDERS={
+  paper(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:`<div class="title dim">无题</div>`;
+    return `<div class="fold"></div><div class="seal">${sealSVG(m)}</div>
+      <div class="body"><div class="rule"></div>${title}
+      <div class="preview">${e.preview}</div>${metaHTML(e,m)}</div>`;
+  },
+  lined(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:"";
+    return `${title}<div class="preview">${e.preview}</div>${metaHTML(e,m)}`;
+  },
+  polaroid(e,m){
+    const cap=e.title?`<div class="t">${e.title}</div>`:`<div class="t">无题</div>`;
+    const tagHtml=(e.tags||[]).map(t=>`<span class="tag">#${t}</span>`).join(" ");
+    const wt=e.weather?`<span>${e.weatherT}</span>`:"";
+    const loc=e.loc?`<span>· ${e.loc}</span>`:"";
+    return `<div class="photo">${photoSVG()}</div>
+      <div class="cap-strip">${cap}<div class="m"><span class="dotmini"></span>${m.label}</div></div>
+      <div class="mini-meta">${wt}${loc} ${tagHtml}</div>`;
+  },
+  moon(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:`<div class="title dim">无题</div>`;
+    return `<div class="moon-wrap">
+        <span class="star" style="top:2px;left:4px"></span>
+        <span class="star" style="top:16px;right:0"></span>
+        <span class="star" style="bottom:20px;left:-2px"></span>
+        ${moonSVG(m,e.mood)}
+        <div class="ml">${m.label}</div>
+        <div class="phase">${phaseName(e.mood)}</div>
+      </div>
+      <div class="body">${title}<div class="preview">${e.preview}</div>${metaHTML(e,m,{hideMood:true})}</div>`;
+  },
+  window(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:"";
+    return `<div class="sky" style="background:${weatherSky(e.weather)}">
+        <span class="wtxt">${e.weatherT||m.label}</span>
+        <span class="wico">${e.weather?weatherSVG(e.weather):''}</span>
+      </div>
+      <div class="win-body">${title}<div class="preview">${e.preview}</div>${metaHTML(e,m)}</div>`;
+  },
+  poem(e,m){
+    const src=e.title||e.preview;
+    const cap=src?src[0]:"记";
+    const title=e.title?`<div class="title">${e.title}</div>`:"";
+    return `<span class="dropcap">${cap}</span>${title}<div class="preview">${e.preview}</div>${metaHTML(e,m,{center:true})}`;
+  },
+  scrap(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:`<div class="title dim">无题</div>`;
+    const stick=(e.tags&&e.tags[0])?`<span class="sticker">#${e.tags[0]}</span> `:"";
+    return `<div class="tape t1"></div><div class="tape t2"></div>${clipSVG()}
+      <div class="photo">${photoSVG()}</div>
+      <div class="scrap-txt">${stick}${title}<div class="preview">${e.preview}</div>${metaHTML(e,m,{hideTags:true})}</div>`;
+  },
+  ink(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:"";
+    return `${inkBrush()}${title}<div class="preview">${e.preview}</div><div class="imeta">${metaHTML(e,m,{hideMood:true})}</div>`;
+  },
+  timecap(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:`<div class="title dim">无题</div>`;
+    return `<div class="tc-time"><div class="h">${e.t||"--:--"}</div>
+        <div class="mood-pill">${m.label}</div></div>
+      <div class="tc-body"><div class="seal-dot"></div>
+        ${title}<div class="preview">${e.preview}</div>${metaHTML(e,m,{hideMood:true})}</div>`;
+  },
+  glass(e,m){
+    const title=e.title?`<div class="title">${e.title}</div>`:`<div class="title dim">无题</div>`;
+    return `<div class="glow"></div><div class="orb"></div><div class="top-line"></div>
+      ${title}<div class="preview">${e.preview}</div>${metaHTML(e,m,{moodPill:true})}`;
+  }
+};
+function entryHTML(e,vk){
+  const m=MOODS[e.mood-1];
+  return `<div class="entry" style="--mood:${m.c1};--mood2:${m.c2}">
+    <div class="axis-col"><span class="line"></span><span class="dot"></span></div>
+    <div class="card v-${vk}">${BUILDERS[vk](e,m)}</div>
+  </div>`;
+}
+function render(){
+  const vk=state.variant;
+  const total=DATA.reduce((a,g)=>a+g.items.length,0);
+  let html=`<div class="appbar"><div class="ttl">日记</div>
+    <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div></div>
+    <div class="month"><span>2026年7月</span><span class="cnt">${total}</span></div>`;
+  DATA.forEach(g=>{
+    const isToday=g.day==="today";
+    html+=`<div class="day"><div class="axis-col"><span class="line"></span>
+      <div class="cap ${isToday?'today':''}"><div class="d">${g.d==="today"?"今天":g.d==="yesterday"?"昨天":g.d}</div><div class="w">${g.w}</div></div></div></div>`;
+    g.items.forEach(e=>{ html+=entryHTML(e,vk); });
+  });
+  html+=`<div class="foot">下滑查看更多 · 共 ${total} 篇</div>`;
+  screen.innerHTML=html;
+  const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}}),{threshold:.15});
+  document.querySelectorAll('.entry').forEach(el=>io.observe(el));
+}
+
+const screen=document.getElementById('screen');
+const state={theme:"fog",variant:"paper",mode:"light"};
+const tc=document.getElementById('themeChips');
+THEMES.forEach(t=>{const b=document.createElement('button');b.className='chip';b.textContent=t.n;
+  b.setAttribute('aria-pressed',t.k==="fog");b.onclick=()=>{state.theme=t.k;document.documentElement.dataset.theme=t.k;
+  tc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');};
+  tc.appendChild(b);});
+const vc=document.getElementById('variantChips');
+VARIANTS.forEach(v=>{const b=document.createElement('button');b.className='chip';b.textContent=v.n;
+  b.setAttribute('aria-pressed',v.k==="paper");b.onclick=()=>{state.variant=v.k;
+  vc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');render();};
+  vc.appendChild(b);});
+const mb=document.getElementById('modeBtn');
+mb.onclick=()=>{state.mode=state.mode==="light"?"dark":"light";document.documentElement.dataset.mode=state.mode;
+  mb.setAttribute('aria-pressed',state.mode==="dark");mb.textContent=state.mode==="dark"?"浅色":"深色";
+  document.querySelectorAll('.entry').forEach(e=>e.classList.add('in'));};
+render();
+</script>
+</body>
+</html>

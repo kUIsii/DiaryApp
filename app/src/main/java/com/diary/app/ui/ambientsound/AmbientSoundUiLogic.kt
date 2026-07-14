@@ -2,71 +2,10 @@ package com.diary.app.ui.ambientsound
 
 import com.diary.app.data.ambientsound.AudioTrack
 
+// 环境音列表保持仓库原始顺序，点击播放后位置不跳动（不再按收藏/最近重排）。
 fun orderAmbientTracksForDisplay(
-    tracks: List<AudioTrack>,
-    favoriteIds: Set<String>,
-    recentIds: List<String>
-): List<AudioTrack> {
-    val recentIndex = recentIds.withIndex().associate { it.value to it.index }
-    return tracks.sortedWith(
-        compareBy<AudioTrack>(
-            { if (it.id in favoriteIds) 0 else 1 },
-            { recentIndex[it.id] ?: Int.MAX_VALUE }
-        ).thenBy { it.name }
-    )
-}
-
-fun buildAmbientTrackSupportingText(
-    baseSubtitle: String,
-    trackId: String,
-    favoriteIds: Set<String>,
-    recentIds: List<String>
-): String {
-    val markers = buildList {
-        if (trackId in favoriteIds) add("已收藏")
-        if (trackId in recentIds) add("最近播放")
-        if (baseSubtitle.isNotBlank()) add(baseSubtitle)
-    }
-    return markers.joinToString(" · ")
-}
-
-data class AmbientPlayerSnapshot(
-    val currentTrack: AudioTrack?,
-    val isPlaying: Boolean,
-    val volume: Float,
-    val duration: Int,
-    val progress: Int,
-    val sleepRemainingSeconds: Int,
-    val meanderEnabled: Boolean,
-    val hasSession: Boolean
-)
-
-fun shouldRestoreAmbientTrack(
-    savedTrackId: String?,
-    hasActiveSession: Boolean
-): Boolean {
-    return !savedTrackId.isNullOrBlank() && !hasActiveSession
-}
-
-fun syncAmbientStateWithPlayer(
-    state: AmbientSoundState,
-    snapshot: AmbientPlayerSnapshot
-): AmbientSoundState {
-    return state.copy(
-        currentTrack = snapshot.currentTrack,
-        isPlaying = snapshot.isPlaying,
-        volume = snapshot.volume,
-        duration = snapshot.duration,
-        progress = snapshot.progress,
-        sleepRemainingSeconds = snapshot.sleepRemainingSeconds,
-        meanderEnabled = snapshot.meanderEnabled,
-        isFullscreenPlayerVisible = if (snapshot.hasSession) {
-            state.isFullscreenPlayerVisible
-        } else {
-            false
-        }
-    )
-}
+    tracks: List<AudioTrack>
+): List<AudioTrack> = tracks
 
 class AmbientPlaybackSessionGate {
     private var suppressNextStopCallback = false

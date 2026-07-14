@@ -24,18 +24,18 @@ val FogBlueLightCardBorder = Color(0x4D8296B4)
 val FogBlueLightAccent3 = Color(0xFF9B8EBA)
 
 // Dark mode
-val FogBlueDarkBg1 = Color(0xFF0B0D12)
-val FogBlueDarkBg2 = Color(0xFF0E1018)
-val FogBlueDarkBg3 = Color(0xFF11131C)
-val FogBlueDarkSurface = Color(0xFF161822)
+val FogBlueDarkBg1 = Color(0xFF0A0B0E)
+val FogBlueDarkBg2 = Color(0xFF0C0D11)
+val FogBlueDarkBg3 = Color(0xFF101116)
+val FogBlueDarkSurface = Color(0xFF141519)
 val FogBlueDarkTextPrimary = Color(0xFFD8E0F0)
 val FogBlueDarkTextSecondary = Color(0xFF9AA8C0)
 val FogBlueDarkTextTertiary = Color(0xFF6A7890)
 val FogBlueDarkAccent = Color(0xFF88B0D4)
 val FogBlueDarkAccent2 = Color(0xFFD4A878)
 val FogBlueDarkAccent3 = Color(0xFFA89AC8)
-val FogBlueDarkCardBg = Color(0xFF181A26)
-val FogBlueDarkCardBorder = Color(0x2D8296B4)
+val FogBlueDarkCardBg = Color(0xFF171A22)
+val FogBlueDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme B: Moss Green — 苔藓绿
@@ -59,18 +59,18 @@ val MossGreenLightCardBorder = Color(0x4D647A5A)
 val MossGreenLightAccent3 = Color(0xFFA088B0)
 
 // Dark mode
-val MossGreenDarkBg1 = Color(0xFF0B0D0A)
-val MossGreenDarkBg2 = Color(0xFF0E110D)
-val MossGreenDarkBg3 = Color(0xFF111410)
-val MossGreenDarkSurface = Color(0xFF161A14)
+val MossGreenDarkBg1 = Color(0xFF0A0B0E)
+val MossGreenDarkBg2 = Color(0xFF0C0D11)
+val MossGreenDarkBg3 = Color(0xFF101116)
+val MossGreenDarkSurface = Color(0xFF141519)
 val MossGreenDarkTextPrimary = Color(0xFFD8E4D0)
 val MossGreenDarkTextSecondary = Color(0xFF9AAA90)
 val MossGreenDarkTextTertiary = Color(0xFF6A7A60)
 val MossGreenDarkAccent = Color(0xFF8BC07A)
 val MossGreenDarkAccent2 = Color(0xFFD4B078)
 val MossGreenDarkAccent3 = Color(0xFFB098C4)
-val MossGreenDarkCardBg = Color(0xFF181C16)
-val MossGreenDarkCardBorder = Color(0x24A0B890)
+val MossGreenDarkCardBg = Color(0xFF171A22)
+val MossGreenDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme C: Ocean Tide — 海潮蓝
@@ -88,17 +88,17 @@ val OceanLightAccent3 = Color(0xFF7D94B8) // Softened
 val OceanLightCardBg = Color(0xFFFFFFFF)
 val OceanLightCardBorder = Color(0x4D7BB8C7)
 
-val OceanDarkBg1 = Color(0xFF091318)
-val OceanDarkBg2 = Color(0xFF0C1820)
-val OceanDarkBg3 = Color(0xFF101E29)
-val OceanDarkSurface = Color(0xFF121B24)
+val OceanDarkBg1 = Color(0xFF0A0B0E)
+val OceanDarkBg2 = Color(0xFF0C0D11)
+val OceanDarkBg3 = Color(0xFF101116)
+val OceanDarkSurface = Color(0xFF141519)
 val OceanDarkTextPrimary = Color(0xFFD9EEF0)
 val OceanDarkTextSecondary = Color(0xFF9AB7C0)
 val OceanDarkAccent = Color(0xFF7BBCBE) // Softened: desaturated cyan
 val OceanDarkAccent2 = Color(0xFF7DA0D4) // Softened
 val OceanDarkAccent3 = Color(0xFF8FA0C7) // Softened
-val OceanDarkCardBg = Color(0xFF15212B)
-val OceanDarkCardBorder = Color(0x2B7DB7C5)
+val OceanDarkCardBg = Color(0xFF171A22)
+val OceanDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme D: Petal Rose — 陶粉玫瑰
@@ -116,17 +116,17 @@ val PetalLightAccent3 = Color(0xFFD4A090) // Softened
 val PetalLightCardBg = Color(0xFFFFFFFF)
 val PetalLightCardBorder = Color(0x4DD38A80)
 
-val PetalDarkBg1 = Color(0xFF181013)
-val PetalDarkBg2 = Color(0xFF1E1216)
-val PetalDarkBg3 = Color(0xFF27181B)
-val PetalDarkSurface = Color(0xFF221619)
+val PetalDarkBg1 = Color(0xFF0A0B0E)
+val PetalDarkBg2 = Color(0xFF0C0D11)
+val PetalDarkBg3 = Color(0xFF101116)
+val PetalDarkSurface = Color(0xFF141519)
 val PetalDarkTextPrimary = Color(0xFFF2DCDC)
 val PetalDarkTextSecondary = Color(0xFFC3A7A7)
 val PetalDarkAccent = Color(0xFFD4A098) // Softened: desaturated rose
 val PetalDarkAccent2 = Color(0xFFC49BC4) // Softened
 val PetalDarkAccent3 = Color(0xFFD8B098) // Softened
-val PetalDarkCardBg = Color(0xFF281A1D)
-val PetalDarkCardBorder = Color(0x2BE08D84)
+val PetalDarkCardBg = Color(0xFF171A22)
+val PetalDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme E: Sand Amber — 沙金琥珀
@@ -144,17 +144,17 @@ val SandLightAccent3 = Color(0xFFA09070) // Softened
 val SandLightCardBg = Color(0xFFFFFFFF)
 val SandLightCardBorder = Color(0x4DC9A35E)
 
-val SandDarkBg1 = Color(0xFF17140F)
-val SandDarkBg2 = Color(0xFF1D1812)
-val SandDarkBg3 = Color(0xFF251F17)
-val SandDarkSurface = Color(0xFF231D16)
+val SandDarkBg1 = Color(0xFF0A0B0E)
+val SandDarkBg2 = Color(0xFF0C0D11)
+val SandDarkBg3 = Color(0xFF101116)
+val SandDarkSurface = Color(0xFF141519)
 val SandDarkTextPrimary = Color(0xFFF0E5D4)
 val SandDarkTextSecondary = Color(0xFFC0AD8A)
 val SandDarkAccent = Color(0xFFCCAD70) // Softened: desaturated amber
 val SandDarkAccent2 = Color(0xFFCCA088) // Softened
 val SandDarkAccent3 = Color(0xFFB8A080) // Softened
-val SandDarkCardBg = Color(0xFF2A221A)
-val SandDarkCardBorder = Color(0x2BCFA55B)
+val SandDarkCardBg = Color(0xFF171A22)
+val SandDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme F: Clay Paper 鈥?闄跺湡绾搁〉
@@ -173,18 +173,18 @@ val ClayLightAccent3 = Color(0xFFA090A8) // Softened
 val ClayLightCardBg = Color(0xFFFFFCFA)
 val ClayLightCardBorder = Color(0x4DC4775F)
 
-val ClayDarkBg1 = Color(0xFF17120F)
-val ClayDarkBg2 = Color(0xFF1C1511)
-val ClayDarkBg3 = Color(0xFF241B16)
-val ClayDarkSurface = Color(0xFF211713)
+val ClayDarkBg1 = Color(0xFF0A0B0E)
+val ClayDarkBg2 = Color(0xFF0C0D11)
+val ClayDarkBg3 = Color(0xFF101116)
+val ClayDarkSurface = Color(0xFF141519)
 val ClayDarkTextPrimary = Color(0xFFF2E3DA)
 val ClayDarkTextSecondary = Color(0xFFC3AEA0)
 val ClayDarkTextTertiary = Color(0xFF8D7769)
 val ClayDarkAccent = Color(0xFFCCA090) // Softened: desaturated clay
 val ClayDarkAccent2 = Color(0xFF90A898) // Softened
 val ClayDarkAccent3 = Color(0xFFB0A0B8) // Softened
-val ClayDarkCardBg = Color(0xFF281D18)
-val ClayDarkCardBorder = Color(0x2BD08B73)
+val ClayDarkCardBg = Color(0xFF171A22)
+val ClayDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Theme G: Ink Slate 鈥?澧ㄨ摑榛?// ============================================================
@@ -202,18 +202,18 @@ val InkLightAccent3 = Color(0xFF9A7FAF)
 val InkLightCardBg = Color(0xFFFFFFFF)
 val InkLightCardBorder = Color(0x4D4D6AA8)
 
-val InkDarkBg1 = Color(0xFF0A0D14)
-val InkDarkBg2 = Color(0xFF0E121B)
-val InkDarkBg3 = Color(0xFF121824)
-val InkDarkSurface = Color(0xFF161B27)
+val InkDarkBg1 = Color(0xFF0A0B0E)
+val InkDarkBg2 = Color(0xFF0C0D11)
+val InkDarkBg3 = Color(0xFF101116)
+val InkDarkSurface = Color(0xFF141519)
 val InkDarkTextPrimary = Color(0xFFD9E1EF)
 val InkDarkTextSecondary = Color(0xFF9AA8C1)
 val InkDarkTextTertiary = Color(0xFF6D7893)
 val InkDarkAccent = Color(0xFF8AA8E0)
 val InkDarkAccent2 = Color(0xFFA48BD4)
 val InkDarkAccent3 = Color(0xFF6FB0C2)
-val InkDarkCardBg = Color(0xFF1A2030)
-val InkDarkCardBorder = Color(0x2B8AA8E0)
+val InkDarkCardBg = Color(0xFF171A22)
+val InkDarkCardBorder = Color(0x33FFFFFF)
 
 // ============================================================
 //  Semantic colors

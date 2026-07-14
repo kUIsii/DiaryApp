@@ -77,7 +77,7 @@ class FocusModeViewModel(application: Application) : AndroidViewModel(applicatio
         val track = AudioRepository.getTrack(trackId) ?: return
         viewModelScope.launch {
             val prep = withContext(Dispatchers.IO) { cacheManager.prepare(track.id, null) }
-            if (!prep.isSuccess || _selectedSound.value != trackId || !_isRunning.value) return@launch
+            if (!prep.isSuccess || !_isRunning.value) return@launch
             val file = prep.getOrNull() ?: return@launch
             withContext(Dispatchers.IO) { player.play(app, track, file) }
             focusSoundActive = true

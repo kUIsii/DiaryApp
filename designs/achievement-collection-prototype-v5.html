@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 成就收藏 · 手机内操作 v5</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2b332e; --muted: #6c766f; --paper: #fbf6ec; --bg-base: #efe7d8;
+      --line: rgba(54,60,53,.14); --line-strong: rgba(54,60,53,.26);
+      --teal: #4ea89b; --sage: #a9bf95; --peach: #e7a98c; --apricot: #efce97; --gold: #d8b15a; --blue: #9cc1dc;
+      --com: #a9bf95; --rare: #9cc1dc; --epic: #e7a98c; --leg: #d8b15a;
+      --card: rgba(255,252,244,.9); --radius: 22px;
+      --font-serif: "Songti SC","Noto Serif SC","STSong",Georgia,serif;
+      --font-sans: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-sans); color: var(--ink);
+      background: radial-gradient(circle at 20% 12%, rgba(246,216,168,.5), transparent 32%),
+                  radial-gradient(circle at 82% 16%, rgba(184,215,238,.42), transparent 30%),
+                  radial-gradient(circle at 76% 84%, rgba(203,193,232,.32), transparent 32%),
+                  var(--bg-base);
+      min-height: 100vh; display: grid; place-items: center; padding: 30px 16px; }
+    .stage-cap { position: fixed; top: 18px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 12px; letter-spacing:.04em; }
+
+    /* ---- phone ---- */
+    .phone { width: min(390px, 100%); aspect-ratio: 390/820; background: #232a26; border-radius: 46px; padding: 11px; box-shadow: 0 40px 90px rgba(43,50,46,.28); position: relative; }
+    .phone::before { content: ""; position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 116px; height: 26px; background: #232a26; border-radius: 999px; z-index: 30; }
+    .screen { position: relative; height: 100%; border-radius: 36px; overflow: hidden; background:
+        radial-gradient(circle at 18% 10%, rgba(245,216,168,.9), transparent 34%),
+        radial-gradient(circle at 84% 16%, rgba(184,215,238,.8), transparent 34%),
+        radial-gradient(circle at 20% 88%, rgba(203,193,232,.42), transparent 30%),
+        linear-gradient(180deg, #fff9f0, #f4efe4);
+      display: flex; flex-direction: column; }
+
+    .statusbar { height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 800; color: #3a463f; flex: 0 0 auto; }
+    .statusbar .dots { display: inline-flex; gap: 4px; }
+    .statusbar .dots i { width: 6px; height: 6px; border-radius: 999px; background: #3a463f; font-style: normal; display: inline-block; }
+
+    .app-header { padding: 4px 18px 12px; flex: 0 0 auto; }
+    .app-header h1 { margin: 0; font-family: var(--font-serif); font-size: 26px; font-weight: 900; line-height: 1.05; }
+    .app-header .sub { margin: 3px 0 12px; font-size: 11.5px; color: var(--muted); }
+    .ministats { display: flex; gap: 8px; }
+    .ministat { flex: 1; padding: 9px 8px; border-radius: 14px; background: rgba(255,255,255,.6); border: 1px solid var(--line); text-align: center; }
+    .ministat b { display: block; font-family: var(--font-serif); font-size: 17px; line-height: 1; }
+    .ministat span { display: block; margin-top: 4px; font-size: 9.5px; color: var(--muted); font-weight: 700; }
+
+    .seg { display: flex; gap: 6px; padding: 0 18px 10px; flex: 0 0 auto; }
+    .seg button { flex: 1; min-height: 32px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.5); color: #3c463f; font-size: 11.5px; font-weight: 800; }
+    .seg button[aria-pressed="true"] { background: linear-gradient(135deg, var(--teal), #e6a683); color: #fff; border-color: transparent; }
+
+    .body { flex: 1; overflow-y: auto; padding: 4px 16px 16px; -webkit-overflow-scrolling: touch; }
+    .body::-webkit-scrollbar { width: 0; }
+
+    .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 4px; }
+    .chips::-webkit-scrollbar { height: 0; }
+    .chip { flex: 0 0 auto; min-height: 30px; padding: 0 11px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.5); color: #3c463f; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }
+    .chip[aria-pressed="true"] { border-color: rgba(78,168,155,.5); background: #fffdf8; }
+    .chip .sw { width: 8px; height: 8px; border-radius: 999px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .seal { padding: 10px 10px 12px; border: 1px solid rgba(54,60,53,.12); border-radius: 18px; background: var(--card); box-shadow: 0 8px 20px rgba(60,55,40,.06); text-align: center; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; position: relative; }
+    .seal:active { transform: scale(.97); }
+    .cover { position: relative; width: 100%; aspect-ratio: 1; border-radius: 14px; background-size: cover; background-position: center; overflow: hidden; border: 1px solid rgba(54,60,53,.1); }
+    .cover::after { content: ""; position: absolute; inset: 0; background: var(--tier); opacity: .26; mix-blend-mode: color; }
+    .seal.locked .cover { filter: grayscale(.85) brightness(1.04); }
+    .seal.locked .cover::after { opacity: .42; background: #8a857a; mix-blend-mode: luminosity; }
+    .lock { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; }
+    .lock svg { width: 26px; height: 26px; color: rgba(54,60,53,.55); }
+    .seal h3 { margin: 9px 0 0; font-family: var(--font-serif); font-size: 13.5px; line-height: 1.15; }
+    .tier-badge { display: inline-block; margin-top: 6px; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+    .t-com { background: rgba(169,191,149,.26); color: #566b3f; } .t-rare { background: rgba(156,193,220,.32); color: #3c6488; }
+    .t-epic { background: rgba(231,169,140,.28); color: #9c5736; } .t-leg { background: rgba(216,177,90,.26); color: #86661f; }
+    .wstar { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 999px; background: rgba(255,255,255,.7); border: 1px solid var(--line); display: grid; place-items: center; color: var(--gold); z-index: 3; }
+    .wstar svg { width: 12px; height: 12px; }
+    .prog { margin: 8px auto 0; width: 80%; height: 4px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), #e6a683); }
+
+    /* case wall */
+    .wall { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .frame { text-align: center; cursor: pointer; }
+    .frame .fc { width: 100%; aspect-ratio: 1; border-radius: 14px; background-size: cover; background-position: center; border: 1px solid rgba(54,60,53,.14); box-shadow: 0 8px 18px rgba(60,55,40,.07); position: relative; overflow: hidden; }
+    .frame .fc::after { content: ""; position: absolute; inset: 0; background: var(--tier); opacity: .22; mix-blend-mode: color; }
+    .frame b { display: block; margin-top: 7px; font-size: 11px; font-family: var(--font-serif); line-height: 1.15; }
+    .frame span { font-size: 9px; color: var(--muted); }
+
+    /* challenge */
+    .challenge { padding: 18px; border-radius: 20px; border: 1px solid rgba(78,168,155,.24); background: linear-gradient(135deg, rgba(220,235,216,.5), rgba(255,250,241,.7)); }
+    .challenge .cem { width: 92px; height: 92px; margin: 0 auto 12px; border-radius: 22px; border: 2.5px solid var(--gold); background: rgba(255,255,255,.6); background-size: cover; background-position: center; box-shadow: 0 10px 22px rgba(216,177,90,.18); position: relative; overflow: hidden; }
+    .challenge .cem::after { content:""; position:absolute; inset:0; background: var(--gold); opacity:.16; mix-blend-mode: color; }
+    .challenge h3 { font-family: var(--font-serif); font-size: 20px; margin: 0; text-align: center; }
+    .challenge p { margin: 9px 0 12px; font-size: 12px; line-height: 1.7; color: #46534c; }
+    .mbar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .mbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), #e6a683); }
+
+    /* detail overlay */
+    .detail { position: absolute; inset: 0; z-index: 20; background: linear-gradient(180deg,#fff9f0,#f4efe4); transform: translateY(100%); transition: transform .26s ease; display: flex; flex-direction: column; }
+    .detail.open { transform: none; }
+    .detail .d-top { display: flex; align-items: center; gap: 10px; padding: 46px 16px 10px; flex: 0 0 auto; }
+    .back { width: 34px; height: 34px; border-radius: 13px; border: 1px solid var(--line); background: rgba(255,255,255,.6); display: grid; place-items: center; color: #375851; }
+    .back svg { width: 16px; height: 16px; }
+    .d-top strong { font-family: var(--font-serif); font-size: 15px; }
+    .d-body { flex: 1; overflow-y: auto; padding: 6px 18px 18px; }
+    .d-body::-webkit-scrollbar { width: 0; }
+    .d-cover { width: 150px; height: 150px; margin: 6px auto 14px; border-radius: 22px; background-size: cover; background-position: center; border: 1px solid rgba(54,60,53,.12); position: relative; overflow: hidden; box-shadow: 0 14px 30px rgba(60,55,40,.1); }
+    .d-cover::after { content: ""; position: absolute; inset: 0; background: var(--tier); opacity: .24; mix-blend-mode: color; }
+    .d-name { text-align: center; font-family: var(--font-serif); font-size: 24px; margin: 0; }
+    .d-cat { text-align: center; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+    .flavor { margin: 16px 0; padding: 14px 16px; border-radius: 15px; border: 1px dashed rgba(54,60,53,.24); background: rgba(255,252,244,.6); font-family: var(--font-serif); font-size: 14px; line-height: 1.8; color: #3a433d; }
+    .snippet { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.6); border: 1px solid var(--line); }
+    .snippet .sl { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .snippet .st { margin-top: 6px; font-size: 12.5px; line-height: 1.7; color: #3a433d; }
+    .footprint .fl { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .trail { border-left: 2px solid var(--line); padding-left: 16px; display: grid; gap: 12px; margin: 0; }
+    .trail li { list-style: none; position: relative; }
+    .trail li::before { content: ""; position: absolute; left: -23px; top: 4px; width: 9px; height: 9px; border-radius: 999px; background: var(--teal); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--teal); }
+    .trail b { font-size: 12.5px; display: block; } .trail span { font-size: 10.5px; color: var(--muted); }
+    .d-actions { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 8px; flex: 0 0 auto; border-top: 1px solid var(--line); background: rgba(255,250,241,.8); }
+    .pill { flex: 1; min-height: 42px; border: 1px solid rgba(54,60,53,.14); border-radius: 999px; display: inline-grid; place-items: center; color: #34433c; background: rgba(255,255,255,.6); font-size: 12px; font-weight: 800; }
+    .pill.primary { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--teal), #e6a683); }
+    .pill.gold { color: #6b521c; border-color: rgba(216,177,90,.55); background: rgba(216,177,90,.2); }
+
+    .tabbar { display: flex; border-top: 1px solid var(--line); background: rgba(255,250,241,.9); flex: 0 0 auto; padding-bottom: env(safe-area-inset-bottom); }
+    .tabbar button { flex: 1; min-height: 50px; border: 0; background: none; display: grid; place-items: center; gap: 3px; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .tabbar button svg { width: 21px; height: 21px; }
+    .tabbar button[aria-selected="true"] { color: var(--teal); }
+
+    .toast { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%) translateY(12px); z-index: 50; min-height: 38px; padding: 0 16px; display: inline-flex; align-items: center; background: rgba(43,50,46,.92); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px; opacity: 0; transition: opacity .22s ease, transform .22s ease; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .flash { animation: fl .9s ease; }
+    @keyframes fl { 0% { box-shadow: 0 0 0 0 rgba(216,177,90,.55); } 60% { box-shadow: 0 0 0 12px rgba(216,177,90,0); } 100% { box-shadow: 0 8px 20px rgba(60,55,40,.06); } }
+  </style>
+</head>
+<body>
+  <div class="stage-cap">成就收藏 · 手机内可操作原型 v5（AI 生图封面 · 按稀有度着色复用）</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>22:54</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+      <div class="app-header">
+        <h1>成就收藏</h1>
+        <div class="sub">把日子，收成一枚枚徽章。</div>
+        <div class="ministats" id="ministats"></div>
+      </div>
+
+      <div class="seg" id="seg">
+        <button data-view="gallery" aria-pressed="true">画廊</button>
+        <button data-view="case" aria-pressed="false">陈列柜</button>
+        <button data-view="challenge" aria-pressed="false">挑战</button>
+      </div>
+
+      <div class="body" id="body"><!-- filled --></div>
+
+      <div class="detail" id="detail">
+        <div class="d-top">
+          <button class="back" id="back" aria-label="返回"><svg viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <strong>成就详情</strong>
+        </div>
+        <div class="d-body" id="d-body"></div>
+        <div class="d-actions" id="d-actions"></div>
+      </div>
+
+      <div class="tabbar">
+        <button data-view="gallery" aria-selected="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>画廊</button>
+        <button data-view="case" aria-selected="false"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H18v12.5A1.5 1.5 0 0 1 16.5 20h-10A2.5 2.5 0 0 1 4 17.5v-9Z" stroke="currentColor" stroke-width="1.8"/><path d="M8 9.5h6M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>陈列柜</button>
+        <button data-view="challenge" aria-selected="false"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>挑战</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const IMG = {
+      time:'achievement-assets/cat-time.webp', mood:'achievement-assets/cat-mood.webp',
+      weather:'achievement-assets/cat-weather.webp', writing:'achievement-assets/cat-writing.webp',
+      habit:'achievement-assets/cat-habit.webp', explorer:'achievement-assets/cat-explorer.webp',
+      collector:'achievement-assets/cat-collector.webp', legendary:'achievement-assets/cat-legendary.webp'
+    };
+    const CAT = { time:'时间', mood:'心情', weather:'天气', writing:'写作', habit:'习惯', explorer:'探索', collector:'收藏', legendary:'传奇' };
+    const TIER = { com:'普通', rare:'稀有', epic:'史诗', leg:'传奇' };
+    const TIERC = { com:'var(--com)', rare:'var(--rare)', epic:'var(--epic)', leg:'var(--leg)' };
+
+    const DATA = [
+      { id:'time_first', name:'晨光初现', cat:'time', tier:'com', status:'unlocked', flavor:'在清晨六到九点写下第一篇日记。一日的开头，先留一句话给自己。', date:'2025-03-12', entry:'今天醒得早，窗外有鸟。' },
+      { id:'time_night', name:'夜航者', cat:'time', tier:'rare', status:'unlocked', flavor:'在夜晚二十三点之后累计写下十篇。夜里的字迹，往往最诚实。', date:'2025-06-02', entry:'地铁空了，城市安静下来。' },
+      { id:'time_century', name:'百年孤独', cat:'time', tier:'leg', status:'progress', flavor:'连续记录满 365 天。不为打卡，只为不缺席自己的生活。', target:'365 天', progress:312 },
+      { id:'mood_first', name:'初见心情', cat:'mood', tier:'com', status:'unlocked', flavor:'第一次为日记打上心情标签。情绪被看见，才算被记录。', date:'2025-02-20', entry:'有点累，但还好。' },
+      { id:'mood_rainbow', name:'七色情绪', cat:'mood', tier:'epic', status:'progress', flavor:'在日记里集齐全部六种心情。喜怒哀乐，都值得留一份。', target:'6 种', progress:4 },
+      { id:'mood_calm', name:'心如止水', cat:'mood', tier:'rare', status:'locked', flavor:'在连续七天的日记中，心情都标记为平静。' },
+      { id:'weather_rain', name:'听雨人', cat:'weather', tier:'com', status:'unlocked', flavor:'在一个雨天写下日记。雨声是最好的白噪音。', date:'2025-04-08', entry:'雨一直下，反而安心。' },
+      { id:'weather_snow', name:'踏雪寻梅', cat:'weather', tier:'rare', status:'locked', flavor:'在下雪天写下日记。' },
+      { id:'weather_storm', name:'风暴之子', cat:'weather', tier:'epic', status:'locked', flavor:'在暴雨或台风预警日完成记录。' },
+      { id:'write_first', name:'落笔成章', cat:'writing', tier:'com', status:'unlocked', flavor:'写下你的第一篇日记。起点总是最珍贵的。', date:'2025-01-15', entry:'试试看这个 App。' },
+      { id:'write_marathon', name:'千字文', cat:'writing', tier:'rare', status:'unlocked', flavor:'单篇日记突破 1000 字。把一件事说透的感觉，很爽。', date:'2025-05-19', entry:'今天想认真写写那次旅行……' },
+      { id:'write_novel', name:'著作等身', cat:'writing', tier:'leg', status:'progress', flavor:'累计写下 10 万字。回头看，是一整座文字的房子。', target:'10万字', progress:73400 },
+      { id:'habit_seed', name:'习惯之种', cat:'habit', tier:'com', status:'unlocked', flavor:'创建你的第一个习惯追踪。种下，就会生长。', date:'2025-03-30', entry:'决定每天走 8000 步。' },
+      { id:'habit_streak', name:'三十而砺', cat:'habit', tier:'epic', status:'progress', flavor:'任意一个习惯连续坚持 30 天。', target:'30 天', progress:21 },
+      { id:'habit_year', name:'一岁一礼', cat:'habit', tier:'rare', status:'locked', flavor:'坚持同一习惯满一整年。' },
+      { id:'explore_map', name:'地图收藏家', cat:'explorer', tier:'com', status:'unlocked', flavor:'在日记中标记第一个地点。把足迹变成坐标。', date:'2025-04-22', entry:'海边的小馆子。' },
+      { id:'explore_city', name:'城市漫游者', cat:'explorer', tier:'rare', status:'progress', flavor:'在 10 个不同城市留下记录。', target:'10 城', progress:6 },
+      { id:'explore_world', name:'环游日记', cat:'explorer', tier:'leg', status:'locked', flavor:'在 30 个城市写下日记。地球很小，你很大。' },
+      { id:'collect_first', name:'初藏', cat:'collector', tier:'com', status:'unlocked', flavor:'收藏第一条日记。收藏，是另一种书写。', date:'2025-02-11', entry:'这段想留着。' },
+      { id:'collect_hoard', name:'集腋成裘', cat:'collector', tier:'rare', status:'unlocked', flavor:'收藏满 50 条日记。抽屉越来越满。', date:'2025-07-01', entry:'第五十张收藏卡。' },
+      { id:'collect_master', name:'收藏大师', cat:'collector', tier:'epic', status:'progress', flavor:'收藏满 200 条。你已是这座私人博物馆的馆长。', target:'200 条', progress:128 },
+      { id:'legend_dawn', name:'破晓', cat:'legendary', tier:'leg', status:'unlocked', flavor:'解锁任意 10 枚传奇成就。天快亮了。', date:'2025-07-10', entry:'第十枚传奇，落定。' },
+      { id:'legend_all', name:'圆满', cat:'legendary', tier:'leg', status:'locked', flavor:'解锁全部成就。那一刻，收藏柜会为你亮一次。' }
+    ];
+    let wish = new Set(['mood_rainbow','explore_world','write_novel']);
+    let fTier='all', fStatus='all', fCat='all', view='gallery';
+    const $ = s => document.querySelector(s);
+    const get = id => DATA.find(d=>d.id===id);
+    const pct = d => { if(d.status==='unlocked') return 100; if(d.target){ const n=Number(String(d.progress).replace(/[^\d]/g,'')); const t=Number(String(d.target).replace(/[^\d万]/g,'').replace('万','0000')); return Math.min(100, Math.round(n/t*100)); } return d.progress||0; };
+    const pctLabel = d => d.status==='unlocked' ? '已解锁' : (d.target ? (typeof d.progress==='number'? d.progress.toLocaleString():d.progress)+' / '+d.target : d.progress+'%');
+
+    function renderMini(){
+      const u = DATA.filter(d=>d.status==='unlocked').length;
+      $('#ministats').innerHTML =
+        '<div class="ministat"><b>'+u+'</b><span>已解锁</span></div>'+
+        '<div class="ministat"><b>'+Math.round(u/DATA.length*100)+'%</b><span>完成度</span></div>'+
+        '<div class="ministat"><b>'+DATA.filter(d=>d.tier==='leg'&&d.status==='unlocked').length+'</b><span>传奇</span></div>';
+    }
+
+    function chipBar(){
+      let h = '<div class="chips">';
+      [['all','全部'],['com','普通'],['rare','稀有'],['epic','史诗'],['leg','传奇']].forEach(([v,l])=>{ h += '<button class="chip" data-f="tier" data-v="'+v+'"'+(fTier===v?' aria-pressed="true"':'')+'>'+l+'</button>'; });
+      h += '</div><div class="chips">';
+      [['all','全部'],['unlocked','已解锁'],['progress','进行中'],['locked','未解锁'],['wish','心愿单']].forEach(([v,l])=>{ h += '<button class="chip" data-f="status" data-v="'+v+'"'+(fStatus===v?' aria-pressed="true"':'')+'>'+(v==='wish'?'★ '+l:l)+'</button>'; });
+      h += '</div><div class="chips">';
+      h += '<button class="chip" data-f="cat" data-v="all"'+('all'===fCat?' aria-pressed="true"':'')+'>全部</button>';
+      Object.keys(CAT).forEach(c=>{ h += '<button class="chip" data-f="cat" data-v="'+c+'"'+(fCat===c?' aria-pressed="true"':'')+'>'+CAT[c]+'</button>'; });
+      h += '</div>';
+      return h;
+    }
+
+    function sealCard(d){
+      const card = document.createElement('div');
+      card.className = 'seal'+(d.status==='locked'?' locked':'')+(wish.has(d.id)?' wish':'');
+      card.style.setProperty('--tier', TIERC[d.tier]);
+      const cover = document.createElement('div'); cover.className='cover'; cover.style.backgroundImage='url('+IMG[d.cat]+')';
+      if(d.status==='locked'){ const l=document.createElement('div'); l.className='lock'; l.innerHTML='<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="11" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M9 11V8a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.9"/></svg>'; cover.appendChild(l); }
+      card.appendChild(cover);
+      if(wish.has(d.id)){ const s=document.createElement('div'); s.className='wstar'; s.innerHTML='<svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'; card.appendChild(s); }
+      const h=document.createElement('h3'); h.textContent=d.name; card.appendChild(h);
+      const t=document.createElement('span'); t.className='tier-badge t-'+d.tier; t.textContent=TIER[d.tier]; card.appendChild(t);
+      if(d.status==='progress'){ const p=document.createElement('div'); p.className='prog'; p.innerHTML='<i style="width:'+pct(d)+'%"></i>'; card.appendChild(p); }
+      card.onclick=()=>openDetail(d.id);
+      return card;
+    }
+
+    function renderGallery(){
+      const list = DATA.filter(d => (fTier==='all'||d.tier===fTier) && (fCat==='all'||d.cat===fCat) && (fStatus==='all'||(fStatus==='wish'?wish.has(d.id):d.status===fStatus)));
+      const body = $('#body');
+      body.innerHTML = chipBar();
+      const grid = document.createElement('div'); grid.className='grid';
+      if(!list.length){ grid.innerHTML='<p style="color:var(--muted);padding:14px;font-size:12px">这个筛选下还没有成就。</p>'; }
+      list.forEach(d=>grid.appendChild(sealCard(d)));
+      body.appendChild(grid);
+      body.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ const f=b.dataset.f, v=b.dataset.v; if(f==='tier')fTier=v; if(f==='status')fStatus=v; if(f==='cat')fCat=v; renderGallery(); });
+    }
+
+    function renderCase(){
+      const body=$('#body'); let h='<p style="font-size:11.5px;color:var(--muted);margin:0 0 12px">已经解锁的徽章，像一排被裱起来的旧照片。</p><div class="wall">';
+      DATA.filter(d=>d.status==='unlocked').forEach(d=>{
+        h += '<div class="frame" data-id="'+d.id+'" style="--tier:'+TIERC[d.tier]+'"><div class="fc" style="background-image:url('+IMG[d.cat]+')"></div><b>'+d.name+'</b><span>'+CAT[d.cat]+'</span></div>';
+      });
+      h+='</div>'; body.innerHTML=h;
+      body.querySelectorAll('.frame').forEach(fr=>fr.onclick=()=>openDetail(fr.dataset.id));
+    }
+
+    function renderChallenge(){
+      const st=TIERC.leg;
+      $('#body').innerHTML = '<div class="challenge"><div class="cem" style="--tier:'+st+';background-image:url('+IMG.habit+')"></div>'+
+        '<h3>七月挑战 · 三十而砺</h3><p>本月让任意一个习惯连续坚持 30 天。完成后获「三十而砺」史诗徽章，与一句只有七月才有的赠言：<i>“把一天过好，就是过好了一生。”</i></p>'+
+        '<div class="mbar"><i style="width:70%"></i></div><p style="margin:9px 0 0;font-size:10.5px;font-weight:700;color:var(--muted)">21 / 30 天 · 还差 9 天</p></div>';
+    }
+
+    function switchView(v){
+      view=v;
+      $$seg(v);
+      if(v==='gallery') renderGallery(); else if(v==='case') renderCase(); else renderChallenge();
+    }
+    function $$seg(v){ document.querySelectorAll('.seg button,.tabbar button').forEach(b=>{ const on=b.dataset.view===v; if(b.classList.contains('seg')) b.setAttribute('aria-pressed', on); else b.setAttribute('aria-selected', on); }); }
+
+    function openDetail(id){
+      const d=get(id); if(!d) return;
+      const tier=TIERC[d.tier];
+      const db=$('#d-body'); db.style.setProperty('--tier', tier);
+      db.innerHTML =
+        '<div class="d-cover" style="background-image:url('+IMG[d.cat]+')"></div>'+
+        '<h2 class="d-name">'+d.name+'</h2>'+
+        '<div class="d-cat">'+CAT[d.cat]+' · '+TIER[d.tier]+'</div>'+
+        '<p class="flavor">“'+d.flavor+'”</p>'+
+        (d.entry? '<div class="snippet"><div class="sl">关联的那篇日记</div><div class="st">'+d.entry+'</div></div>':'')+
+        (d.status!=='locked'? '<div class="footprint"><div class="fl">解锁足迹</div><ul class="trail">'+
+          (d.status==='unlocked'
+            ? '<li><b>写下那篇日记</b><span>'+d.date+' · 触发解锁</span></li><li><b>关联日记</b><span>“'+d.entry+'”</span></li><li><b>收入藏宝册</b><span>已陈列</span></li>'
+            : '<li><b>开始追踪</b><span>目标 '+d.target+'</span></li><li><b>当前进度</b><span>'+pctLabel(d)+'</span></li><li><b>距达成</b><span>还差 '+(100-pct(d))+'%</span></li>')+
+          '</ul></div>':'');
+      const act=$('#d-actions'); act.innerHTML='';
+      const wb=document.createElement('button'); wb.className='pill'+(wish.has(d.id)?' gold':''); wb.textContent=wish.has(d.id)?'★ 已在心愿单':'☆ 加入心愿单'; wb.onclick=()=>toggleWish(d.id); act.appendChild(wb);
+      if(d.status!=='unlocked'){ const sb=document.createElement('button'); sb.className='pill primary'; sb.textContent='模拟解锁'; sb.onclick=()=>simulate(d.id); act.appendChild(sb); }
+      $('#detail').classList.add('open');
+    }
+    function closeDetail(){ $('#detail').classList.remove('open'); }
+
+    function toggleWish(id){ if(wish.has(id)) wish.delete(id); else wish.add(id); refresh(); if($('#detail').classList.contains('open')) openDetail(id); toast(wish.has(id)?'已加入心愿单':'已移出心愿单'); }
+    function simulate(id){ const d=get(id); d.status='unlocked'; d.progress=100; d.date=new Date().toISOString().slice(0,10); d.entry=d.entry||'刚刚达成了它。'; refresh(); const c=document.querySelector('.seal h3'); const card=[...document.querySelectorAll('.seal')].find(x=>x.querySelector('h3').textContent===d.name); if(card) card.classList.add('flash'); toast('解锁成功：'+d.name); if($('#detail').classList.contains('open')) openDetail(id); }
+
+    function refresh(){ renderMini(); if(view==='gallery') renderGallery(); else if(view==='case') renderCase(); else renderChallenge(); }
+    let tt; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2200); }
+
+    document.querySelectorAll('.seg button,.tabbar button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+    $('#back').onclick=closeDetail;
+
+    renderMini(); renderGallery();
+  </script>
+</body>
+</html>

@@ -2,15 +2,12 @@ package com.diary.app.ui.ambientsound
 
 import android.app.Application
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.app.data.ambientsound.AmbientSoundDatabase
 import com.diary.app.data.ambientsound.AudioCacheManager
 import com.diary.app.data.ambientsound.AudioRepository
 import com.diary.app.data.ambientsound.AudioTrack
-import com.diary.app.data.ambientsound.FavoriteEntity
 import com.diary.app.data.ambientsound.RecentEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,21 +17,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 data class AmbientSoundState(
-    val selectedCategoryId: String = "water",
     val currentTrack: AudioTrack? = null,
     val isPlaying: Boolean = false,
-    val volume: Float = 0.5f,
-    val progress: Int = 0,
-    val duration: Int = 0,
-    val sleepRemainingSeconds: Int = 0,
-    val favoriteIds: Set<String> = emptySet(),
-    val recentIds: List<String> = emptyList(),
     val isPreparing: Boolean = false,
     val errorMessage: String? = null,
-    val meanderEnabled: Boolean = false,
-    val isFullscreenPlayerVisible: Boolean = false
+    val recentIds: List<String> = emptyList()
 )
 
 class AmbientSoundViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,225 +40,114 @@ class AmbientSoundViewModel(application: Application) : AndroidViewModel(applica
     private val _state = MutableStateFlow(AmbientSoundState())
     val state: StateFlow<AmbientSoundState> = _state.asStateFlow()
 
+    // ── 同步加载初始数据，避免异步导致排序跳变 ──
+    private val initRecents: List<String>
+
     init {
-        viewModelScope.launch {
-            val favIds = dao.getFavoriteIds().toSet()
-            val recentIds = dao.getRecentIds()
-            val savedVolume = prefs.getFloat("volume", 0.5f)
-            val savedCategory = prefs.getString("category", "water") ?: "water"
-            val savedMeander = prefs.getBoolean("meander_enabled", false)
-
-            player.setVolume(savedVolume)
-            _state.value = _state.value.copy(
-                favoriteIds = favIds,
-                recentIds = recentIds,
-                volume = savedVolume,
-                selectedCategoryId = savedCategory,
-                meanderEnabled = savedMeander
-            )
-
-            if (savedMeander) {
-                player.setMeanderEnabled(true)
-            }
-
-            val savedTrackId = prefs.getString("last_track_id", null)
-            if (player.hasSession) {
-                syncStateWithPlayer()
-            } else {
-                // 仅恢复上次曲目的元数据，保持暂停态，避免在应用启动时自动播放
-                val track = savedTrackId?.let { AudioRepository.getTrack(it) }
-                if (track != null) {
-                    _state.value = _state.value.copy(
-                        selectedCategoryId = track.categoryId,
-                        currentTrack = track,
-                        isPlaying = false
-                    )
-                }
-            }
+        val recents = runBlocking(Dispatchers.IO) {
+            dao.getRecentIds()
         }
+        initRecents = recents
+        _state.value = _state.value.copy(recentIds = recents)
     }
 
     private fun onPlaybackChanged() {
-        syncStateWithPlayer()
-        // 前台 Service 的 start/stop 必须在主线程执行
-        val app = ctx
+        viewModelScope.launch { syncStateWithPlayer() }
         android.os.Handler(android.os.Looper.getMainLooper()).post {
-            if (player.hasSession) AmbientSoundService.start(app) else AmbientSoundService.stop(app)
+            if (player.hasSession) AmbientSoundService.start(ctx) else AmbientSoundService.stop(ctx)
         }
     }
 
-    private fun syncStateWithPlayer(
-        recentIds: List<String> = _state.value.recentIds,
-        selectedCategoryId: String = _state.value.selectedCategoryId
-    ) {
-        val snapshot = AmbientPlayerSnapshot(
+    private suspend fun syncStateWithPlayer() {
+        _state.value = _state.value.copy(
             currentTrack = player.currentTrack,
-            isPlaying = player.isPlaying,
-            volume = player.currentVolume,
-            duration = player.duration,
-            progress = player.currentPosition,
-            sleepRemainingSeconds = player.sleepRemainingSeconds(),
-            meanderEnabled = player.isMeanderEnabled,
-            hasSession = player.hasSession
-        )
-        _state.value = syncAmbientStateWithPlayer(
-            state = _state.value.copy(
-                recentIds = recentIds,
-                selectedCategoryId = selectedCategoryId
-            ),
-            snapshot = snapshot
+            isPlaying = player.isPlaying
         )
     }
 
-    fun clearError() {
-        _state.value = _state.value.copy(errorMessage = null)
-    }
-
-    fun selectCategory(categoryId: String) {
-        prefs.edit().putString("category", categoryId).apply()
-        _state.value = _state.value.copy(selectedCategoryId = categoryId)
-    }
-
+    // ── 播放 ──
     fun play(track: AudioTrack) {
+        // 先彻底重置状态，防止 stop 残留的异步回调干扰本次播放流程
+        _state.value = AmbientSoundState(currentTrack = track, isPlaying = false, isPreparing = true, recentIds = _state.value.recentIds)
         viewModelScope.launch {
-            _state.value = _state.value.copy(
-                currentTrack = track,
-                isPreparing = true,
-                errorMessage = null
-            )
             val result = cacheManager.prepare(track.id, track.audioUrl)
-
-            if (_state.value.currentTrack?.id != track.id) return@launch
-            _state.value = _state.value.copy(isPreparing = false)
+            // 用本地变量锁定目标曲目，不受异步 syncStateWithPlayer 覆盖影响
+            val targetId = track.id
+            if (_state.value.currentTrack?.id != targetId) return@launch
 
             val file = result.getOrNull()
             if (file == null) {
-                val e = result.exceptionOrNull()
-                if (_state.value.currentTrack?.id != track.id) return@launch
-                val msg = when {
-                    e?.message?.contains("not found", true) == true -> "音频文件缺失"
-                    else -> "无法加载音频"
-                }
-                _state.value = _state.value.copy(currentTrack = null, errorMessage = msg)
+                _state.value = _state.value.copy(currentTrack = null, isPreparing = false,
+                    errorMessage = "无法加载音频")
                 return@launch
             }
 
-            if (_state.value.currentTrack?.id != track.id) return@launch
             val playResult = withContext(Dispatchers.IO) { player.play(ctx, track, file) }
-            if (_state.value.currentTrack?.id != track.id) return@launch
+            if (_state.value.currentTrack?.id != targetId) return@launch
 
-            val playError = playResult.exceptionOrNull()
-            if (playError != null) {
-                _state.value = _state.value.copy(
-                    currentTrack = null,
-                    errorMessage = "无法播放此音频"
-                )
+            if (playResult.isFailure) {
+                _state.value = _state.value.copy(currentTrack = null, isPreparing = false,
+                    errorMessage = "无法播放此音频")
                 return@launch
             }
 
+            _state.value = _state.value.copy(isPreparing = false)
             prefs.edit().putString("last_track_id", track.id).apply()
             dao.addRecent(RecentEntity(track.id))
-            val recentIds = dao.getRecentIds()
-            syncStateWithPlayer(
-                recentIds = recentIds,
-                selectedCategoryId = track.categoryId
-            )
+            _state.value = _state.value.copy(recentIds = dao.getRecentIds())
+            syncStateWithPlayer()
         }
     }
 
+    // ── 暂停/续播 ──
     fun togglePlay(track: AudioTrack) {
         val cur = _state.value.currentTrack
-        if (cur == track && player.hasSession) {
+        if (cur?.id == track.id && player.hasSession) {
+            // 同一曲目有活跃 session：暂停或续播
             if (player.isPlaying) {
                 player.pause()
             } else {
                 player.resume()
             }
-            syncStateWithPlayer()
+            viewModelScope.launch { syncStateWithPlayer() }
         } else {
             play(track)
         }
     }
 
-    fun toggleMeander() {
-        val newEnabled = !_state.value.meanderEnabled
-        player.setMeanderEnabled(newEnabled)
-        prefs.edit().putBoolean("meander_enabled", newEnabled).apply()
-        _state.value = _state.value.copy(meanderEnabled = newEnabled)
+    // ── 上一首/下一首 ──
+    fun playNext() {
+        val all = AudioRepository.getAllTracks()
+        val cur = _state.value.currentTrack ?: return
+        val idx = all.indexOfFirst { it.id == cur.id }
+        val next = if (idx >= 0 && idx < all.lastIndex) all[idx + 1] else all.first()
+        play(next)
+    }
+
+    fun playPrev() {
+        val all = AudioRepository.getAllTracks()
+        val cur = _state.value.currentTrack ?: return
+        val idx = all.indexOfFirst { it.id == cur.id }
+        val prev = if (idx > 0) all[idx - 1] else all.last()
+        play(prev)
     }
 
     fun stop() {
         stopProgressUpdates()
+        // 先重置状态为"完全停止"，防止 player.stop() 内部回调覆盖
+        _state.value = AmbientSoundState(recentIds = _state.value.recentIds)
         player.stop()
         prefs.edit().remove("last_track_id").apply()
-        syncStateWithPlayer()
-        _state.value = _state.value.copy(
-            sleepRemainingSeconds = 0,
-            isFullscreenPlayerVisible = false
-        )
         AmbientSoundService.stop(ctx)
     }
 
-    fun setVolume(volume: Float) {
-        player.setVolume(volume)
-        prefs.edit().putFloat("volume", volume).apply()
-        _state.value = _state.value.copy(volume = volume)
-    }
-
-    fun seekTo(position: Int) {
-        player.seekTo(position)
-        syncStateWithPlayer()
-    }
-
-    fun toggleFavorite(trackId: String) {
-        viewModelScope.launch {
-            val favs = _state.value.favoriteIds
-            if (trackId in favs) {
-                dao.removeFavorite(trackId)
-                _state.value = _state.value.copy(favoriteIds = favs - trackId)
-            } else {
-                dao.addFavorite(FavoriteEntity(trackId))
-                _state.value = _state.value.copy(favoriteIds = favs + trackId)
-            }
-        }
-    }
-
-    fun startSleepTimer(minutes: Int) {
-        if (minutes <= 0) {
-            player.cancelSleepTimer()
-            _state.value = _state.value.copy(sleepRemainingSeconds = 0)
-            return
-        }
-        player.startSleepTimer(minutes)
-        _state.value = _state.value.copy(sleepRemainingSeconds = player.sleepRemainingSeconds())
-    }
-
-    fun cancelSleepTimer() {
-        player.cancelSleepTimer()
-        _state.value = _state.value.copy(sleepRemainingSeconds = 0)
-    }
-
-    fun showFullscreenPlayer() {
-        if (_state.value.currentTrack != null) {
-            _state.value = _state.value.copy(isFullscreenPlayerVisible = true)
-        }
-    }
-
-    fun hideFullscreenPlayer() {
-        _state.value = _state.value.copy(isFullscreenPlayerVisible = false)
-    }
-
-    var progressUpdateJob: Job? = null
+    private var progressUpdateJob: Job? = null
 
     fun startProgressUpdates() {
         progressUpdateJob?.cancel()
         progressUpdateJob = viewModelScope.launch {
             while (player.hasSession) {
                 syncStateWithPlayer()
-                if (player.isSleepExpired()) {
-                    stop()
-                    return@launch
-                }
                 delay(500)
             }
         }

@@ -191,6 +191,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object WeatherAlertDetail : Screen("weather_alert_detail/{alertId}", "天气预警详情", Icons.Default.Notifications) {
         fun createRoute(alertId: String): String = "weather_alert_detail/$alertId"
     }
+    object WeatherAlertList : Screen("weather_alert_list", "天气预警", Icons.Default.Notifications) {}
     object WritingFingerprint : Screen("writing_fingerprint", "写作指纹", Icons.Default.Edit)
     object WritingCoach : Screen("writing_coach", "写作教练", Icons.Default.AutoAwesome)
 
@@ -418,6 +419,7 @@ popExitTransition = {
                     onNavigateToFavorites = { navController.navigate(Screen.Favorites.route) },
                     onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
+                    onNavigateToWeatherAlertList = { navController.navigate(Screen.WeatherAlertList.route) },
                     onMainScreenSwipe = { dragAmount ->
                         val targetRoute = resolveMainScreenSwipeTarget(
                             currentRoute = Screen.Profile.route,
@@ -699,7 +701,18 @@ popExitTransition = {
                 popExitTransition = { subPagePopExitTransition() }
             ) {
                 com.diary.app.ui.storage.StorageScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCategory = { icon ->
+                        when (icon) {
+                            com.diary.app.ui.storage.StorageIcon.IMAGE ->
+                                navController.navigate(Screen.MediaLibrary.route)
+                            com.diary.app.ui.storage.StorageIcon.THUMBNAIL ->
+                                navController.navigate(Screen.MediaLibrary.route)
+                            com.diary.app.ui.storage.StorageIcon.BACKUP ->
+                                navController.navigate(Screen.Backup.route)
+                            else -> {}
+                        }
+                    }
                 )
             }
 
@@ -729,6 +742,18 @@ popExitTransition = {
                 com.diary.app.ui.home.WeatherAlertDetailScreen(
                     alertId = alertId,
                     onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.WeatherAlertList.route,
+                enterTransition = { subPageEnterTransition() },
+                exitTransition = { subPageExitTransition() },
+                popEnterTransition = { subPagePopEnterTransition() },
+                popExitTransition = { subPagePopExitTransition() }
+            ) {
+                com.diary.app.ui.home.WeatherAlertListScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
@@ -835,15 +860,12 @@ popExitTransition = {
                         ambientSoundViewModel.togglePlay(it)
                     }
                 },
-                onStop = { ambientSoundViewModel.stop() },
-                onVolumeChange = { ambientSoundViewModel.setVolume(it) },
-                modifier = Modifier.align(Alignment.BottomCenter),
-                onNavigateToFullScreen = {
-                    ambientSoundViewModel.showFullscreenPlayer()
-                    navController.navigate(Screen.AmbientSound.route) {
-                        launchSingleTop = true
-                    }
-                }
+                onClose = { ambientSoundViewModel.stop() },
+                onPrev = { ambientSoundViewModel.playPrev() },
+                onNext = { ambientSoundViewModel.playNext() },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp, start = 12.dp, end = 12.dp)
             )
         }
         }

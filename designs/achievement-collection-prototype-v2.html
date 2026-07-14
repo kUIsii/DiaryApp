@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DiaryApp · 成就收藏 · 重造原型 v2</title>
+<style>
+  :root{
+    /* 基底：暖调近黑，纸感微光 */
+    --bg:#13100c; --bg-2:#1a1611;
+    --surface:rgba(255,250,242,.035); --surface-2:rgba(255,250,242,.065);
+    --hair:rgba(255,250,242,.09); --hair-2:rgba(255,250,242,.05);
+    --text:#f4efe6; --text-2:rgba(244,239,230,.60); --text-3:rgba(244,239,230,.36);
+    --accent:#d7a371; --accent-2:#e6c08c;
+    --shadow:0 24px 60px rgba(0,0,0,.5);
+    --r-xl:30px; --r-lg:22px; --r-md:16px; --r-sm:12px;
+    /* 分类语义色（低饱和、同色系、克制品味）—— 对应 LocalAchievementColors */
+    --c-TIME:#b89b6a; --c-MOOD:#c5899f; --c-WEATHER:#7fa8bd; --c-WRITING:#a99878;
+    --c-HABIT:#8aae85; --c-EXPLORER:#9a8fc4; --c-COLLECTOR:#c2a06a; --c-LEGENDARY:#d8b86a;
+    /* 稀有度语义色 */
+    --t-COMMON:#9a948a; --t-RARE:#7a9fc6; --t-EPIC:#a487c6; --t-LEGENDARY:#dcb964;
+    --font:"Outfit","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font); color:var(--text); background:
+      radial-gradient(1100px 760px at 78% -12%, rgba(215,163,113,.10), transparent 58%),
+      radial-gradient(820px 600px at -8% 108%, rgba(127,168,189,.07), transparent 55%),
+      linear-gradient(180deg,#161209,#100d09);
+    min-height:100dvh; -webkit-font-smoothing:antialiased; letter-spacing:.3px;
+  }
+  .app{max-width:900px;margin:0 auto;padding:0 18px 116px;position:relative}
+
+  /* App bar */
+  .appbar{display:flex;align-items:flex-end;justify-content:space-between;padding:30px 4px 18px}
+  .appbar .lead .kicker{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text-3)}
+  .appbar h1{font-size:27px;font-weight:300;letter-spacing:1px;margin-top:6px}
+  .appbar h1 b{font-weight:600}
+  .appbar .lead .desc{font-size:12.5px;color:var(--text-2);margin-top:7px;max-width:42ch;line-height:1.5}
+  .level{text-align:right}
+  .level .ring{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin-left:auto;
+    background:conic-gradient(var(--accent) 62%, rgba(255,255,255,.08) 0);position:relative}
+  .level .ring::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--bg-2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .level .ring b{position:relative;font-size:17px;font-weight:600}
+  .level .tt{font-size:12px;color:var(--text);margin-top:8px;font-weight:500}
+  .level .xp{font-size:10.5px;color:var(--text-3);margin-top:2px}
+
+  .eyebrow{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-3);margin:22px 4px 12px}
+
+  /* Glass */
+  .glass{background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--hair);
+    border-radius:var(--r-lg);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 30px rgba(0,0,0,.28);
+    backdrop-filter:blur(10px)}
+
+  /* Medallion (重造核心：双层细环 + 线雕 + 稀有度细点) */
+  .medallion{position:relative;display:grid;place-items:center;border-radius:50%;
+    background:
+      radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.10), transparent 55%),
+      linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    border:1px solid var(--hair);
+    box-shadow:inset 0 0 0 4px rgba(255,255,255,.03), inset 0 2px 6px rgba(0,0,0,.25), 0 6px 16px rgba(0,0,0,.3);
+    color:#f1eadf}
+  .medallion::before{content:"";position:absolute;inset:7px;border-radius:50%;border:1px solid var(--ring,rgba(255,255,255,.14))}
+  .medallion svg{position:relative;width:46%;height:46%;color:var(--ink,rgba(244,239,230,.86));
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+  .medallion.locked{filter:grayscale(.7) brightness(.62);opacity:.66}
+  .medallion .pips{position:absolute;bottom:9%;display:flex;gap:3px}
+  .medallion .pips i{width:4px;height:4px;border-radius:50%;background:var(--ring,rgba(255,255,255,.4))}
+  .medallion .lock{position:absolute;width:26%;height:26%;color:var(--text-3)}
+
+  /* Overview hero specimen */
+  .hero{display:flex;gap:22px;align-items:center;padding:26px}
+  .hero .bigmed{width:104px;height:104px;flex:0 0 auto}
+  .hero .bigmed svg{width:44%;height:44%}
+  .hero .hmeta{flex:1;min-width:0}
+  .hero .htag{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--text-2);
+    padding:5px 11px;border-radius:99px;background:var(--surface-2);border:1px solid var(--hair-2);margin-bottom:10px}
+  .hero .htag .dot{width:7px;height:7px;border-radius:50%}
+  .hero h2{font-size:21px;font-weight:500;letter-spacing:.4px}
+  .hero .hsub{font-size:13px;color:var(--text-2);margin-top:7px;line-height:1.55;font-style:italic}
+  .ringbar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:16px}
+  .ringbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:99px}
+  .hero .hcnt{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-3);margin-top:8px}
+
+  /* Quick entries */
+  .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  .quick .q{padding:16px 16px 18px;border-radius:var(--r-md);cursor:pointer;transition:transform .2s,background .25s}
+  .quick .q:hover{transform:translateY(-3px);background:var(--surface-2)}
+  .quick .q .qc{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+    background:var(--surface-2);border:1px solid var(--hair-2);color:var(--accent);margin-bottom:11px}
+  .quick .q .qc svg{width:17px;height:17px}
+  .quick .q b{font-size:13.5px;font-weight:500;display:block}
+  .quick .q span{font-size:11px;color:var(--text-3);margin-top:3px;display:block}
+
+  /* Section carousels */
+  .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:24px 4px 12px}
+  .sec-h .t{font-size:13px;font-weight:500;color:var(--text-2);letter-spacing:.5px}
+  .sec-h .m{font-size:11.5px;color:var(--accent);cursor:pointer}
+  .scroller{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none}
+  .scroller::-webkit-scrollbar{display:none}
+  .mini-spec{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:78px;cursor:pointer}
+  .mini-spec .nm{font-size:10.5px;color:var(--text-2);max-width:76px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-spec .tr{font-size:9px;color:var(--text-3)}
+  .track{height:5px;border-radius:99px;background:rgba(255,255,255,.07);width:100%;overflow:hidden;margin-top:2px}
+  .track i{display:block;height:100%;background:var(--accent);border-radius:99px}
+
+  /* Filters */
+  .filters{display:flex;flex-direction:column;gap:9px;margin:6px 0 16px}
+  .chip-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-size:11.5px;padding:8px 13px;border-radius:99px;border:1px solid var(--hair-2);
+    color:var(--text-2);background:var(--surface);cursor:pointer;transition:.2s;white-space:nowrap}
+  .chip.on{color:var(--bg);font-weight:600;border-color:transparent}
+  .chip.cat.on{background:var(--cat);}
+  .chip.tier.on{background:var(--tier);}
+
+  /* Specimen grid (新隐喻：标本卡) */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  .spec{position:relative;padding:20px 16px 16px;border-radius:var(--r-md);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform .22s,box-shadow .25s,border-color .25s}
+  .spec:hover{transform:translateY(-4px);border-color:var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 36px rgba(0,0,0,.36)}
+  .spec .med{width:72px;height:72px;margin-bottom:13px}
+  .spec .nm{font-size:13px;font-weight:500;letter-spacing:.3px}
+  .spec .cat{font-size:10px;color:var(--text-3);margin-top:5px;letter-spacing:1px;text-transform:uppercase}
+  .spec .sline{width:100%;height:4px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:13px}
+  .spec .sline i{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .spec .sstate{font-size:9.5px;color:var(--text-3);margin-top:7px;letter-spacing:.5px}
+  .spec .wishmark{position:absolute;top:12px;right:13px;width:15px;height:15px;color:var(--accent)}
+
+  /* Detail sheet */
+  .scrim{position:fixed;inset:0;background:rgba(8,6,4,.62);backdrop-filter:blur(5px);display:none;
+    align-items:flex-end;justify-content:center;z-index:40}
+  .scrim.show{display:flex;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .sheet{width:100%;max-width:560px;background:linear-gradient(180deg,#1d1812,#15110c);
+    border:1px solid var(--hair);border-radius:28px 28px 0 0;padding:26px 24px 28px;box-shadow:var(--shadow);
+    transform:translateY(100%);animation:slideup .34s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes slideup{to{transform:translateY(0)}}
+  .sheet .shead{display:flex;gap:18px;align-items:center}
+  .sheet .smed{width:84px;height:84px;flex:0 0 auto}
+  .sheet .smed svg{width:42%;height:42%}
+  .sheet .shead .tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+  .sheet .chiplet{font-size:10px;padding:4px 10px;border-radius:99px;font-weight:600}
+  .sheet .chiplet.cat{background:var(--surface-2);color:var(--text-2)}
+  .sheet h2{font-size:20px;font-weight:500;letter-spacing:.5px}
+  .sheet .flavor{font-size:13.5px;color:var(--text-2);line-height:1.7;font-style:italic;margin:16px 0 18px}
+  .timeline{display:flex;flex-direction:column;gap:0;margin-bottom:20px}
+  .tl-node{display:flex;gap:14px;position:relative;padding-bottom:18px}
+  .tl-node:last-child{padding-bottom:0}
+  .tl-node .mk{width:11px;height:11px;border-radius:50%;border:2px solid var(--hair);flex:0 0 auto;margin-top:3px;position:relative;z-index:2}
+  .tl-node.done .mk{background:var(--accent);border-color:var(--accent)}
+  .tl-node:not(:last-child)::before{content:"";position:absolute;left:5px;top:13px;bottom:-5px;width:1px;background:var(--hair)}
+  .tl-node .tt{font-size:12.5px;font-weight:500}
+  .tl-node .td{font-size:11px;color:var(--text-3);margin-top:3px;line-height:1.5}
+  .sline-big{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:6px}
+  .sline-big i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .sprog{font-size:11px;color:var(--text-3);margin-bottom:18px}
+  .actions{display:flex;gap:10px}
+  .btn{flex:1;padding:13px;border-radius:14px;border:1px solid var(--hair);background:var(--surface-2);
+    color:var(--text);font-size:13px;font-weight:500;cursor:pointer;transition:transform .15s,background .2s;
+    display:flex;align-items:center;justify-content:center;gap:7px}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{background:var(--accent);color:#1a1206;border-color:transparent}
+  .btn svg{width:16px;height:16px}
+  .btn.ghost{flex:0 0 auto;padding:13px}
+
+  .toast{position:fixed;left:50%;bottom:122px;transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2);border:1px solid var(--hair);padding:12px 18px;border-radius:14px;font-size:13px;
+    opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow);color:var(--text)}
+
+  /* Display case */
+  .case-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .case-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;padding:14px 8px;border-radius:var(--r-md)}
+  .case-card .cover-tag{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;
+    background:var(--accent);color:#1a1206;padding:3px 9px;border-radius:99px;font-weight:600;z-index:3}
+  .case-card .set-cover{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-size:10px;
+    background:rgba(0,0,0,.55);color:#fff;padding:4px 10px;border-radius:99px;opacity:0;transition:.2s;cursor:pointer;z-index:3;white-space:nowrap}
+  .case-card:hover .set-cover{opacity:1}
+
+  /* Wishlist */
+  .wish-list{display:flex;flex-direction:column;gap:11px}
+  .wish-row{display:flex;align-items:center;gap:15px;padding:14px 16px;border-radius:var(--r-md)}
+  .wish-row .wmed{width:54px;height:54px;flex:0 0 auto}
+  .wish-row .wmed svg{width:44%;height:44%}
+  .wish-row .wbody{flex:1;min-width:0}
+  .wish-row .wbody b{font-size:13.5px;font-weight:500}
+  .wish-row .wbody .wm{font-size:11px;color:var(--text-3);margin:4px 0 7px}
+  .wish-row .wbody .wbar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .wish-row .wbody .wbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .wish-row .wrm{color:var(--text-3);cursor:pointer;font-size:12px;padding:6px 4px}
+
+  /* Challenge */
+  .challenge{padding:22px}
+  .challenge .ct{font-size:18px;font-weight:500;letter-spacing:.5px}
+  .challenge .cd{font-size:12.5px;color:var(--text-2);margin:8px 0 18px;line-height:1.65}
+  .challenge .cbig{height:11px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:8px}
+  .challenge .cbig i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .challenge .cmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--text-2)}
+  .challenge .cmeta span:last-child{color:var(--text-3)}
+  .days{display:grid;grid-template-columns:repeat(20,1fr);gap:5px;margin-top:18px}
+  .days .d{aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--hair-2)}
+  .days .d.on{background:linear-gradient(160deg,var(--accent),var(--accent-2));border-color:transparent}
+
+  /* Dock */
+  .dock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:3px;
+    background:rgba(22,18,13,.84);border:1px solid var(--hair);border-radius:999px;padding:8px;
+    backdrop-filter:blur(16px);box-shadow:var(--shadow);z-index:50}
+  .dock .tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 15px;border-radius:999px;
+    color:var(--text-3);cursor:pointer;font-size:10px;transition:.2s;min-width:60px}
+  .dock .tab svg{width:19px;height:19px}
+  .dock .tab.on{color:var(--accent);background:rgba(215,163,113,.13)}
+
+  /* Celebration */
+  .celebrate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:70;pointer-events:none}
+  .celebrate.show{display:flex}
+  .celebrate .cmed{width:128px;height:128px;position:relative;animation:pop 1s cubic-bezier(.34,1.56,.64,1) forwards}
+  .celebrate .cmed svg{width:44%;height:44%}
+  .celebrate .halo{position:absolute;inset:-26px;border-radius:50%;border:1.5px solid var(--accent);animation:halo 1.15s ease-out forwards;opacity:0}
+  .celebrate .ctitle{position:absolute;bottom:-48px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:14px;font-weight:500;opacity:0;animation:ct 1s .2s ease forwards;letter-spacing:.5px}
+  @keyframes pop{0%{transform:scale(.35);opacity:0}42%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+  @keyframes halo{0%{transform:scale(.6);opacity:.75}100%{transform:scale(1.55);opacity:0}}
+  @keyframes ct{to{opacity:1}}
+  .banner{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:linear-gradient(180deg,#221b14,#18130d);border:1px solid var(--hair);border-radius:16px;
+    padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:65;opacity:0;transition:.42s cubic-bezier(.16,1,.3,1);
+    box-shadow:var(--shadow);max-width:90vw}
+  .banner.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .banner .bb{width:42px;height:42px;border-radius:13px;display:grid;place-items:center}
+  .banner .bb svg{width:46%;height:46%}
+  .banner .bt b{font-size:13px;font-weight:500}
+  .banner .bt span{font-size:11px;color:var(--text-3);display:block}
+
+  .empty{text-align:center;color:var(--text-3);font-size:12.5px;padding:42px 12px;line-height:1.6}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="appbar">
+    <div class="lead">
+      <div class="kicker">Collection</div>
+      <h1>成就<b>收藏</b></h1>
+      <div class="desc">把日子的痕迹，收成一座只属于你的标本馆。</div>
+    </div>
+    <div class="level">
+      <div class="ring" id="lvlRing"><b>3</b></div>
+      <div class="tt" id="lvlTitle">晨光收藏者</div>
+      <div class="xp" id="lvlExp">EXP 320 / 480</div>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section id="scr-overview">
+    <div class="glass hero" id="heroSpec"></div>
+    <div class="quick">
+      <div class="glass q" data-go="challenge">
+        <div class="qc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4z"/></svg></div>
+        <b>月度挑战</b><span>每月一个新主题</span>
+      </div>
+      <div class="glass q" data-go="case">
+        <div class="qc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M9 4v16"/></svg></div>
+        <b>陈列柜</b><span>我的藏品墙</span>
+      </div>
+      <div class="glass q" data-go="wishlist">
+        <div class="qc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9-9a5 5 0 0 1 9-2 5 5 0 0 1 9 2c-2 4.4-9 9-9 9z"/></svg></div>
+        <b>心愿单</b><span>想解锁的</span>
+      </div>
+    </div>
+
+    <div class="sec-h"><div class="t">最近收录</div><div class="m">全部</div></div>
+    <div class="scroller" id="recentRow"></div>
+
+    <div class="sec-h"><div class="t">将至未至</div><div class="m">图鉴</div></div>
+    <div class="scroller" id="closeRow"></div>
+
+    <div class="sec-h"><div class="t">心愿进行中</div><div class="m">心愿单</div></div>
+    <div class="scroller" id="wishRow"></div>
+
+    <div class="glass" style="display:flex;align-items:center;gap:14px;padding:18px 20px;margin-top:8px;cursor:pointer" id="simBtn">
+      <div class="medallion" style="--ring:var(--accent);width:50px;height:50px;flex:0 0 auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div><b style="font-size:13.5px;font-weight:500">模拟「写下一篇日记」</b>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:3px">看事件驱动如何实时点亮一枚藏品</div></div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="scr-gallery" style="display:none">
+    <div class="eyebrow">图鉴 · 全部标本</div>
+    <div class="filters">
+      <div class="chip-row" id="fState"></div>
+      <div class="chip-row" id="fCat"></div>
+      <div class="chip-row" id="fTier"></div>
+    </div>
+    <div class="grid" id="galleryGrid"></div>
+  </section>
+
+  <!-- DISPLAY CASE -->
+  <section id="scr-case" style="display:none">
+    <div class="eyebrow">陈列柜 · <span id="coverName" style="color:var(--text-2);text-transform:none;letter-spacing:0"></span></div>
+    <div class="case-grid" id="caseGrid"></div>
+  </section>
+
+  <!-- WISHLIST -->
+  <section id="scr-wishlist" style="display:none">
+    <div class="eyebrow">心愿单 · <span id="wishCount" style="color:var(--text-2);text-transform:none;letter-spacing:0"></span></div>
+    <div class="wish-list" id="wishList"></div>
+  </section>
+
+  <!-- CHALLENGE -->
+  <section id="scr-challenge" style="display:none">
+    <div class="glass challenge">
+      <div class="ct">本月写满 20 天</div>
+      <div class="cd">每天留下一点痕迹。月末，限定藏品「月度行者」会归你所有——坚持本身，就是收藏。</div>
+      <div class="cbig"><i style="width:65%"></i></div>
+      <div class="cmeta"><span>13 / 20 天</span><span>七月</span></div>
+      <div class="days" id="challengeDays"></div>
+    </div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="celebrate" id="celebrate"></div>
+<div class="banner" id="banner"></div>
+<div class="toast" id="toast"></div>
+
+<div class="dock" id="dock">
+  <div class="tab on" data-scr="overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>总览</div>
+  <div class="tab" data-scr="gallery">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>图鉴</div>
+  <div class="tab" data-scr="case">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M9 4v16"/></svg>陈列柜</div>
+  <div class="tab" data-scr="wishlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9-9a5 5 0 0 1 9-2 5 5 0 0 1 9 2c-2 4.4-9 9-9 9z"/></svg>心愿</div>
+  <div class="tab" data-scr="challenge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4z"/></svg>挑战</div>
+</div>
+
+<script>
+/* 分类 / 稀有度 语义色 + 重画线雕图标 */
+const CAT = {
+  TIME:{name:"时间旅人",color:"var(--c-TIME)",icon:"clock"},
+  MOOD:{name:"情绪画师",color:"var(--c-MOOD)",icon:"mood"},
+  WEATHER:{name:"风雨行者",color:"var(--c-WEATHER)",icon:"weather"},
+  WRITING:{name:"文字匠人",color:"var(--c-WRITING)",icon:"pen"},
+  HABIT:{name:"习惯先锋",color:"var(--c-HABIT)",icon:"seed"},
+  EXPLORER:{name:"探险家",color:"var(--c-EXPLORER)",icon:"compass"},
+  COLLECTOR:{name:"收藏家",color:"var(--c-COLLECTOR)",icon:"book"},
+  LEGENDARY:{name:"传说藏品",color:"var(--c-LEGENDARY)",icon:"crown"}
+};
+const TIER = {
+  COMMON:{name:"普通",color:"var(--t-COMMON)",stars:1},
+  RARE:{name:"稀有",color:"var(--t-RARE)",stars:2},
+  EPIC:{name:"史诗",color:"var(--t-EPIC)",stars:3},
+  LEGENDARY:{name:"传说",color:"var(--t-LEGENDARY)",stars:4}
+};
+/* 统一光学权重、圆头收尾的线雕 */
+const ICONS = {
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  mood:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/><path d="M3 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.4 2"/></svg>',
+  weather:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 15a4 4 0 1 1 1-7.5A4.5 4.5 0 0 1 18 9.5a3 3 0 0 1-1 5.5H8z"/><path d="M9 18.5l-1 2M13 18.5l-1 2M17 18.5l-1 2"/></svg>',
+  pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20s0-1 .5-2.5L15 7l2 2L6.5 19.5C5 20 4 20 4 20z"/><path d="M14 7l2 2"/><path d="M19 4l1 1-2 2-1-1 1-2z"/></svg>',
+  seed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-7"/><path d="M12 13c0-3.5 2.6-5.5 6-5.5 0 3.5-2.6 5.5-6 5.5z"/><path d="M12 13C12 9.5 9.4 7.5 6 7.5c0 3.5 2.6 5.5 6 5.5z"/></svg>',
+  compass:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5 11 11l-3.5 4.5L13 13l2.5-4.5z"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4z"/><path d="M5 4v16"/><path d="M9 8h4M9 12h4"/></svg>',
+  crown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5l3.5 3L12 5l4.5 6.5L20 8.5l-1.8 9.5H5.8 4 8.5z"/><path d="M4 8.5 5.8 18h12.4L20 8.5"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  diary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.1 10.9l7.8-3.8M8.1 13.1l7.8 3.8"/></svg>',
+  cover:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.5 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9 6.9 19.6l1-5.8L3.6 9.7l5.9-.8L12 3.5z"/></svg>'
+};
+const ACH = [
+  {key:"first_entry",name:"初章",cat:"WRITING",tier:"COMMON",flavor:"一切的开始，都值得被收好。",prog:1,tar:1,unlocked:true,entry:101},
+  {key:"entries_10",name:"十日记",cat:"WRITING",tier:"COMMON",flavor:"十次落笔，十段时光。",prog:10,tar:10,unlocked:true,entry:188},
+  {key:"entries_50",name:"半百",cat:"WRITING",tier:"RARE",flavor:"五十篇，是一段不短的路。",prog:50,tar:50,unlocked:true,entry:240},
+  {key:"entries_100",name:"百篇之人",cat:"WRITING",tier:"EPIC",flavor:"一百个日子，被你留下。",prog:82,tar:100,unlocked:false},
+  {key:"streak_7",name:"七日不断",cat:"HABIT",tier:"RARE",flavor:"连续七天，节律初成。",prog:7,tar:7,unlocked:true},
+  {key:"streak_30",name:"月之节律",cat:"HABIT",tier:"EPIC",flavor:"三十天，习惯成了你。",prog:23,tar:30,unlocked:false},
+  {key:"night_writer",name:"夜行者",cat:"TIME",tier:"RARE",flavor:"深夜的灯，为你亮着。",prog:14,tar:20,unlocked:false},
+  {key:"dawn_recorder",name:"破晓记录者",cat:"TIME",tier:"RARE",flavor:"天未亮，你已写下。",prog:3,tar:5,unlocked:false},
+  {key:"moods_5",name:"五色心情",cat:"MOOD",tier:"RARE",flavor:"你尝过五种心情的滋味。",prog:5,tar:5,unlocked:true},
+  {key:"mood_rollercoaster",name:"情绪过山车",cat:"MOOD",tier:"EPIC",flavor:"起伏本身，就是一种诚实。",prog:0,tar:1,unlocked:false,hidden:true,clue:"在某个心情剧烈起伏的月份里，你会遇见它。"},
+  {key:"rain_collector",name:"听雨人",cat:"WEATHER",tier:"COMMON",flavor:"雨天，你留下了字。",prog:9,tar:12,unlocked:false},
+  {key:"all_weather",name:"风雨皆记",cat:"WEATHER",tier:"EPIC",flavor:"晴雨风雪，你都接住了。",prog:4,tar:6,unlocked:false},
+  {key:"favorite_1",name:"初藏",cat:"COLLECTOR",tier:"COMMON",flavor:"第一篇被你收藏的日记。",prog:1,tar:1,unlocked:true,entry:155},
+  {key:"collector",name:"收藏家",cat:"COLLECTOR",tier:"RARE",flavor:"懂得回头看的人，最富有。",prog:6,tar:10,unlocked:false},
+  {key:"explorer",name:"初探",cat:"EXPLORER",tier:"COMMON",flavor:"陌生的一刻，被你记下。",prog:1,tar:1,unlocked:true},
+  {key:"time_traveler",name:"时空旅人",cat:"EXPLORER",tier:"LEGENDARY",flavor:"你跨越了不止一个年头。",prog:0,tar:1,unlocked:false,hidden:true,clue:"在跨年的那一刻落笔，或许能遇见它。"},
+  {key:"deep_thinker",name:"深思想者",cat:"MOOD",tier:"EPIC",flavor:"低落的连续，也是一种力量。",prog:0,tar:1,unlocked:false},
+  {key:"legendary_all_categories",name:"圆满收藏者",cat:"LEGENDARY",tier:"LEGENDARY",flavor:"八类藏品，你皆有之。",prog:5,tar:8,unlocked:false},
+  {key:"words_100000",name:"十万字",cat:"WRITING",tier:"EPIC",flavor:"十万字，是你走过的路。",prog:100000,tar:100000,unlocked:true},
+  {key:"monthly_champion",name:"月度行者",cat:"EXPLORER",tier:"EPIC",flavor:"这一个月，你没缺席。",prog:0,tar:1,unlocked:false,hidden:true,clue:"完成一次月度挑战，它自会现身。"}
+];
+let wishlist = new Set(["entries_100","streak_30","all_weather"]);
+let coverKey = "first_entry";
+let filter = {state:"all", cat:null, tier:null};
+
+const $ = s=>document.querySelector(s);
+const byKey = k=>ACH.find(a=>a.key===k);
+const pct = a=>a.tar>0?Math.min(100,Math.round(a.prog/a.tar*100)):0;
+const catColor = c=>getComputedStyle(document.documentElement).getPropertyValue("--c-"+c).trim();
+const tierColor = t=>getComputedStyle(document.documentElement).getPropertyValue("--t-"+t).trim();
+
+function medallion(a,size,opts={}){
+  const locked = !a.unlocked;
+  const hidden = a.hidden && !a.unlocked;
+  const ring = catColor(a.cat);
+  const ink = locked? "rgba(244,239,230,.5)" : "rgba(244,239,230,.9)";
+  const pips = TIER[a.tier].stars;
+  return `<div class="medallion ${locked?'locked':''}" style="--ring:${ring};--ink:${ink};width:${size}px;height:${size}px">
+    ${hidden? ICONS.lock : ICONS[CAT[a.cat].icon]}
+    ${!hidden? `<div class="pips">${Array.from({length:pips}).map(()=>`<i></i>`).join("")}</div>`:''}
+  </div>`;
+}
+
+function renderOverview(){
+  const unlocked = ACH.filter(a=>a.unlocked).length, total=ACH.length, p=Math.round(unlocked/total*100);
+  const latest = ACH.filter(a=>a.unlocked).slice(-1)[0];
+  $("#heroSpec").innerHTML = `
+    ${medallion(latest,104)}
+    <div class="hmeta">
+      <div class="htag"><span class="dot" style="background:${catColor(latest.cat)}"></span>${CAT[latest.cat].name} · ${TIER[latest.tier].name}</div>
+      <h2>${latest.name}</h2>
+      <div class="hsub">${latest.flavor}</div>
+      <div class="ringbar"><i style="width:${p}%"></i></div>
+      <div class="hcnt"><span>已收录 ${unlocked} / ${total}</span><span>${p}%</span></div>
+    </div>`;
+  const recent = ACH.filter(a=>a.unlocked).slice(-6).reverse();
+  $("#recentRow").innerHTML = recent.map(a=>`
+    <div class="mini-spec" data-open="${a.key}">${medallion(a,64)}<div class="nm">${a.name}</div></div>`).join("");
+  const close = ACH.filter(a=>!a.unlocked && !a.hidden).sort((x,y)=>pct(y)-pct(x)).slice(0,6);
+  $("#closeRow").innerHTML = close.map(a=>{
+    const p=pct(a);
+    return `<div class="mini-spec" data-open="${a.key}">${medallion(a,64)}<div class="nm">${a.name}</div>
+      <div class="track"><i style="width:${p}%"></i></div><div class="tr">${p}%</div></div>`;
+  }).join("");
+  const wish = [...wishlist].map(byKey).filter(Boolean);
+  $("#wishRow").innerHTML = wish.length? wish.map(a=>{
+    const p=pct(a);
+    return `<div class="mini-spec" data-open="${a.key}">${medallion(a,64)}<div class="nm">${a.name}</div>
+      <div class="track"><i style="width:${p}%"></i></div><div class="tr">距达成 ${Math.max(0,a.tar-a.prog)}</div></div>`;
+  }).join("") : `<div class="empty">还没有心愿，去图鉴里收一个吧</div>`;
+}
+
+function renderGallery(){
+  const grid = $("#galleryGrid");
+  const list = ACH.filter(a=>{
+    if(filter.state==="collected" && !a.unlocked) return false;
+    if(filter.state==="close" && (a.unlocked||a.hidden)) return false;
+    if(filter.state==="hidden" && !a.hidden) return false;
+    if(filter.cat && a.cat!==filter.cat) return false;
+    if(filter.tier && a.tier!==filter.tier) return false;
+    return true;
+  });
+  if(!list.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1">这里还没有标本</div>`;return;}
+  grid.innerHTML = list.map(a=>{
+    const locked=!a.unlocked, hidden=a.hidden&&!a.unlocked, p=pct(a);
+    const showName = hidden? "？？？" : a.name;
+    const star = wishlist.has(a.key)? `<div class="wishmark">${ICONS.star}</div>`:"";
+    return `<div class="glass spec" data-open="${a.key}">${star}${medallion(a,72)}
+      <div class="nm">${showName}</div>
+      <div class="cat">${hidden?'隐秘':CAT[a.cat].name}</div>
+      <div class="sline"><i style="width:${p}%"></i></div>
+      <div class="sstate">${locked?(hidden?'隐藏线索':p+'%'):'已收录'}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderCase(){
+  const list = ACH.filter(a=>a.unlocked);
+  $("#coverName").textContent = "封面 · " + (byKey(coverKey)?.name || "—");
+  if(!list.length){$("#caseGrid").innerHTML=`<div class="empty" style="grid-column:1/-1">还没有收录的藏品，去写点什么吧</div>`;return;}
+  $("#caseGrid").innerHTML = list.map(a=>`
+    <div class="glass case-card" data-open="${a.key}">
+      ${a.key===coverKey?'<div class="cover-tag">封面</div>':''}
+      ${medallion(a,72)}
+      <div class="nm" style="font-size:12px;font-weight:500">${a.name}</div>
+      <div class="set-cover" data-cover="${a.key}">设为封面</div>
+    </div>`).join("");
+}
+
+function renderWishlist(){
+  const list=[...wishlist].map(byKey).filter(Boolean);
+  $("#wishCount").textContent = list.length + " 项";
+  if(!list.length){$("#wishList").innerHTML=`<div class="empty">心愿单是空的，去图鉴里点「收进心愿单」</div>`;return;}
+  $("#wishList").innerHTML = list.map(a=>{
+    const p=pct(a), left=Math.max(0,a.tar-a.prog);
+    return `<div class="glass wish-row">
+      ${medallion(a,54)}
+      <div class="wbody"><b>${a.name}</b>
+        <div class="wm">${a.unlocked?'已收录':('还差 '+left+(a.tar>1?' 个':' 篇')+' 解锁')}</div>
+        <div class="wbar"><i style="width:${p}%"></i></div></div>
+      <div class="wrm" data-rmw="${a.key}">移除</div>
+    </div>`;
+  }).join("");
+}
+
+function openDetail(key){
+  const a=byKey(key); if(!a) return;
+  const hidden=a.hidden&&!a.unlocked, p=pct(a), wishOn=wishlist.has(a.key), cat=CAT[a.cat], tier=TIER[a.tier];
+  const canDiary = a.unlocked && a.entry;
+  $("#sheet").innerHTML = `
+    <div class="shead">
+      ${medallion(a,84)}
+      <div style="min-width:0">
+        <div class="tags">
+          <span class="chiplet" style="background:${tierColor(a.tier)};color:#15110c">${tier.name} · ${"★".repeat(tier.stars)}</span>
+          <span class="chiplet cat">${cat.name}</span>
+        </div>
+        <h2>${hidden?'？？？':a.name}</h2>
+      </div>
+    </div>
+    <p class="flavor">${hidden?(a.clue||'达成某种特别的条件，它便会现身。'):a.flavor}</p>
+    <div class="timeline">
+      <div class="tl-node ${a.prog>0||a.unlocked?'done':''}"><div class="mk"></div><div><div class="tt">起始</div><div class="td">第一篇相关日记，被收进了册子</div></div></div>
+      <div class="tl-node ${p>=60?'done':''}"><div class="mk"></div><div><div class="tt">进展</div><div class="td">${p>=60?('已完成 '+p+'%，胜利在望'):('进度 '+p+'%，仍在累积')}</div></div></div>
+      <div class="tl-node ${a.unlocked?'done':''}"><div class="mk"></div><div><div class="tt">收录</div><div class="td">${a.unlocked?'某一日点亮，成为你的藏品':'尚未点亮'}</div></div></div>
+    </div>
+    <div class="sline-big"><i style="width:${p}%"></i></div>
+    <div class="sprog">${a.unlocked?'已收录':('进度 '+p+'%'+(a.tar>1?'（'+a.prog+' / '+a.tar+'）':''))}</div>
+    <div class="actions">
+      <div class="btn" data-wish="${a.key}">${wishOn?'已在心愿 ★':'收进心愿单'}</div>
+      ${canDiary?`<div class="btn" data-diary="${a.entry}">${ICONS.diary}对应日记</div>`:''}
+      <div class="btn primary" data-share="${a.key}">${ICONS.share}分享</div>
+    </div>
+    ${a.unlocked?`<div class="actions" style="margin-top:10px"><div class="btn ghost" data-setcover="${a.key}">${ICONS.cover}设封面</div></div>`:''}
+  `;
+  $("#scrim").classList.add("show");
+}
+function closeSheet(){$("#scrim").classList.remove("show");}
+
+function buildFilters(){
+  const states=[["all","全部"],["collected","已收录"],["close","将至未至"],["hidden","隐秘线索"]];
+  $("#fState").innerHTML = states.map(([k,l])=>`<div class="chip ${filter.state===k?'on':''}" data-state="${k}" style="${filter.state===k?'background:var(--accent)':''}">${l}</div>`).join("");
+  $("#fCat").innerHTML = Object.keys(CAT).map(c=>{
+    const on=filter.cat===c;
+    return `<div class="chip cat ${on?'on':''}" data-cat="${c}" style="--cat:${catColor(c)}">${CAT[c].name}</div>`;
+  }).join("");
+  $("#fTier").innerHTML = Object.keys(TIER).map(t=>{
+    const on=filter.tier===t;
+    return `<div class="chip tier ${on?'on':''}" data-tier="${t}" style="--tier:${tierColor(t)}">${TIER[t].name} ${"★".repeat(TIER[t].stars)}</div>`;
+  }).join("");
+}
+
+function celebrate(a){
+  const cel=$("#celebrate"); cel.style.setProperty("--ring",catColor(a.cat));
+  cel.innerHTML = `<div class="cmed" style="--ring:${catColor(a.cat)}">${medallion(a,128)}<div class="halo"></div><div class="ctitle">收录成就 · ${a.name}</div></div>`;
+  cel.classList.add("show"); setTimeout(()=>cel.classList.remove("show"),1600);
+  const b=$("#banner"); b.style.setProperty("--ring",catColor(a.cat));
+  b.innerHTML = `<div class="bb" style="--ring:${catColor(a.cat)};background:linear-gradient(160deg,${catColor(a.cat)},${tierColor(a.tier)});color:#15110c">${ICONS[CAT[a.cat].icon]}</div><div class="bt"><b>成就收录：${a.name}</b><span>${TIER[a.tier].name} · ${CAT[a.cat].name}</span></div>`;
+  b.classList.add("show"); setTimeout(()=>b.classList.remove("show"),2600);
+}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);}
+
+function simulateSave(){
+  const cands = ACH.filter(a=>!a.unlocked && !a.hidden).sort((x,y)=>pct(y)-pct(x));
+  cands.slice(0,3).forEach(a=>{if(a.prog<a.tar)a.prog++;});
+  const t=cands[0]; if(t){t.unlocked=true;t.entry=999;toast("实时收录："+t.name);celebrate(t);}
+  refreshAll();
+}
+function refreshAll(){renderOverview();renderGallery();renderCase();renderWishlist();renderLevel();}
+function renderLevel(){
+  const u=ACH.filter(a=>a.unlocked), w={COMMON:10,RARE:25,EPIC:60,LEGENDARY:150};
+  const exp=u.reduce((s,a)=>s+w[a.tier],0), level=Math.max(1,Math.floor(exp/160)+1), expNext=level*160;
+  const titles=["初芽记录者","晨光收藏者","纸上年轮","生活策展人","时光贮藏家"];
+  $("#lvlRing").innerHTML="<b>"+level+"</b>";
+  $("#lvlTitle").textContent=titles[Math.min(titles.length-1,level-1)];
+  $("#lvlExp").textContent="EXP "+exp+" / "+expNext;
+}
+function go(scr){
+  ["overview","gallery","case","wishlist","challenge"].forEach(s=>$("#scr-"+s).style.display=s===scr?"block":"none");
+  document.querySelectorAll(".dock .tab").forEach(t=>t.classList.toggle("on",t.dataset.scr===scr));
+}
+document.querySelectorAll(".dock .tab").forEach(t=>t.onclick=()=>go(t.dataset.scr));
+document.querySelectorAll(".quick .q").forEach(q=>q.onclick=()=>go(q.dataset.go));
+document.addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]"); if(o){openDetail(o.dataset.open);return;}
+  const rw=e.target.closest("[data-rmw]"); if(rw){wishlist.delete(rw.dataset.rmw);refreshAll();return;}
+  const cv=e.target.closest("[data-cover]"); if(cv){coverKey=cv.dataset.cover;toast("已设为封面");refreshAll();return;}
+  const w=e.target.closest("[data-wish]"); if(w){const k=w.dataset.wish; if(wishlist.has(k)){wishlist.delete(k);toast("已移出心愿单");}else{wishlist.add(k);toast("已收进心愿单");} refreshAll();closeSheet();return;}
+  const d=e.target.closest("[data-diary]"); if(d){closeSheet();toast("跳转到对应日记 #"+d.dataset.diary);return;}
+  const s=e.target.closest("[data-share]"); if(s){closeSheet();toast("已生成本地分享图（仅本地，不联网）");return;}
+  const sc=e.target.closest("[data-setcover]"); if(sc){coverKey=sc.dataset.setcover;toast("已设为封面");refreshAll();closeSheet();return;}
+  const st=e.target.closest("[data-state]"); if(st){filter.state=st.dataset.state;buildFilters();renderGallery();return;}
+  const ct=e.target.closest("[data-cat]"); if(ct){filter.cat=filter.cat===ct.dataset.cat?null:ct.dataset.cat;buildFilters();renderGallery();return;}
+  const tt=e.target.closest("[data-tier]"); if(tt){filter.tier=filter.tier===tt.dataset.tier?null:tt.dataset.tier;buildFilters();renderGallery();return;}
+  if(e.target.id==="scrim")closeSheet();
+});
+$("#simBtn").onclick=simulateSave;
+(function(){$("#challengeDays").innerHTML=Array.from({length:20}).map((_,i)=>`<div class="d ${i<13?'on':''}"></div>`).join("");})();
+buildFilters();renderOverview();renderGallery();renderCase();renderWishlist();renderLevel();
+</script>
+</body>
+</html>

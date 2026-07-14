@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 存储管理 · xiaomo 重设计预览</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2623;
+      --muted: #68736d;
+      --soft: #8b9690;
+      --paper: #fffaf0;
+      --line: rgba(45, 54, 49, 0.16);
+      --line-strong: rgba(45, 54, 49, 0.28);
+      --teal: #4ea89b;
+      --sage: #b7cba7;
+      --mint: #dcebd8;
+      --peach: #efc4ad;
+      --apricot: #f5d8a8;
+      --rose: #e9b8be;
+      --lilac: #cbc1e8;
+      --blue: #b8d7ee;
+      --card: rgba(255, 252, 244, 0.84);
+      --brand-gradient: linear-gradient(135deg, #4ea89b, #e6a683);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(245, 216, 168, 0.92), transparent 34%), radial-gradient(circle at 85% 18%, rgba(184, 215, 238, 0.8), transparent 34%), radial-gradient(circle at 20% 86%, rgba(203, 193, 232, 0.45), transparent 30%), linear-gradient(180deg, #fff9f0 0%, #f4efe4 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.9), transparent 30%), linear-gradient(135deg, rgba(184, 215, 238, 0.82), rgba(245, 216, 168, 0.78) 48%, rgba(220, 235, 216, 0.72));
+      --radius: 26px;
+      --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body[data-theme="mist"] {
+      --teal: #479b92; --sage: #a8cfc5; --mint: #d8f0e9; --peach: #efd0bd; --apricot: #f2dfb4; --rose: #e8c4cc; --lilac: #d7d1ee; --blue: #b6dced;
+      --brand-gradient: linear-gradient(135deg, #479b92, #83b9de);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(201, 238, 226, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(179, 222, 238, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 223, 180, 0.55), transparent 30%), linear-gradient(180deg, #f9fffc 0%, #edf7f4 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(182, 220, 237, .85), rgba(216, 240, 233, .82), rgba(242, 223, 180, .66));
+    }
+    body[data-theme="rose"] {
+      --teal: #bc7f86; --sage: #d2b8b0; --mint: #f0ddd8; --peach: #f3c0af; --apricot: #f8ddb9; --rose: #e7aebd; --lilac: #d7c5ec; --blue: #c8d9ec;
+      --brand-gradient: linear-gradient(135deg, #c77b87, #df9b77);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(249, 214, 210, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(231, 218, 246, 0.72), transparent 34%), radial-gradient(circle at 18% 84%, rgba(248, 221, 185, 0.62), transparent 30%), linear-gradient(180deg, #fff8f7 0%, #f9eeec 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(231, 174, 189, .82), rgba(248, 221, 185, .78), rgba(215, 197, 236, .62));
+    }
+    body[data-theme="moon"] {
+      --teal: #647e91; --sage: #b3c0bd; --mint: #e1e9e8; --peach: #dec8bd; --apricot: #ead9bd; --rose: #d8bdc7; --lilac: #c8c1df; --blue: #bbd1e7;
+      --brand-gradient: linear-gradient(135deg, #667e92, #a69ed2);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(207, 221, 232, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(200, 193, 223, 0.76), transparent 34%), radial-gradient(circle at 18% 84%, rgba(234, 217, 189, 0.55), transparent 30%), linear-gradient(180deg, #fbfcfd 0%, #edf1f5 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(187, 209, 231, .84), rgba(225, 233, 232, .76), rgba(200, 193, 223, .58));
+    }
+    body[data-theme="apricot"] {
+      --teal: #c17f51; --sage: #c8c894; --mint: #e8edd1; --peach: #efb28e; --apricot: #f5cf8f; --rose: #eab6a7; --lilac: #d7c4e5; --blue: #bdd7e5;
+      --brand-gradient: linear-gradient(135deg, #d58f55, #e9b66f);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(250, 218, 166, 0.96), transparent 34%), radial-gradient(circle at 84% 18%, rgba(216, 231, 206, 0.72), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 190, 153, 0.58), transparent 30%), linear-gradient(180deg, #fffaf0 0%, #faeedb 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(245, 207, 143, .86), rgba(232, 237, 209, .74), rgba(239, 178, 142, .62));
+    }
+    body[data-theme="matcha"] {
+      --teal: #6d9a62; --sage: #b8cc95; --mint: #e3edcc; --peach: #e8c1a6; --apricot: #eed99e; --rose: #dfbdba; --lilac: #cbc8e4; --blue: #bdd9df;
+      --brand-gradient: linear-gradient(135deg, #79a76a, #b4b86b);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(212, 231, 174, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(181, 216, 193, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(239, 218, 181, 0.58), transparent 30%), linear-gradient(180deg, #fbfff1 0%, #eef5dd 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(184, 204, 149, .86), rgba(189, 217, 223, .62), rgba(238, 217, 158, .7));
+    }
+    body[data-theme="lagoon"] {
+      --teal: #4d9ca8; --sage: #b8cabd; --mint: #dcf0ee; --peach: #e7c5b2; --apricot: #f1dcaf; --rose: #dfbfcb; --lilac: #ccd0ec; --blue: #add5ed;
+      --brand-gradient: linear-gradient(135deg, #4d9ca8, #6f9bd3);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(191, 232, 236, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(170, 209, 232, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 229, 201, 0.58), transparent 30%), linear-gradient(180deg, #f8feff 0%, #edf7fa 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(173, 213, 237, .86), rgba(220, 240, 238, .76), rgba(204, 208, 236, .56));
+    }
+    body[data-theme="iris"] {
+      --teal: #8076b7; --sage: #c2cbb6; --mint: #e5eadf; --peach: #efc3b7; --apricot: #edd6ad; --rose: #e7c3d4; --lilac: #cabfec; --blue: #bfd6ed;
+      --brand-gradient: linear-gradient(135deg, #8076b7, #6da2c5);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(224, 213, 245, 0.94), transparent 34%), radial-gradient(circle at 84% 18%, rgba(192, 214, 237, 0.82), transparent 34%), radial-gradient(circle at 18% 84%, rgba(242, 218, 230, 0.58), transparent 30%), linear-gradient(180deg, #fcfbff 0%, #f1eff8 100%);
+      --report-gradient: radial-gradient(circle at 12% 18%, rgba(255,255,255,.92), transparent 30%), linear-gradient(135deg, rgba(202, 191, 236, .82), rgba(191, 214, 237, .78), rgba(231, 195, 212, .58));
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      background:
+        radial-gradient(circle at 18% 14%, rgba(246, 216, 168, 0.6), transparent 30%),
+        radial-gradient(circle at 80% 8%, rgba(184, 215, 238, 0.55), transparent 28%),
+        radial-gradient(circle at 75% 82%, rgba(203, 193, 232, 0.42), transparent 32%),
+        radial-gradient(circle at 18% 84%, rgba(220, 235, 216, 0.55), transparent 32%),
+        #f5efe3;
+      transition: background 280ms ease, color 280ms ease;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: -18%; z-index: -1; pointer-events: none;
+      background: conic-gradient(from 72deg at 42% 42%, rgba(245,216,168,.30), rgba(184,215,238,.32), rgba(203,193,232,.26), rgba(220,235,216,.30), rgba(239,196,173,.26), rgba(245,216,168,.30));
+      filter: blur(40px); opacity: 0.9;
+      animation: softDrift 20s ease-in-out infinite alternate;
+    }
+    @keyframes softDrift { from { transform: translate3d(-1.5%,-1%,0) rotate(-2deg); } to { transform: translate3d(1.5%,1%,0) rotate(2deg); } }
+
+    .page { width: min(960px, 100% - 36px); margin: 0 auto; padding: 40px 0 64px; }
+
+    .page-head { text-align: center; margin-bottom: 26px; }
+    .page-head .kicker { color: #ad513b; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+    .page-head h1 { font-family: var(--font-serif); font-size: clamp(28px, 4vw, 42px); margin: 8px 0 0; line-height: 1.05; }
+    .page-head p { color: var(--muted); font-size: 13px; margin: 10px auto 0; max-width: 540px; line-height: 1.7; }
+
+    .stage { display: grid; place-items: center; gap: 22px; }
+
+    .palette-bar {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 9px;
+    }
+    .palette-btn {
+      min-height: 38px; padding: 6px 12px 6px 8px; border: 1px solid var(--line); border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.5);
+      color: #3b4742; font-size: 11px; font-weight: 800; cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+    .palette-btn:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+    .palette-btn[aria-pressed="true"] { border-color: rgba(45,54,49,.34); background: rgba(255,255,255,.86); box-shadow: 0 8px 18px rgba(43,50,46,.08); }
+    .swatches { display: inline-flex; gap: 3px; }
+    .swatches i { width: 14px; height: 14px; border-radius: 999px; border: 1px solid rgba(31,38,35,.15); font-style: normal; }
+
+    /* ---------- phone mockup ---------- */
+    .phone-wrap { width: min(100%, 420px); padding: 16px; border: 1px solid rgba(45,54,49,.22); background: rgba(255,252,244,.34); box-shadow: 0 34px 90px rgba(43,50,46,.22); border-radius: 54px; }
+    .phone {
+      position: relative; width: 100%; aspect-ratio: 390 / 812; border: 10px solid #252b28;
+      border-radius: 46px; background: #f9f3e8; box-shadow: 0 22px 60px rgba(43,50,46,.35); overflow: hidden;
+    }
+    .phone::before { content: ""; position: absolute; top: 10px; left: 50%; z-index: 6; width: 108px; height: 26px; border-radius: 999px; background: #252b28; transform: translateX(-50%); }
+
+    .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 54px 17px 18px; background: var(--phone-gradient); transition: background 280ms ease; overflow: hidden; }
+
+    .m-top { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .round-btn {
+      width: 38px; height: 38px; border: 1px solid rgba(52,62,57,.12); border-radius: 16px; display: grid; place-items: center;
+      color: #375851; background: rgba(255,255,255,.58); box-shadow: 0 8px 18px rgba(57,68,64,.08); cursor: pointer;
+    }
+    .round-btn svg { width: 18px; height: 18px; }
+    .m-title small { display: block; color: rgba(31,38,35,.54); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .m-title strong { display: block; margin-top: 2px; font-family: var(--font-serif); font-size: 24px; line-height: 1.05; }
+
+    .scroll { flex: 1; display: flex; flex-direction: column; gap: 11px; min-height: 0; overflow: hidden; }
+
+    .hero {
+      padding: 15px; border-radius: 24px; color: #26302c; background: var(--report-gradient);
+      border: 1px solid rgba(52,62,57,.12);
+    }
+    .hero .mini-label { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border-radius: 999px; color: #4e655d; background: rgba(78,168,155,.14); font-size: 10px; font-weight: 800; }
+    .hero h3 { margin: 9px 0 0; font-family: var(--font-serif); font-size: 30px; line-height: 1; }
+    .hero .sub { margin: 7px 0 0; font-size: 11px; line-height: 1.6; color: #4a5651; }
+
+    .stack-bar { display: flex; gap: 2px; height: 10px; border-radius: 999px; overflow: hidden; margin-top: 14px; }
+    .stack-bar i { height: 100%; }
+    .legend { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 11px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: #50625c; font-weight: 700; }
+    .legend i { width: 8px; height: 8px; border-radius: 99px; font-style: normal; }
+
+    .card { border: 1px solid rgba(52,62,57,.12); border-radius: 22px; background: rgba(255,255,255,.56); box-shadow: 0 10px 25px rgba(59,66,60,.08); }
+    .card.pad { padding: 13px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .card-head b { font-size: 13px; }
+    .card-head span { font-size: 10px; color: var(--muted); font-weight: 800; }
+
+    .cat { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 11px; padding: 11px 0; border-top: 1px solid rgba(52,62,57,.08); }
+    .cat:first-of-type { border-top: 0; padding-top: 4px; }
+    .cat-ico { width: 34px; height: 34px; border-radius: 13px; display: grid; place-items: center; }
+    .cat-ico svg { width: 18px; height: 18px; }
+    .cat-body { min-width: 0; }
+    .cat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .cat-row b { font-size: 13px; }
+    .cat-row .sz { font-size: 13px; font-weight: 700; }
+    .cat-sub { font-size: 10px; color: var(--muted); margin: 2px 0 7px; }
+    .track { height: 7px; border-radius: 999px; background: rgba(255,255,255,.72); overflow: hidden; }
+    .track i { display: block; height: 100%; border-radius: inherit; }
+
+    .action { padding: 13px; border-radius: 22px; border: 1px solid rgba(78,168,155,.24); background: rgba(255,255,255,.64); display: flex; align-items: center; gap: 12px; }
+    .action .ico { width: 38px; height: 38px; border-radius: 14px; display: grid; place-items: center; color: var(--teal); background: rgba(78,168,155,.12); flex: 0 0 auto; }
+    .action .ico svg { width: 19px; height: 19px; }
+    .action .body { flex: 1; min-width: 0; }
+    .action .body b { display: block; font-size: 13px; }
+    .action .body span { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .pill { min-height: 36px; padding: 0 15px; border-radius: 999px; display: inline-grid; place-items: center; color: #fff; background: var(--brand-gradient); font-size: 12px; font-weight: 800; border: 0; cursor: pointer; }
+    .pill.ghost { color: var(--teal); background: rgba(78,168,155,.12); }
+
+    .foot-note { text-align: center; color: var(--muted); font-size: 11px; margin-top: 22px; line-height: 1.7; }
+  </style>
+</head>
+<body data-theme="default">
+  <div class="page">
+    <div class="page-head">
+      <div class="kicker">Storage Redesign</div>
+      <h1>存储管理 · xiaomo 重设计</h1>
+      <p>保留原功能（总占用、分类明细、清理缓存），换上暖纸卡片 + 柔色分段条。下方可切换主题预览。</p>
+    </div>
+
+    <div class="stage">
+      <div class="palette-bar" id="palette">
+        <button class="palette-btn" data-theme="default" aria-pressed="true"><span class="swatches"><i style="background:#4ea89b"></i><i style="background:#e6a683"></i></span>默认</button>
+        <button class="palette-btn" data-theme="mist" aria-pressed="false"><span class="swatches"><i style="background:#479b92"></i><i style="background:#83b9de"></i></span>薄雾</button>
+        <button class="palette-btn" data-theme="rose" aria-pressed="false"><span class="swatches"><i style="background:#c77b87"></i><i style="background:#df9b77"></i></span>蔷薇</button>
+        <button class="palette-btn" data-theme="moon" aria-pressed="false"><span class="swatches"><i style="background:#667e92"></i><i style="background:#a69ed2"></i></span>月亮</button>
+        <button class="palette-btn" data-theme="apricot" aria-pressed="false"><span class="swatches"><i style="background:#d58f55"></i><i style="background:#e9b66f"></i></span>杏色</button>
+        <button class="palette-btn" data-theme="matcha" aria-pressed="false"><span class="swatches"><i style="background:#79a76a"></i><i style="background:#b4b86b"></i></span>抹茶</button>
+        <button class="palette-btn" data-theme="lagoon" aria-pressed="false"><span class="swatches"><i style="background:#4d9ca8"></i><i style="background:#6f9bd3"></i></span>泻湖</button>
+        <button class="palette-btn" data-theme="iris" aria-pressed="false"><span class="swatches"><i style="background:#8076b7"></i><i style="background:#6da2c5"></i></span>鸢尾</button>
+      </div>
+
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="screen">
+            <div class="m-top">
+              <button class="round-btn" title="返回">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4 4 12l8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/></svg>
+              </button>
+              <div class="m-title">
+                <small>STORAGE · 空间</small>
+                <strong>存储管理</strong>
+              </div>
+              <button class="round-btn" title="更多" style="visibility:hidden">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg>
+              </button>
+            </div>
+
+            <div class="scroll">
+              <!-- 总占用空间 -->
+              <div class="hero">
+                <span class="mini-label">总占用空间</span>
+                <h3>1.28 GB</h3>
+                <p class="sub">日记内容很轻量，仅占设备空间的一小部分。</p>
+                <div class="stack-bar">
+                  <i style="width:33%;background:var(--teal)"></i>
+                  <i style="width:45%;background:var(--apricot)"></i>
+                  <i style="width:9%;background:var(--sage)"></i>
+                  <i style="width:9%;background:var(--blue)"></i>
+                  <i style="width:4%;background:var(--lilac)"></i>
+                </div>
+                <div class="legend">
+                  <span><i style="background:var(--teal)"></i>日记 33%</span>
+                  <span><i style="background:var(--apricot)"></i>图片 45%</span>
+                  <span><i style="background:var(--sage)"></i>缩略图 9%</span>
+                  <span><i style="background:var(--blue)"></i>备份 9%</span>
+                  <span><i style="background:var(--lilac)"></i>缓存 4%</span>
+                </div>
+              </div>
+
+              <!-- 分类明细 -->
+              <div class="card pad">
+                <div class="card-head"><b>分类明细</b><span>5 项</span></div>
+
+                <div class="cat">
+                  <div class="cat-ico" style="color:var(--teal);background:rgba(78,168,155,.14)">
+                    <svg viewBox="0 0 24 24"><path d="M4 6c0-1.1 3.58-2 8-2s8 .9 8 2v12c0 1.1-3.58 2-8 2s-8-.9-8-2V6z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 6c0 1.1 3.58 2 8 2s8-.9 8-2M4 12c0 1.1 3.58 2 8 2s8-.9 8-2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </div>
+                  <div class="cat-body">
+                    <div class="cat-row"><b>日记数据</b><span class="sz">420 MB</span></div>
+                    <div class="cat-sub">数据库与文字内容</div>
+                    <div class="track"><i style="width:33%;background:var(--teal)"></i></div>
+                  </div>
+                </div>
+
+                <div class="cat">
+                  <div class="cat-ico" style="color:#c98a3e;background:rgba(245,216,168,.28)">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="9.5" r="1.8" fill="currentColor"/><path d="M5 18l5-5 4 4 3-3 2 2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </div>
+                  <div class="cat-body">
+                    <div class="cat-row"><b>图片</b><span class="sz">580 MB</span></div>
+                    <div class="cat-sub">日记中附带的照片</div>
+                    <div class="track"><i style="width:45%;background:var(--apricot)"></i></div>
+                  </div>
+                </div>
+
+                <div class="cat">
+                  <div class="cat-ico" style="color:var(--sage);background:rgba(183,203,167,.24)">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </div>
+                  <div class="cat-body">
+                    <div class="cat-row"><b>缩略图</b><span class="sz">120 MB</span></div>
+                    <div class="cat-sub">图片的预览缓存</div>
+                    <div class="track"><i style="width:9%;background:var(--sage)"></i></div>
+                  </div>
+                </div>
+
+                <div class="cat">
+                  <div class="cat-ico" style="color:var(--blue);background:rgba(184,215,238,.34)">
+                    <svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 9.5 4.5 4.5 0 0 0 7 18z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </div>
+                  <div class="cat-body">
+                    <div class="cat-row"><b>备份</b><span class="sz">110 MB</span></div>
+                    <div class="cat-sub">本地与云端备份</div>
+                    <div class="track"><i style="width:9%;background:var(--blue)"></i></div>
+                  </div>
+                </div>
+
+                <div class="cat">
+                  <div class="cat-ico" style="color:var(--lilac);background:rgba(203,193,232,.34)">
+                    <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 0 6.32 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 4v4h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                  <div class="cat-body">
+                    <div class="cat-row"><b>缓存</b><span class="sz">50 MB</span></div>
+                    <div class="cat-sub">临时文件，可安全清理</div>
+                    <div class="track"><i style="width:4%;background:var(--lilac)"></i></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 清理缓存 -->
+              <div class="action">
+                <div class="ico">
+                  <svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2M8 7l1 13h6l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="body">
+                  <b>清理缓存</b>
+                  <span>当前缓存 50 MB</span>
+                </div>
+                <button class="pill">清理</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="foot-note">原型仅供预览视觉效果，数值为示意。确认方向后我把它落到 Compose（StorageScreen.kt）。</p>
+    </div>
+  </div>
+
+  <script>
+    const palette = document.getElementById('palette');
+    palette.addEventListener('click', (e) => {
+      const btn = e.target.closest('.palette-btn');
+      if (!btn) return;
+      document.body.setAttribute('data-theme', btn.dataset.theme);
+      palette.querySelectorAll('.palette-btn').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+    });
+  </script>
+</body>
+</html>

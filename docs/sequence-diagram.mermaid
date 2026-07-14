@@ -1,0 +1,67 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Editor as EditorViewModel
+    participant Dao as DiaryDao
+    participant Bus as AchievementEventBus
+    participant Engine as AchievementEngine
+    participant Repo as AchievementRepository
+    participant Notif as AchievementNotificationManager
+    participant Overlay as AchievementCelebrationOverlay
+    participant Cross as CrossSystemManager
+    participant Home as HomeScreen
+
+    User->>Editor: 保存日记
+    Editor->>Dao: insertEntry(entry)
+    Dao-->>Editor: entryId
+    Editor->>Bus: publish(EntrySaved(entryId, mood, weather, ...))
+    Bus-->>Engine: collect(event)  (IO, 串行)
+    Engine->>Repo: buildSnapshot()  (previews，不读正文)
+    Repo-->>Engine: DiaryStatsSnapshot
+    loop 仅受影响的成就
+        Engine->>Engine: evaluateKey(key, snapshot, event)
+        alt 达成解锁条件
+            Engine->>Repo: unlockWithProof(key, entryId, "entry")
+            Repo-->>Engine: Achievement(unlockedAt, relatedEntryId)
+            Engine->>Notif: notifyAchievementUnlocked(achievement)
+            Notif->>Notif: 安静时段 / 去重校验
+            Notif-->>Overlay: InAppNotification + CelebrationController.emit
+            Overlay-->>User: 克制动效 + in-app 横幅
+        else 仅进度变化
+            Engine->>Repo: setProgress(key, value)
+        end
+    end
+    Engine->>Cross: updateRecentAchievementUnlock(name)
+    Engine->>Cross: updateLevelInfo(levelInfo)
+    Cross-->>Home: StateFlow 更新
+    Home-->>User: 首页/Widget 展示「刚解锁 / 最接近」
+
+---
+
+sequenceDiagram
+    autonumber
+    actor User
+    participant Screen as AchievementScreen
+    participant VM as AchievementViewModel
+    participant Repo as AchievementRepository
+    participant CDao as AchievementCollectionDao
+    participant DB as Room
+    participant Case as AchievementDisplayCaseScreen
+
+    User->>Screen: 点击「加入心愿单」
+    Screen->>VM: addToWishlist(key)
+    VM->>Repo: addToWishlist(key, isPinned=false, isActive=true)
+    Repo->>CDao: upsert(WishlistItem)
+    CDao->>DB: INSERT/UPDATE wishlist_items
+    DB-->>CDao: done
+    CDao-->>Repo: Flow emits
+    Repo-->>VM: wishlist Flow 更新
+    VM-->>Screen: StateFlow 更新 → 角标 / 总览显示
+
+    User->>Case: 拖拽排序 / 设封面
+    Case->>VM: setDisplayCaseOrder / setCover(key)
+    VM->>Repo: setDisplayCaseOrder / setCover
+    Repo->>CDao: upsert(display_case_entries)
+    CDao->>DB: persist
+    DB-->>VM: displayCase Flow 更新
+    VM-->>Case: 刷新网格 + 同步总览封面

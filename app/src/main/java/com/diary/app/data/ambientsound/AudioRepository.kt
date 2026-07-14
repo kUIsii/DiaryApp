@@ -1,23 +1,18 @@
 package com.diary.app.data.ambientsound
 
+import com.diary.app.R
+
 object AudioRepository {
     // 真实音频已放入 assets/ambient_sounds/{id}.mp3（用户提供的 5 个真实录音）
-    // 拆为「水声」「林间」两类；backgroundImageUrl 统一为 null -> 全屏走主题化色调背景
-    val categories = listOf(
-        AudioCategory("water", "水声", null),
-        AudioCategory("forest", "林间", null)
-    )
-
-    // audioUrl 统一为 null -> 仅走本地 assets；缺失时 UI 提示「音频待添加」
+    // 不再分类，扁平展示；每个音轨配有独立 drawable 图标
     private val allTracks = listOf(
-        AudioTrack("rain_thunder", "water", "雷雨", "雨声与远雷，适合安眠与专注", 0, null, null),
-        AudioTrack("sea_waves", "water", "海浪", "平稳起伏，放松身心", 0, null, null),
-        AudioTrack("stream_flow", "water", "涓涓细流", "溪流潺潺，轻柔绵长", 0, null, null),
-        AudioTrack("waterfall", "water", "瀑布", "水流倾泻，白噪掩蔽", 0, null, null),
-        AudioTrack("forest_birds", "forest", "森林晨鸟", "清晨鸟鸣，唤醒自然感", 0, null, null)
+        AudioTrack("rain_thunder", "雷雨淅沥", "雨声与远雷，安眠专注", 0, imageRes = R.drawable.ambient_rain_thunder),
+        AudioTrack("sea_waves",  "海浪轻拍", "平稳起伏，放松身心", 0, imageRes = R.drawable.ambient_sea_waves),
+        AudioTrack("stream_flow","溪流潺潺", "清泉石上，轻柔绵长", 0, imageRes = R.drawable.ambient_stream_flow),
+        AudioTrack("waterfall",  "飞瀑流泉", "倾泻而下，白噪掩蔽", 0, imageRes = R.drawable.ambient_waterfall),
+        AudioTrack("forest_birds","林间鸟语", "清晨鸟鸣，唤醒自然", 0, imageRes = R.drawable.ambient_forest_birds)
     )
 
-    fun getTracks(categoryId: String): List<AudioTrack> = allTracks.filter { it.categoryId == categoryId }
     fun getTrack(id: String): AudioTrack? = allTracks.find { it.id == id }
     fun getAllTracks(): List<AudioTrack> = allTracks
 }

@@ -64,8 +64,10 @@ import com.diary.app.BuildConfig
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
 import com.diary.app.ui.components.SectionHeader
 import com.diary.app.ui.components.SettingDivider
+import com.diary.app.ui.theme.DesignTokens
 import androidx.compose.ui.res.stringResource
 import com.diary.app.R
 import com.diary.app.update.ApkInstaller
@@ -167,42 +169,18 @@ fun SettingsScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "返回",
-                        tint = textSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.settings_title),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-            }
+            ScreenTopBar(
+                title = stringResource(R.string.settings_title),
+                onBack = onNavigateBack
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(DesignTokens.TopBarGap))
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = DesignTokens.PageMargin),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SettingsStaggeredItem(index = 0, showContent = showContent) {

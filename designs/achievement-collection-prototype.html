@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DiaryApp · 成就收藏 · 交互原型</title>
+<style>
+  :root{
+    --bg:#15110d; --bg-2:#1c1712;
+    --surface:rgba(255,255,255,.04); --surface-2:rgba(255,255,255,.07);
+    --border:rgba(255,255,255,.10); --hairline:rgba(255,255,255,.08);
+    --text:#f3ece2; --text-2:rgba(243,236,226,.62); --text-3:rgba(243,236,226,.40);
+    --accent:#e0a878; --accent-soft:rgba(224,168,120,.14);
+    --safe:#9bb08a; --info:#7fb0c4; --warn:#e0b15a;
+    --shadow:0 18px 48px rgba(0,0,0,.45);
+    --r-lg:26px; --r-md:18px; --r-sm:12px;
+    /* 分类语义色（稳定品牌色板，跨明暗一致）—— 对应 LocalAchievementColors */
+    --c-TIME:#c9a36a; --c-MOOD:#d98aa0; --c-WEATHER:#7fb0c4; --c-WRITING:#b9a07a;
+    --c-HABIT:#8fb98a; --c-EXPLORER:#9a8fd0; --c-COLLECTOR:#d9a86c; --c-LEGENDARY:#e0b15a;
+    /* 稀有度语义色 */
+    --t-COMMON:#9a948a; --t-RARE:#6a9bcc; --t-EPIC:#a07cc8; --t-LEGENDARY:#e0b15a;
+    --font:"Outfit","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font); color:var(--text); background:
+      radial-gradient(1200px 700px at 80% -10%, rgba(224,168,120,.10), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(127,176,196,.08), transparent 55%),
+      var(--bg);
+    min-height:100dvh; -webkit-font-smoothing:antialiased; letter-spacing:.2px;
+  }
+  .app{max-width:920px;margin:0 auto;padding:0 16px 110px;min-height:100dvh;position:relative}
+
+  /* ── App bar ── */
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:22px 6px 14px}
+  .appbar h1{font-size:22px;font-weight:700;letter-spacing:.4px}
+  .appbar .sub{font-size:12px;color:var(--text-3);margin-top:2px}
+  .level{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);
+    padding:8px 12px;border-radius:999px}
+  .level .ring{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+    background:conic-gradient(var(--accent) var(--lvl,40%), rgba(255,255,255,.08) 0);font-size:11px;font-weight:700}
+  .level .meta{line-height:1.1}
+  .level .meta b{font-size:13px}
+  .level .meta span{font-size:10px;color:var(--text-3)}
+
+  /* ── Glass card ── */
+  .glass{background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--border);
+    border-radius:var(--r-md);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(8px)}
+
+  /* ── Overview ── */
+  .overview-pad{padding:14px;display:flex;flex-direction:column;gap:14px}
+  .hero{display:flex;align-items:center;gap:16px}
+  .progress-ring{position:relative;width:84px;height:84px;flex:0 0 auto}
+  .progress-ring svg{transform:rotate(-90deg)}
+  .progress-ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:800}
+  .hero .hl{font-size:15px;font-weight:600;line-height:1.35}
+  .hero .cnt{font-size:12px;color:var(--text-2);margin-top:4px}
+  .tier-row{display:flex;gap:10px;margin-top:6px}
+  .tier-pill{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--text-2)}
+  .tier-pill b{font-size:14px}
+
+  .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .quick .q{padding:14px;border-radius:var(--r-sm);cursor:pointer;transition:transform .18s ease,background .2s}
+  .quick .q:hover{transform:translateY(-2px);background:var(--surface-2)}
+  .quick .q .ic{width:26px;height:26px;color:var(--accent);margin-bottom:8px}
+  .quick .q b{font-size:13px;display:block}
+  .quick .q span{font-size:11px;color:var(--text-3)}
+
+  .section-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 8px}
+  .section-h .t{font-size:13px;font-weight:600;color:var(--text-2)}
+  .section-h .more{font-size:12px;color:var(--accent)}
+  .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
+  .row-scroll::-webkit-scrollbar{display:none}
+  .mini{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:64px}
+  .mini .nm{font-size:10px;color:var(--text-2);max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .closetrack{height:6px;border-radius:99px;background:rgba(255,255,255,.08);width:100%;overflow:hidden}
+  .closetrack i{display:block;height:100%;background:var(--accent);border-radius:99px}
+
+  /* ── Filters ── */
+  .filters{display:flex;flex-direction:column;gap:8px;padding:4px 2px 12px}
+  .chip-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-size:11px;padding:7px 12px;border-radius:999px;border:1px solid var(--hairline);
+    color:var(--text-2);background:var(--surface);cursor:pointer;transition:all .18s;white-space:nowrap}
+  .chip.on{color:#1a1410;font-weight:600}
+  .chip.cat.on{background:var(--cat,var(--accent));border-color:transparent}
+  .chip.tier.on{background:var(--tier,var(--accent));border-color:transparent}
+
+  /* ── Gallery grid ── */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding-top:4px}
+  .ach{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;
+    transition:transform .18s ease}
+  .ach:hover{transform:translateY(-3px)}
+  .badge{position:relative;width:74px;height:74px;border-radius:22px;display:grid;place-items:center;
+    background:linear-gradient(150deg,var(--bc1,#555),var(--bc2,#333));
+    box-shadow:0 10px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
+    color:#fff;overflow:hidden}
+  .badge svg{width:34px;height:34px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+  .badge.locked{filter:grayscale(.85) brightness(.55);opacity:.7}
+  .badge.locked::after{content:"";position:absolute;inset:0;background:rgba(10,8,6,.5)}
+  .badge .lock{position:absolute;width:20px;height:20px;color:var(--text-2);z-index:2}
+  .badge .star{position:absolute;top:5px;right:6px;font-size:9px;color:var(--warn);font-weight:700}
+  .badge .wish{position:absolute;top:5px;left:6px;width:14px;height:14px;color:#fff;z-index:2}
+  .ach .nm{font-size:11px;font-weight:600;max-width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ach .pg{font-size:9px;color:var(--text-3)}
+
+  /* ── Detail modal ── */
+  .scrim{position:fixed;inset:0;background:rgba(8,6,4,.6);backdrop-filter:blur(4px);display:none;
+    align-items:flex-end;justify-content:center;z-index:40}
+  .scrim.show{display:flex;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .sheet{width:100%;max-width:560px;background:linear-gradient(180deg,#211a14,#19130e);
+    border:1px solid var(--border);border-radius:24px 24px 0 0;padding:22px;box-shadow:var(--shadow);
+    transform:translateY(100%);animation:slideup .32s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes slideup{to{transform:translateY(0)}}
+  .sheet .head{display:flex;gap:16px;align-items:center}
+  .sheet .bigbadge{width:78px;height:78px;border-radius:24px;display:grid;place-items:center;
+    background:linear-gradient(150deg,var(--bc1),var(--bc2));color:#fff;flex:0 0 auto}
+  .sheet .bigbadge svg{width:38px;height:38px}
+  .sheet .tier-chip{font-size:10px;padding:3px 9px;border-radius:99px;color:#1a1410;font-weight:700;margin-right:6px}
+  .sheet .cat-chip{font-size:10px;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--text-2)}
+  .sheet h2{font-size:18px;margin:6px 0 8px}
+  .sheet .flavor{font-size:13px;color:var(--text-2);line-height:1.6;font-style:italic}
+  .timeline{margin:18px 0;padding-left:18px;border-left:2px solid var(--hairline);display:flex;flex-direction:column;gap:14px}
+  .timeline .node{position:relative}
+  .timeline .node::before{content:"";position:absolute;left:-25px;top:3px;width:10px;height:10px;border-radius:50%;
+    background:var(--surface-2);border:2px solid var(--accent)}
+  .timeline .node.done::before{background:var(--accent);border-color:var(--accent)}
+  .timeline .node .tt{font-size:12px;font-weight:600}
+  .timeline .node .td{font-size:11px;color:var(--text-3);margin-top:2px}
+  .progress-line{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 0 2px}
+  .progress-line i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--warn));border-radius:99px}
+  .actions{display:flex;gap:10px;margin-top:8px}
+  .btn{flex:1;padding:12px;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:transform .15s,background .2s;
+    display:flex;align-items:center;justify-content:center;gap:7px}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{background:var(--accent);color:#1a1410;border-color:transparent}
+  .btn svg{width:16px;height:16px}
+  .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2);border:1px solid var(--border);padding:12px 18px;border-radius:14px;font-size:13px;
+    opacity:0;pointer-events:none;transition:all .3s;z-index:60;box-shadow:var(--shadow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── Display case ── */
+  .case-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding-top:6px}
+  .case-card{position:relative}
+  .case-card .cover-tag{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:9px;
+    background:var(--accent);color:#1a1410;padding:2px 8px;border-radius:99px;font-weight:700;z-index:3}
+  .case-card .set-cover{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;
+    background:rgba(0,0,0,.5);color:#fff;padding:4px 10px;border-radius:99px;opacity:0;transition:opacity .2s;cursor:pointer;z-index:3}
+  .case-card:hover .set-cover{opacity:1}
+
+  /* ── Wishlist ── */
+  .wish-list{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+  .wish-row{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px}
+  .wish-row .mini-badge{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;flex:0 0 auto;
+    background:linear-gradient(150deg,var(--bc1),var(--bc2));color:#fff}
+  .wish-row .mini-badge svg{width:24px;height:24px}
+  .wish-row .body{flex:1;min-width:0}
+  .wish-row .body b{font-size:13px}
+  .wish-row .body .meta{font-size:11px;color:var(--text-3);margin:3px 0 6px}
+  .wish-row .body .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .wish-row .body .bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .wish-row .rm{color:var(--text-3);cursor:pointer;font-size:12px;padding:6px}
+
+  /* ── Monthly challenge ── */
+  .challenge{padding:18px}
+  .challenge .ct{font-size:16px;font-weight:700;margin-bottom:4px}
+  .challenge .cd{font-size:12px;color:var(--text-2);margin-bottom:16px;line-height:1.6}
+  .challenge .big{height:12px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:8px}
+  .challenge .big i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--warn))}
+  .challenge .dates{display:grid;grid-template-columns:repeat(20,1fr);gap:4px;margin-top:14px}
+  .challenge .day{aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--hairline)}
+  .challenge .day.on{background:var(--accent);border-color:transparent}
+
+  /* ── Bottom dock ── */
+  .dock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:4px;
+    background:rgba(28,23,18,.82);border:1px solid var(--border);border-radius:999px;padding:7px;
+    backdrop-filter:blur(14px);box-shadow:var(--shadow);z-index:50}
+  .dock .tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 14px;border-radius:999px;
+    color:var(--text-3);cursor:pointer;font-size:10px;transition:all .2s;min-width:58px}
+  .dock .tab svg{width:20px;height:20px}
+  .dock .tab.on{color:var(--accent);background:var(--accent-soft)}
+
+  /* ── Celebration overlay ── */
+  .celebrate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:70;pointer-events:none}
+  .celebrate.show{display:flex}
+  .celebrate .cbadge{width:120px;height:120px;border-radius:36px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(150deg,var(--bc1),var(--bc2));position:relative;
+    animation:pop 1s cubic-bezier(.34,1.56,.64,1) forwards}
+  .celebrate .cbadge svg{width:60px;height:60px}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}40%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+  .celebrate .halo{position:absolute;inset:-30px;border-radius:50%;border:2px solid var(--accent);
+    animation:halo 1.1s ease-out forwards;opacity:0}
+  @keyframes halo{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+  .celebrate .ctitle{position:absolute;bottom:-46px;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-size:14px;font-weight:700;text-align:center;opacity:0;animation:ct 1s .2s ease forwards}
+  @keyframes ct{to{opacity:1}}
+  .banner{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:linear-gradient(180deg,#241c15,#1b150f);border:1px solid var(--border);border-radius:16px;
+    padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:65;opacity:0;transition:all .4s cubic-bezier(.16,1,.3,1);
+    box-shadow:var(--shadow);max-width:90vw}
+  .banner.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .banner .bb{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(150deg,var(--bc1),var(--bc2));flex:0 0 auto}
+  .banner .bb svg{width:20px;height:20px}
+  .banner .bt b{font-size:13px}
+  .banner .bt span{font-size:11px;color:var(--text-3);display:block}
+
+  .empty{text-align:center;color:var(--text-3);font-size:12px;padding:40px 10px}
+  .hidden-note{font-size:11px;color:var(--text-3);font-style:italic;line-height:1.6}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="appbar">
+    <div>
+      <h1>成就收藏</h1>
+      <div class="sub">会随记录生长的生活藏品</div>
+    </div>
+    <div class="level" id="levelBox">
+      <div class="ring" id="lvlRing">3</div>
+      <div class="meta"><b id="lvlTitle">晨光收藏者</b><span id="lvlExp">EXP 320 / 480</span></div>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section id="scr-overview">
+    <div class="glass overview-pad">
+      <div class="hero">
+        <div class="progress-ring">
+          <svg width="84" height="84">
+            <circle cx="42" cy="42" r="36" stroke="rgba(255,255,255,.08)" stroke-width="8" fill="none"/>
+            <circle id="ringFg" cx="42" cy="42" r="36" stroke="var(--accent)" stroke-width="8" fill="none"
+              stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="90"/>
+          </svg>
+          <div class="pct" id="ringPct">58%</div>
+        </div>
+        <div>
+          <div class="hl" id="heroHl">你的收藏册正在成形</div>
+          <div class="cnt" id="heroCnt">已收录 12 / 51</div>
+          <div class="tier-row" id="tierRow"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass overview-pad" style="margin-top:14px">
+      <div class="quick">
+        <div class="q" data-go="challenge">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4z"/></svg></div>
+          <b>月度挑战</b><span>每月新目标</span>
+        </div>
+        <div class="q" data-go="case">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg></div>
+          <b>陈列柜</b><span>我的藏品墙</span>
+        </div>
+        <div class="q" data-go="wishlist">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-2 5 5 0 0 1 9 2c-2 4.5-9 9-9 9z"/></svg></div>
+          <b>心愿单</b><span>想解锁的</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-h"><div class="t">最近解锁</div><div class="more">全部</div></div>
+    <div class="row-scroll" id="recentRow"></div>
+
+    <div class="section-h"><div class="t">最接近完成</div><div class="more">图鉴</div></div>
+    <div class="row-scroll" id="closeRow"></div>
+
+    <div class="section-h"><div class="t">心愿进行中</div><div class="more">心愿单</div></div>
+    <div class="row-scroll" id="wishRow"></div>
+
+    <div class="glass overview-pad" style="margin-top:14px;display:flex;align-items:center;gap:12px;cursor:pointer" id="simBtn">
+      <div class="badge" style="--bc1:var(--accent);--bc2:var(--warn);width:46px;height:46px;border-radius:14px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3v18M3 12h18"/></svg></div>
+      <div><b style="font-size:13px">模拟「保存一篇日记」</b>
+        <div style="font-size:11px;color:var(--text-3)">体验事件驱动实时解锁 + 克制庆祝动效</div></div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="scr-gallery" style="display:none">
+    <div class="filters">
+      <div class="chip-row" id="fState"></div>
+      <div class="chip-row" id="fCat"></div>
+      <div class="chip-row" id="fTier"></div>
+    </div>
+    <div class="grid" id="galleryGrid"></div>
+  </section>
+
+  <!-- DISPLAY CASE -->
+  <section id="scr-case" style="display:none">
+    <div class="section-h"><div class="t">我的陈列柜</div><div class="more" id="coverName"></div></div>
+    <div class="case-grid" id="caseGrid"></div>
+  </section>
+
+  <!-- WISHLIST -->
+  <section id="scr-wishlist" style="display:none">
+    <div class="section-h"><div class="t">我的心愿单</div><div class="more" id="wishCount"></div></div>
+    <div class="wish-list" id="wishList"></div>
+  </section>
+
+  <!-- MONTHLY CHALLENGE -->
+  <section id="scr-challenge" style="display:none">
+    <div class="glass challenge">
+      <div class="ct">本月写满 20 天</div>
+      <div class="cd">每天留下一点痕迹，月末解锁限定成就「月度行者」。坚持本身，就是收藏。</div>
+      <div class="big"><i style="width:65%"></i></div>
+      <div style="font-size:12px;color:var(--text-2);display:flex;justify-content:space-between">
+        <span>13 / 20 天</span><span style="color:var(--text-3)">7 月</span></div>
+      <div class="dates" id="challengeDays"></div>
+    </div>
+  </section>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="scrim" id="scrim">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<!-- CELEBRATION + BANNER -->
+<div class="celebrate" id="celebrate"></div>
+<div class="banner" id="banner"></div>
+<div class="toast" id="toast"></div>
+
+<!-- DOCK -->
+<div class="dock" id="dock">
+  <div class="tab on" data-scr="overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>总览</div>
+  <div class="tab" data-scr="gallery">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>图鉴</div>
+  <div class="tab" data-scr="case">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>陈列柜</div>
+  <div class="tab" data-scr="wishlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-2 5 5 0 0 1 9 2c-2 4.5-9 9-9 9z"/></svg>心愿</div>
+  <div class="tab" data-scr="challenge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4z"/></svg>挑战</div>
+</div>
+
+<script>
+/* 分类 / 稀有度 语义色 + 图标（对应 App 的 LocalAchievementColors + AchievementBadge） */
+const CAT = {
+  TIME:{name:"时间旅人",color:"var(--c-TIME)",icon:"clock"},
+  MOOD:{name:"情绪画师",color:"var(--c-MOOD)",icon:"mood"},
+  WEATHER:{name:"风雨行者",color:"var(--c-WEATHER)",icon:"weather"},
+  WRITING:{name:"文字匠人",color:"var(--c-WRITING)",icon:"pen"},
+  HABIT:{name:"习惯先锋",color:"var(--c-HABIT)",icon:"seed"},
+  EXPLORER:{name:"探险家",color:"var(--c-EXPLORER)",icon:"compass"},
+  COLLECTOR:{name:"收藏家",color:"var(--c-COLLECTOR)",icon:"book"},
+  LEGENDARY:{name:"传说藏品",color:"var(--c-LEGENDARY)",icon:"crown"}
+};
+const TIER = {
+  COMMON:{name:"普通",color:"var(--t-COMMON)",stars:1},
+  RARE:{name:"稀有",color:"var(--t-RARE)",stars:2},
+  EPIC:{name:"史诗",color:"var(--t-EPIC)",stars:3},
+  LEGENDARY:{name:"传说",color:"var(--t-LEGENDARY)",stars:4}
+};
+const ICONS = {
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  mood:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>',
+  weather:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 14a4 4 0 1 1 1-7 5 5 0 0 1 9 2 3 3 0 0 1-1 5H7z"/><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"/></svg>',
+  pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg>',
+  seed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20v-7M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 13C12 9 9 7 5 7c0 4 3 6 7 6z"/></svg>',
+  compass:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 5-4 1 2-5 4-1z"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4z"/><path d="M5 4v16"/></svg>',
+  crown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8l4 4 4-7 4 7 4-4-2 11H6L4 8z"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 17l-5.3 2.6 1.1-6L3.4 9.4l6-.8L12 3z"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  diary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>',
+  cover:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>'
+};
+
+/* 种子成就（代表集，含已解锁/进行中/隐藏） */
+const ACH = [
+  {key:"first_entry",name:"初章",cat:"WRITING",tier:"COMMON",flavor:"一切的开始，都值得珍藏。",prog:1,tar:1,unlocked:true,entry:101},
+  {key:"entries_10",name:"十日记",cat:"WRITING",tier:"COMMON",flavor:"十次落笔，十段时光。",prog:10,tar:10,unlocked:true,entry:188},
+  {key:"entries_50",name:"半百",cat:"WRITING",tier:"RARE",flavor:"五十篇，是一段不短的路。",prog:50,tar:50,unlocked:true,entry:240},
+  {key:"entries_100",name:"百篇之人",cat:"WRITING",tier:"EPIC",flavor:"一百个日子被你留下了。",prog:82,tar:100,unlocked:false},
+  {key:"streak_7",name:"七日不断",cat:"HABIT",tier:"RARE",flavor:"连续七天，节律初成。",prog:7,tar:7,unlocked:true},
+  {key:"streak_30",name:"月之节律",cat:"HABIT",tier:"EPIC",flavor:"三十天，习惯成了你。",prog:23,tar:30,unlocked:false},
+  {key:"night_writer",name:"夜行者",cat:"TIME",tier:"RARE",flavor:"深夜的灯，为你亮着。",prog:14,tar:20,unlocked:false},
+  {key:"dawn_recorder",name:"破晓记录者",cat:"TIME",tier:"RARE",flavor:"天还没亮，你已经写下。",prog:3,tar:5,unlocked:false},
+  {key:"moods_5",name:"五色心情",cat:"MOOD",tier:"RARE",flavor:"你尝过五种心情的滋味。",prog:5,tar:5,unlocked:true},
+  {key:"mood_rollercoaster",name:"情绪过山车",cat:"MOOD",tier:"EPIC",flavor:"起伏本身，就是一种诚实。",prog:0,tar:1,unlocked:false,hidden:true,clue:"在某个心情剧烈起伏的月份里，你会找到它。"},
+  {key:"rain_collector",name:"听雨人",cat:"WEATHER",tier:"COMMON",flavor:"雨天，你留下了字。",prog:9,tar:12,unlocked:false},
+  {key:"all_weather",name:"风雨皆记",cat:"WEATHER",tier:"EPIC",flavor:"晴雨风雪，你都接住了。",prog:4,tar:6,unlocked:false},
+  {key:"favorite_1",name:"初藏",cat:"COLLECTOR",tier:"COMMON",flavor:"第一篇被你收藏的日记。",prog:1,tar:1,unlocked:true,entry:155},
+  {key:"collector",name:"收藏家",cat:"COLLECTOR",tier:"RARE",flavor:"懂得回头看的人，最富有。",prog:6,tar:10,unlocked:false},
+  {key:"explorer",name:"初探",cat:"EXPLORER",tier:"COMMON",flavor:"陌生的一刻，被你记下。",prog:1,tar:1,unlocked:true},
+  {key:"time_traveler",name:"时空旅人",cat:"EXPLORER",tier:"LEGENDARY",flavor:"你跨越了不止一个年头。",prog:0,tar:1,unlocked:false,hidden:true,clue:"在跨年的那一刻落笔，或许能遇见它。"},
+  {key:"deep_thinker",name:"深思想者",cat:"MOOD",tier:"EPIC",flavor:"低落的连续，也是一种力量。",prog:0,tar:1,unlocked:false},
+  {key:"legendary_all_categories",name:"圆满收藏者",cat:"LEGENDARY",tier:"LEGENDARY",flavor:"八类藏品，你皆有之。",prog:5,tar:8,unlocked:false},
+  {key:"words_100000",name:"十万字",cat:"WRITING",tier:"EPIC",flavor:"十万字，是你走过的路。",prog:100000,tar:100000,unlocked:true},
+  {key:"monthly_champion",name:"月度行者",cat:"EXPLORER",tier:"EPIC",flavor:"这一个月，你没缺席。",prog:0,tar:1,unlocked:false,hidden:true,clue:"完成一次月度挑战，它自会现身。"}
+];
+
+let wishlist = new Set(["entries_100","streak_30","all_weather"]);
+let coverKey = "first_entry";
+let filter = {state:"all", cat:null, tier:null};
+
+const $ = s=>document.querySelector(s);
+const byKey = k=>ACH.find(a=>a.key===k);
+const stars = n=>"★".repeat(n)+"☆".repeat(4-n);
+const catColor = c=>getComputedStyle(document.documentElement).getPropertyValue("--c-"+c).trim();
+const tierColor = t=>getComputedStyle(document.documentElement).getPropertyValue("--t-"+t).trim();
+const pct = a=>a.tar>0?Math.min(100,Math.round(a.prog/a.tar*100)):0;
+
+/* ── 渲染：总览 ── */
+function renderOverview(){
+  const unlocked = ACH.filter(a=>a.unlocked).length;
+  const total = ACH.length;
+  const p = Math.round(unlocked/total*100);
+  $("#ringPct").textContent = p+"%";
+  $("#ringFg").style.strokeDashoffset = 226 - 226*p/100;
+  $("#heroCnt").textContent = `已收录 ${unlocked} / ${total}`;
+  // tier row
+  $("#tierRow").innerHTML = Object.keys(TIER).map(t=>{
+    const c = ACH.filter(a=>a.tier===t);
+    const u = c.filter(a=>a.unlocked).length;
+    return `<div class="tier-pill"><b style="color:${tierColor(t)}">${u}</b><span>${TIER[t].name}</span></div>`;
+  }).join("");
+  // recent
+  const recent = ACH.filter(a=>a.unlocked).slice(-6).reverse();
+  $("#recentRow").innerHTML = recent.map(a=>miniCard(a)).join("") || emptyMsg();
+  // closest
+  const close = ACH.filter(a=>!a.unlocked && !a.hidden).sort((x,y)=>pct(y)-pct(x)).slice(0,6);
+  $("#closeRow").innerHTML = close.map(a=>{
+    const p = pct(a);
+    return `<div class="mini"><div class="badge ${a.unlocked?'':'locked'}" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${ICONS[CAT[a.cat].icon]}${a.unlocked?'':ICONS.lock}</div><div class="nm">${a.name}</div><div class="closetrack"><i style="width:${p}%"></i></div></div>`;
+  }).join("") || emptyMsg();
+  // wishlist in progress
+  const wish = [...wishlist].map(byKey).filter(Boolean);
+  $("#wishRow").innerHTML = wish.length? wish.map(a=>{
+    const p=pct(a);
+    return `<div class="mini" data-open="${a.key}" style="cursor:pointer"><div class="badge" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${ICONS[CAT[a.cat].icon]}</div><div class="nm">${a.name}</div><div class="closetrack"><i style="width:${p}%"></i></div></div>`;
+  }).join("") : `<div class="empty">还没有心愿，去图鉴里加一个吧</div>`;
+}
+function miniCard(a){
+  return `<div class="mini" data-open="${a.key}" style="cursor:pointer"><div class="badge" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${ICONS[CAT[a.cat].icon]}</div><div class="nm">${a.name}</div></div>`;
+}
+function emptyMsg(){return `<div class="empty">暂无</div>`;}
+
+/* ── 渲染：图鉴 ── */
+function renderGallery(){
+  const grid = $("#galleryGrid");
+  const list = ACH.filter(a=>{
+    if(filter.state==="collected" && !a.unlocked) return false;
+    if(filter.state==="close" && (a.unlocked||a.hidden)) return false;
+    if(filter.state==="hidden" && !a.hidden) return false;
+    if(filter.cat && a.cat!==filter.cat) return false;
+    if(filter.tier && a.tier!==filter.tier) return false;
+    return true;
+  });
+  if(!list.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1">这里还没有藏品</div>`;return;}
+  grid.innerHTML = list.map(a=>{
+    const locked = !a.unlocked;
+    const isHidden = a.hidden && !a.unlocked;
+    const showName = isHidden? "？？？" : a.name;
+    const wishStar = wishlist.has(a.key)? ICONS.star.replace('currentColor','#fff') : "";
+    return `<div class="ach" data-open="${a.key}">
+      <div class="badge ${locked?'locked':''}" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">
+        ${isHidden? ICONS.lock : ICONS[CAT[a.cat].icon]}
+        ${a.tier==='LEGENDARY'&&!locked?'<span class="star">★</span>':''}
+        ${wishlist.has(a.key)?'<span class="wish">'+ICONS.star.replace('viewBox','viewBox')+'</span>':''}
+      </div>
+      <div class="nm">${showName}</div>
+      <div class="pg">${locked? (isHidden? '隐藏线索' : pct(a)+'%') : '已达成'}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ── 渲染：陈列柜 ── */
+function renderCase(){
+  const list = ACH.filter(a=>a.unlocked);
+  $("#coverName").textContent = "封面 · " + (byKey(coverKey)?.name || "—");
+  if(!list.length){$("#caseGrid").innerHTML=`<div class="empty" style="grid-column:1/-1">还没有已解锁的藏品，去记录吧</div>`;return;}
+  $("#caseGrid").innerHTML = list.map(a=>`
+    <div class="ach case-card" data-open="${a.key}">
+      ${a.key===coverKey?'<div class="cover-tag">封面</div>':''}
+      <div class="badge" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${ICONS[CAT[a.cat].icon]}</div>
+      <div class="nm">${a.name}</div>
+      <div class="set-cover" data-cover="${a.key}">设为封面</div>
+    </div>`).join("");
+}
+
+/* ── 渲染：心愿单 ── */
+function renderWishlist(){
+  const list = [...wishlist].map(byKey).filter(Boolean);
+  $("#wishCount").textContent = list.length + " 项";
+  if(!list.length){$("#wishList").innerHTML=`<div class="empty">心愿单是空的，去图鉴里点「加入心愿单」</div>`;return;}
+  $("#wishList").innerHTML = list.map(a=>{
+    const p=pct(a);
+    const left = Math.max(0, a.tar - a.prog);
+    return `<div class="glass wish-row">
+      <div class="mini-badge" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${ICONS[CAT[a.cat].icon]}</div>
+      <div class="body">
+        <b>${a.name}</b>
+        <div class="meta">${a.unlocked?'已达成':('还差 '+left+(a.tar>1?' 个':' 篇')+' 解锁')}</div>
+        <div class="bar"><i style="width:${p}%"></i></div>
+      </div>
+      <div class="rm" data-rmw="${a.key}">移除</div>
+    </div>`;
+  }).join("");
+}
+
+/* ── 详情 sheet ── */
+function openDetail(key){
+  const a = byKey(key); if(!a) return;
+  const hidden = a.hidden && !a.unlocked;
+  const p = pct(a);
+  const wishOn = wishlist.has(a.key);
+  const cat = CAT[a.cat], tier = TIER[a.tier];
+  const canDiary = a.unlocked && a.entry;
+  $("#sheet").innerHTML = `
+    <div class="head">
+      <div class="bigbadge" style="--bc1:${catColor(a.cat)};--bc2:${tierColor(a.tier)}">${hidden?ICONS.lock:ICONS[cat.icon]}</div>
+      <div>
+        <div>
+          <span class="tier-chip" style="background:${tierColor(a.tier)}">${tier.name} ${stars(tier.stars)}</span>
+          <span class="cat-chip" style="color:${catColor(a.cat)}">${cat.name}</span>
+        </div>
+        <h2>${hidden?'？？？':a.name}</h2>
+      </div>
+    </div>
+    <p class="flavor">${hidden? (a.clue||'达成某种特别的条件，它就会出现。') : a.flavor}</p>
+    <div class="progress-line"><i style="width:${p}%"></i></div>
+    <div style="font-size:11px;color:var(--text-3);margin-bottom:14px">${a.unlocked?'已达成':'进度 '+p+'%'+(a.tar>1?'（'+a.prog+' / '+a.tar+'）':'')}</div>
+    <div class="timeline">
+      <div class="node ${a.prog>0||a.unlocked?'done':''}"><div class="tt">开始</div><div class="td">你把第一篇相关日记写进了收藏册</div></div>
+      <div class="node ${p>=60?'done':''}"><div class="tt">最近进展</div><div class="td">${p>=60?('已完成 '+p+'%，胜利在望'):('进度 '+p+'%，继续累积')}</div></div>
+      <div class="node ${a.unlocked?'done':''}"><div class="tt">达成</div><div class="td">${a.unlocked?('于某天解锁，成为你的藏品'):'尚未点亮'}</div></div>
+    </div>
+    <div class="actions">
+      <div class="btn" data-wish="${a.key}">${wishOn?'已心愿 ★':'加入心愿单'}</div>
+      ${canDiary?'<div class="btn" data-diary="'+a.entry+'">'+ICONS.diary+'查看对应日记</div>':''}
+      <div class="btn primary" data-share="${a.key}">${ICONS.share}分享</div>
+    </div>
+    ${a.unlocked?'<div class="actions"><div class="btn" data-setcover="'+a.key+'">'+ICONS.cover+'设为陈列柜封面</div></div>':''}
+  `;
+  $("#scrim").classList.add("show");
+}
+function closeSheet(){$("#scrim").classList.remove("show");}
+
+/* ── 筛选 chips ── */
+function buildFilters(){
+  const states=[["all","全部"],["collected","已收录"],["close","接近完成"],["hidden","隐藏线索"]];
+  $("#fState").innerHTML = states.map(([k,l])=>`<div class="chip ${filter.state===k?'on':''}" data-state="${k}" style="${filter.state===k?'background:var(--accent)':''}">${l}</div>`).join("");
+  $("#fCat").innerHTML = Object.keys(CAT).map(c=>{
+    const on = filter.cat===c;
+    return `<div class="chip cat ${on?'on':''}" data-cat="${c}" style="--cat:${catColor(c)}">${CAT[c].name}</div>`;
+  }).join("");
+  $("#fTier").innerHTML = Object.keys(TIER).map(t=>{
+    const on = filter.tier===t;
+    return `<div class="chip tier ${on?'on':''}" data-tier="${t}" style="--tier:${tierColor(t)}">${TIER[t].name} ${stars(TIER[t].stars)}</div>`;
+  }).join("");
+}
+
+/* ── 庆祝 + 横幅 ── */
+function celebrate(a){
+  const cel = $("#celebrate");
+  cel.style.setProperty("--bc1",catColor(a.cat));
+  cel.style.setProperty("--bc2",tierColor(a.tier));
+  cel.innerHTML = `<div class="cbadge">${ICONS[CAT[a.cat].icon]}<div class="halo"></div><div class="ctitle">解锁成就 · ${a.name}</div></div>`;
+  cel.classList.add("show");
+  setTimeout(()=>cel.classList.remove("show"),1600);
+  const b = $("#banner");
+  b.style.setProperty("--bc1",catColor(a.cat));
+  b.style.setProperty("--bc2",tierColor(a.tier));
+  b.innerHTML = `<div class="bb">${ICONS[CAT[a.cat].icon]}</div><div class="bt"><b>成就解锁：${a.name}</b><span>${TIER[a.tier].name} · ${CAT[a.cat].name}</span></div>`;
+  b.classList.add("show");
+  setTimeout(()=>b.classList.remove("show"),2600);
+}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);}
+
+/* ── 模拟事件驱动解锁 ── */
+function simulateSave(){
+  // 选一个最接近完成、未解锁、非隐藏的成就来"解锁"
+  const candidates = ACH.filter(a=>!a.unlocked && !a.hidden).sort((x,y)=>pct(y)-pct(x));
+  // 给前几个进度 +1（模拟日记积累），并把最接近的一个解锁
+  candidates.slice(0,3).forEach(a=>{ if(a.prog<a.tar) a.prog++; });
+  const target = candidates[0];
+  if(target){ target.unlocked = true; target.entry = 999; toast("实时解锁："+target.name); celebrate(target); }
+  // 重新计算等级（演示）
+  refreshAll();
+}
+function refreshAll(){
+  renderOverview();renderGallery();renderCase();renderWishlist();renderLevel();
+}
+function renderLevel(){
+  const u = ACH.filter(a=>a.unlocked);
+  const w = {COMMON:10,RARE:25,EPIC:60,LEGENDARY:150};
+  const exp = u.reduce((s,a)=>s+w[a.tier],0);
+  const level = Math.max(1, Math.floor(exp/160)+1);
+  const expForNext = level*160;
+  const titles=["初芽记录者","晨光收藏者","纸上年轮","生活策展人","时光贮藏家"];
+  $("#lvlRing").textContent = level;
+  $("#lvlRing").style.background = `conic-gradient(var(--accent) ${Math.min(100,exp/expForNext*100)}%, rgba(255,255,255,.08) 0)`;
+  $("#lvlTitle").textContent = titles[Math.min(titles.length-1,level-1)];
+  $("#lvlExp").textContent = "EXP "+exp+" / "+expForNext;
+  $("#ringFg").style.strokeDashoffset = 226 - 226*Math.round(ACH.filter(a=>a.unlocked).length/ACH.length*100)/100;
+}
+
+/* ── 路由 ── */
+function go(scr){
+  ["overview","gallery","case","wishlist","challenge"].forEach(s=>{
+    $("#scr-"+s).style.display = s===scr?"block":"none";
+  });
+  document.querySelectorAll(".dock .tab").forEach(t=>t.classList.toggle("on",t.dataset.scr===scr));
+}
+document.querySelectorAll(".dock .tab").forEach(t=>t.onclick=()=>go(t.dataset.scr));
+document.querySelectorAll(".quick .q").forEach(q=>q.onclick=()=>go(q.dataset.go));
+
+/* ── 事件委托 ── */
+document.addEventListener("click",e=>{
+  const open = e.target.closest("[data-open]");
+  if(open){openDetail(open.dataset.open);return;}
+  const rmw = e.target.closest("[data-rmw]");
+  if(rmw){wishlist.delete(rmw.dataset.rmw);refreshAll();return;}
+  const cover = e.target.closest("[data-cover]");
+  if(cover){coverKey=cover.dataset.cover;toast("已设为封面");refreshAll();return;}
+  const wish = e.target.closest("[data-wish]");
+  if(wish){const k=wish.dataset.wish; if(wishlist.has(k)){wishlist.delete(k);toast("已移出心愿单");}else{wishlist.add(k);toast("已加入心愿单");} refreshAll(); closeSheet(); return;}
+  const diary = e.target.closest("[data-diary]");
+  if(diary){closeSheet();toast("跳转到对应日记 #"+diary.dataset.diary);return;}
+  const share = e.target.closest("[data-share]");
+  if(share){closeSheet();toast("已生成本地分享图（仅本地，不联网）");return;}
+  const setcover = e.target.closest("[data-setcover]");
+  if(setcover){coverKey=setcover.dataset.setcover;toast("已设为封面");refreshAll();closeSheet();return;}
+  const st = e.target.closest("[data-state]");
+  if(st){filter.state=st.dataset.state;buildFilters();renderGallery();return;}
+  const ct = e.target.closest("[data-cat]");
+  if(ct){filter.cat = filter.cat===ct.dataset.cat?null:ct.dataset.cat;buildFilters();renderGallery();return;}
+  const tt = e.target.closest("[data-tier]");
+  if(tt){filter.tier = filter.tier===tt.dataset.tier?null:tt.dataset.tier;buildFilters();renderGallery();return;}
+  if(e.target.id==="scrim") closeSheet();
+});
+$("#simBtn").onclick = simulateSave;
+
+/* ── 月度挑战格子 ── */
+(function(){
+  let html="";
+  for(let i=0;i<20;i++){html+=`<div class="day ${i<13?'on':''}"></div>`;}
+  $("#challengeDays").innerHTML=html;
+})();
+
+/* init */
+buildFilters();renderOverview();renderGallery();renderCase();renderWishlist();renderLevel();
+</script>
+</body>
+</html>

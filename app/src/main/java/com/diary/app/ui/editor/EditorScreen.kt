@@ -110,7 +110,9 @@ import com.diary.app.data.Tag
 import com.diary.app.ui.theme.SuccessColor
 import com.diary.app.ui.theme.isDark
 import com.diary.app.ui.todo.TodoViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.util.Base64
 import java.time.LocalDate
 import java.time.LocalTime
@@ -402,21 +404,22 @@ fun EditorScreen(
     // Media pickers - save images to local files for reliable display
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
-            try {
-                val media = DiaryMediaManager.importImage(context, imageUri)
-                if (media != null) {
-                    insertImageIntoEditor(media.displayWebUrl)
-                } else {
-                    scope.launch {
+            scope.launch {
+                try {
+                    // 图片解码/压缩很重，切到 IO 线程，避免阻塞主线程导致 UI 卡顿
+                    val media = withContext(Dispatchers.IO) {
+                        DiaryMediaManager.importImage(context, imageUri)
+                    }
+                    if (media != null) {
+                        insertImageIntoEditor(media.displayWebUrl)
+                    } else {
                         snackbarHostState.showSnackbar(
                             message = "无法获取该图片，请换一张试试",
                             duration = SnackbarDuration.Short
                         )
                     }
-                }
-            } catch (e: Exception) {
-                Log.e("EditorScreen", "Failed to import image", e)
-                scope.launch {
+                } catch (e: Exception) {
+                    Log.e("EditorScreen", "Failed to import image", e)
                     snackbarHostState.showSnackbar(
                         message = "图片导入失败，请重试",
                         duration = SnackbarDuration.Short

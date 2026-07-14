@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="fog" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DiaryApp · 主题色实验室</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+:root{
+  --font-display:"Noto Serif SC","Songti SC",serif;
+  --font-body:"LXGW WenKai","PingFang SC",system-ui,serif;
+  --font-ui:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+/* 每套主题：--bg 近白底 + --c1/c2/c3 三色粉彩混合（预设、柔和、参考 shadergradient 混色风）
+   --ink 文字、--accent 强调（都压低饱和） */
+[data-theme="fog"][data-mode="light"]{--bg:#F4F8FC;--ink:#33405A;--muted:#6A7894;--faint:#9AA9BE;--accent:#7DA2C8;
+  --c1:#AFC9E6;--c2:#CBD8F0;--c3:#D8ECE6;}
+[data-theme="fog"][data-mode="dark"]{--bg:#0C0F16;--ink:#D8E1F0;--muted:#9AA8C1;--faint:#6D7893;--accent:#8FB4D8;
+  --c1:#27384E;--c2:#2C2B46;--c3:#24362C;}
+[data-theme="moss"][data-mode="light"]{--bg:#F7F9F3;--ink:#384031;--muted:#65705A;--faint:#94A088;--accent:#8DB07F;
+  --c1:#BFD9B0;--c2:#DDE3BE;--c3:#B8DCC8;}
+[data-theme="moss"][data-mode="dark"]{--bg:#0C0E0B;--ink:#D8E4D0;--muted:#9AAA90;--faint:#6C7C60;--accent:#9BCC89;
+  --c1:#26331F;--c2:#322C20;--c3:#22302A;}
+[data-theme="ocean"][data-mode="light"]{--bg:#F2FAFC;--ink:#1E434D;--muted:#587B86;--faint:#86A2AC;--accent:#6FB2B4;
+  --c1:#A6D8DA;--c2:#BFE0F2;--c3:#C8EDE6;}
+[data-theme="ocean"][data-mode="dark"]{--bg:#081419;--ink:#D9EEF0;--muted:#9AB7C0;--faint:#6A909A;--accent:#8BCACB;
+  --c1:#1C3238;--c2:#1C2C3E;--c3:#1C3430;}
+[data-theme="petal"][data-mode="light"]{--bg:#FDF7F6;--ink:#4A3333;--muted:#7C6264;--faint:#AC8E90;--accent:#D29A92;
+  --c1:#F0C9CE;--c2:#F6DCCB;--c3:#ECD2E4;}
+[data-theme="petal"][data-mode="dark"]{--bg:#191114;--ink:#F2DCDC;--muted:#C3A7A7;--faint:#8E7272;--accent:#DCAEA6;
+  --c1:#39262A;--c2:#33252E;--c3:#3A2723;}
+[data-theme="sand"][data-mode="light"]{--bg:#FDFBF3;--ink:#4A3E25;--muted:#75654A;--faint:#A89878;--accent:#CBA877;
+  --c1:#F2E3C4;--c2:#E8D3B0;--c3:#F0D2C6;}
+[data-theme="sand"][data-mode="dark"]{--bg:#181410;--ink:#F0E5D4;--muted:#C0AD8A;--faint:#8E7E60;--accent:#D9BA82;
+  --c1:#332A1C;--c2:#2E2618;--c3:#342620;}
+[data-theme="clay"][data-mode="light"]{--bg:#FCF6F1;--ink:#463530;--muted:#766157;--faint:#A38E82;--accent:#C8A091;
+  --c1:#E6C6B8;--c2:#EFD9CC;--c3:#C8D8CC;}
+[data-theme="clay"][data-mode="dark"]{--bg:#181210;--ink:#F2E3DA;--muted:#C3AEA0;--faint:#8D7769;--accent:#D8B0A0;
+  --c1:#372922;--c2:#312821;--c3:#2A2A24;}
+[data-theme="ink"][data-mode="light"]{--bg:#F4F7FC;--ink:#283247;--muted:#586A81;--faint:#828FA2;--accent:#647FBE;
+  --c1:#C2C8EC;--c2:#CBD3E2;--c3:#D6CCEC;}
+[data-theme="ink"][data-mode="dark"]{--bg:#0A0D15;--ink:#D9E1EF;--muted:#9AA8C1;--faint:#6D7893;--accent:#9AB6E8;
+  --c1:#26304A;--c2:#2E2A44;--c3:#222C42;}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--font-ui);color:var(--ink);background:#0e1018;min-height:100%}
+
+.wrap{max-width:480px;margin:0 auto;padding:0 0 70px}
+.bar{position:sticky;top:0;z-index:6;padding:12px 14px 10px;
+  background:rgba(14,16,24,.55);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+.bar h1{font-family:var(--font-display);font-size:17px;font-weight:600;margin:0 0 9px;color:#EDEFF6;display:flex;align-items:center;gap:8px}
+.bar h1 .sub{font-family:var(--font-ui);font-size:11px;font-weight:400;color:#9aa3b8}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);color:#cfd6e6;white-space:nowrap;cursor:pointer;transition:all .25s var(--ease);
+  display:flex;align-items:center;gap:7px}
+.chip .sw{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.4)}
+.chip[aria-pressed="true"]{background:#fff;color:#1a1d28;border-color:transparent;font-weight:600;
+  box-shadow:0 6px 16px rgba(255,255,255,.22)}
+.bar2{display:flex;gap:7px;margin-top:9px;align-items:center}
+.bar2 .chips{flex:1}
+.toggle{flex:0 0 auto;font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);color:#cfd6e6;cursor:pointer}
+.toggle[aria-pressed="true"]{background:#fff;color:#1a1d28;border-color:transparent}
+
+/* ====== 主题色舞台：让“混色”当主角 ====== */
+.stage{position:relative;margin:14px 12px 0;min-height:78vh;border-radius:30px;overflow:hidden;
+  box-shadow:0 26px 60px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4);
+  border:1px solid rgba(255,255,255,.1);
+  background:var(--bg);transition:background .9s var(--ease)}
+/* 四团粉彩 blob，各自独立漂移 → 液体般有机混合（参考 shadergradient 流动） */
+.stage .field{position:absolute;inset:-20%;z-index:0;filter:blur(50px);opacity:.95}
+.stage .field i{position:absolute;display:block;border-radius:50%;mix-blend-mode:multiply}
+[data-mode="dark"] .stage .field i{mix-blend-mode:screen}
+.stage .field .b1{width:60%;height:60%;left:2%;top:4%;background:var(--c1);animation:drift1 22s ease-in-out infinite}
+.stage .field .b2{width:55%;height:55%;right:0%;top:14%;background:var(--c2);animation:drift2 27s ease-in-out infinite}
+.stage .field .b3{width:62%;height:62%;left:14%;bottom:-6%;background:var(--c3);animation:drift3 31s ease-in-out infinite}
+.stage .field .b4{width:46%;height:46%;right:12%;bottom:2%;background:color-mix(in srgb,var(--c1) 60%,var(--c2));
+  animation:drift1 25s ease-in-out infinite reverse}
+@keyframes drift1{0%{transform:translate(0,0) scale(1)}33%{transform:translate(8%,5%) scale(1.12)}66%{transform:translate(-5%,9%) scale(.96)}100%{transform:translate(0,0) scale(1)}}
+@keyframes drift2{0%{transform:translate(0,0) scale(1.05)}40%{transform:translate(-9%,6%) scale(.94)}72%{transform:translate(5%,-7%) scale(1.1)}100%{transform:translate(0,0) scale(1.05)}}
+@keyframes drift3{0%{transform:translate(0,0) scale(1)}30%{transform:translate(6%,-8%) scale(1.08)}65%{transform:translate(-7%,4%) scale(.98)}100%{transform:translate(0,0) scale(1)}}
+/* 整体缓慢呼吸 */
+.stage .breath{position:absolute;inset:-20%;z-index:0;filter:blur(60px);opacity:.6;
+  background:radial-gradient(40% 38% at 50% 42%, color-mix(in srgb,var(--c1) 70%,white), transparent 70%);
+  animation:breathe 14s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.7;transform:scale(1.18)}}
+/* 极轻旋转光晕，增加“不经意”的生命感 */
+.stage .spin{position:absolute;inset:-30%;z-index:0;opacity:.4;
+  background:conic-gradient(from 0deg, transparent, color-mix(in srgb,var(--c2) 50%,transparent), transparent 60%);
+  animation:spin 38s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 颗粒质感 */
+.stage .grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")}
+
+/* 角落色值标签，方便讨论具体预设 */
+.swatches{position:absolute;left:14px;bottom:14px;z-index:3;display:flex;gap:8px;align-items:center;
+  background:rgba(255,255,255,.62);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.5);
+  padding:8px 11px;border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.14)}
+[data-mode="dark"] .swatches{background:rgba(20,24,36,.6);border-color:rgba(255,255,255,.14)}
+.swatches .s{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.swatches .hx{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#55607a}
+[data-mode="dark"] .swatches .hx{color:#b9c2d8}
+.swatches .lab{font-family:var(--font-ui);font-size:11px;color:#55607a;margin-right:2px}
+[data-mode="dark"] .swatches .lab{color:#b9c2d8}
+
+/* 顶部标题小样（仅作上下文，不抢戏） */
+.hud{position:absolute;left:16px;top:16px;right:16px;z-index:3;display:flex;justify-content:space-between;align-items:flex-start}
+.hud .ttl{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--ink);
+  text-shadow:0 1px 10px rgba(255,255,255,.5)}
+[data-mode="dark"] .hud .ttl{text-shadow:0 1px 14px rgba(0,0,0,.5)}
+.hud .pill{font-size:11px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.5);color:var(--muted);backdrop-filter:blur(6px)}
+[data-mode="dark"] .hud .pill{background:rgba(20,24,36,.55);border-color:rgba(255,255,255,.14)}
+
+/* 一行最小上下文卡片（透明，让颜色透出来） */
+.mini{position:absolute;left:16px;right:16px;top:64px;z-index:3;display:flex;flex-direction:column;gap:9px}
+.mini .row{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:16px;
+  background:color-mix(in srgb,var(--bg) 46%,transparent);border:1px solid rgba(255,255,255,.45);
+  backdrop-filter:blur(6px);box-shadow:0 6px 16px rgba(0,0,0,.06);
+  opacity:0;transform:translateY(12px);animation:rise .7s var(--ease) forwards}
+[data-mode="dark"] .mini .row{background:rgba(20,24,36,.4);border-color:rgba(255,255,255,.12)}
+.mini .row:nth-child(1){animation-delay:.2s}
+.mini .row:nth-child(2){animation-delay:.35s}
+.mini .row:nth-child(3){animation-delay:.5s}
+@keyframes rise{to{opacity:1;transform:none}}
+.mini .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.mini .t{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--ink)}
+.mini .p{font-family:var(--font-body);font-size:12px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .sp{flex:1;min-width:0}
+.hint{position:absolute;left:0;right:0;bottom:62px;z-index:3;text-align:center;
+  font-family:var(--font-ui);font-size:11px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>主题色实验室 <span class="sub">v14 · 只聊预设柔色混渐 + 多重视效</span></h1>
+    <div class="chips" id="themeChips"></div>
+    <div class="bar2">
+      <div class="chips" id="blendChips"></div>
+      <button class="toggle" id="modeBtn" aria-pressed="false">深色</button>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="field"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+    <div class="breath"></div>
+    <div class="spin"></div>
+    <div class="grain"></div>
+    <div class="hud">
+      <div class="ttl">日记</div>
+      <div class="pill" id="themeName">雾蓝</div>
+    </div>
+    <div class="mini">
+      <div class="row"><span class="dot" style="background:#7BA7C9"></span>
+        <div class="sp"><div class="t">雨后的清晨</div><div class="p">窗外的雨停了，空气里有一股潮湿的泥土味。</div></div></div>
+      <div class="row"><span class="dot" style="background:#7BC9A0"></span>
+        <div class="sp"><div class="t">周末的咖啡</div><div class="p">点了一杯手冲，坐在靠窗的位置晒太阳。</div></div></div>
+      <div class="row"><span class="dot" style="background:#A88BC9"></span>
+        <div class="sp"><div class="t">订好了去海边的票</div><div class="p">心情已经先出发了，兴奋得半夜醒来一次。</div></div></div>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <div class="hint">上方为真实混色背景，下方为颜色在卡片里的样子</div>
+  </div>
+</div>
+
+<script>
+const THEMES=[
+  {k:"fog",n:"雾蓝"},{k:"moss",n:"苔绿"},{k:"ocean",n:"海洋"},
+  {k:"petal",n:"花瓣"},{k:"sand",n:"沙琥珀"},{k:"clay",n:"陶土"},{k:"ink",n:"墨石"}
+];
+const BLENDS=[
+  {k:"soft",n:"柔混（默认）"},
+  {k:"lush",n:"饱满一点"},
+  {k:"airy",n:"更通透"}
+];
+let state={theme:"fog",blend:"soft",mode:"light"};
+
+const tc=document.getElementById('themeChips');
+THEMES.forEach(t=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',t.k==="fog");
+  b.innerHTML=`<span class="sw" style="background:var(--c1)"></span>${t.n}`;
+  b.onclick=()=>{state.theme=t.k;document.documentElement.dataset.theme=t.k;
+    tc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+    document.getElementById('themeName').textContent=t.n;refreshSwatches();};
+  tc.appendChild(b);});
+
+const bc=document.getElementById('blendChips');
+BLENDS.forEach(v=>{const b=document.createElement('button');b.className='chip';b.textContent=v.n;
+  b.setAttribute('aria-pressed',v.k==="soft");
+  b.onclick=()=>{state.blend=v.k;
+    bc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+    applyBlend();};
+  bc.appendChild(b);});
+
+const mb=document.getElementById('modeBtn');
+mb.onclick=()=>{state.mode=state.mode==="light"?"dark":"light";document.documentElement.dataset.mode=state.mode;
+  mb.setAttribute('aria-pressed',state.mode==="dark");mb.textContent=state.mode==="dark"?"浅色":"深色";};
+
+function applyBlend(){
+  const stage=document.getElementById('stage');
+  // 通过 opacity / blur 强度切换“混色浓度”
+  const f=stage.querySelector('.field');
+  if(state.blend==="soft"){f.style.opacity=.95;f.style.filter="blur(50px)";}
+  else if(state.blend==="lush"){f.style.opacity=1;f.style.filter="blur(40px)";}
+  else {f.style.opacity=.7;f.style.filter="blur(60px)";}
+}
+function refreshSwatches(){
+  const cs=getComputedStyle(document.documentElement);
+  const c1=cs.getPropertyValue('--c1').trim(),c2=cs.getPropertyValue('--c2').trim(),c3=cs.getPropertyValue('--c3').trim();
+  document.getElementById('swatches').innerHTML=
+    `<span class="lab">预设三色</span>
+     <span class="s" style="background:${c1}"></span><span class="hx">${c1.toUpperCase()}</span>
+     <span class="s" style="background:${c2}"></span><span class="hx">${c2.toUpperCase()}</span>
+     <span class="s" style="background:${c3}"></span><span class="hx">${c3.toUpperCase()}</span>`;
+}
+applyBlend();refreshSwatches();
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+classDiagram
+    direction LR
+
+    class AchievementEvent {
+        <<sealed interface>>
+    }
+    class EntrySaved {
+        entryId: Long
+        moodLevel: Int?
+        weather: String?
+        createdAt: Long
+        writingDurationSeconds: Long?
+        isFirstEntry: Boolean
+    }
+    class EntryEdited {
+        entryId: Long
+        isFirstEntry: Boolean
+    }
+    class EntryFavorited {
+        entryId: Long
+    }
+    class QuickCheckinCreated {
+        checkinId: Long
+        createdAt: Long
+    }
+    class HabitRecorded {
+        todoId: Long
+        recordDate: Long
+    }
+    class ChallengeDayCompleted {
+        challengeId: Long
+        date: Long
+        diaryId: Long?
+    }
+    class RecomputeRequested
+
+    AchievementEvent <|-- EntrySaved
+    AchievementEvent <|-- EntryEdited
+    AchievementEvent <|-- EntryFavorited
+    AchievementEvent <|-- QuickCheckinCreated
+    AchievementEvent <|-- HabitRecorded
+    AchievementEvent <|-- ChallengeDayCompleted
+    AchievementEvent <|-- RecomputeRequested
+
+    class AchievementEventBus {
+        -_events: MutableSharedFlow~AchievementEvent~
+        +events: SharedFlow~AchievementEvent~
+        +publish(event: AchievementEvent)
+    }
+
+    class DiaryStatsSnapshot {
+        +totalEntries: Int
+        +totalWords: Long
+        +uniqueMoods: Set~Int~
+        +uniqueWeathers: Set~String~
+        +hourBuckets: Map~Int,Int~
+        +monthBuckets: Set~String~
+        +streak: Int
+        +favoriteCount: Int
+        +imageCount: Int
+        +tagCount: Int
+        +maxWords: Int
+        +recentMoods: List~Int~
+        +sameDayCounts: Map~String,Int~
+        +extremeWeatherCount: Int
+        +inMonthMoodSwings: Int
+    }
+
+    class AchievementEngine {
+        -repository: AchievementRepository
+        -dao: DiaryDao
+        -bus: AchievementEventBus
+        -notifier: AchievementNotificationManager
+        -cross: CrossSystemManager
+        +start()
+        +evaluate(event: AchievementEvent)
+        +recompute()
+        -evaluateKey(key, snapshot, event)
+        -onUnlock(achievement, entryId, proofType)
+    }
+
+    class AchievementRepository {
+        +getAllItems(): Flow~List~AchievementItem~~
+        +getStats(): Flow~AchievementStats~
+        +initialize()
+        +checkAndUnlock()  // 弃用：改由 engine.recompute 兜底
+        +unlockWithProof(key, entryId, proofType)
+        +setProgress(key, value)
+        +getWishlist(): Flow~List~WishlistItem~~
+        +addToWishlist(key, isPinned, isActive)
+        +getDisplayCase(): Flow~List~DisplayCaseEntry~~
+        +setDisplayCaseOrder(entries)
+        +setCover(key)
+    }
+
+    class Achievement {
+        +id: Long
+        +key: String
+        +name: String
+        +unlockedAt: Long?
+        +progress: Int
+        +target: Int
+        +category: String
+        +tier: Int
+        +iconEmoji: String
+        +flavorText: String
+        +isHidden: Boolean
+        +relatedEntryId: Long?
+        +proofType: String
+        +lastEventAt: Long?
+    }
+
+    class WishlistItem {
+        +achievementKey: String
+        +isPinned: Boolean
+        +isActive: Boolean
+        +sortOrder: Int
+        +addedAt: Long
+        +note: String
+    }
+
+    class DisplayCaseEntry {
+        +achievementKey: String
+        +sortOrder: Int
+        +isCover: Boolean
+        +addedAt: Long
+    }
+
+    class AchievementLevelCalculator {
+        +compute(unlocked: List~Achievement~): LevelInfo
+    }
+    class LevelInfo {
+        +level: Int
+        +exp: Int
+        +expForNext: Int
+        +title: String
+    }
+
+    class AchievementViewModel {
+        +wishlist: StateFlow~List~WishlistItem~~
+        +displayCase: StateFlow~List~DisplayCaseEntry~~
+        +levelInfo: StateFlow~LevelInfo~
+        +celebration: SharedFlow~AchievementCelebration~
+        +addToWishlist(key)
+        +setCover(key)
+        +shareAchievement(key)
+    }
+
+    class AchievementNotificationManager {
+        +notifyAchievementUnlocked(context, achievement)
+    }
+    class CrossSystemManager {
+        +recentAchievementUnlock: StateFlow~String?~
+        +nextAchievementMilestone: StateFlow~String?~
+        +levelInfo: StateFlow~LevelInfo?~
+        +updateRecentAchievementUnlock(name)
+        +updateNextAchievementMilestone(name)
+        +updateLevelInfo(info)
+    }
+    class LocalAchievementColors {
+        <<CompositionLocal>>
+        +categoryColors: Map~AchievementCategory,Color~
+        +tierColors: Map~AchievementTier,Color~
+    }
+
+    AchievementEngine --> AchievementEventBus : subscribes
+    AchievementEngine --> AchievementRepository : reads / writes
+    AchievementEngine --> AchievementNotificationManager : onUnlock
+    AchievementEngine --> CrossSystemManager : updates
+    AchievementRepository --> Achievement : maps
+    AchievementRepository --> WishlistItem : maps
+    AchievementRepository --> DisplayCaseEntry : maps
+    AchievementViewModel --> AchievementRepository : observes
+    AchievementViewModel --> CrossSystemManager : observes
+    AchievementLevelCalculator ..> Achievement : reads

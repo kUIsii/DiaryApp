@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="fog" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DiaryApp · 主题色实验室 v15</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+:root{
+  --font-display:"Noto Serif SC","Songti SC",serif;
+  --font-body:"LXGW WenKai","PingFang SC",system-ui,serif;
+  --font-ui:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+  /* 这些由 JS 注入 oklch 值 */
+  --bg:#F4F8FC; --ink:#33405A; --muted:#6A7894; --faint:#9AA9BE; --accent:#7DA2C8;
+  --c1:#cfe0f0; --c2:#dde2f4; --c3:#e2f0ea;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--font-ui);color:var(--ink);background:#0e1018;min-height:100%}
+.wrap{max-width:480px;margin:0 auto;padding:0 0 70px}
+.bar{position:sticky;top:0;z-index:6;padding:12px 14px 10px;
+  background:rgba(14,16,24,.55);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+.bar h1{font-family:var(--font-display);font-size:17px;font-weight:600;margin:0 0 9px;color:#EDEFF6;
+  display:flex;align-items:center;gap:8px}
+.bar h1 .sub{font-family:var(--font-ui);font-size:11px;font-weight:400;color:#9aa3b8}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:12px;padding:8px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);color:#cfd6e6;white-space:nowrap;cursor:pointer;transition:all .25s var(--ease);
+  display:flex;align-items:center;gap:7px}
+.chip .sw{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.4);flex:0 0 auto}
+.chip[aria-pressed="true"]{background:#fff;color:#1a1d28;border-color:transparent;font-weight:600;
+  box-shadow:0 6px 16px rgba(255,255,255,.22)}
+.bar2{display:flex;gap:7px;margin-top:9px;align-items:center}
+.bar2 .chips{flex:1}
+.toggle{flex:0 0 auto;font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);color:#cfd6e6;cursor:pointer}
+.toggle[aria-pressed="true"]{background:#fff;color:#1a1d28;border-color:transparent}
+
+/* ====== 舞台：混色当主角 ====== */
+.stage{position:relative;margin:14px 12px 0;min-height:80vh;border-radius:30px;overflow:hidden;
+  box-shadow:0 26px 60px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4);
+  border:1px solid rgba(255,255,255,.1);background:var(--bg);transition:background .9s var(--ease)}
+.stage .field{position:absolute;inset:-20%;z-index:0;filter:blur(52px);opacity:.95;
+  transition:filter .6s var(--ease)}
+.stage .field i{position:absolute;display:block;border-radius:50%;mix-blend-mode:multiply}
+[data-mode="dark"] .stage .field i{mix-blend-mode:screen}
+.stage .field .b1{width:60%;height:60%;left:2%;top:4%;background:var(--c1);animation:drift1 22s ease-in-out infinite}
+.stage .field .b2{width:55%;height:55%;right:0%;top:14%;background:var(--c2);animation:drift2 27s ease-in-out infinite}
+.stage .field .b3{width:62%;height:62%;left:14%;bottom:-6%;background:var(--c3);animation:drift3 31s ease-in-out infinite}
+.stage .field .b4{width:46%;height:46%;right:12%;bottom:2%;background:color-mix(in oklch,var(--c1),var(--c2));
+  animation:drift1 25s ease-in-out infinite reverse}
+@keyframes drift1{0%{transform:translate(0,0) scale(1)}33%{transform:translate(8%,5%) scale(1.12)}66%{transform:translate(-5%,9%) scale(.96)}100%{transform:translate(0,0) scale(1)}}
+@keyframes drift2{0%{transform:translate(0,0) scale(1.05)}40%{transform:translate(-9%,6%) scale(.94)}72%{transform:translate(5%,-7%) scale(1.1)}100%{transform:translate(0,0) scale(1.05)}}
+@keyframes drift3{0%{transform:translate(0,0) scale(1)}30%{transform:translate(6%,-8%) scale(1.08)}65%{transform:translate(-7%,4%) scale(.98)}100%{transform:translate(0,0) scale(1)}}
+.stage .breath{position:absolute;inset:-20%;z-index:0;filter:blur(60px);opacity:.5;
+  background:radial-gradient(40% 38% at 50% 42%, color-mix(in oklch,var(--c1),white), transparent 70%);
+  animation:breathe 14s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.6;transform:scale(1.18)}}
+.stage .spin{position:absolute;inset:-30%;z-index:0;opacity:.32;
+  background:conic-gradient(from 0deg, transparent, color-mix(in oklch,var(--c2),transparent), transparent 60%);
+  animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 颗粒质感 */
+.stage .grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")}
+
+/* ====== 装饰性贴图（不突兀，缓慢漂浮，按主题切换） ====== */
+.deco{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.22}
+.deco svg{position:absolute;inset:0;width:100%;height:100%}
+.deco g{display:none}
+[data-theme="fog"]  .deco .m-fog  {display:block;animation:floaty 18s ease-in-out infinite}
+[data-theme="moss"] .deco .m-moss {display:block;animation:floaty 21s ease-in-out infinite}
+[data-theme="ocean"].deco .m-ocean{display:block;animation:floaty 19s ease-in-out infinite}
+[data-theme="petal"].deco .m-petal{display:block;animation:floaty 17s ease-in-out infinite}
+[data-theme="sand"] .deco .m-sand {display:block;animation:floaty 23s ease-in-out infinite}
+[data-theme="clay"] .deco .m-clay {display:block;animation:floaty 20s ease-in-out infinite}
+[data-theme="ink"]  .deco .m-ink  {display:block;animation:floaty 22s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.04)}}
+
+/* HUD + 上下文小样 */
+.hud{position:absolute;left:16px;top:16px;right:16px;z-index:3;display:flex;justify-content:space-between;align-items:flex-start}
+.hud .ttl{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--ink);
+  text-shadow:0 1px 10px rgba(255,255,255,.5)}
+[data-mode="dark"] .hud .ttl{text-shadow:0 1px 14px rgba(0,0,0,.5)}
+.hud .pill{font-size:11px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.5);color:var(--muted);backdrop-filter:blur(6px)}
+[data-mode="dark"] .hud .pill{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.14);color:var(--ink)}
+
+.mini{position:absolute;left:16px;right:16px;top:60px;z-index:3;display:flex;flex-direction:column;gap:9px}
+.mini .row{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:16px;
+  background:color-mix(in oklch,var(--bg),transparent 50%);border:1px solid rgba(255,255,255,.45);
+  backdrop-filter:blur(6px);box-shadow:0 6px 16px rgba(0,0,0,.06);
+  opacity:0;transform:translateY(12px);animation:rise .7s var(--ease) forwards}
+[data-mode="dark"] .mini .row{background:color-mix(in oklch,var(--bg),black 55%);border-color:rgba(255,255,255,.12)}
+.mini .row:nth-child(1){animation-delay:.2s}
+.mini .row:nth-child(2){animation-delay:.35s}
+.mini .row:nth-child(3){animation-delay:.5s}
+@keyframes rise{to{opacity:1;transform:none}}
+.mini .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.mini .t{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--ink)}
+.mini .p{font-family:var(--font-body);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .sp{flex:1;min-width:0}
+
+/* 色值标签：显示该主题真实预设（oklch 转 hex） */
+.swatches{position:absolute;left:14px;bottom:14px;z-index:3;display:flex;gap:8px;align-items:center;
+  background:rgba(255,255,255,.62);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.5);
+  padding:8px 11px;border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.14);max-width:calc(100% - 28px);flex-wrap:wrap}
+[data-mode="dark"] .swatches{background:rgba(20,24,36,.6);border-color:rgba(255,255,255,.14)}
+.swatches .s{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.swatches .hx{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#55607a}
+[data-mode="dark"] .swatches .hx{color:#b9c2d8}
+.swatches .lab{font-family:var(--font-ui);font-size:11px;color:#55607a;margin-right:2px}
+[data-mode="dark"] .swatches .lab{color:#b9c2d8}
+.hint{position:absolute;left:0;right:0;bottom:60px;z-index:3;text-align:center;
+  font-family:var(--font-ui);font-size:11px;color:var(--faint)}
+@media (prefers-reduced-motion:reduce){
+  .stage .field i,.stage .breath,.stage .spin,.deco g{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>主题色实验室 <span class="sub">v15 · OKLCH 浅色 + 装饰贴图 + 深色重做</span></h1>
+    <div class="chips" id="themeChips"></div>
+    <div class="bar2">
+      <div class="chips" id="blendChips"></div>
+      <button class="toggle" id="modeBtn" aria-pressed="false">深色</button>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="field"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+    <div class="breath"></div>
+    <div class="spin"></div>
+    <div class="deco">
+      <svg viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+        <!-- 雾蓝：柔软云絮 -->
+        <g class="m-fog" fill="var(--accent)" opacity=".9">
+          <path d="M40 120 q20-26 46-14 q14-30 46-18 q30-8 34 22 q26 2 18 28 q-90 8 -144 0 q-14-18 0-40z"/>
+          <path d="M250 430 q16-20 38-10 q12-22 36-14 q24-6 27 17 q20 2 14 21 q-70 6 -113 0 q-10-14 0-30z" opacity=".7"/>
+        </g>
+        <!-- 苔绿：小叶 -->
+        <g class="m-moss" fill="var(--accent)" opacity=".9">
+          <path d="M60 200 q22-30 44 0 q-22 22 -44 0z"/>
+          <path d="M300 300 q18-26 36 0 q-18 18 -36 0z" opacity=".7"/>
+          <path d="M120 520 q20-28 40 0 q-20 20 -40 0z" opacity=".6"/>
+        </g>
+        <!-- 海洋：波纹 -->
+        <g class="m-ocean" fill="none" stroke="var(--accent)" stroke-width="3" opacity=".9" stroke-linecap="round">
+          <path d="M30 360 q26-22 52 0 t52 0 t52 0"/>
+          <path d="M220 540 q26-22 52 0 t52 0" opacity=".7"/>
+          <path d="M60 610 q26-22 52 0 t52 0" opacity=".55"/>
+        </g>
+        <!-- 花瓣：散落花瓣 -->
+        <g class="m-petal" fill="var(--accent)" opacity=".9">
+          <path d="M70 160 q18-26 36-12 q-2 26 -36 12z"/>
+          <path d="M310 260 q14-22 30-10 q-2 22 -30 10z" opacity=".7"/>
+          <path d="M180 470 q16-24 34-11 q-2 24 -34 11z" opacity=".6"/>
+          <path d="M250 600 q14-22 30-10 q-2 22 -30 10z" opacity=".5"/>
+        </g>
+        <!-- 沙琥珀：沙粒点 -->
+        <g class="m-sand" fill="var(--accent)" opacity=".9">
+          <circle cx="80" cy="220" r="4"/><circle cx="120" cy="260" r="3"/><circle cx="60" cy="300" r="3.5"/>
+          <circle cx="300" cy="360" r="4"/><circle cx="340" cy="400" r="3"/><circle cx="280" cy="440" r="3.5"/>
+          <circle cx="150" cy="540" r="3.5"/><circle cx="200" cy="580" r="3"/><circle cx="110" cy="600" r="3.5"/>
+        </g>
+        <!-- 陶土：有机圆块 -->
+        <g class="m-clay" fill="var(--accent)" opacity=".9">
+          <circle cx="90" cy="240" r="16"/><circle cx="320" cy="330" r="12" opacity=".7"/>
+          <circle cx="160" cy="520" r="14" opacity=".6"/><circle cx="260" cy="600" r="10" opacity=".5"/>
+        </g>
+        <!-- 墨石：四角星 -->
+        <g class="m-ink" fill="var(--accent)" opacity=".9">
+          <path d="M90 220 l6 16 16 6 -16 6 -6 16 -6-16 -16-6 16-6z"/>
+          <path d="M310 330 l5 13 13 5 -13 5 -5 13 -5-13 -13-5 13-5z" opacity=".7"/>
+          <path d="M170 540 l5 14 14 5 -14 5 -5 14 -5-14 -14-5 14-5z" opacity=".6"/>
+        </g>
+      </svg>
+    </div>
+    <div class="grain"></div>
+    <div class="hud">
+      <div class="ttl">日记</div>
+      <div class="pill" id="themeName">雾蓝</div>
+    </div>
+    <div class="mini">
+      <div class="row"><span class="dot" style="background:#7BA7C9"></span>
+        <div class="sp"><div class="t">雨后的清晨</div><div class="p">窗外的雨停了，空气里有一股潮湿的泥土味。</div></div></div>
+      <div class="row"><span class="dot" style="background:#7BC9A0"></span>
+        <div class="sp"><div class="t">周末的咖啡</div><div class="p">点了一杯手冲，坐在靠窗的位置晒太阳。</div></div></div>
+      <div class="row"><span class="dot" style="background:#A88BC9"></span>
+        <div class="sp"><div class="t">订好了去海边的票</div><div class="p">心情已经先出发了，兴奋得半夜醒来一次。</div></div></div>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <div class="hint">上方为真实混色背景，下方为颜色在卡片里的样子</div>
+  </div>
+</div>
+
+<script>
+/* ---------- OKLCH → HEX（用于色值标签展示） ---------- */
+function oklchToHex(L,C,H){
+  const hr=H*Math.PI/180, a=C*Math.cos(hr), b=C*Math.sin(hr);
+  const l_=L+0.3963377774*a+0.2158037573*b;
+  const m_=L-0.1055613458*a-0.0638541728*b;
+  const n_=L-0.0894841775*a-1.2914855480*b;
+  const l=Math.cbrt(l_),m=Math.cbrt(m_),n=Math.cbrt(n_);
+  let r=4.0767416621*l-3.3077115913*m+0.2309699292*n;
+  let g=-1.2684380046*l+2.6097574011*m-0.3413193965*n;
+  let bl=-0.0041960863*l-0.7034186147*m+1.7076147010*n;
+  const gam=x=>{x=x<=0?0:x>=1?1:x;return x<=0.0031308?x*12.92:1.055*Math.pow(x,1/2.4)-0.055;};
+  const hx=v=>{const vv=Math.round(gam(v)*255);return vv.toString(16).padStart(2,'0');};
+  return '#'+hx(r)+hx(g)+hx(bl);
+}
+function oklchStr(L,C,H){return `oklch(${L*100}% ${C} ${H})`;}
+
+/* ---------- 7 套主题预设（OKLCH，高明度低彩度，浅色向白渐变） ---------- */
+const PALETTES={
+  fog:  {light:{c1:[.915,.035,248],c2:[.93,.030,268],c3:[.93,.030,205]}, dark:{c1:[.58,.10,248],c2:[.60,.09,268],c3:[.56,.09,205]}, bg:[.955,.012,250], bgD:[.15,.014,250], name:"雾蓝"},
+  moss: {light:{c1:[.92,.040,140],c2:[.93,.034,100],c3:[.92,.030,170]}, dark:{c1:[.58,.11,140],c2:[.60,.10,100],c3:[.56,.09,170]}, bg:[.96,.011,140], bgD:[.145,.013,140], name:"苔绿"},
+  ocean:{light:{c1:[.90,.042,192],c2:[.92,.034,225],c3:[.93,.030,188]}, dark:{c1:[.58,.11,192],c2:[.60,.10,225],c3:[.56,.09,188]}, bg:[.955,.012,200],bgD:[.145,.014,200],name:"海洋"},
+  petal:{light:{c1:[.93,.036,12], c2:[.93,.030,45], c3:[.92,.030,335]}, dark:{c1:[.62,.10,12], c2:[.63,.09,45], c3:[.60,.09,335]}, bg:[.965,.012,30], bgD:[.155,.014,30], name:"花瓣"},
+  sand: {light:{c1:[.935,.036,82], c2:[.92,.034,62], c3:[.92,.030,42]}, dark:{c1:[.62,.10,82], c2:[.61,.09,62], c3:[.58,.09,45]}, bg:[.965,.011,80], bgD:[.155,.014,75], name:"沙琥珀"},
+  clay: {light:{c1:[.915,.032,48], c2:[.93,.026,38], c3:[.92,.026,150]},dark:{c1:[.60,.09,48], c2:[.61,.08,38], c3:[.57,.08,150]},bg:[.96,.011,50], bgD:[.15,.013,50], name:"陶土"},
+  ink:  {light:{c1:[.915,.036,285],c2:[.92,.028,260],c3:[.91,.030,305]}, dark:{c1:[.60,.11,285],c2:[.58,.09,260],c3:[.56,.09,305]}, bg:[.955,.012,260],bgD:[.14,.014,265],name:"墨石"},
+};
+const THEME_ORDER=["fog","moss","ocean","petal","sand","clay","ink"];
+const BLENDS=[{k:"soft",n:"柔混（默认）"},{k:"lush",n:"饱满一点"},{k:"airy",n:"更通透"}];
+let state={theme:"fog",blend:"soft",mode:"light"};
+
+function applyTheme(){
+  const p=PALETTES[state.theme];
+  const src=state.mode==="light"?p.light:p.dark;
+  const root=document.documentElement.style;
+  root.setProperty('--c1',oklchStr(...src.c1));
+  root.setProperty('--c2',oklchStr(...src.c2));
+  root.setProperty('--c3',oklchStr(...src.c3));
+  const bg=state.mode==="light"?p.bg:p.bgD;
+  root.setProperty('--bg',oklchStr(...bg));
+  // 文字色：浅色用深墨，深色用浅墨（都带主题色相，非纯灰）
+  if(state.mode==="light"){
+    root.setProperty('--ink',oklchStr(.28,.02,bg[2]));
+    root.setProperty('--muted',oklchStr(.45,.018,bg[2]));
+    root.setProperty('--faint',oklchStr(.62,.014,bg[2]));
+  }else{
+    root.setProperty('--ink',oklchStr(.90,.018,bg[2]));
+    root.setProperty('--muted',oklchStr(.72,.02,bg[2]));
+    root.setProperty('--faint',oklchStr(.55,.016,bg[2]));
+  }
+  root.setProperty('--accent',oklchStr(state.mode==="light"?.55:.70,.09,bg[2]));
+}
+function applyBlend(){
+  const f=document.getElementById('stage').querySelector('.field');
+  if(state.blend==="soft"){f.style.opacity=.95;f.style.filter="blur(52px)";}
+  else if(state.blend==="lush"){f.style.opacity=1;f.style.filter="blur(42px)";}
+  else {f.style.opacity=.7;f.style.filter="blur(64px)";}
+}
+function refreshSwatches(){
+  const p=PALETTES[state.theme]; // 始终展示浅色身份色（hex）
+  const hx=(a)=>oklchToHex(a[0],a[1],a[2]).toUpperCase();
+  document.getElementById('swatches').innerHTML=
+    `<span class="lab">预设三色</span>
+     <span class="s" style="background:${hx(p.light.c1)}"></span><span class="hx">${hx(p.light.c1)}</span>
+     <span class="s" style="background:${hx(p.light.c2)}"></span><span class="hx">${hx(p.light.c2)}</span>
+     <span class="s" style="background:${hx(p.light.c3)}"></span><span class="hx">${hx(p.light.c3)}</span>`;
+}
+/* 主题切换条：圆点用各自主题的固定色（修复之前同色 bug） */
+const tc=document.getElementById('themeChips');
+THEME_ORDER.forEach(k=>{const t=PALETTES[k];const b=document.createElement('button');b.className='chip';
+  b.setAttribute('aria-pressed',k==="fog");
+  b.innerHTML=`<span class="sw" style="background:${oklchToHex(...t.light.c1)}"></span>${t.name}`;
+  b.onclick=()=>{state.theme=k;document.documentElement.dataset.theme=k;applyTheme();
+    tc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+    document.getElementById('themeName').textContent=t.name;refreshSwatches();};
+  tc.appendChild(b);});
+const bc=document.getElementById('blendChips');
+BLENDS.forEach(v=>{const b=document.createElement('button');b.className='chip';b.textContent=v.n;
+  b.setAttribute('aria-pressed',v.k==="soft");
+  b.onclick=()=>{state.blend=v.k;
+    bc.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');applyBlend();};
+  bc.appendChild(b);});
+const mb=document.getElementById('modeBtn');
+mb.onclick=()=>{state.mode=state.mode==="light"?"dark":"light";document.documentElement.dataset.mode=state.mode;
+  mb.setAttribute('aria-pressed',state.mode==="dark");mb.textContent=state.mode==="dark"?"浅色":"深色";
+  applyTheme();};
+applyTheme();applyBlend();refreshSwatches();
+</script>
+</body>
+</html>

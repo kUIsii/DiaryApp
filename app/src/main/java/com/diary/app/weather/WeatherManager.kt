@@ -167,6 +167,7 @@ object WeatherManager {
                                         val district = ac?.optString("district") ?: ""
                                         if (adcode.isNotBlank()) {
                                             val name = if (city.isNotBlank() && district.isNotBlank() && city != district) "$city$district" else city.ifBlank { district }.ifBlank { "未知" }
+                                            Log.d(TAG, "getAdcode GPS: $adcode ($name)")
                                             return Pair(adcode, name)
                                         }
                                     }
@@ -177,6 +178,32 @@ object WeatherManager {
                 }
             } catch (_: Exception) {}
         }
+
+        // GPS 未授权 / 无定位数据时，使用高德 IP 定位兜底（比硬编码北京市有用得多）
+        val apiKey = BuildConfig.AMAP_API_KEY
+        if (apiKey.isNotBlank()) {
+            try {
+                val conn = URL("https://restapi.amap.com/v3/ip?key=$apiKey").openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"; conn.connectTimeout = 10000; conn.readTimeout = 10000
+                try {
+                    if (conn.responseCode == 200) {
+                        val json = JSONObject(conn.inputStream.bufferedReader().readText())
+                        if (json.optString("status") == "1") {
+                            val adcode = json.optString("adcode", "")
+                            val city = json.optString("city", "")
+                            if (adcode.isNotBlank()) {
+                                Log.d(TAG, "getAdcode IP fallback: $adcode ($city)")
+                                return Pair(adcode, city.ifBlank { "未知" })
+                            }
+                        }
+                    }
+                } finally { conn.disconnect() }
+            } catch (e: Exception) {
+                Log.w(TAG, "getAdcode IP fallback failed", e)
+            }
+        }
+
+        Log.w(TAG, "getAdcode: 所有定位方式均失败，回退北京")
         return Pair("110101", "北京市东城区")
     }
 

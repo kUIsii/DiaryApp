@@ -76,6 +76,8 @@ import androidx.compose.ui.unit.sp
 import com.diary.app.DiaryApplication
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.experimental.ExperimentalFeaturesState
 
 private data class ToolItem(
@@ -94,14 +96,20 @@ private data class ToolSection(
 )
 
 @Composable
-private fun sectionColor(index: Int): Color {
+private fun sectionColor(key: String): Color {
     val p = MaterialTheme.colorScheme.primary
     val s = MaterialTheme.colorScheme.secondary
     val t = MaterialTheme.colorScheme.tertiary
-    return when (index % 3) {
-        0 -> p
-        1 -> s
-        else -> t
+    val v = MaterialTheme.colorScheme.onSurfaceVariant
+    // Color is tied to the section's meaning, not its position,
+    // so it stays stable even if sections are reordered.
+    return when (key) {
+        "analysis" -> p
+        "ai" -> t
+        "memory" -> s
+        "immersion" -> p
+        "tools" -> v
+        else -> p
     }
 }
 
@@ -215,19 +223,14 @@ fun ToolsScreen(
                 }
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "\u5DE5\u5177",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor,
-                    letterSpacing = (-0.5).sp,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-                )
+                ScreenTopBar(title = "\u5DE5\u5177")
+
+                Spacer(modifier = Modifier.height(DesignTokens.TopBarGap))
 
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = DesignTokens.PageMargin),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
@@ -264,7 +267,7 @@ private fun SectionCard(
     features: ExperimentalFeaturesState,
     app: DiaryApplication?
 ) {
-    val c = sectionColor(sectionIndex)
+    val c = sectionColor(section.key)
     val arrowRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
         label = "arrowRotation"

@@ -25,8 +25,8 @@ object WeatherAlertFetcher {
 
     // 中央气象台预警列表接口（https，避免明文被系统拦截）
     // 注意：不要拼接 province 参数——实测带 province 会让 nmc 返回 500，
-    // 改为拉取全国最近预警后按 adcode 前缀在客户端过滤（见下方 cityPrefix/provPrefix）。
-    private const val NMC_URL = "https://www.nmc.cn/rest/findAlarm?pageNo=1&pageSize=200"
+    // 改为拉取全国所有预警后按 adcode 前缀在客户端过滤（见下方 cityPrefix/provPrefix）。
+    // pageSize=500 + 遍历所有分页，确保不遗漏（全国常驻 2000+ 条活跃预警）。
 
     // ===== 可插拔：和风天气（留空则用 nmc）=====
     private const val QWEATHER_API_KEY = "" // 填入和风天气免费 Key 后自动启用
@@ -61,59 +61,80 @@ object WeatherAlertFetcher {
     private fun fetchFromNmc(context: Context): List<WeatherAlert> {
         val (adcode, cityName) = WeatherManager.getAdcode(context) ?: return emptyList()
         val province = PROVINCE_BY_CODE[adcode.take(2)] ?: return emptyList()
-        // 不再传 province 参数（nmc 对该参数返回 500），拉全国最近 200 条后客户端按 adcode 过滤
-        val url = NMC_URL
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.requestMethod = "GET"
-        conn.connectTimeout = 10000
-        conn.readTimeout = 10000
-        conn.setRequestProperty("User-Agent", "DiaryApp/1.0")
+        Log.d(TAG, "nmc: 定位 adcode=$adcode, city=$cityName, province=$province")
+
         val result = mutableListOf<WeatherAlert>()
+        val cityPrefix = adcode.take(4)   // 市级（含下属区县）
+        val provPrefix = adcode.take(2)   // 省级
+        var pageNo = 1
+        var totalAlerts = 0
+
         try {
-            // 网络故障/服务端错误时抛出，由 Worker 捕获后 retry，避免把"拉取失败"误当成"无预警"而清空横幅
-            if (conn.responseCode != 200) throw java.io.IOException("nmc response code ${conn.responseCode}")
-            val json = JSONObject(conn.inputStream.bufferedReader().readText())
-            val data = json.optJSONObject("data") ?: return emptyList()
-            val list = data.optJSONArray("list") ?: return emptyList()
+            // 遍历所有分页，确保不遗漏用户的预警（全国常驻 2000+ 条预警，单页不够）
+            while (true) {
+                val url = "https://www.nmc.cn/rest/findAlarm?pageNo=$pageNo&pageSize=500"
+                val conn = URL(url).openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.setRequestProperty("User-Agent", "DiaryApp/1.0")
 
-            val cityPrefix = adcode.take(4)   // 市级（含下属区县）
-            val provPrefix = adcode.take(2)   // 省级
+                val json: JSONObject
+                try {
+                    if (conn.responseCode != 200) throw java.io.IOException("nmc response code ${conn.responseCode}")
+                    json = JSONObject(conn.inputStream.bufferedReader().readText())
+                } finally {
+                    conn.disconnect()
+                }
 
-            for (i in 0 until list.length()) {
-                val item = list.getJSONObject(i)
-                val alertId = item.optString("alertid", "")
-                if (alertId.isBlank()) continue
+                val data = json.optJSONObject("data") ?: break
+                val pageInfo = data.optJSONObject("page")
+                val list = data.optJSONArray("list") ?: break
+                val total = pageInfo?.optInt("count", 0) ?: 0
+                if (pageNo == 1) totalAlerts = total
 
-                // alertId 形如 53092341600000_20260708221121，前 6 位为发布地 adcode
-                val idPrefix = alertId.take(6)
-                val isProvinceLevel = idPrefix.length == 6 && idPrefix.drop(2).all { it == '0' }
-                val matches = idPrefix.startsWith(cityPrefix) ||
-                        (isProvinceLevel && idPrefix.take(2) == provPrefix)
-                if (!matches) continue
+                for (i in 0 until list.length()) {
+                    val item = list.getJSONObject(i)
+                    val alertId = item.optString("alertid", "")
+                    if (alertId.isBlank()) continue
 
-                val title = item.optString("title", "")
-                val (type, level) = parseTitle(title)
-                if (type.isBlank()) continue
+                    // alertId 形如 53092341600000_20260708221121，前 6 位为发布地 adcode
+                    val idPrefix = alertId.take(6)
+                    val isProvinceLevel = idPrefix.length == 6 && idPrefix.drop(2).all { it == '0' }
+                    val matches = idPrefix.startsWith(cityPrefix) ||
+                            (isProvinceLevel && idPrefix.take(2) == provPrefix)
+                    if (!matches) continue
 
-                result.add(
-                    WeatherAlert(
-                        alertId = alertId,
-                        province = province,
-                        city = extractLocation(title) ?: cityName,
-                        level = level,
-                        type = type,
-                        text = title,
-                        publishTime = parsePublishTimeFromAlertId(alertId),
-                        source = "中央气象台"
+                    val title = item.optString("title", "")
+                    val (type, level) = parseTitle(title)
+                    if (type.isBlank()) {
+                        Log.w(TAG, "nmc: 标题解析失败（跳过）: $title")
+                        continue
+                    }
+
+                    result.add(
+                        WeatherAlert(
+                            alertId = alertId,
+                            province = province,
+                            city = extractLocation(title) ?: cityName,
+                            level = level,
+                            type = type,
+                            text = title,
+                            publishTime = parsePublishTimeFromAlertId(alertId),
+                            source = "中央气象台"
+                        )
                     )
-                )
+                }
+
+                // 判断是否还有下一页
+                val next = pageInfo?.optInt("next", -1) ?: -1
+                if (next <= pageNo) break
+                pageNo = next
             }
-            Log.d(TAG, "nmc: 命中 ${result.size} 条预警 ($province, 前缀 $cityPrefix)")
+            Log.d(TAG, "nmc: 遍历 $pageNo 页(共 $totalAlerts 条预警)，命中 ${result.size} 条 ($province/$cityName, 前缀 $cityPrefix)")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch nmc alerts", e)
+            Log.e(TAG, "Failed to fetch nmc alerts (page=$pageNo, adcode=$adcode)", e)
             throw e
-        } finally {
-            conn.disconnect()
         }
         return result
     }

@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 成就收藏 · 重设计预览 v3</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2623;
+      --muted: #68736d;
+      --soft: #8b9690;
+      --paper: #fffaf0;
+      --paper-2: #f7efe1;
+      --line: rgba(45, 54, 49, 0.16);
+      --line-strong: rgba(45, 54, 49, 0.28);
+      --grid-line: rgba(80, 66, 40, 0.05);
+      --bg-base: #f5efe3;
+      --bg-a: rgba(246, 216, 168, 0.78);
+      --bg-b: rgba(184, 215, 238, 0.7);
+      --bg-c: rgba(203, 193, 232, 0.56);
+      --bg-d: rgba(220, 235, 216, 0.78);
+      --mesh-a: rgba(245, 216, 168, 0.36);
+      --mesh-b: rgba(184, 215, 238, 0.38);
+      --mesh-c: rgba(203, 193, 232, 0.32);
+      --mesh-d: rgba(220, 235, 216, 0.36);
+      --mesh-e: rgba(239, 196, 173, 0.32);
+      --teal: #4ea89b;
+      --sage: #b7cba7;
+      --mint: #dcebd8;
+      --peach: #efc4ad;
+      --apricot: #f5d8a8;
+      --rose: #e9b8be;
+      --lilac: #cbc1e8;
+      --blue: #b8d7ee;
+      --gold: #e9c46a;
+      --card: rgba(255, 252, 244, 0.84);
+      --card-solid: #fffaf1;
+      --brand-gradient: linear-gradient(135deg, #4ea89b, #e6a683);
+      --phone-gradient: radial-gradient(circle at 18% 8%, rgba(245, 216, 168, 0.92), transparent 34%), radial-gradient(circle at 85% 18%, rgba(184, 215, 238, 0.8), transparent 34%), radial-gradient(circle at 20% 86%, rgba(203, 193, 232, 0.45), transparent 30%), linear-gradient(180deg, #fff9f0 0%, #f4efe4 100%);
+      --shadow: 0 22px 55px rgba(68, 56, 39, 0.14);
+      --radius: 26px;
+      --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body[data-theme="mist"] { --bg-base:#eef8f6; --bg-a:rgba(205,238,226,.86); --bg-b:rgba(174,215,234,.76); --bg-c:rgba(232,226,250,.48); --bg-d:rgba(244,232,205,.66); --mesh-a:rgba(198,238,226,.42); --mesh-b:rgba(166,212,232,.42); --mesh-c:rgba(232,226,250,.28); --mesh-d:rgba(244,232,205,.34); --mesh-e:rgba(182,229,214,.34); --teal:#479b92; --sage:#a8cfc5; --mint:#d8f0e9; --peach:#efd0bd; --apricot:#f2dfb4; --rose:#e8c4cc; --lilac:#d7d1ee; --blue:#b6dced; --brand-gradient:linear-gradient(135deg,#479b92,#83b9de); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(201,238,226,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(179,222,238,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,223,180,.55),transparent 30%),linear-gradient(180deg,#f9fffc,#edf7f4); }
+    body[data-theme="rose"] { --bg-base:#fbf0ef; --bg-a:rgba(249,214,210,.86); --bg-b:rgba(242,191,205,.62); --bg-c:rgba(231,218,246,.54); --bg-d:rgba(255,237,215,.78); --mesh-a:rgba(249,214,210,.42); --mesh-b:rgba(242,191,205,.34); --mesh-c:rgba(231,218,246,.32); --mesh-d:rgba(255,237,215,.38); --mesh-e:rgba(230,197,177,.28); --teal:#bc7f86; --sage:#d2b8b0; --mint:#f0ddd8; --peach:#f3c0af; --apricot:#f8ddb9; --rose:#e7aebd; --lilac:#d7c5ec; --blue:#c8d9ec; --brand-gradient:linear-gradient(135deg,#c77b87,#df9b77); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(249,214,210,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(231,218,246,.72),transparent 34%),radial-gradient(circle at 18% 84%,rgba(248,221,185,.62),transparent 30%),linear-gradient(180deg,#fff8f7,#f9eeec); }
+    body[data-theme="moon"] { --bg-base:#eef2f6; --bg-a:rgba(207,221,232,.84); --bg-b:rgba(186,207,226,.76); --bg-c:rgba(213,205,232,.52); --bg-d:rgba(238,232,218,.72); --mesh-a:rgba(207,221,232,.42); --mesh-b:rgba(186,207,226,.42); --mesh-c:rgba(213,205,232,.34); --mesh-d:rgba(238,232,218,.3); --mesh-e:rgba(172,193,210,.3); --teal:#647e91; --sage:#b3c0bd; --mint:#e1e9e8; --peach:#dec8bd; --apricot:#ead9bd; --rose:#d8bdc7; --lilac:#c8c1df; --blue:#bbd1e7; --brand-gradient:linear-gradient(135deg,#667e92,#a69ed2); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(207,221,232,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(200,193,223,.76),transparent 34%),radial-gradient(circle at 18% 84%,rgba(234,217,189,.55),transparent 30%),linear-gradient(180deg,#fbfcfd,#edf1f5); }
+    body[data-theme="apricot"] { --bg-base:#fbf1df; --bg-a:rgba(250,218,166,.88); --bg-b:rgba(242,190,153,.68); --bg-c:rgba(216,231,206,.58); --bg-d:rgba(255,245,218,.82); --mesh-a:rgba(250,218,166,.44); --mesh-b:rgba(242,190,153,.38); --mesh-c:rgba(216,231,206,.34); --mesh-d:rgba(255,245,218,.4); --mesh-e:rgba(235,165,125,.3); --teal:#c17f51; --sage:#c8c894; --mint:#e8edd1; --peach:#efb28e; --apricot:#f5cf8f; --rose:#eab6a7; --lilac:#d7c4e5; --blue:#bdd7e5; --brand-gradient:linear-gradient(135deg,#d58f55,#e9b66f); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(250,218,166,.96),transparent 34%),radial-gradient(circle at 84% 18%,rgba(216,231,206,.72),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,190,153,.58),transparent 30%),linear-gradient(180deg,#fffaf0,#faeedb); }
+    body[data-theme="iris"] { --bg-base:#f1eff8; --bg-a:rgba(224,213,245,.82); --bg-b:rgba(192,214,237,.72); --bg-c:rgba(242,218,230,.55); --bg-d:rgba(232,237,222,.68); --mesh-a:rgba(224,213,245,.42); --mesh-b:rgba(192,214,237,.4); --mesh-c:rgba(242,218,230,.32); --mesh-d:rgba(232,237,222,.32); --mesh-e:rgba(187,174,224,.32); --teal:#8076b7; --sage:#c2cbb6; --mint:#e5eadf; --peach:#efc3b7; --apricot:#edd6ad; --rose:#e7c3d4; --lilac:#cabfec; --blue:#bfd6ed; --brand-gradient:linear-gradient(135deg,#8076b7,#6da2c5); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(224,213,245,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(192,214,237,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,218,230,.58),transparent 30%),linear-gradient(180deg,#fcfbff,#f1eff8); }
+    body[data-theme="matcha"] { --bg-base:#f0f5df; --bg-a:rgba(212,231,174,.82); --bg-b:rgba(181,216,193,.78); --bg-c:rgba(239,218,181,.58); --bg-d:rgba(252,246,222,.84); --mesh-a:rgba(212,231,174,.42); --mesh-b:rgba(181,216,193,.4); --mesh-c:rgba(239,218,181,.34); --mesh-d:rgba(252,246,222,.38); --mesh-e:rgba(159,196,137,.3); --teal:#6d9a62; --sage:#b8cc95; --mint:#e3edcc; --peach:#e8c1a6; --apricot:#eed99e; --rose:#dfbdba; --lilac:#cbc8e4; --blue:#bdd9df; --brand-gradient:linear-gradient(135deg,#79a76a,#b4b86b); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(212,231,174,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(181,216,193,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(239,218,181,.58),transparent 30%),linear-gradient(180deg,#fbfff1,#eef5dd); }
+    body[data-theme="lagoon"] { --bg-base:#edf7fa; --bg-a:rgba(191,232,236,.84); --bg-b:rgba(170,209,232,.76); --bg-c:rgba(218,224,246,.52); --bg-d:rgba(242,229,201,.68); --mesh-a:rgba(191,232,236,.42); --mesh-b:rgba(170,209,232,.42); --mesh-c:rgba(218,224,246,.32); --mesh-d:rgba(242,229,201,.34); --mesh-e:rgba(145,203,213,.32); --teal:#4d9ca8; --sage:#b8cabd; --mint:#dcf0ee; --peach:#e7c5b2; --apricot:#f1dcaf; --rose:#dfbfcb; --lilac:#ccd0ec; --blue:#add5ed; --brand-gradient:linear-gradient(135deg,#4d9ca8,#6f9bd3); --phone-gradient:radial-gradient(circle at 18% 8%,rgba(191,232,236,.94),transparent 34%),radial-gradient(circle at 84% 18%,rgba(170,209,232,.82),transparent 34%),radial-gradient(circle at 18% 84%,rgba(242,229,201,.58),transparent 30%),linear-gradient(180deg,#f8feff,#edf7fa); }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 18% 14%, var(--bg-a), transparent 28%),
+        radial-gradient(circle at 76% 7%, var(--bg-b), transparent 25%),
+        radial-gradient(circle at 73% 78%, var(--bg-c), transparent 31%),
+        radial-gradient(circle at 18% 82%, var(--bg-d), transparent 32%),
+        var(--bg-base);
+      background-size: 42px 42px, 42px 42px, auto, auto, auto, auto, auto;
+      transition: background 260ms ease, color 260ms ease;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      pointer-events: none;
+      z-index: -1;
+      background: conic-gradient(from 72deg at 42% 42%, var(--mesh-a), var(--mesh-b), var(--mesh-c), var(--mesh-d), var(--mesh-e), var(--mesh-a));
+      filter: blur(38px);
+      opacity: 0.92;
+      animation: softDrift 18s ease-in-out infinite alternate;
+    }
+    @keyframes softDrift { from { transform: translate3d(-1.5%,-1%,0) rotate(-2deg) scale(1); } to { transform: translate3d(1.5%,1%,0) rotate(2deg) scale(1.03); } }
+    a { color: inherit; }
+    button { font: inherit; cursor: pointer; }
+
+    .page { width: min(1540px, calc(100% - 44px)); margin: 0 auto; padding: 36px 0 72px; }
+
+    .topbar { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 28px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--brand-gradient); box-shadow: 0 12px 24px rgba(78,168,155,.22); }
+    .brand-mark svg { width: 18px; height: 18px; }
+    .brand strong { display: block; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .brand span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .link-chip { min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; color: #42524c; background: rgba(255,250,241,.68); text-decoration: none; font-size: 12px; font-weight: 700; transition: background 180ms ease, border-color 180ms ease, transform 180ms ease; }
+    .link-chip:hover { background: rgba(255,250,241,.96); border-color: var(--line-strong); transform: translateY(-1px); }
+
+    .palette-bar { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; margin: 0 0 30px; padding: 14px; border: 1px solid var(--line); background: rgba(255,250,241,.58); box-shadow: 0 12px 32px rgba(43,50,46,.07); border-radius: 20px; }
+    .palette-copy b { display: block; font-family: var(--font-serif); font-size: 20px; line-height: 1.1; }
+    .palette-copy span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .palette-options { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .palette-btn { min-height: 42px; padding: 6px 10px 6px 7px; border: 1px solid var(--line); border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; color: #3b4742; background: rgba(255,255,255,.48); font-size: 11px; font-weight: 800; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease; }
+    .palette-btn:hover { transform: translateY(-1px); border-color: var(--line-strong); background: rgba(255,255,255,.72); }
+    .palette-btn[aria-pressed="true"] { border-color: rgba(45,54,49,.34); background: rgba(255,255,255,.86); box-shadow: 0 8px 18px rgba(43,50,46,.08); }
+    .swatches { display: inline-flex; gap: 3px; }
+    .swatches i { width: 16px; height: 16px; border-radius: 999px; border: 1px solid rgba(31,38,35,.15); font-style: normal; }
+
+    /* ---- Hero ---- */
+    .hero { display: grid; grid-template-columns: minmax(320px, 0.92fr) minmax(340px, 1.1fr); gap: 40px; align-items: start; }
+    .hero-copy { position: sticky; top: 24px; }
+    .kicker { margin: 0 0 12px; color: #ad513b; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+    h1, h2, h3 { margin: 0; }
+    h1 { max-width: 560px; font-family: var(--font-serif); font-size: clamp(40px, 5vw, 70px); line-height: 0.98; font-weight: 900; }
+    .lead { max-width: 540px; margin: 22px 0 0; color: #3d4642; font-size: 17px; line-height: 1.9; }
+    .lead strong { color: #1f2623; font-weight: 800; }
+
+    .desk-notes { position: relative; min-height: 250px; margin-top: 30px; border: 1px solid var(--line-strong); background: rgba(255,252,244,.42); border-radius: 22px; overflow: hidden; }
+    .desk-note { position: absolute; width: 220px; min-height: 104px; padding: 16px 16px 14px; border: 1px solid rgba(42,45,40,.68); box-shadow: 12px 12px 0 rgba(75,66,48,.11); font-size: 14px; line-height: 1.55; font-weight: 700; background: var(--note-a, var(--apricot)); border-radius: 6px; }
+    .desk-note small { display: block; margin-top: 8px; color: rgba(31,38,35,.62); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .note-a { left: 28px; top: 40px; transform: rotate(-7deg); background: var(--apricot); }
+    .note-b { right: 22px; top: 86px; background: var(--mint); transform: rotate(5deg); }
+    .note-c { left: 78px; bottom: 26px; background: var(--peach); transform: rotate(-1deg); }
+
+    .stage { display: grid; justify-items: center; gap: 18px; min-width: 0; }
+    .phone-wrap { position: sticky; top: 24px; width: min(100%, 410px); padding: 16px; border: 1px solid rgba(45,54,49,.22); background: rgba(255,252,244,.34); box-shadow: var(--shadow); border-radius: 40px; }
+    .phone { position: relative; width: 100%; aspect-ratio: 390/812; border: 10px solid #252b28; border-radius: 46px; background: #f9f3e8; box-shadow: 0 34px 90px rgba(43,50,46,.22); overflow: hidden; }
+    .phone::before { content: ""; position: absolute; top: 10px; left: 50%; z-index: 5; width: 112px; height: 28px; border-radius: 999px; background: #252b28; transform: translateX(-50%); }
+    .phone-screen { position: absolute; inset: 0; overflow: hidden; background: var(--phone-gradient); transition: background 260ms ease; }
+    .mobile-scene { position: absolute; inset: 0; display: none; padding: 52px 16px 16px; flex-direction: column; animation: sceneIn 260ms ease both; }
+    .mobile-scene.active { display: flex; }
+    @keyframes sceneIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .mobile-top { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .mobile-title small { display: block; color: rgba(31,38,35,.54); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .mobile-title strong { display: block; margin-top: 2px; font-family: var(--font-serif); font-size: 23px; line-height: 1.05; }
+    .round-btn { width: 36px; height: 36px; border: 1px solid rgba(52,62,57,.12); border-radius: 15px; display: grid; place-items: center; color: #375851; background: rgba(255,255,255,.58); box-shadow: 0 8px 18px rgba(57,68,64,.08); }
+    .round-btn svg { width: 18px; height: 18px; }
+    .content-scroll { min-height: 0; display: flex; flex: 1; flex-direction: column; gap: 10px; overflow: hidden; }
+    .mobile-card { border: 1px solid rgba(52,62,57,.12); border-radius: 20px; background: rgba(255,255,255,.56); box-shadow: 0 10px 25px rgba(59,66,60,.08); }
+    .mobile-card.pad { padding: 13px; }
+    .mini-label { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border-radius: 999px; color: #4e655d; background: rgba(78,168,155,.12); font-size: 10px; font-weight: 800; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .metric { min-height: 64px; padding: 10px; border: 1px solid rgba(52,62,57,.1); border-radius: 16px; background: rgba(255,255,255,.48); text-align: center; }
+    .metric b { display: block; font-size: 19px; line-height: 1; font-family: var(--font-serif); }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: 9.5px; line-height: 1.3; }
+
+    /* mini medallion inside phone */
+    .phone-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .phone-medal { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 11px 6px; border: 1px solid rgba(52,62,57,.1); border-radius: 16px; background: rgba(255,255,255,.5); }
+    .phone-medal .ring { width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center; }
+    .phone-medal .ring svg { width: 22px; height: 22px; }
+    .phone-medal b { font-size: 9px; font-weight: 700; text-align: center; color: #2c3631; line-height: 1.25; }
+    .phone-medal.locked { opacity: .5; }
+    .phone-medal.locked .ring { background: rgba(255,255,255,.4); color: var(--soft); }
+
+    /* ---- Sections ---- */
+    .section { margin-top: 64px; }
+    .section-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 22px; }
+    .section-head h2 { font-family: var(--font-serif); font-size: clamp(30px, 4vw, 52px); line-height: 1.02; }
+    .section-head p { max-width: 540px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+
+    .panel { padding: 24px; border: 1px solid var(--line); background: rgba(255,250,241,.72); box-shadow: 0 16px 42px rgba(43,50,46,.08); border-radius: var(--radius); }
+
+    /* filter chips */
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .chip { min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; color: #38503f; background: rgba(255,255,255,.5); font-size: 12px; font-weight: 700; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease; }
+    .chip:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+    .chip[aria-pressed="true"] { border-color: rgba(78,168,155,.55); background: rgba(255,250,241,.96); box-shadow: 0 8px 18px rgba(78,168,155,.12); }
+    .chip .dot { width: 11px; height: 11px; border-radius: 999px; }
+    .chip-group { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .chip-group .glabel { font-size: 11px; font-weight: 800; color: var(--muted); margin-right: 2px; letter-spacing: .04em; }
+
+    /* gallery grid */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 16px; }
+    .ach-card { position: relative; padding: 18px 16px 16px; border: 1px solid rgba(52,62,57,.12); border-radius: 22px; background: rgba(255,255,255,.56); box-shadow: 0 12px 28px rgba(59,66,60,.07); text-align: center; transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease; cursor: pointer; overflow: hidden; }
+    .ach-card:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(59,66,60,.12); border-color: rgba(78,168,155,.4); }
+    .ach-card.locked { background: rgba(255,255,255,.34); }
+    .ach-card.wish { border-color: rgba(233,196,106,.6); box-shadow: 0 12px 28px rgba(233,196,106,.14); }
+    .medal { position: relative; width: 76px; height: 76px; margin: 0 auto 12px; border-radius: 999px; display: grid; place-items: center; }
+    .medal.ring-com { border: 2.5px solid var(--sage); background: radial-gradient(circle at 30% 25%, #fff, var(--mint)); }
+    .medal.ring-rare { border: 2.5px solid var(--blue); background: radial-gradient(circle at 30% 25%, #fff, #e8f1fa); }
+    .medal.ring-epic { border: 2.5px solid var(--peach); background: radial-gradient(circle at 30% 25%, #fff, #fbe7da); }
+    .medal.ring-leg { border: 2.5px solid var(--gold); background: radial-gradient(circle at 30% 25%, #fffdf3, #fbeec2); box-shadow: 0 0 0 4px rgba(233,196,106,.18), 0 8px 20px rgba(233,196,106,.25); }
+    .medal svg { width: 38px; height: 38px; }
+    .medal .tier-glyph { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; border: 2px solid #fff; }
+    .medal .tier-glyph svg { width: 13px; height: 13px; color: #fff; }
+    .tg-com { background: var(--sage); } .tg-rare { background: var(--blue); } .tg-epic { background: var(--peach); } .tg-leg { background: var(--gold); }
+    .ach-card h3 { font-size: 15px; line-height: 1.2; font-family: var(--font-serif); }
+    .ach-card .cat { display: block; margin-top: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .ach-card .tier-name { display: inline-block; margin-top: 9px; font-size: 10px; font-weight: 800; padding: 2px 9px; border-radius: 999px; }
+    .tn-com { background: rgba(183,203,167,.28); color: #5c6f4d; } .tn-rare { background: rgba(184,215,238,.4); color: #3f6285; } .tn-epic { background: rgba(239,196,173,.34); color: #9c5a3e; } .tn-leg { background: rgba(233,196,106,.3); color: #8a6a25; }
+    .prog { margin-top: 11px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .prog i { display: block; height: 100%; border-radius: inherit; background: var(--brand-gradient); }
+    .ach-card .prog-label { margin-top: 5px; font-size: 10px; color: var(--muted); font-weight: 700; }
+    .wish-star { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.6); border: 1px solid rgba(52,62,57,.12); }
+    .wish-star svg { width: 14px; height: 14px; color: var(--gold); }
+
+    /* display case (ticket cards) */
+    .case-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 26px 18px; }
+    .ticket { position: relative; min-height: 132px; padding: 16px; border: 1px solid rgba(42,45,40,.22); background: var(--card); border-radius: 20px; box-shadow: 7px 9px 0 rgba(75,66,48,.07); display: grid; grid-template-columns: 50px 1fr; gap: 13px; align-items: center; transform: rotate(-1deg); transition: transform 200ms ease; }
+    .ticket:nth-child(2n) { transform: rotate(1deg); background: rgba(220,235,216,.5); }
+    .ticket:nth-child(3n) { transform: rotate(-.4deg); background: rgba(245,216,168,.42); }
+    .ticket:hover { transform: rotate(0deg) translateY(-2px); }
+    .ticket .t-medal { width: 50px; height: 50px; border-radius: 999px; display: grid; place-items: center; border: 2px solid var(--teal); background: radial-gradient(circle at 30% 25%, #fff, var(--mint)); }
+    .ticket .t-medal svg { width: 26px; height: 26px; }
+    .ticket b { display: block; font-size: 14px; font-family: var(--font-serif); }
+    .ticket span { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .ticket .stamp { position: absolute; top: 12px; right: 12px; min-height: 22px; padding: 0 8px; border: 1px solid rgba(42,45,40,.3); border-radius: 9px; display: inline-grid; place-items: center; background: rgba(255,255,255,.4); color: #4a5651; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; transform: rotate(-3deg); }
+
+    /* wishlist */
+    .wish-row { display: grid; grid-template-columns: 48px 1fr auto; gap: 13px; align-items: center; padding: 12px 14px; border: 1px solid rgba(52,62,57,.1); border-radius: 18px; background: rgba(255,255,255,.5); margin-bottom: 10px; }
+    .wish-row .w-medal { width: 48px; height: 48px; border-radius: 999px; display: grid; place-items: center; border: 2px solid var(--gold); background: radial-gradient(circle at 30% 25%, #fffdf3, #fbeec2); }
+    .wish-row .w-medal svg { width: 25px; height: 25px; }
+    .wish-row b { font-size: 14px; display: block; }
+    .wish-row span { font-size: 11px; color: var(--muted); display: block; margin-top: 3px; }
+    .wish-row .w-prog { width: 92px; }
+    .wish-row .w-prog .bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .wish-row .w-prog .bar i { display: block; height: 100%; background: var(--brand-gradient); }
+    .wish-row .w-prog em { font-style: normal; font-size: 10px; color: var(--muted); font-weight: 700; }
+
+    /* monthly challenge */
+    .challenge { display: grid; grid-template-columns: 120px 1fr; gap: 22px; align-items: center; padding: 22px; border-radius: var(--radius); border: 1px solid rgba(78,168,155,.26); background: var(--phone-gradient); box-shadow: 0 16px 42px rgba(43,50,46,.08); }
+    .challenge .c-medal { width: 104px; height: 104px; border-radius: 28px; display: grid; place-items: center; margin: 0 auto; border: 2.5px solid var(--gold); background: rgba(255,255,255,.62); box-shadow: 0 12px 26px rgba(233,196,106,.2); }
+    .challenge .c-medal svg { width: 54px; height: 54px; }
+    .challenge h3 { font-family: var(--font-serif); font-size: 24px; }
+    .challenge p { margin: 8px 0 14px; color: #4a5651; font-size: 13px; line-height: 1.7; }
+    .challenge .c-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .challenge .c-bar i { display: block; height: 100%; background: var(--brand-gradient); }
+
+    .footer-note { margin-top: 56px; padding: 18px 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.8; }
+
+    /* detail modal */
+    .modal-root { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(31,38,35,.28); backdrop-filter: blur(6px); }
+    .modal-root.open { display: flex; animation: fadeIn 200ms ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal { width: min(560px, 100%); max-height: 88vh; overflow: auto; padding: 26px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--card-solid); box-shadow: var(--shadow); animation: popIn 240ms ease; }
+    @keyframes popIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+    .modal-top { display: flex; gap: 18px; align-items: center; }
+    .modal .m-medal { width: 92px; height: 92px; flex: 0 0 auto; border-radius: 999px; display: grid; place-items: center; }
+    .modal h3 { font-family: var(--font-serif); font-size: 26px; line-height: 1.08; }
+    .modal .m-cat { margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .modal .m-flavor { margin: 16px 0; padding: 14px 16px; border-radius: 16px; border: 1px dashed rgba(52,62,57,.26); background: rgba(255,250,241,.58); font-size: 13px; line-height: 1.7; color: #3d4642; font-family: var(--font-serif); }
+    .modal .m-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .modal .m-stat { padding: 11px 13px; border: 1px solid rgba(52,62,57,.1); border-radius: 14px; background: rgba(255,255,255,.5); }
+    .modal .m-stat b { display: block; font-size: 13px; }
+    .modal .m-stat span { display: block; margin-top: 3px; font-size: 10.5px; color: var(--muted); }
+    .timeline { border-left: 2px solid var(--line); margin: 6px 0 18px; padding-left: 16px; display: grid; gap: 12px; }
+    .tl-item { position: relative; }
+    .tl-item::before { content: ""; position: absolute; left: -23px; top: 3px; width: 11px; height: 11px; border-radius: 999px; background: var(--teal); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--teal); }
+    .tl-item b { font-size: 12.5px; display: block; }
+    .tl-item span { font-size: 10.5px; color: var(--muted); }
+    .modal-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+    .pill { min-height: 40px; padding: 0 16px; border: 1px solid rgba(52,62,57,.12); border-radius: 999px; display: inline-grid; place-items: center; color: #31423d; background: rgba(255,255,255,.6); font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .pill.primary { color: #fff; border-color: transparent; background: var(--brand-gradient); }
+    .pill.gold { color: #6b521c; border-color: rgba(233,196,106,.6); background: rgba(233,196,106,.22); }
+
+    .toast { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(20px); z-index: 60; min-height: 44px; padding: 0 20px; display: inline-flex; align-items: center; gap: 9px; border-radius: 999px; background: rgba(31,38,35,.92); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 18px 40px rgba(31,38,35,.3); opacity: 0; pointer-events: none; transition: opacity 220ms ease, transform 220ms ease; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast svg { width: 18px; height: 18px; }
+
+    .unlock-flash { animation: unlockFlash 900ms ease; }
+    @keyframes unlockFlash { 0% { box-shadow: 0 0 0 0 rgba(233,196,106,.5); } 60% { box-shadow: 0 0 0 14px rgba(233,196,106,0); } 100% { box-shadow: 0 0 0 0 rgba(233,196,106,0); } }
+
+    @media (max-width: 1100px) { .hero { grid-template-columns: 1fr; } .hero-copy, .phone-wrap { position: static; } .phone-wrap { width: min(100%, 380px); margin: 0 auto; } }
+    @media (max-width: 720px) { .palette-bar { grid-template-columns: 1fr; } .palette-options { justify-content: flex-start; } .challenge { grid-template-columns: 1fr; text-align: center; } .modal .m-stats { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="预览导航">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 5.5c0-1.1.9-2 2-2h7.5c.8 0 1.5.7 1.5 1.5v13.5c0 .8-.7 1.5-1.5 1.5H8.2A2.2 2.2 0 0 1 6 17.8V6.5c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 7h6M9 10h5M9 13h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </span>
+        <span>
+          <strong>DiaryApp 成就收藏</strong>
+          <span>重设计预览 · v3 · 参照小墨设计语言</span>
+        </span>
+      </div>
+      <div class="top-actions">
+        <a class="link-chip" href="#overview">总览</a>
+        <a class="link-chip" href="#gallery">画廊</a>
+        <a class="link-chip" href="#case">陈列柜</a>
+        <a class="link-chip" href="#wish">心愿单</a>
+      </div>
+    </nav>
+
+    <section class="palette-bar" aria-label="色系实验台">
+      <div class="palette-copy">
+        <b>色系实验台</b>
+        <span>点击切换整页氛围：背景、徽章、按钮会一起换色，挑一个你最喜欢的气质。</span>
+      </div>
+      <div class="palette-options" role="group" aria-label="选择页面色系" id="palette">
+        <button class="palette-btn" type="button" data-theme="paper" aria-pressed="true"><span class="swatches"><i style="background:#f5d8a8"></i><i style="background:#dcebd8"></i><i style="background:#b8d7ee"></i></span>书桌暖纸</button>
+        <button class="palette-btn" type="button" data-theme="mist" aria-pressed="false"><span class="swatches"><i style="background:#cdeee2"></i><i style="background:#aed7ea"></i><i style="background:#f4e8cd"></i></span>晨雾青绿</button>
+        <button class="palette-btn" type="button" data-theme="rose" aria-pressed="false"><span class="swatches"><i style="background:#f9d6d2"></i><i style="background:#f2bfcd"></i><i style="background:#e7daf6"></i></span>樱桃牛奶</button>
+        <button class="palette-btn" type="button" data-theme="moon" aria-pressed="false"><span class="swatches"><i style="background:#cfdde8"></i><i style="background:#bacfe2"></i><i style="background:#d5cde8"></i></span>月光蓝灰</button>
+        <button class="palette-btn" type="button" data-theme="apricot" aria-pressed="false"><span class="swatches"><i style="background:#fadaa6"></i><i style="background:#f2be99"></i><i style="background:#d8e7ce"></i></span>杏橙日记</button>
+        <button class="palette-btn" type="button" data-theme="iris" aria-pressed="false"><span class="swatches"><i style="background:#e0d5f5"></i><i style="background:#c0d6ed"></i><i style="background:#f2dae6"></i></span>鸢尾薄紫</button>
+        <button class="palette-btn" type="button" data-theme="matcha" aria-pressed="false"><span class="swatches"><i style="background:#d4e7ae"></i><i style="background:#b5d8c1"></i><i style="background:#efdab5"></i></span>抹茶晨光</button>
+        <button class="palette-btn" type="button" data-theme="lagoon" aria-pressed="false"><span class="swatches"><i style="background:#bfe8ec"></i><i style="background:#aad1e8"></i><i style="background:#dae0f6"></i></span>浅海玻璃</button>
+      </div>
+    </section>
+
+    <section class="hero" aria-label="成就收藏重设计总览">
+      <aside class="hero-copy">
+        <p class="kicker">Achievement Collection</p>
+        <h1>把记录变成<br>可以收藏的时光。</h1>
+        <p class="lead">成就不该是冰冷的进度条。我们把它重做成一座<strong>私人陈列柜</strong>——每一枚徽章都连着一篇真实的日记、一个具体的瞬间，解锁时有声有色，收藏后有处安放。</p>
+        <div class="desk-notes" aria-label="设计手记">
+          <div class="desk-note note-a">徽章要连着日记，不是孤立的数字。<small>Connected to entries</small></div>
+          <div class="desk-note note-b">解锁是一段小仪式，不是弹窗。<small>Unlock ritual</small></div>
+          <div class="desk-note note-c">陈列柜让人想一直逛下去。<small>Display case</small></div>
+        </div>
+      </aside>
+
+      <section class="stage" aria-label="手机原型">
+        <div class="phone-wrap">
+          <div class="phone" aria-label="DiaryApp 成就页手机预览">
+            <div class="phone-screen">
+              <section class="mobile-scene active" id="scene-home">
+                <div class="mobile-top">
+                  <div class="mobile-title"><small>Achievements</small><strong>我的成就</strong></div>
+                  <span class="round-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 6V5h10v1M6 6l1 14h10l1-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </div>
+                <div class="content-scroll">
+                  <div class="mobile-card pad">
+                    <span class="mini-label">本月进度</span>
+                    <div style="height:9px"></div>
+                    <div class="metric-row" id="phone-metrics">
+                      <div class="metric"><b id="pm-unlocked">14</b><span>已解锁</span></div>
+                      <div class="metric"><b id="pm-pct">58%</b><span>完成度</span></div>
+                      <div class="metric"><b id="pm-leg">2</b><span>传奇</span></div>
+                    </div>
+                  </div>
+                  <div class="phone-gallery" id="phone-gallery"><!-- filled by JS --></div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- OVERVIEW -->
+    <section class="section" id="overview">
+      <div class="section-head">
+        <h2>成就总览</h2>
+        <p>全部成就按八个主题分类，四种稀有度。点下方徽章可在画廊中筛选；稀有度越高，徽章的光环越暖。</p>
+      </div>
+      <div class="panel">
+        <div class="filters">
+          <div class="chip-group"><span class="glabel">稀有度</span>
+            <button class="chip" data-tier="all" aria-pressed="true">全部</button>
+            <button class="chip" data-tier="com"><span class="dot" style="background:var(--sage)"></span>普通</button>
+            <button class="chip" data-tier="rare"><span class="dot" style="background:var(--blue)"></span>稀有</button>
+            <button class="chip" data-tier="epic"><span class="dot" style="background:var(--peach)"></span>史诗</button>
+            <button class="chip" data-tier="leg"><span class="dot" style="background:var(--gold)"></span>传奇</button>
+          </div>
+          <div class="chip-group"><span class="glabel">状态</span>
+            <button class="chip" data-status="all" aria-pressed="true">全部</button>
+            <button class="chip" data-status="unlocked">已解锁</button>
+            <button class="chip" data-status="progress">进行中</button>
+            <button class="chip" data-status="locked">未解锁</button>
+            <button class="chip" data-status="wish"><span style="color:var(--gold)">★</span> 心愿单</button>
+          </div>
+        </div>
+        <div class="filters" id="cat-filters"><!-- filled by JS --></div>
+        <div class="gallery" id="gallery"><!-- filled by JS --></div>
+      </div>
+    </section>
+
+    <!-- DISPLAY CASE -->
+    <section class="section" id="case">
+      <div class="section-head">
+        <h2>陈列柜</h2>
+        <p>已解锁的成就像标本一样陈列在这里，每张票卡都微微倾斜，仿佛刚从抽屉里取出。点击任意一枚可回看它的故事。</p>
+      </div>
+      <div class="case-grid" id="case-grid"><!-- filled by JS --></div>
+    </section>
+
+    <!-- WISHLIST -->
+    <section class="section" id="wish">
+      <div class="section-head">
+        <h2>心愿单</h2>
+        <p>把最想拿到的成就钉在这里。系统会优先在首页提醒你离它还差多少——不是催促，是陪你慢慢靠近。</p>
+      </div>
+      <div class="panel" id="wish-list"><!-- filled by JS --></div>
+    </section>
+
+    <!-- MONTHLY CHALLENGE -->
+    <section class="section" id="challenge">
+      <div class="section-head">
+        <h2>本月挑战</h2>
+        <p>每月一枚限定挑战，完成后发放专属徽章与一句只有这个月才有的赠言。</p>
+      </div>
+      <div class="challenge" id="challenge-card"><!-- filled by JS --></div>
+    </section>
+
+    <footer class="footer-note">
+      DiaryApp 成就收藏重设计 · 交互原型 v3 · 设计语言参照 <code>xiaomo-memory-agent-preview.html</code>（暖纸 / 青绿+蜜桃品牌渐变 / 衬线标题 / 玻璃卡片 / 柔和网格背景）。所有图标为手绘 SVG 线性风格，无 emoji、无硬编码色值、随主题联动。
+    </footer>
+  </main>
+
+  <!-- DETAIL MODAL -->
+  <div class="modal-root" id="modal-root" aria-hidden="true">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-top">
+        <div class="m-medal" id="m-medal"></div>
+        <div>
+          <h3 id="m-name"></h3>
+          <div class="m-cat" id="m-cat"></div>
+          <div style="margin-top:10px"><span class="tier-name" id="m-tier"></span></div>
+        </div>
+      </div>
+      <p class="m-flavor" id="m-flavor"></p>
+      <div class="m-stats" id="m-stats"></div>
+      <div id="m-timeline-wrap">
+        <div class="mini-label" style="margin-bottom:10px">解锁轨迹</div>
+        <div class="timeline" id="m-timeline"></div>
+      </div>
+      <div class="modal-actions" id="m-actions"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- SVG icon library (hand-drawn line style, 24x24, currentColor) ----
+    const ICON = {
+      time: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12.5" r="7.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 8.4v4.3l3 1.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      mood: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 14.5c1.6 3.2 4 4.8 7 4.8s5.4-1.6 7-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8.5 9.6c.9-1.1 2-1.1 2.9 0M12.6 9.6c.9-1.1 2-1.1 2.9 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 4.2l.9 1.9 2.1.3-1.5 1.5.4 2.1-1.9-1-1.9 1 .4-2.1L9 9.4l2.1-.3.9-1.9Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" opacity=".5"/></svg>',
+      weather: '<svg viewBox="0 0 24 24" fill="none"><path d="M7.5 15.5a3.6 3.6 0 0 1 .4-7.17A4.6 4.6 0 0 1 16.6 8.4a3.4 3.4 0 0 1 .4 7.1" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8.5" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 18.5l-.4 1.6M12 18.5l-.4 1.6M16 18.5l-.4 1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      writing: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 20l1-4L15.5 5.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M13.5 7.5l3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5.5 15.5l1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      habit: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 20V11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12.5C12 10 10.3 8.2 7.5 8.2 7.5 11 9.2 12.8 12 12.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 11c0-2.4 1.7-4.2 4.5-4.2C16.5 9 14.8 10.8 12 11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 20c0-2 .8-3.5 2.4-4.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>',
+      explorer: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.4" stroke="currentColor" stroke-width="1.7"/><path d="M14.6 9.4 9.6 14.4 8.4 11l3.6-1.2 2.6-2.4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+      collector: '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4.5" width="11" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M16 7.5h2.5v11.5a1.5 1.5 0 0 1-1.5 1.5H8.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 9h5M8 12h5M8 15h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></svg>',
+      legendary: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.3l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 15.9 7.4 17.8l.9-5.2L4.5 8.9l5.2-.7L12 3.3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+      // tier glyphs
+      tg_com: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/></svg>',
+      tg_rare: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 6l4 4-4 4-4-4 4-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+      tg_epic: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 4c2.4 3 4 5 4 7.6A4 4 0 0 1 8 14.6C8 11 9.6 9 12 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+      tg_leg: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+      star: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      spark: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+    };
+
+    const CAT_LABEL = { time:'时间', mood:'心情', weather:'天气', writing:'写作', habit:'习惯', explorer:'探索', collector:'收藏', legendary:'传奇' };
+    const TIER_LABEL = { com:'普通', rare:'稀有', epic:'史诗', leg:'传奇' };
+
+    // ---- achievement dataset ----
+    const DATA = [
+      { id:'time_first', name:'晨光初现', cat:'time', tier:'com', status:'unlocked', flavor:'在清晨 6 到 9 点写下第一篇日记。一日的开头，先留一句话给自己。', date:'2025-03-12', entry:'今天醒得早，窗外有鸟。', progress:100 },
+      { id:'time_night', name:'夜航者', cat:'time', tier:'rare', status:'unlocked', flavor:'在夜晚 23 点之后累计写下 10 篇。夜里的字迹，往往最诚实。', date:'2025-06-02', entry:'地铁空了，城市安静下来。', progress:100 },
+      { id:'time_century', name:'百年孤独', cat:'time', tier:'leg', status:'progress', flavor:'连续记录满 365 天。不为打卡，只为不缺席自己的生活。', target:'365 天', progress:312 },
+      { id:'mood_first', name:'初见心情', cat:'mood', tier:'com', status:'unlocked', flavor:'第一次为日记打上心情标签。情绪被看见，才算被记录。', date:'2025-02-20', entry:'有点累，但还好。', progress:100 },
+      { id:'mood_rainbow', name:'七色情绪', cat:'mood', tier:'epic', status:'progress', flavor:'在日记里集齐全部六种心情。喜怒哀乐，都值得留一份。', target:'6 种', progress:4 },
+      { id:'mood_calm', name:'心如止水', cat:'mood', tier:'rare', status:'locked', flavor:'在连续七天的日记中，心情都标记为平静。', progress:0 },
+      { id:'weather_rain', name:'听雨人', cat:'weather', tier:'com', status:'unlocked', flavor:'在一个雨天写下日记。雨声是最好的白噪音。', date:'2025-04-08', entry:'雨一直下，反而安心。', progress:100 },
+      { id:'weather_snow', name:'踏雪寻梅', cat:'weather', tier:'rare', status:'locked', flavor:'在下雪天写下日记。', progress:0 },
+      { id:'weather_storm', name:'风暴之子', cat:'weather', tier:'epic', status:'locked', flavor:'在暴雨或台风预警日完成记录。', progress:0 },
+      { id:'write_first', name:'落笔成章', cat:'writing', tier:'com', status:'unlocked', flavor:'写下你的第一篇日记。起点总是最珍贵的。', date:'2025-01-15', entry:'试试看这个 App。', progress:100 },
+      { id:'write_marathon', name:'千字文', cat:'writing', tier:'rare', status:'unlocked', flavor:'单篇日记突破 1000 字。把一件事说透的感觉，很爽。', date:'2025-05-19', entry:'今天想认真写写那次旅行……', progress:100 },
+      { id:'write_novel', name:'著作等身', cat:'writing', tier:'leg', status:'progress', flavor:'累计写下 10 万字。回头看，是一整座文字的房子。', target:'10 万字', progress:73400 },
+      { id:'habit_seed', name:'习惯之种', cat:'habit', tier:'com', status:'unlocked', flavor:'创建你的第一个习惯追踪。种下，就会生长。', date:'2025-03-30', entry:'决定每天走 8000 步。', progress:100 },
+      { id:'habit_streak', name:'三十而砺', cat:'habit', tier:'epic', status:'progress', flavor:'任意一个习惯连续坚持 30 天。', target:'30 天', progress:21 },
+      { id:'habit_year', name:'一岁一礼', cat:'habit', tier:'rare', status:'locked', flavor:'坚持同一习惯满一整年。', progress:0 },
+      { id:'explore_map', name:'地图收藏家', cat:'explorer', tier:'com', status:'unlocked', flavor:'在日记中标记第一个地点。把足迹变成坐标。', date:'2025-04-22', entry:'在海边的小馆子。', progress:100 },
+      { id:'explore_city', name:'城市漫游者', cat:'explorer', tier:'rare', status:'progress', flavor:'在 10 个不同城市留下记录。', target:'10 城', progress:6 },
+      { id:'explore_world', name:'环游日记', cat:'explorer', tier:'leg', status:'locked', flavor:'在 30 个城市写下日记。地球很小，你很大。', progress:0 },
+      { id:'collect_first', name:'初藏', cat:'collector', tier:'com', status:'unlocked', flavor:'收藏第一条日记。收藏，是另一种书写。', date:'2025-02-11', entry:'这段想留着。', progress:100 },
+      { id:'collect_hoard', name:'集腋成裘', cat:'collector', tier:'rare', status:'unlocked', flavor:'收藏满 50 条日记。抽屉越来越满。', date:'2025-07-01', entry:'第五十张收藏卡。', progress:100 },
+      { id:'collect_master', name:'收藏大师', cat:'collector', tier:'epic', status:'progress', flavor:'收藏满 200 条。你已是这座私人博物馆的馆长。', target:'200 条', progress:128 },
+      { id:'legend_dawn', name:'破晓', cat:'legendary', tier:'leg', status:'unlocked', flavor:'解锁任意 10 枚传奇成就。天快亮了。', date:'2025-07-10', entry:'第十枚传奇，落定。', progress:100 },
+      { id:'legend_all', name:'圆满', cat:'legendary', tier:'leg', status:'locked', flavor:'解锁全部成就。那一刻，收藏柜会为你亮一次。', progress:0 }
+    ];
+
+    let wishlist = new Set(['mood_rainbow','explore_world','write_novel']);
+
+    // ---- state ----
+    let filterTier = 'all', filterStatus = 'all', filterCat = 'all';
+
+    const $ = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+    function iconFor(cat){ return ICON[cat] || ICON.legendary; }
+    function tierGlyph(tier){ return ICON['tg_'+tier]; }
+
+    function medalEl(item, size){
+      const m = document.createElement('div');
+      m.className = 'medal ring-'+item.tier;
+      m.innerHTML = iconFor(item.cat);
+      const g = document.createElement('span');
+      g.className = 'tier-glyph tg-'+item.tier;
+      g.innerHTML = tierGlyph(item.tier);
+      m.appendChild(g);
+      return m;
+    }
+
+    function filtered(){
+      return DATA.filter(d =>
+        (filterTier==='all' || d.tier===filterTier) &&
+        (filterCat==='all' || d.cat===filterCat) &&
+        (filterStatus==='all' ||
+          (filterStatus==='wish' ? wishlist.has(d.id) : d.status===filterStatus))
+      );
+    }
+
+    function renderGallery(){
+      const grid = $('#gallery');
+      grid.innerHTML = '';
+      const list = filtered();
+      if(!list.length){ grid.innerHTML = '<p style="color:var(--muted);padding:20px">这个筛选下还没有成就。</p>'; }
+      list.forEach(d => {
+        const card = document.createElement('div');
+        card.className = 'ach-card ' + (d.status==='locked'?'locked':'') + (wishlist.has(d.id)?' wish':'');
+        const m = medalEl(d);
+        card.appendChild(m);
+        if(wishlist.has(d.id)){
+          const ws = document.createElement('div');
+          ws.className = 'wish-star'; ws.innerHTML = ICON.star; card.appendChild(ws);
+        }
+        const h = document.createElement('h3'); h.textContent = d.name; card.appendChild(h);
+        const cat = document.createElement('span'); cat.className='cat'; cat.textContent = CAT_LABEL[d.cat]+' · '+TIER_LABEL[d.tier]; card.appendChild(cat);
+        const tn = document.createElement('span'); tn.className='tier-name tn-'+d.tier; tn.textContent = TIER_LABEL[d.tier]; card.appendChild(tn);
+        if(d.status==='progress'){
+          const p = document.createElement('div'); p.className='prog'; p.innerHTML = '<i style="width:'+pct(d)+'%"></i>'; card.appendChild(p);
+          const pl = document.createElement('div'); pl.className='prog-label'; pl.textContent = pctLabel(d); card.appendChild(pl);
+        }
+        card.addEventListener('click', () => openModal(d.id));
+        grid.appendChild(card);
+      });
+    }
+
+    function pct(d){
+      if(d.status==='unlocked') return 100;
+      if(d.target){
+        const num = Number(String(d.progress).replace(/[^\d]/g,''));
+        const tgt = Number(String(d.target).replace(/[^\d万]/g,'').replace('万','0000'));
+        return Math.min(100, Math.round(num/tgt*100));
+      }
+      return d.progress||0;
+    }
+    function pctLabel(d){
+      if(d.status==='unlocked') return '已解锁';
+      if(d.target) return (typeof d.progress==='number'? d.progress.toLocaleString() : d.progress) + ' / ' + d.target;
+      return d.progress + '%';
+    }
+
+    function renderCats(){
+      const wrap = $('#cat-filters');
+      wrap.innerHTML = '<span class="glabel" style="font-size:11px;font-weight:800;color:var(--muted)">主题</span>';
+      const all = document.createElement('button'); all.className='chip'; all.textContent='全部'; all.dataset.cat='all'; all.setAttribute('aria-pressed','true');
+      wrap.appendChild(all);
+      Object.keys(CAT_LABEL).forEach(c => {
+        const b = document.createElement('button'); b.className='chip'; b.dataset.cat=c; b.textContent=CAT_LABEL[c]; b.setAttribute('aria-pressed','false');
+        b.addEventListener('click', () => { filterCat = c; $$('#cat-filters .chip').forEach(x=>x.setAttribute('aria-pressed', x.dataset.cat===c)); renderGallery(); });
+        wrap.appendChild(b);
+      });
+      all.addEventListener('click', () => { filterCat='all'; $$('#cat-filters .chip').forEach(x=>x.setAttribute('aria-pressed', x.dataset.cat==='all')); renderGallery(); });
+    }
+
+    function renderCase(){
+      const grid = $('#case-grid');
+      grid.innerHTML = '';
+      DATA.filter(d=>d.status==='unlocked').forEach(d => {
+        const t = document.createElement('div'); t.className='ticket';
+        const m = document.createElement('div'); m.className='t-medal'; m.innerHTML = iconFor(d.cat); t.appendChild(m);
+        const body = document.createElement('div');
+        body.innerHTML = '<b>'+d.name+'</b><span>'+CAT_LABEL[d.cat]+' · '+TIER_LABEL[d.tier]+'<br>'+d.date+' 解锁</span>';
+        t.appendChild(body);
+        const stamp = document.createElement('span'); stamp.className='stamp'; stamp.textContent = TIER_LABEL[d.tier]; t.appendChild(stamp);
+        t.addEventListener('click', () => openModal(d.id));
+        grid.appendChild(t);
+      });
+    }
+
+    function renderWish(){
+      const wrap = $('#wish-list');
+      wrap.innerHTML = '';
+      const list = DATA.filter(d=>wishlist.has(d.id));
+      if(!list.length){ wrap.innerHTML = '<p style="color:var(--muted)">心愿单还是空的。在画廊里点 ★ 把想拿的成就钉在这里。</p>'; return; }
+      list.forEach(d => {
+        const row = document.createElement('div'); row.className='wish-row';
+        const m = document.createElement('div'); m.className='w-medal'; m.innerHTML = iconFor(d.cat); row.appendChild(m);
+        const info = document.createElement('div');
+        info.innerHTML = '<b>'+d.name+'</b><span>'+CAT_LABEL[d.cat]+' · '+TIER_LABEL[d.tier]+' · '+pctLabel(d)+'</span>';
+        row.appendChild(info);
+        const prog = document.createElement('div'); prog.className='w-prog';
+        prog.innerHTML = '<div class="bar"><i style="width:'+pct(d)+'%"></i></div><em>'+pct(d)+'%</em>';
+        row.appendChild(prog);
+        row.addEventListener('click', () => openModal(d.id));
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderChallenge(){
+      const c = $('#challenge-card');
+      c.innerHTML =
+        '<div class="c-medal">'+ICON.habit+'</div>'+
+        '<div><h3>七月挑战 · 三十而砺</h3>'+
+        '<p>本月让任意一个习惯连续坚持 30 天。完成后获「三十而砺」史诗徽章，与一句只有七月才有的赠言：<i>“把一天过好，就是过好了一生。”</i></p>'+
+        '<div class="c-bar"><i style="width:70%"></i></div>'+
+        '<p style="margin-top:8px;font-size:11px;color:var(--muted);font-weight:700">21 / 30 天 · 还差 9 天</p></div>';
+    }
+
+    function renderPhone(){
+      const g = $('#phone-gallery'); g.innerHTML='';
+      DATA.slice(0,9).forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'phone-medal' + (d.status==='locked'?' locked':'');
+        const color = d.status==='locked' ? '' : ('background:'+ (d.tier==='leg'?'rgba(233,196,106,.2)':d.tier==='epic'?'rgba(239,196,173,.22)':d.tier==='rare'?'rgba(184,215,238,.28)':'rgba(183,203,167,.26)')+';color:'+(d.tier==='leg'?'#b8902f':d.tier==='epic'?'#9c5a3e':d.tier==='rare'?'#3f6285':'#5c6f4d'));
+        el.innerHTML = '<div class="ring" style="'+color+'">'+iconFor(d.cat)+'</div><b>'+d.name+'</b>';
+        g.appendChild(el);
+      });
+      const unlocked = DATA.filter(d=>d.status==='unlocked').length;
+      $('#pm-unlocked').textContent = unlocked;
+      $('#pm-pct').textContent = Math.round(unlocked/DATA.length*100)+'%';
+      $('#pm-leg').textContent = DATA.filter(d=>d.tier==='leg' && d.status==='unlocked').length;
+    }
+
+    // ---- modal ----
+    function openModal(id){
+      const d = DATA.find(x=>x.id===id); if(!d) return;
+      const medal = $('#m-medal'); medal.className = 'm-medal ring-'+d.tier; medal.innerHTML = iconFor(d.cat) + '<span class="tier-glyph tg-'+d.tier+'">'+tierGlyph(d.tier)+'</span>';
+      $('#m-name').textContent = d.name;
+      $('#m-cat').textContent = CAT_LABEL[d.cat] + ' 主题';
+      const tn = $('#m-tier'); tn.className='tier-name tn-'+d.tier; tn.textContent = TIER_LABEL[d.tier];
+      $('#m-flavor').textContent = '“'+d.flavor+'”';
+      const stats = $('#m-stats');
+      stats.innerHTML =
+        '<div class="m-stat"><b>'+pct(d)+'%</b><span>完成进度</span></div>'+
+        '<div class="m-stat"><b>'+(d.status==='unlocked'? d.date : (d.target||'—'))+'</b><span>'+(d.status==='unlocked'?'解锁于':'目标')+'</span></div>';
+      const tl = $('#m-timeline');
+      if(d.status==='unlocked'){
+        $('#m-timeline-wrap').style.display='';
+        tl.innerHTML =
+          '<div class="tl-item"><b>创建日记</b><span>'+d.date+' · 触发解锁</span></div>'+
+          '<div class="tl-item"><b>关联日记</b><span>“'+d.entry+'”</span></div>'+
+          '<div class="tl-item"><b>收入陈列柜</b><span>已陈列 · 可随时回看</span></div>';
+      } else if(d.status==='progress'){
+        $('#m-timeline-wrap').style.display='';
+        tl.innerHTML =
+          '<div class="tl-item"><b>开始追踪</b><span>目标 '+d.target+'</span></div>'+
+          '<div class="tl-item"><b>当前进度</b><span>'+pctLabel(d)+'</span></div>'+
+          '<div class="tl-item"><b>距达成</b><span>还差 '+(100-pct(d))+'%</span></div>';
+      } else {
+        $('#m-timeline-wrap').style.display='none';
+      }
+      const actions = $('#m-actions');
+      actions.innerHTML='';
+      const wishBtn = document.createElement('button');
+      wishBtn.className = 'pill ' + (wishlist.has(d.id)?'gold':'');
+      wishBtn.innerHTML = (wishlist.has(d.id)?'★ 已在心愿单':'☆ 加入心愿单');
+      wishBtn.addEventListener('click', () => { toggleWish(d.id); });
+      actions.appendChild(wishBtn);
+      if(d.status!=='unlocked'){
+        const sim = document.createElement('button');
+        sim.className='pill primary'; sim.innerHTML = ICON.spark + ' 模拟解锁';
+        sim.addEventListener('click', () => simulateUnlock(d.id));
+        actions.appendChild(sim);
+      }
+      $('#modal-root').classList.add('open');
+      $('#modal-root').setAttribute('aria-hidden','false');
+    }
+    function closeModal(){ $('#modal-root').classList.remove('open'); $('#modal-root').setAttribute('aria-hidden','true'); }
+    $('#modal-root').addEventListener('click', e => { if(e.target.id==='modal-root') closeModal(); });
+    document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+    function toggleWish(id){
+      if(wishlist.has(id)) wishlist.delete(id); else wishlist.add(id);
+      renderGallery(); renderWish(); renderCase(); renderPhone();
+      if($('#modal-root').classList.contains('open')) openModal(id);
+      toast(wishlist.has(id)? '已加入心愿单' : '已移出心愿单');
+    }
+
+    function simulateUnlock(id){
+      const d = DATA.find(x=>x.id===id); if(!d) return;
+      d.status='unlocked'; d.progress=100;
+      const today = new Date().toISOString().slice(0,10);
+      d.date = today; d.entry = d.entry || '（模拟解锁）刚刚达成了它。';
+      renderGallery(); renderCase(); renderWish(); renderPhone();
+      // flash the card
+      const card = $$('#gallery .ach-card').find(c => c.querySelector('h3') && c.querySelector('h3').textContent===d.name);
+      if(card){ card.classList.add('unlock-flash'); }
+      toast('解锁成功：'+d.name);
+      if($('#modal-root').classList.contains('open')) openModal(id);
+    }
+
+    let toastTimer;
+    function toast(msg){
+      const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+    }
+
+    // ---- palette ----
+    $('#palette').addEventListener('click', e => {
+      const btn = e.target.closest('.palette-btn'); if(!btn) return;
+      $$('#palette .palette-btn').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      document.body.dataset.theme = btn.dataset.theme;
+    });
+
+    // ---- tier / status filter chips ----
+    $$('[data-tier]').forEach(b => b.addEventListener('click', () => {
+      filterTier = b.dataset.tier;
+      $$('[data-tier]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.tier===filterTier));
+      renderGallery();
+    }));
+    $$('[data-status]').forEach(b => b.addEventListener('click', () => {
+      filterStatus = b.dataset.status;
+      $$('[data-status]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.status===filterStatus));
+      renderGallery();
+    }));
+
+    // ---- init ----
+    renderCats(); renderGallery(); renderCase(); renderWish(); renderChallenge(); renderPhone();
+  </script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>存储 · 克制重设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --serif: "Noto Serif SC", "Songti SC", Georgia, serif;
+  --sans: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --r: 24px;
+}
+
+/* ====== 7 Themes ====== */
+body[data-t="fog"] {
+  --bg:#F0F4F8; --card:rgba(255,255,255,.76); --c2:rgba(255,255,255,.48);
+  --bd:rgba(130,150,180,.20); --tx:#283240; --t2:#556878; --t3:#8898A8;
+  --a1:#6A8DB8; --a2:#B09070; --a3:#968AB8; --a4:#88A8D0; --a5:#8898A8;
+  --ok:#6ABF8A; --wn:#E8A84C; --er:#D06868;
+}
+body[data-t="moss"] {
+  --bg:#EAF0E6; --card:rgba(252,253,251,.78); --c2:rgba(252,253,251,.48);
+  --bd:rgba(100,120,88,.20); --tx:#2A3026; --t2:#546048; --t3:#829078;
+  --a1:#78A06C; --a2:#C0A068; --a3:#9C88B0; --a4:#88C078; --a5:#829078;
+  --ok:#5EB878; --wn:#D89848; --er:#C86868;
+}
+body[data-t="ocean"] {
+  --bg:#EBF5F7; --card:rgba(255,255,255,.74); --c2:rgba(255,255,255,.46);
+  --bd:rgba(80,150,160,.20); --tx:#183840; --t2:#4A6874; --t3:#6A8898;
+  --a1:#5A9EA0; --a2:#6A90C0; --a3:#7A90B8; --a4:#78B8BC; --a5:#4A6874;
+  --ok:#5EB8A0; --wn:#D89048; --er:#C86868;
+}
+body[data-t="petal"] {
+  --bg:#F9F0EE; --card:rgba(255,255,255,.74); --c2:rgba(255,255,255,.46);
+  --bd:rgba(190,130,122,.22); --tx:#3E2826; --t2:#705658; --t3:#98888A;
+  --a1:#C28880; --a2:#AE88A4; --a3:#D0A090; --a4:#D0A098; --a5:#705658;
+  --ok:#6AB882; --wn:#D89048; --er:#CC6868;
+}
+body[data-t="sand"] {
+  --bg:#F5F0E4; --card:rgba(255,255,255,.76); --c2:rgba(255,255,255,.48);
+  --bd:rgba(180,150,90,.22); --tx:#3E3218; --t2:#685838; --t3:#908868;
+  --a1:#B69860; --a2:#BC8878; --a3:#9C8C70; --a4:#C8AC70; --a5:#685838;
+  --ok:#6AB870; --wn:#D89040; --er:#C06850;
+}
+body[data-t="clay"] {
+  --bg:#F3EAE2; --card:rgba(255,252,250,.76); --c2:rgba(255,252,250,.48);
+  --bd:rgba(180,130,110,.22); --tx:#3C2E26; --t2:#685448; --t3:#948478;
+  --a1:#B69080; --a2:#7E9886; --a3:#9E8EA4; --a4:#C8A090; --a5:#685448;
+  --ok:#6AB880; --wn:#D09048; --er:#C06858;
+}
+body[data-t="ink"] {
+  --bg:#ECF0F6; --card:rgba(255,255,255,.76); --c2:rgba(255,255,255,.48);
+  --bd:rgba(80,100,160,.20); --tx:#1E2632; --t2:#4C5E74; --t3:#768498;
+  --a1:#4C68A8; --a2:#6C80C0; --a3:#9680B0; --a4:#88A4E0; --a5:#4C5E74;
+  --ok:#5EB878; --wn:#D09848; --er:#C06868;
+}
+
+/* dark */
+body.dark {
+  --card:rgba(22,26,34,.80); --c2:rgba(22,26,34,.50); --bd:rgba(255,255,255,.08);
+}
+body.dark[data-t="fog"]{--bg:#0C0E14;--tx:#D0D8E4;--t2:#8898B0;--t3:#607088;}
+body.dark[data-t="moss"]{--bg:#0A0C08;--tx:#CCD8C4;--t2:#889880;--t3:#5E7056;}
+body.dark[data-t="ocean"]{--bg:#081016;--tx:#CCE2E6;--t2:#88ACB4;--t3:#5E787E;}
+body.dark[data-t="petal"]{--bg:#140E10;--tx:#E8D0D0;--t2:#B49898;--t3:#847474;}
+body.dark[data-t="sand"]{--bg:#120E0C;--tx:#E4D8C4;--t2:#AC9C7C;--t3:#7C6C54;}
+body.dark[data-t="clay"]{--bg:#120E0A;--tx:#E4D4CC;--t2:#AC9C8C;--t3:#7C6C5C;}
+body.dark[data-t="ink"]{--bg:#080C14;--tx:#CCD4E4;--t2:#8894B4;--t3:#5E6878;}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--sans); background:var(--bg); color:var(--tx);
+  min-height:100vh; display:flex; justify-content:center;
+  padding:32px 16px 64px; transition:background .5s,color .5s;
+}
+.wrap{max-width:880px;width:100%;display:flex;flex-direction:column;gap:32px;}
+
+/* Controls */
+.ctrls{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
+.ctrls button{
+  padding:5px 12px;border-radius:99px;font-size:10px;font-weight:700;
+  border:1px solid var(--bd);background:var(--card);color:var(--t2);
+  cursor:pointer;transition:.2s;display:flex;align-items:center;gap:5px;
+}
+.ctrls button.on{border-color:var(--a1);color:var(--tx);}
+.ctrls .dot{width:9px;height:9px;border-radius:99px;border:1px solid rgba(0,0,0,.12);flex-shrink:0;}
+
+/* Card base */
+.c{
+  border:1px solid var(--bd); border-radius:var(--r);
+  background:var(--card); padding:22px 20px;
+  transition:background .4s;
+}
+.c.full{grid-column:1/-1;}
+
+/* ===== Layout ===== */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;width:100%;}
+@media(max-width:580px){.grid{grid-template-columns:1fr;}}
+
+/* ===== Overview row ===== */
+.overview{display:flex;gap:30px;align-items:center;}
+.ov-left{flex-shrink:0;}
+.ov-left .total{font-family:var(--serif);font-size:44px;font-weight:700;line-height:.95;}
+.ov-left .pct{font-size:12px;color:var(--t3);margin-top:4px;}
+.ov-right{flex:1;min-width:0;}
+.ov-row{display:flex;align-items:center;gap:8px;padding:6px 0;}
+.ov-row:first-child{padding-top:0;}
+.ov-dot{width:8px;height:8px;border-radius:99px;flex-shrink:0;}
+.ov-lbl{font-size:12px;color:var(--t2);flex:1;}
+.ov-val{font-size:13px;font-weight:600;text-align:right;min-width:52px;}
+.ov-pct{font-size:10px;color:var(--t3);text-align:right;min-width:32px;}
+
+/* Donut */
+.donut-wrap{position:relative;width:104px;height:104px;flex-shrink:0;}
+.donut-wrap canvas{position:absolute;inset:-4px;width:112px;height:112px;}
+.donut-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+}
+.donut-center .n{font-family:var(--serif);font-size:20px;font-weight:700;line-height:1;}
+.donut-center .l{font-size:9px;color:var(--t3);margin-top:1px;}
+@media(max-width:580px){
+  .overview{flex-direction:column;align-items:center;text-align:center;gap:20px;}
+  .ov-right{width:100%;}
+}
+
+/* ===== Categories ===== */
+.cat-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.cat-row:last-child{border-bottom:none;padding-bottom:2px;}
+.cat-row .ci{
+  width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+}
+.cat-row .ci svg{width:17px;height:17px;}
+.cat-row .cb{flex:1;min-width:0;}
+.cat-row .cb .nm{font-size:13px;font-weight:600;}
+.cat-row .cb .ds{font-size:10px;color:var(--t3);margin-top:1px;}
+.cat-row .cn{text-align:right;flex-shrink:0;}
+.cat-row .cn .sz{font-size:13px;font-weight:700;}
+.cat-row .cn .pc{font-size:10px;color:var(--t3);margin-top:1px;}
+
+/* ===== Cleanup items ===== */
+.cl-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);}
+.cl-row:last-of-type{border-bottom:none;padding-bottom:2px;}
+.cl-row .cd{width:8px;height:8px;border-radius:99px;flex-shrink:0;}
+.cl-row .ct{flex:1;font-size:12px;color:var(--tx);}
+.cl-row .ct small{display:block;font-size:10px;color:var(--t3);}
+.cl-row .cs{font-size:13px;font-weight:600;color:var(--wn);min-width:48px;text-align:right;}
+
+/* ===== Backup section ===== */
+.bk-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);line-height:1.6;}
+.bk-line .bkd{width:8px;height:8px;border-radius:99px;background:var(--a1);flex-shrink:0;}
+.bk-line b{color:var(--tx);font-weight:600;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bd);margin-top:10px;}
+.toggle-row .tl{font-size:12px;color:var(--tx);}
+.toggle-row .tl small{display:block;font-size:10px;color:var(--t3);font-weight:400;}
+.tgl{width:42px;height:24px;border-radius:20px;background:var(--bd);position:relative;cursor:pointer;transition:.3s;flex-shrink:0;}
+.tgl.on{background:var(--a1);}
+.tgl i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.tgl.on i{left:20px;}
+
+/* ===== Buttons ===== */
+.btn{
+  padding:11px 20px;border-radius:18px;font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:.2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--bd);background:var(--c2);color:var(--tx);
+}
+.btn:hover{background:var(--card);}
+.btn.pri{background:var(--a1);color:#fff;border-color:transparent;}
+.btn.sec{background:var(--c2);}
+.btn.warn{background:var(--wn);color:#fff;border-color:transparent;}
+.btns{display:flex;gap:9px;flex-wrap:wrap;}
+
+/* Section label */
+.sec{font-size:10px;font-weight:800;color:var(--a1);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;}
+
+/* ===== Trend ===== */
+.trend-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+.trend-head .cur{font-family:var(--serif);font-weight:700;font-size:22px;}
+.trend-head .delta{font-size:11px;font-weight:600;color:var(--a1);}
+.spark{width:100%;height:64px;}
+.spark-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:2px;}
+
+/* ===== Phone mockup ===== */
+.phone-outer{
+  padding:16px;border:1px solid var(--bd);
+  background:var(--card);border-radius:44px;
+  box-shadow:0 28px 70px rgba(0,0,0,.16);
+  width:min(100%,396px);
+}
+.phone-inner{
+  position:relative;width:100%;aspect-ratio:390/812;
+  border:10px solid #1a1f1c;border-radius:36px;
+  background:var(--bg);overflow:hidden;
+}
+.phone-inner::before{
+  content:"";position:absolute;top:8px;left:50%;z-index:6;
+  width:96px;height:22px;border-radius:99px;
+  background:#1a1f1c;transform:translateX(-50%);
+}
+.phone-screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:46px 18px 18px;
+  background:linear-gradient(175deg,var(--bg),color-mix(in srgb,var(--bg) 94%,var(--a1)) 50%,var(--bg));
+  overflow-y:auto;
+}
+.phone-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.phone-head .back-btn{
+  width:36px;height:36px;border-radius:50%;border:1px solid var(--bd);
+  background:var(--card);display:grid;place-items:center;color:var(--t2);cursor:pointer;
+}
+.phone-head .back-btn svg{width:18px;height:18px;}
+.phone-head .tt{font-size:19px;font-weight:700;flex:1;}
+.phone-body{display:flex;flex-direction:column;gap:10px;}
+
+/* phone card */
+.pc{
+  border:1px solid var(--bd);border-radius:22px;
+  background:var(--card);padding:16px;
+  transition:background .4s;
+}
+
+/* phone overview compact */
+.pov{display:flex;gap:18px;align-items:center;}
+.pov-donut{position:relative;width:80px;height:80px;flex-shrink:0;}
+.pov-donut canvas{position:absolute;inset:0;width:80px;height:80px;}
+.pov-info{flex:1;min-width:0;}
+.pov-info .sz{font-family:var(--serif);font-size:26px;font-weight:700;}
+.pov-info .pct{font-size:10px;color:var(--t3);margin-top:1px;}
+.pov-info .extra{font-size:10px;color:var(--t2);margin-top:4px;}
+
+.pcat{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);}
+.pcat:last-child{border-bottom:none;}
+.pcat .pi{width:8px;height:8px;border-radius:99px;flex-shrink:0;}
+.pcat .pt{flex:1;font-size:11px;color:var(--t2);}
+.pcat .ps{font-size:11px;font-weight:600;text-align:right;min-width:44px;}
+.pcat .pp{font-size:9px;color:var(--t3);text-align:right;min-width:28px;}
+
+.pclean-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);}
+.pclean-item:last-of-type{border-bottom:none;}
+.pclean-item .pd{width:7px;height:7px;border-radius:99px;flex-shrink:0;}
+.pclean-item .pt{flex:1;font-size:11px;}
+.pclean-item .ps{font-size:11px;font-weight:600;color:var(--wn);}
+.pbtn{
+  width:100%;padding:11px;border-radius:16px;font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;border:none;
+  background:var(--a1);color:#fff;text-align:center;margin-top:6px;
+}
+.pbk{font-size:10px;color:var(--t2);line-height:1.5;}
+.pbk b{color:var(--tx);font-weight:600;}
+.ptgl-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;}
+.ptgl-row .ptl{font-size:11px;}
+.ptgl-row .ptl small{display:block;font-size:9px;color:var(--t3);font-weight:400;}
+</style>
+</head>
+<body data-t="fog">
+
+<div class="wrap">
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="on" data-t="fog"><span class="dot" style="background:#6A8DB8"></span>雾蓝</button>
+    <button data-t="moss"><span class="dot" style="background:#78A06C"></span>苔绿</button>
+    <button data-t="ocean"><span class="dot" style="background:#5A9EA0"></span>海洋</button>
+    <button data-t="petal"><span class="dot" style="background:#C28880"></span>花瓣</button>
+    <button data-t="sand"><span class="dot" style="background:#B69860"></span>沙琥珀</button>
+    <button data-t="clay"><span class="dot" style="background:#B69080"></span>陶土</button>
+    <button data-t="ink"><span class="dot" style="background:#4C68A8"></span>墨石</button>
+    <button id="dm">暗色</button>
+  </div>
+
+  <!-- ===== Phone ===== -->
+  <div style="display:flex;justify-content:center;width:100%;">
+    <div class="phone-outer">
+      <div class="phone-inner">
+        <div class="phone-screen">
+          <div class="phone-head">
+            <div class="back-btn"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+            <div class="tt">存储</div>
+            <div style="width:36px"></div>
+          </div>
+
+          <div class="phone-body">
+            <!-- Overview -->
+            <div class="pc">
+              <div class="pov">
+                <div class="pov-donut"><canvas id="pdonut" width="80" height="80"></canvas></div>
+                <div class="pov-info">
+                  <div class="sz">1.28 GB</div>
+                  <div class="pct">占设备 0.9%</div>
+                  <div class="extra">420 篇 · 32 张照片 · 15 条回收站</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="pc">
+              <div class="pcat"><div class="pi" style="background:var(--a1)"></div><div class="pt">日记数据</div><div class="ps">312 MB</div><div class="pp">24%</div></div>
+              <div class="pcat"><div class="pi" style="background:var(--a2)"></div><div class="pt">照片</div><div class="ps">580 MB</div><div class="pp">45%</div></div>
+              <div class="pcat"><div class="pi" style="background:var(--a3)"></div><div class="pt">缩略图</div><div class="ps">168 MB</div><div class="pp">13%</div></div>
+              <div class="pcat"><div class="pi" style="background:var(--a4)"></div><div class="pt">备份</div><div class="ps">142 MB</div><div class="pp">11%</div></div>
+              <div class="pcat"><div class="pi" style="background:var(--a5)"></div><div class="pt">缓存</div><div class="ps">54 MB</div><div class="pp">4%</div></div>
+            </div>
+
+            <!-- Cleanup -->
+            <div class="pc">
+              <div class="sec">可清理</div>
+              <div class="pclean-item"><div class="pd" style="background:var(--wn)"></div><div class="pt">临时缓存</div><div class="ps">54 MB</div></div>
+              <div class="pclean-item"><div class="pd" style="background:var(--wn)"></div><div class="pt">旧缩略图（90天前）</div><div class="ps">38 MB</div></div>
+              <div class="pclean-item"><div class="pd" style="background:var(--er)"></div><div class="pt">回收站（15条）</div><div class="ps">12 MB</div></div>
+              <button class="pbtn" style="background:var(--wn)">一键清理 104 MB</button>
+            </div>
+
+            <!-- Backup -->
+            <div class="pc">
+              <div class="sec">备份</div>
+              <div class="pbk"><div class="bkd" style="display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--a1);vertical-align:middle;margin-right:5px;"></div>上次备份 <b>2 小时前</b> · 云端已同步 · 本地 <b>5</b> 份</div>
+              <div class="ptgl-row">
+                <div class="ptl">自动备份<small>每周日静默备份</small></div>
+                <div class="tgl on"><i></i></div>
+              </div>
+              <div class="btns" style="margin-top:10px;">
+                <button class="pbtn" style="flex:1;background:var(--a1);padding:10px;">立即备份</button>
+                <button class="btn sec" style="flex:1;border-radius:16px;">导出</button>
+              </div>
+            </div>
+
+            <!-- Trend -->
+            <div class="pc">
+              <div class="sec">占用趋势</div>
+              <svg class="spark" id="phoneSpark" viewBox="0 0 300 64" preserveAspectRatio="none"></svg>
+              <div class="spark-lbl"><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:11px;color:var(--t3);">
+    克制方向 — 干净、直接、无修饰。像一本排版考究的手册。
+    <br>可切换 7 套主题 + 暗色模式。
+  </p>
+</div>
+
+<script>
+const RING = [
+  {v:312, c:'var(--a1)'},{v:580, c:'var(--a2)'},{v:168, c:'var(--a3)'},
+  {v:142, c:'var(--a4)'},{v:54,  c:'var(--a5)'},
+];
+function drawDonut(id, cx, cy, r, w){
+  const c=document.getElementById(id); const ctx=c.getContext('2d');
+  const t=RING.reduce((s,d)=>s+d.v,0);
+  ctx.clearRect(0,0,cx*2,cy*2);
+  let a=-Math.PI/2;
+  RING.forEach(d=>{
+    const sp=(d.v/t)*Math.PI*2;
+    ctx.beginPath();ctx.arc(cx,cy,r,a,a+sp);
+    ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue(d.c).trim();
+    ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();
+    a+=sp;
+  });
+}
+drawDonut('pdonut',40,40,28,12);
+
+// spark
+(function(){
+  const data=[0.82,0.88,0.95,1.02,1.10,1.21];
+  const W=300,H=64,pad=6,min=Math.min(...data),max=Math.max(...data),span=(max-min)||1;
+  const pts=data.map((v,i)=>[pad+i*(W-2*pad)/(data.length-1),H-pad-((v-min)/span)*(H-2*pad)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=line+` L ${pts[pts.length-1][0]} ${H} L ${pts[0][0]} ${H} Z`;
+  const gid='g'+Math.random().toString(36).slice(2,7);
+  document.getElementById('phoneSpark').innerHTML=`
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--a1)" stop-opacity=".24"/>
+      <stop offset="1" stop-color="var(--a1)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="var(--a1)" stroke-width="2" stroke-linecap="round"/>`;
+})();
+
+// theme
+let cur='fog',dark=false;
+document.querySelectorAll('.ctrls button[data-t]').forEach(b=>b.addEventListener('click',()=>{cur=b.dataset.t;apply();}));
+document.getElementById('dm').addEventListener('click',()=>{dark=!dark;document.getElementById('dm').textContent=dark?'亮色':'暗色';apply();});
+function apply(){
+  document.body.setAttribute('data-t',cur);
+  document.body.classList.toggle('dark',dark);
+  document.querySelectorAll('.ctrls button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===cur));
+  drawDonut('pdonut',40,40,28,12);
+}
+document.querySelectorAll('.tgl').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
+</script>
+</body>
+</html>

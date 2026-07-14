@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>存储管理 · 重设计 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg1:#F5F7FA; --bg2:#EFF3F8; --bg3:#E8EDF4;
+    --surface:#FFFFFF; --card:#FFFFFF; --card-border:rgba(130,150,180,.30);
+    --text:#2C3344; --text2:#5A6577; --text3:#8A96A8;
+    --accent:#6B8DB5; --accent2:#B5926B; --accent3:#9B8EBA;
+    --c0:#6B8DB5; --c1:#B5926B; --c2:#9B8EBA; --c3:#8AA8C8; --c4:#8A96A8;
+    --success:#6ABF8A; --warning:#E8A84C; --error:#E07070;
+    --shadow:0 10px 30px -12px rgba(40,55,80,.18);
+    --radius:26px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    color:var(--text);
+    background:#cdd4dd;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 12px;
+    transition:background .5s ease;
+  }
+  body.dark{background:#0c0e14;}
+
+  .phone{
+    width:100%;max-width:412px;height:min(880px,94vh);
+    border-radius:42px;overflow:hidden;position:relative;
+    background:linear-gradient(170deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+    box-shadow:0 30px 70px -20px rgba(20,30,50,.45);
+    display:flex;flex-direction:column;
+    transition:background .5s ease;
+  }
+  body.dark .phone{box-shadow:0 30px 70px -20px rgba(0,0,0,.6);}
+
+  /* status bar */
+  .statusbar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px;font-size:13px;font-weight:600;color:var(--text);
+    flex-shrink:0;
+  }
+  .statusbar .icons{display:flex;gap:6px;opacity:.7;}
+
+  /* scroll area */
+  .scroll{
+    flex:1;overflow-y:auto;padding:0 18px 120px;
+    scrollbar-width:none;
+  }
+  .scroll::-webkit-scrollbar{display:none;}
+
+  /* top bar — unified style */
+  .topbar{
+    display:flex;align-items:center;gap:10px;
+    padding:6px 4px 14px;
+  }
+  .topbar .back{
+    width:40px;height:40px;border-radius:50%;
+    background:color-mix(in srgb,var(--text2) 12%,transparent);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;cursor:pointer;
+  }
+  .topbar .title{
+    font-family:"Noto Serif SC",serif;font-weight:700;
+    font-size:22px;flex:1;color:var(--text);
+  }
+  .topbar .ghost{
+    width:40px;height:40px;border-radius:50%;
+    background:color-mix(in srgb,var(--text2) 10%,transparent);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  svg{display:block;}
+
+  /* card */
+  .card{
+    background:var(--card);border:1px solid var(--card-border);
+    border-radius:var(--radius);padding:20px;
+    box-shadow:var(--shadow);margin-bottom:14px;
+    animation:rise .6s cubic-bezier(.22,1,.36,1) both;
+  }
+  .card:nth-child(2){animation-delay:.04s}
+  .card:nth-child(3){animation-delay:.08s}
+  .card:nth-child(4){animation-delay:.12s}
+  .card:nth-child(5){animation-delay:.16s}
+  .card:nth-child(6){animation-delay:.2s}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .label{font-size:12.5px;color:var(--text3);letter-spacing:.3px;}
+
+  /* overview */
+  .overview{display:flex;align-items:center;gap:18px;}
+  .donut-wrap{position:relative;width:118px;height:118px;flex-shrink:0;}
+  .donut-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+  }
+  .donut-center .big{font-family:"Noto Serif SC",serif;font-weight:700;font-size:21px;color:var(--text);}
+  .donut-center .sub{font-size:10.5px;color:var(--text3);margin-top:2px;}
+  .overview .meta{flex:1;}
+  .overview .meta .row{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:13px;color:var(--text2);}
+  .overview .meta .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .overview .meta .row b{color:var(--text);font-weight:600;margin-left:auto;font-variant-numeric:tabular-nums;}
+
+  /* category rows */
+  .cat{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid color-mix(in srgb,var(--text3) 12%,transparent);}
+  .cat:last-child{border-bottom:none;padding-bottom:2px;}
+  .cat .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cat .info{flex:1;min-width:0;}
+  .cat .info .nm{font-size:14.5px;font-weight:600;color:var(--text);}
+  .cat .info .ds{font-size:11.5px;color:var(--text3);margin-top:1px;}
+  .cat .bar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--text3) 16%,transparent);margin-top:8px;overflow:hidden;}
+  .cat .bar i{display:block;height:100%;border-radius:3px;width:0;transition:width 1s cubic-bezier(.22,1,.36,1);}
+  .cat .num{text-align:right;flex-shrink:0;min-width:64px;}
+  .cat .num .sz{font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+  .cat .num .pc{font-size:11px;color:var(--text3);margin-top:1px;}
+
+  /* section title */
+  .sect{font-family:"Noto Serif SC",serif;font-weight:600;font-size:15px;color:var(--text);margin:2px 2px 12px;display:flex;align-items:center;gap:8px;}
+  .sect .tag{font-size:10.5px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);padding:2px 8px;border-radius:20px;}
+
+  /* backup card */
+  .bk-top{display:flex;align-items:center;gap:13px;}
+  .bk-ic{width:44px;height:44px;border-radius:14px;background:color-mix(in srgb,var(--accent) 14%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--success);background:color-mix(in srgb,var(--success) 16%,transparent);padding:3px 9px;border-radius:20px;}
+  .bk-meta{font-size:12.5px;color:var(--text2);margin:12px 0;line-height:1.7;}
+  .bk-meta b{color:var(--text);font-weight:600;}
+  .switchrow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid color-mix(in srgb,var(--text3) 12%,transparent);}
+  .switchrow .t{font-size:13.5px;color:var(--text);font-weight:500;}
+  .switchrow .t small{display:block;font-size:11px;color:var(--text3);font-weight:400;margin-top:1px;}
+  .toggle{width:46px;height:27px;border-radius:20px;background:color-mix(in srgb,var(--text3) 30%,transparent);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+  .toggle.on{background:var(--accent);}
+  .toggle i{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .3s cubic-bezier(.22,1,.36,1);box-shadow:0 2px 5px rgba(0,0,0,.2);}
+  .toggle.on i{left:22px;}
+  .btn-primary{
+    width:100%;margin-top:14px;padding:13px;border:none;border-radius:16px;
+    background:var(--accent);color:#fff;font-size:14.5px;font-weight:600;
+    font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:filter .2s,transform .1s;
+  }
+  .btn-primary:active{transform:scale(.98);filter:brightness(.95);}
+
+  /* cleanup */
+  .cl-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid color-mix(in srgb,var(--text3) 12%,transparent);}
+  .cl-item:last-of-type{border-bottom:none;}
+  .cl-item .cic{width:34px;height:34px;border-radius:11px;background:color-mix(in srgb,var(--warning) 16%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cl-item .ct{flex:1;}
+  .cl-item .ct .a{font-size:13.5px;font-weight:600;color:var(--text);}
+  .cl-item .ct .b{font-size:11.5px;color:var(--text3);margin-top:1px;}
+  .cl-item .cs{font-size:13.5px;font-weight:700;color:var(--warning);font-variant-numeric:tabular-nums;}
+
+  /* trend */
+  .trend-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .trend-head .cur{font-family:"Noto Serif SC",serif;font-weight:700;font-size:20px;color:var(--text);}
+  .trend-head .delta{font-size:12px;font-weight:600;color:var(--error);}
+  .trend-head .delta.up{color:var(--warning);}
+  .spark{width:100%;height:80px;margin-top:4px;}
+
+  /* export */
+  .ex-row{display:flex;gap:11px;}
+  .ex-btn{flex:1;padding:14px 10px;border-radius:16px;border:1px solid var(--card-border);background:color-mix(in srgb,var(--accent) 8%,transparent);display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;color:var(--text);}
+  .ex-btn:active{filter:brightness(.97);}
+  .ex-btn .ei{width:34px;height:34px;border-radius:11px;background:color-mix(in srgb,var(--accent) 16%,transparent);display:flex;align-items:center;justify-content:center;}
+  .ex-btn .et{font-size:12.5px;font-weight:600;}
+
+  /* theme switcher */
+  .themer{
+    position:absolute;left:18px;right:18px;bottom:16px;
+    background:var(--card);border:1px solid var(--card-border);border-radius:20px;
+    box-shadow:0 16px 40px -14px rgba(20,30,50,.4);
+    padding:12px 14px;display:flex;align-items:center;gap:10px;
+    animation:rise .5s cubic-bezier(.22,1,.36,1) both;
+  }
+  body.dark .themer{box-shadow:0 16px 40px -14px rgba(0,0,0,.6);}
+  .themer .lab{font-size:11px;color:var(--text3);writing-mode:vertical-rl;letter-spacing:2px;flex-shrink:0;}
+  .swatches{display:flex;gap:9px;flex:1;overflow-x:auto;scrollbar-width:none;}
+  .swatches::-webkit-scrollbar{display:none;}
+  .sw{width:30px;height:30px;border-radius:50%;flex-shrink:0;cursor:pointer;border:2px solid transparent;position:relative;transition:transform .15s;}
+  .sw:active{transform:scale(.9);}
+  .sw.active{border-color:var(--text);}
+  .sw span{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text3);white-space:nowrap;}
+  .dm-btn{width:38px;height:38px;border-radius:13px;flex-shrink:0;background:color-mix(in srgb,var(--text2) 12%,transparent);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="icons">
+      <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="currentColor"/><rect x="4.5" y="5" width="3" height="6" rx="1" fill="currentColor"/><rect x="9" y="2.5" width="3" height="8.5" rx="1" fill="currentColor"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="currentColor"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11"><path d="M8 2.5c2.1 0 4 .8 5.4 2.1l1.2-1.3A9 9 0 0 0 8 .8 9 9 0 0 0 1.4 3.3l1.2 1.3A7 7 0 0 1 8 2.5Zm0 3.2c1.2 0 2.3.5 3.1 1.3l1.2-1.3a6 6 0 0 0-8.6 0l1.2 1.3A4.4 4.4 0 0 1 8 5.7Zm0 3.3c.5 0 1 .2 1.4.6L8 11.7 6.6 9.6c.4-.4.9-.6 1.4-.6Z" fill="currentColor"/></svg>
+      <svg width="24" height="11" viewBox="0 0 24 11"><rect x="0.5" y="0.5" width="20" height="10" rx="3" fill="none" stroke="currentColor"/><rect x="2" y="2" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="22" y="3.5" width="2" height="4" rx="1" fill="currentColor"/></svg>
+    </span>
+  </div>
+
+  <div class="scroll">
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="title">存储管理</div>
+      <div class="ghost">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="card">
+      <div class="label" style="margin-bottom:14px;">总占用空间</div>
+      <div class="overview">
+        <div class="donut-wrap">
+          <svg width="118" height="118" viewBox="0 0 118 118" id="donut"></svg>
+          <div class="donut-center">
+            <div class="big">1.21 GB</div>
+            <div class="sub">占设备 0.9%</div>
+          </div>
+        </div>
+        <div class="meta" id="legend"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="card">
+      <div class="sect">分类明细 <span class="tag">5 项</span></div>
+      <div id="cats"></div>
+    </div>
+
+    <!-- BACKUP & SYNC -->
+    <div class="card">
+      <div class="sect">云备份与同步</div>
+      <div class="bk-top">
+        <div class="bk-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6-1.5A4 4 0 0 0 6.5 19h11Z"/><path d="M12 11v6m0-6l-2.2 2.2M12 11l2.2 2.2"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:600;color:var(--text);">云备份已开启</div>
+          <div style="margin-top:5px;"><span class="pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>已同步</span></div>
+        </div>
+      </div>
+      <div class="bk-meta">
+        上次备份 <b>3 天前</b> · 每周日 <b>自动备份</b><br/>
+        本地备份 <b>2 份</b> · 最近 7 天前
+      </div>
+      <div class="switchrow">
+        <div class="t">自动备份<small>每周日静默备份到云端</small></div>
+        <div class="toggle on" id="autobk"><i></i></div>
+      </div>
+      <div class="switchrow" style="border-top:none;padding-top:4px;">
+        <div class="t">Wi-Fi 下仅备份<small>避免消耗移动流量</small></div>
+        <div class="toggle on" id="wifi"><i></i></div>
+      </div>
+      <button class="btn-primary">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+        立即备份
+      </button>
+    </div>
+
+    <!-- SMART CLEANUP -->
+    <div class="card">
+      <div class="sect">智能清理 <span class="tag" style="color:var(--warning);background:color-mix(in srgb,var(--warning) 16%,transparent)">可释放 104 MB</span></div>
+      <div class="cl-item">
+        <div class="cic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+        <div class="ct"><div class="a">临时缓存</div><div class="b">可安全清理，不影响日记</div></div>
+        <div class="cs">54 MB</div>
+      </div>
+      <div class="cl-item">
+        <div class="cic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+        <div class="ct"><div class="a">旧缩略图</div><div class="b">90 天前的图片预览</div></div>
+        <div class="cs">38 MB</div>
+      </div>
+      <div class="cl-item">
+        <div class="cic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9 4-9-4 9-4 9 4Z"/><path d="M3 8v8l9 4 9-4V8"/></svg></div>
+        <div class="ct"><div class="a">已删除日记残留</div><div class="b">回收站内过期内容</div></div>
+        <div class="cs">12 MB</div>
+      </div>
+      <button class="btn-primary" style="background:var(--warning);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+        一键清理释放 104 MB
+      </button>
+    </div>
+
+    <!-- TREND -->
+    <div class="card">
+      <div class="sect">近 6 个月占用</div>
+      <div class="trend-head">
+        <div class="cur">1.21 GB</div>
+        <div class="delta up">较 6 个月前 +47.6%</div>
+      </div>
+      <svg class="spark" id="spark" viewBox="0 0 320 80" preserveAspectRatio="none"></svg>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:4px;">
+        <span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="card" style="margin-bottom:4px;">
+      <div class="sect">数据导出与恢复</div>
+      <div class="ex-row">
+        <div class="ex-btn">
+          <div class="ei"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
+          <div class="et">导出全部</div>
+        </div>
+        <div class="ex-btn">
+          <div class="ei"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9m0 0l-4 4m4-4l4 4"/><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"/></svg></div>
+          <div class="et">从备份恢复</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THEME SWITCHER -->
+  <div class="themer">
+    <div class="lab">主题</div>
+    <div class="swatches" id="swatches"></div>
+    <div class="dm-btn" id="dm">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    </div>
+  </div>
+</div>
+
+<script>
+const THEMES = {
+  fog:{ name:'雾蓝灰',
+    light:{bg:['#F5F7FA','#EFF3F8','#E8EDF4'],card:'#FFFFFF',border:'rgba(130,150,180,.30)',text:'#2C3344',text2:'#5A6577',text3:'#8A96A8',accent:'#6B8DB5',ramp:['#6B8DB5','#B5926B','#9B8EBA','#8AA8C8','#8A96A8']},
+    dark:{bg:['#0B0D12','#0E1018','#11131C'],card:'#181A26',border:'rgba(136,176,212,.20)',text:'#D8E0F0',text2:'#9AA8C0',text3:'#6A7890',accent:'#88B0D4',ramp:['#88B0D4','#D4A878','#A89AC8','#B8D0E8','#6A7890']} },
+  moss:{ name:'苔藓绿',
+    light:{bg:['#F6F7F4','#EFF2EB','#E5EAE0'],card:'#FCFDFB',border:'rgba(100,122,90,.28)',text:'#2E3328',text2:'#5A6450',text3:'#8A9480',accent:'#7BA06E',ramp:['#7BA06E','#C4A06B','#A088B0','#9BBE8E','#8A9480']},
+    dark:{bg:['#0B0D0A','#0E110D','#111410'],card:'#181C16',border:'rgba(139,192,122,.18)',text:'#D8E4D0',text2:'#9AAA90',text3:'#6A7A60',accent:'#8BC07A',ramp:['#8BC07A','#D4B078','#B098C4','#AFD89E','#6A7A60']} },
+  ocean:{ name:'海潮蓝',
+    light:{bg:['#F2FBFC','#E8F6FA','#E2F0F6'],card:'#FFFFFF',border:'rgba(91,158,160,.28)',text:'#173D46',text2:'#4F6E79',text3:'#6E8893',accent:'#5A9EA0',ramp:['#5A9EA0','#6B93C4','#7D94B8','#7DBEBC','#4F6E79']},
+    dark:{bg:['#091318','#0C1820','#101E29'],card:'#15212B',border:'rgba(123,188,190,.18)',text:'#D9EEF0',text2:'#9AB7C0',text3:'#6E8893',accent:'#7BBCBE',ramp:['#7BBCBE','#7DA0D4','#8FA0C7','#9FD0D2','#6E8893']} },
+  petal:{ name:'陶粉玫瑰',
+    light:{bg:['#FFF8F7','#FFEFED','#F8E6E3'],card:'#FFFFFF',border:'rgba(196,136,128,.28)',text:'#422A2A',text2:'#72585A',text3:'#9A8A8A',accent:'#C48880',ramp:['#C48880','#B08AA8','#D4A090','#D8A8A0','#72585A']},
+    dark:{bg:['#181013','#1E1216','#27181B'],card:'#281A1D',border:'rgba(212,160,152,.18)',text:'#F2DCDC',text2:'#C3A7A7',text3:'#9A8A8A',accent:'#D4A098',ramp:['#D4A098','#C49BC4','#D8B098','#E4B8B0','#9A8A8A']} },
+  sand:{ name:'沙金琥珀',
+    light:{bg:['#FCFAF3','#F7F1E6','#F0E5D3'],card:'#FFFFFF',border:'rgba(184,152,96,.28)',text:'#42361D',text2:'#6C5C40',text3:'#9A8A6A',accent:'#B89860',ramp:['#B89860','#BF8878','#A09070','#D4B890','#6C5C40']},
+    dark:{bg:['#17140F','#1D1812','#251F17'],card:'#2A221A',border:'rgba(204,173,112,.18)',text:'#F0E5D4',text2:'#C0AD8A',text3:'#9A8A6A',accent:'#CCAD70',ramp:['#CCAD70','#CCA088','#B8A080','#DCC890','#9A8A6A']} },
+  clay:{ name:'陶土',
+    light:{bg:['#FBF5F0','#F4E7DD','#EAD7CB'],card:'#FFFCFA',border:'rgba(184,144,128,.28)',text:'#40302A',text2:'#6C574D',text3:'#9A8579',accent:'#B89080',ramp:['#B89080','#809A88','#A090A8','#CCA898','#9A8579']},
+    dark:{bg:['#17120F','#1C1511','#241B16'],card:'#281D18',border:'rgba(204,160,144,.18)',text:'#F2E3DA',text2:'#C3AEA0',text3:'#8D7769',accent:'#CCA090',ramp:['#CCA090','#90A898','#B0A0B8','#DCB0A0','#8D7769']} },
+  ink:{ name:'墨石',
+    light:{bg:['#F3F5FA','#E7EBF5','#DCE3F0'],card:'#FFFFFF',border:'rgba(77,106,168,.28)',text:'#1F2735',text2:'#506176',text3:'#7A8698',accent:'#4D6AA8',ramp:['#4D6AA8','#6E83C4','#9A7FAF','#7A93C8','#506176']},
+    dark:{bg:['#0A0D14','#0E121B','#121824'],card:'#1A2030',border:'rgba(138,168,224,.18)',text:'#D9E1EF',text2:'#9AA8C1',text3:'#6D7893',accent:'#8AA8E0',ramp:['#8AA8E0','#A48BD4','#6FB0C2','#AAC2EE','#6D7893']} },
+};
+
+const CATS = [
+  {nm:'日记数据',ds:'文字 · 心情 · 标签',size:312,color:0},
+  {nm:'图片',ds:'日记内嵌照片',size:564,color:1},
+  {nm:'缩略图',ds:'图片预览缓存',size:168,color:2},
+  {nm:'备份',ds:'本地加密备份',size:142,color:3},
+  {nm:'缓存',ds:'临时文件',size:54,color:4},
+];
+const TOTAL = CATS.reduce((s,c)=>s+c.size,0); // 1240 MB
+const ICONS = {
+  db:'<path d="M21 8l-9 4-9-4 9-4 9 4Z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/>',
+  img:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 16l-5-5L5 21"/>',
+  thumb:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  backup:'<path d="M17.5 19a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.6-1.5A4 4 0 0 0 6.5 19h11Z"/><path d="M12 11v6m0-6l-2.2 2.2M12 11l2.2 2.2"/>',
+  cache:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+};
+
+let cur = 'fog', dark = false;
+
+function apply(){
+  const t = THEMES[cur][dark?'dark':'light'];
+  const r = document.documentElement.style;
+  r.setProperty('--bg1',t.bg[0]); r.setProperty('--bg2',t.bg[1]); r.setProperty('--bg3',t.bg[2]);
+  r.setProperty('--card',t.card); r.setProperty('--card-border',t.border);
+  r.setProperty('--text',t.text); r.setProperty('--text2',t.text2); r.setProperty('--text3',t.text3);
+  r.setProperty('--accent',t.accent);
+  r.setProperty('--c0',t.ramp[0]); r.setProperty('--c1',t.ramp[1]); r.setProperty('--c2',t.ramp[2]); r.setProperty('--c3',t.ramp[3]); r.setProperty('--c4',t.ramp[4]);
+  document.body.classList.toggle('dark',dark);
+  document.querySelectorAll('.sw').forEach(s=>s.classList.toggle('active',s.dataset.k===cur));
+}
+
+function buildDonut(){
+  const svg = document.getElementById('donut');
+  const cx=59,cy=59,rad=46, C=2*Math.PI*rad;
+  let off=0;
+  const gap=1.5;
+  let html=`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="color-mix(in srgb,var(--text3) 14%,transparent)" stroke-width="13"/>`;
+  CATS.forEach(c=>{
+    const frac=c.size/TOTAL;
+    const len=Math.max(frac*C-gap,0.5);
+    html+=`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="var(--c${c.color})" stroke-width="13" stroke-linecap="round"
+      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}"
+      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dasharray 1s cubic-bezier(.22,1,.36,1)"/>`;
+    off+=frac*C;
+  });
+  svg.innerHTML=html;
+}
+
+function buildLegend(){
+  const el=document.getElementById('legend');
+  el.innerHTML=CATS.map(c=>`<div class="row"><span class="dot" style="background:var(--c${c.color})"></span>${c.nm}<b>${(c.size/TOTAL*100).toFixed(1)}%</b></div>`).join('');
+}
+
+function buildCats(){
+  const el=document.getElementById('cats');
+  el.innerHTML=CATS.map(c=>`
+    <div class="cat">
+      <div class="ic" style="background:color-mix(in srgb,var(--c${c.color}) 15%,transparent)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--c${c.color})" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[c.color===0?'db':c.color===1?'img':c.color===2?'thumb':c.color===3?'backup':'cache']}</svg>
+      </div>
+      <div class="info">
+        <div class="nm">${c.nm}</div><div class="ds">${c.ds}</div>
+        <div class="bar"><i data-w="${(c.size/TOTAL*100).toFixed(1)}" style="background:var(--c${c.color})"></i></div>
+      </div>
+      <div class="num"><div class="sz">${(c.size/1024).toFixed(2)} GB</div><div class="pc">${(c.size/TOTAL*100).toFixed(1)}%</div></div>
+    </div>`).join('');
+  requestAnimationFrame(()=>setTimeout(()=>document.querySelectorAll('.cat .bar i').forEach(i=>i.style.width=i.dataset.w+'%'),60));
+}
+
+function buildSpark(){
+  const data=[0.82,0.88,0.95,1.02,1.10,1.21];
+  const W=320,H=80,pad=6;
+  const min=Math.min(...data),max=Math.max(...data),span=(max-min)||1;
+  const pts=data.map((v,i)=>[pad+i*(W-2*pad)/(data.length-1), H-pad-((v-min)/span)*(H-2*pad)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H} L ${pts[0][0].toFixed(1)} ${H} Z`;
+  const gid='sg'+Math.random().toString(36).slice(2,7);
+  document.getElementById('spark').innerHTML=`
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/>
+      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>`).join('')}`;
+}
+
+function buildSwatches(){
+  const el=document.getElementById('swatches');
+  el.innerHTML=Object.entries(THEMES).map(([k,v])=>{
+    const t=v.light; const c=t.ramp;
+    return `<div class="sw" data-k="${k}" title="${v.name}" style="background:conic-gradient(${c[0]} 0 20%,${c[1]} 20% 40%,${c[2]} 40% 60%,${c[3]} 60% 80%,${c[4]} 80% 100%)"><span>${v.name}</span></div>`;
+  }).join('');
+  el.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{cur=s.dataset.k;apply();}));
+}
+
+document.getElementById('dm').addEventListener('click',()=>{dark=!dark;apply();});
+document.querySelectorAll('.toggle').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
+
+buildDonut(); buildLegend(); buildCats(); buildSpark(); buildSwatches(); apply();
+</script>
+</body>
+</html>

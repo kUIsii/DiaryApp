@@ -100,16 +100,22 @@ class AmbientSoundPlayer private constructor() {
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         ensureAudioFocus()
 
-        val mp = MediaPlayer().apply {
-            setAudioAttributes(
+        val mp = MediaPlayer()
+        try {
+            mp.setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
-            setDataSource(audioFile.absolutePath)
-            isLooping = true
-            setVolume(vol, vol)
+            mp.setDataSource(audioFile.absolutePath)
+            mp.isLooping = true
+            mp.setVolume(vol, vol)
+        } catch (e: Exception) {
+            mp.release()
+            track = null
+            playCallback?.invoke()
+            return Result.failure(e)
         }
 
         try {

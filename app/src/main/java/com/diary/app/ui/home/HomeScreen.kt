@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -101,6 +103,8 @@ import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.components.cleanPreviewText
 import com.diary.app.ui.components.formatEntryTime
 import com.diary.app.ui.components.moodIconForLevel
@@ -273,7 +277,7 @@ fun HomeScreen(
 
 
     GradientBackground {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(onMainScreenSwipe) {
@@ -290,14 +294,16 @@ fun HomeScreen(
                     )
                 }
         ) {
+            ScreenTopBar(title = "\u9996\u9875")
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = DesignTokens.PageMargin, vertical = 12.dp),
+                contentPadding = PaddingValues(bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(4.dp))
                     HomeHeroSection(
                         selectedDate = selectedDate ?: LocalDate.now(),
                         stats = stats,
@@ -486,70 +492,77 @@ fun HomeScreen(
                 item(key = "day-pager") {
                     val currentDate = selectedDate ?: LocalDate.now()
                     val currentEntries = entriesByDate[currentDate] ?: emptyList()
+                    val isEmpty = currentEntries.isEmpty()
 
-                    Column {
-                        HomeSelectedDateHeader(
-                            date = currentDate,
-                            entryCount = currentEntries.size,
-                            multiSelectState = multiSelectState,
-                            onFavoriteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
+                    if (isEmpty) {
+                        // 无日记：卡片撑开足够高度，避免下方大片空白与过度滚动
+                        Column {
+                            HomeSelectedDateHeader(
+                                date = currentDate,
+                                entryCount = currentEntries.size,
+                                multiSelectState = multiSelectState,
+                                onFavoriteSelected = {},
+                                onDeleteSelected = {},
+                                onCancelMultiSelect = {}
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            HomeNoEntriesForDate()
+                        }
+                    } else {
+                        Column {
+                            HomeSelectedDateHeader(
+                                date = currentDate,
+                                entryCount = currentEntries.size,
+                                multiSelectState = multiSelectState,
+                                onFavoriteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        viewModel.favoriteEntries(multiSelectState.selectedIds)
+                                        multiSelectState = multiSelectState.clearSelection()
+                                    }
+                                },
+                                onDeleteSelected = {
+                                    if (multiSelectState.selectedIds.isNotEmpty()) {
+                                        haptic.click()
+                                        showDeleteConfirm = true
+                                    }
+                                },
+                                onCancelMultiSelect = {
                                     haptic.click()
-                                    viewModel.favoriteEntries(multiSelectState.selectedIds)
                                     multiSelectState = multiSelectState.clearSelection()
                                 }
-                            },
-                            onDeleteSelected = {
-                                if (multiSelectState.selectedIds.isNotEmpty()) {
-                                    haptic.click()
-                                    showDeleteConfirm = true
-                                }
-                            },
-                            onCancelMultiSelect = {
-                                haptic.click()
-                                multiSelectState = multiSelectState.clearSelection()
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            if (currentEntries.isEmpty()) {
-                                HomeNoEntriesForDate()
-                            } else {
-                                currentEntries.forEach { entry ->
-                                    HomeEntryFeedCard(
-                                        entry = entry,
-                                        tags = tagsMap[entry.id] ?: emptyList(),
-                                        imagePaths = allImagesMap[entry.id] ?: emptyList(),
-                                        isSelected = entry.id in multiSelectState.selectedIds,
-                                        onClick = {
-                                            haptic.click()
-                                            if (multiSelectState.isEnabled) {
-                                                multiSelectState = multiSelectState.toggleSelection(entry.id)
-                                            } else {
-                                                onNavigateToDetail(entry.id)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            haptic.click()
-                                            multiSelectState = if (multiSelectState.isEnabled) {
-                                                multiSelectState.toggleSelection(entry.id)
-                                            } else {
-                                                HomeMultiSelectState.startSelection(entry.id)
-                                            }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            currentEntries.forEach { entry ->
+                                HomeEntryFeedCard(
+                                    entry = entry,
+                                    tags = tagsMap[entry.id] ?: emptyList(),
+                                    imagePaths = allImagesMap[entry.id] ?: emptyList(),
+                                    isSelected = entry.id in multiSelectState.selectedIds,
+                                    onClick = {
+                                        haptic.click()
+                                        if (multiSelectState.isEnabled) {
+                                            multiSelectState = multiSelectState.toggleSelection(entry.id)
+                                        } else {
+                                            onNavigateToDetail(entry.id)
                                         }
-                                    )
-                                }
+                                    },
+                                    onLongClick = {
+                                        haptic.click()
+                                        multiSelectState = if (multiSelectState.isEnabled) {
+                                            multiSelectState.toggleSelection(entry.id)
+                                        } else {
+                                            HomeMultiSelectState.startSelection(entry.id)
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(84.dp)) }
+                // 底部留白：给 FAB 让路；无日记时 day-pager 已填充满屏，留白收窄避免大片空白
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
 
             if (!multiSelectState.isEnabled) {

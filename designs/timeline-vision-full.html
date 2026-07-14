@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiaryApp 时间线完整愿景版</title>
+  <style>
+    :root {
+      --bg: #f5efe3;
+      --paper: #fffaf0;
+      --surface: #ffffff;
+      --text: #2a2a2a;
+      --text-secondary: #6b6b6b;
+      --text-tertiary: #a0a0a0;
+      --accent: #5a7a96;
+      --accent-soft: rgba(90, 122, 150, 0.15);
+      --accent-very-soft: rgba(90, 122, 150, 0.08);
+      --note-a: #e8d8c3;
+      --note-b: #d4e5d2;
+      --note-c: #d8d4e8;
+      --line: rgba(42, 42, 42, 0.08);
+      --shadow: rgba(42, 42, 42, 0.08);
+      --shadow-deep: rgba(42, 42, 42, 0.14);
+      --mood-happy: #e8a87c;
+      --mood-calm: #8fb9a8;
+      --mood-sad: #9fa8d4;
+      --radius: 22px;
+      --radius-sm: 14px;
+      --radius-xs: 10px;
+    }
+
+    .theme-mist {
+      --accent: #5a7a96;
+      --accent-soft: rgba(90, 122, 150, 0.15);
+      --accent-very-soft: rgba(90, 122, 150, 0.08);
+      --note-a: #d8e4ec;
+      --note-b: #e1e6d8;
+      --note-c: #e4e0ef;
+      --bg: #ede9e2;
+    }
+
+    .theme-moss {
+      --accent: #6d9a62;
+      --accent-soft: rgba(109, 154, 98, 0.15);
+      --accent-very-soft: rgba(109, 154, 98, 0.08);
+      --note-a: #e3e9d8;
+      --note-b: #d4e5c8;
+      --note-c: #e2e8d4;
+      --bg: #ece9e2;
+    }
+
+    .theme-ocean {
+      --accent: #4d9ca8;
+      --accent-soft: rgba(77, 156, 168, 0.15);
+      --accent-very-soft: rgba(77, 156, 168, 0.08);
+      --note-a: #d8e8ea;
+      --note-b: #d2e3d8;
+      --note-c: #d6e0ec;
+      --bg: #ebe8e2;
+    }
+
+    .theme-petal {
+      --accent: #c77b87;
+      --accent-soft: rgba(199, 123, 135, 0.15);
+      --accent-very-soft: rgba(199, 123, 135, 0.08);
+      --note-a: #f0d8dc;
+      --note-b: #ead8d4;
+      --note-c: #e8d8e6;
+      --bg: #eee8e2;
+    }
+
+    .theme-sand {
+      --accent: #c17f51;
+      --accent-soft: rgba(193, 127, 81, 0.15);
+      --accent-very-soft: rgba(193, 127, 81, 0.08);
+      --note-a: #f0dec8;
+      --note-b: #e8e0d0;
+      --note-c: #ecd8c8;
+      --bg: #eee9e2;
+    }
+
+    .theme-clay {
+      --accent: #b0726b;
+      --accent-soft: rgba(176, 114, 107, 0.15);
+      --accent-very-soft: rgba(176, 114, 107, 0.08);
+      --note-a: #ead8d4;
+      --note-b: #e0d8cc;
+      --note-c: #e8d8d8;
+      --bg: #ece9e2;
+    }
+
+    .theme-ink {
+      --accent: #6b7a9c;
+      --accent-soft: rgba(107, 122, 156, 0.15);
+      --accent-very-soft: rgba(107, 122, 156, 0.08);
+      --note-a: #d8dce6;
+      --note-b: #d6d8d2;
+      --note-c: #dcd8e4;
+      --bg: #e8e7e4;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .phone-frame {
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      overflow-x: hidden;
+      padding-bottom: 90px;
+    }
+
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 20%, rgba(255, 200, 180, 0.25) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 70% at 85% 30%, rgba(180, 210, 220, 0.22) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 60% at 50% 80%, rgba(200, 190, 230, 0.18) 0%, transparent 50%),
+        var(--bg);
+      animation: drift 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(10px, -8px) scale(1.02); }
+    }
+
+    .paper-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(245, 239, 227, 0.85);
+      backdrop-filter: blur(16px);
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .theme-switcher {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .theme-switcher::-webkit-scrollbar { display: none; }
+
+    .theme-btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+
+    .theme-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      box-shadow: 0 3px 12px var(--accent-soft);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--paper);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 12px var(--shadow);
+      transform: rotate(-0.3deg);
+    }
+
+    .search-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .search-text {
+      font-size: 15px;
+      color: var(--text-tertiary);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: relative;
+      z-index: 1;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: var(--radius-xs);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px var(--shadow);
+      transform: rotate(-1deg);
+    }
+
+    .filter-chip:nth-child(even) { transform: rotate(1.5deg); }
+    .filter-chip:nth-child(3n) { transform: rotate(-0.5deg); }
+
+    .filter-chip.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent);
+      border-style: dashed;
+      transform: rotate(0deg);
+    }
+
+    .timeline {
+      padding: 8px 16px 120px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 50px;
+      top: 40px;
+      bottom: 120px;
+      width: 2px;
+      border-left: 2px dashed var(--text-tertiary);
+      opacity: 0.2;
+    }
+
+    .day-group {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 36px;
+      position: relative;
+    }
+
+    .day-stamp {
+      flex-shrink: 0;
+      width: 68px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 12px;
+      position: relative;
+    }
+
+    .day-stamp::before {
+      content: "";
+      position: absolute;
+      right: -7px;
+      top: 24px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 2px solid var(--accent);
+      z-index: 2;
+    }
+
+    .day-stamp.today::before {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .stamp-inner {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      text-align: center;
+      min-width: 54px;
+      box-shadow: 0 3px 10px var(--shadow);
+      transform: rotate(-1.5deg);
+      position: relative;
+    }
+
+    .day-stamp.today .stamp-inner {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 16px var(--accent-soft);
+      transform: rotate(-2deg);
+      border-color: var(--accent);
+    }
+
+    .stamp-day {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stamp-weekday {
+      font-size: 11px;
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+
+    .cards-stack {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-top: 6px;
+    }
+
+    .entry-card {
+      background: var(--paper);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 18px var(--shadow);
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+
+    .entry-card:hover { transform: rotate(0deg) scale(1.01); }
+
+    .entry-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: var(--accent);
+      opacity: 0.25;
+    }
+
+    .card-note {
+      background: var(--note-a);
+      border: 1.5px solid rgba(42, 42, 42, 0.12);
+      box-shadow: 4px 4px 0 rgba(42, 42, 42, 0.08);
+      transform: rotate(-0.6deg);
+    }
+
+    .card-note:nth-child(even) {
+      background: var(--note-b);
+      transform: rotate(0.5deg);
+    }
+
+    .card-note::before { display: none; }
+
+    .card-ticket {
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--note-c) 0%, var(--paper) 100%);
+      position: relative;
+    }
+
+    .card-ticket::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 12px;
+      bottom: 12px;
+      width: 1px;
+      border-left: 1.5px dashed var(--text-tertiary);
+      opacity: 0.3;
+    }
+
+    .card-ticket::before { display: none; }
+
+    .ticket-hole {
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg);
+      transform: translateY(-50%);
+      box-shadow: inset 0 1px 3px var(--shadow);
+    }
+
+    .ticket-hole.right { left: auto; right: -10px; }
+
+    .card-polaroid {
+      background: var(--surface);
+      padding: 12px 12px 0;
+      transform: rotate(-0.8deg);
+      box-shadow: 0 6px 24px var(--shadow-deep);
+    }
+
+    .card-polaroid::before { display: none; }
+
+    .tape {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      width: 80px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(42, 42, 42, 0.06);
+      box-shadow: 0 1px 4px var(--shadow);
+      z-index: 5;
+      backdrop-filter: blur(2px);
+    }
+
+    .card-media {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-polaroid .card-image {
+      border-radius: 8px 8px 0 0;
+      height: 150px;
+    }
+
+    .card-body {
+      padding: 14px 16px 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-time {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .card-summary {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card-tag {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--accent-very-soft);
+      color: var(--accent);
+      border: 1px dashed var(--accent-soft);
+      transform: rotate(-1deg);
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+
+    .card-tag:nth-child(even) { transform: rotate(1deg); }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .meta-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mood-happy);
+    }
+
+    .corner-fold {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.7) 50%, rgba(42,42,42,0.06) 52%, rgba(42,42,42,0.1) 100%);
+      border-radius: 0 0 0 var(--radius);
+      pointer-events: none;
+    }
+
+    .section-title {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      padding: 16px 16px 20px;
+      text-align: center;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 420px;
+      height: 76px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 12px 12px;
+      z-index: 100;
+      box-shadow: 0 -4px 20px var(--shadow);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    @media (max-width: 480px) {
+      .phone-frame { max-width: 100%; }
+      .bottom-bar { max-width: 100%; }
+    }
+  </style>
+</head>
+<body class="theme-mist">
+  <div class="phone-frame">
+    <div class="ambient-bg"></div>
+    <div class="paper-grid"></div>
+
+    <div class="toolbar">
+      <div class="theme-switcher">
+        <button class="theme-btn active" data-theme="theme-mist">雾蓝</button>
+        <button class="theme-btn" data-theme="theme-moss">苔绿</button>
+        <button class="theme-btn" data-theme="theme-ocean">海洋</button>
+        <button class="theme-btn" data-theme="theme-petal">花瓣</button>
+        <button class="theme-btn" data-theme="theme-sand">沙琥珀</button>
+        <button class="theme-btn" data-theme="theme-clay">陶土</button>
+        <button class="theme-btn" data-theme="theme-ink">墨石</button>
+      </div>
+
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+        <span class="search-text">搜索日记、标签或心情...</span>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-chip active">全部</div>
+      <div class="filter-chip">日常</div>
+      <div class="filter-chip">旅行</div>
+      <div class="filter-chip">工作</div>
+      <div class="filter-chip">美食</div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-line"></div>
+
+      <div class="day-group">
+        <div class="day-stamp today">
+          <div class="stamp-inner">
+            <div class="stamp-day">7.9</div>
+            <div class="stamp-weekday">周四</div>
+          </div>
+        </div>
+        <div class="cards-stack">
+          <div class="entry-card card-polaroid">
+            <div class="tape"></div>
+            <div class="card-media">
+              <img class="card-image" src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop" alt="风景">
+            </div>
+            <div class="card-body">
+              <div class="card-header">
+                <div class="card-title">湖边散步</div>
+                <div class="card-time">14:32</div>
+              </div>
+              <div class="card-summary">今天沿着湖边走了很久，风很温柔，水面的波纹一层一层。最近总是想起一些小时候的事。</div>
+              <div class="card-footer">
+                <div class="card-tags">
+                  <span class="card-tag">日常</span>
+                  <span class="card-tag">散步</span>
+                </div>
+                <div class="card-meta">
+                  <span class="meta-dot"></span>
+                  <span>平静</span>
+                </div>
+              </div>
+            </div>
+            <div class="corner-fold"></div>
+          </div>
+
+          <div class="entry-card card-note">
+            <div class="card-body">
+              <div class="card-header">
+                <div class="card-title">整理书架</div>
+                <div class="card-time">09:15</div>
+              </div>
+              <div class="card-summary">把积灰的书重新排了一遍，发现几本买了没读的书。打算从《夜晚的潜水艇》开始。</div>
+              <div class="card-footer">
+                <div class="card-tags">
+                  <span class="card-tag">阅读</span>
+                </div>
+                <div class="card-meta">
+                  <span class="meta-dot" style="background: var(--mood-calm);"></span>
+                  <span>轻松</span>
+                </div>
+              </div>
+            </div>
+            <div class="corner-fold"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-group">
+        <div class="day-stamp">
+          <div class="stamp-inner">
+            <div class="stamp-day">7.8</div>
+            <div class="stamp-weekday">周三</div>
+          </div>
+        </div>
+        <div class="cards-stack">
+          <div class="entry-card card-ticket">
+            <div class="ticket-hole"></div>
+            <div class="ticket-hole right"></div>
+            <div class="card-media">
+              <img class="card-image" src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=400&fit=crop" alt="山景">
+            </div>
+            <div class="card-body">
+              <div class="card-header">
+                <div class="card-title">日落之前</div>
+                <div class="card-time">18:47</div>
+              </div>
+              <div class="card-summary">爬到山顶正好赶上日落，天边是那种橙粉色。其实也没想什么，就是安静地看了一会儿。</div>
+              <div class="card-footer">
+                <div class="card-tags">
+                  <span class="card-tag">旅行</span>
+                  <span class="card-tag">自然</span>
+                </div>
+                <div class="card-meta">
+                  <span class="meta-dot" style="background: var(--mood-happy);"></span>
+                  <span>愉悦</span>
+                </div>
+              </div>
+            </div>
+            <div class="corner-fold"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-group">
+        <div class="day-stamp">
+          <div class="stamp-inner">
+            <div class="stamp-day">7.6</div>
+            <div class="stamp-weekday">周一</div>
+          </div>
+        </div>
+        <div class="cards-stack">
+          <div class="entry-card card-note">
+            <div class="card-body">
+              <div class="card-header">
+                <div class="card-title">玩耍糊涂</div>
+                <div class="card-time">21:03</div>
+              </div>
+              <div class="card-summary">今天有点浑浑噩噩，工作效率不高，但晚上和朋友吃了火锅，心情好了不少。</div>
+              <div class="card-footer">
+                <div class="card-tags">
+                  <span class="card-tag">美食</span>
+                  <span class="card-tag">朋友</span>
+                </div>
+                <div class="card-meta">
+                  <span class="meta-dot" style="background: var(--mood-sad);"></span>
+                  <span>复杂</span>
+                </div>
+              </div>
+            </div>
+            <div class="corner-fold"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">— 共有 4 个日记 —</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>首页</span>
+      </div>
+      <div class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>时间轴</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+        <span>工具</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>待办</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>我的</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.body.className = btn.dataset.theme;
+      });
+    });
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

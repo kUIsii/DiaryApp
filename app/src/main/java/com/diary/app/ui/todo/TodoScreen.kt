@@ -87,6 +87,8 @@ import com.diary.app.ui.experimental.orderTodoItemsForDisplay
 import com.diary.app.ui.components.EmptyState
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.components.rememberHapticFeedback
 import com.diary.app.ui.theme.ErrorColor
 import com.diary.app.ui.theme.SuccessColor
@@ -245,11 +247,15 @@ fun TodoScreen(
 
     GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
+            ScreenTopBar(title = "\u5F85\u529E")
+
+            Spacer(modifier = Modifier.height(DesignTokens.TopBarGap))
+
             val tabBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = DesignTokens.PageMargin, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 TodoTab.entries.forEachIndexed { idx, tab ->

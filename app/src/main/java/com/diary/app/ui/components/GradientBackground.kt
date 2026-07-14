@@ -1,11 +1,6 @@
 package com.diary.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -302,20 +297,10 @@ fun GradientBackground(
         targetValue = end, animationSpec = transitionAnimSpec, label = "themeEnd"
     )
 
-    val transition = rememberInfiniteTransition()
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(driftDuration(mode.category), easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bgDrift"
-    )
-
-    val driftedStart = remember(animatedStart, drift, mode.category) { driftColor(animatedStart, drift, mode.category) }
-    val driftedMid = remember(animatedMid, drift, mode.category) { driftColor(animatedMid, drift, mode.category) }
-    val driftedEnd = remember(animatedEnd, drift, mode.category) { driftColor(animatedEnd, drift, mode.category) }
+    // 背景渐变保持静态（关闭每帧漂移动画），避免全 App 常驻 60fps 重组+重绘导致卡顿
+    val driftedStart = animatedStart
+    val driftedMid = animatedMid
+    val driftedEnd = animatedEnd
 
     Box(
         modifier = modifier

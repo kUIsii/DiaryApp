@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>报告 · 手绘风演示</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#F5F7FA;--bg2:#EFF3F8;--bg3:#E8EDF4;--card:#FFFFFF;
+    --text:#2C3344;--text2:#5A6577;--text3:#8A96A8;
+    --accent:#6B8DB5;--accent2:#B5926B;--accent3:#9B8EBA;--border:rgba(130,150,180,.30);
+    --shadow:0 6px 20px rgba(40,55,80,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:"LXGW WenKai TC","Noto Serif SC",serif;background:linear-gradient(180deg,var(--bg1),var(--bg2) 55%,var(--bg3));color:var(--text);min-height:100vh;
+    display:flex;justify-content:center;padding:18px 0 40px;}
+  .phone{width:390px;max-width:100%;background:linear-gradient(180deg,var(--bg1),var(--bg2) 55%,var(--bg3));border-radius:30px;overflow:hidden;box-shadow:0 20px 60px rgba(40,55,80,.18);}
+  .topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px 12px;background:linear-gradient(180deg,var(--bg1),color-mix(in srgb,var(--bg1) 70%,transparent));backdrop-filter:blur(8px);}
+  .topbar .t{font-family:"Noto Serif SC",serif;font-weight:900;font-size:19px;}
+  .topbar .t small{display:block;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:2px;margin-top:2px;}
+  .seg{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:3px;}
+  .seg button{border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:var(--text2);padding:5px 14px;border-radius:16px;cursor:pointer;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  .scroll{padding:4px 16px 20px;}
+  .sec{margin-top:18px;opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease;}
+  .sec.in{opacity:1;transform:none;}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 2px 9px;}
+  .sec-h .step{font-family:"Noto Serif SC",serif;font-weight:900;font-size:13px;color:#fff;background:var(--accent);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 22px;}
+  .sec-h .tt{font-family:"Noto Serif SC",serif;font-weight:900;font-size:16px;}
+  .sec-h .desc{font-size:11px;color:var(--text3);margin-left:auto;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px 14px 16px;margin-bottom:12px;}
+  .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .cap span{font-size:12px;color:var(--text3);}
+  .cap b{font-size:12px;color:var(--accent);font-weight:700;}
+  .chart{width:100%;}
+  .chart svg{display:block;width:100%;height:auto;}
+  .ov{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ov .b{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow);}
+  .ov .b.hl{grid-column:span 2;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--card)),var(--card));}
+  .ov .k{font-size:11px;color:var(--text3);}
+  .ov .v{font-family:"Noto Serif SC",serif;font-weight:900;font-size:26px;margin-top:3px;}
+  .ov .v small{font-size:12px;font-weight:700;color:var(--text2);margin-left:2px;}
+  .delta{font-size:11px;margin-top:3px;font-weight:700;}
+  .delta.up{color:var(--accent);}
+  .delta.dn{color:var(--accent2);}
+  .delta.neu{color:var(--text3);}
+  .story{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,var(--card)),color-mix(in srgb,var(--accent3) 6%,var(--card)));
+    border:1px solid var(--border);border-radius:18px;padding:18px 18px 14px;box-shadow:var(--shadow);}
+  .story .q{font-size:14px;line-height:1.9;color:var(--text);}
+  .story .q b{color:var(--accent);}
+  .story .sign{font-size:12px;color:var(--text3);margin-top:10px;text-align:right;}
+  /* 高光标记（替代 emoji） */
+  .hl-row{display:flex;gap:10px;align-items:flex-start;padding:6px 2px;}
+  .mk{width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-top:4px;}
+  .hl-row .h{font-size:13px;font-weight:700;}
+  .hl-row .d{font-size:13px;color:var(--text2);}
+  /* 小黑插画 */
+  .illus{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 2px;}
+  .illus .note{font-size:12px;color:var(--text3);}
+  .illus .note b{color:var(--accent2);}
+  /* 主题切换 */
+  .dock{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:9px;align-items:center;
+    background:color-mix(in srgb,var(--card) 90%,transparent);border:1px solid var(--border);border-radius:30px;padding:8px 12px;box-shadow:0 10px 30px rgba(40,55,80,.22);backdrop-filter:blur(10px);}
+  .dock .dot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .dock .dot.on{border-color:var(--text);transform:scale(1.12);}
+  .dock .dm{font-size:11px;font-weight:700;color:var(--text2);margin-left:4px;cursor:pointer;padding:2px 8px;border-radius:12px;background:var(--bg2);}
+  .hint{text-align:center;font-size:11px;color:var(--text3);margin:6px 0 70px;}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="topbar">
+    <div class="t">报告<small>纸感手绘 · 离线可用</small></div>
+    <div class="seg" id="seg">
+      <button data-p="month" class="on">月度</button>
+      <button data-p="year">年度</button>
+    </div>
+  </div>
+  <div class="scroll" id="scroll"></div>
+  <div class="hint">纸感手绘图表 · 无外部依赖 · 离线可看</div>
+</div>
+<div class="dock" id="dock"></div>
+
+<script>
+/* ===== 真实 7 套主题（取自 app Color.kt） ===== */
+const THEMES = {
+  fog:{name:'雾蓝灰', light:{bg1:'#F5F7FA',bg2:'#EFF3F8',bg3:'#E8EDF4',card:'#FFFFFF',text:'#2C3344',text2:'#5A6577',text3:'#8A96A8',accent:'#6B8DB5',accent2:'#B5926B',accent3:'#9B8EBA',border:'rgba(130,150,180,.30)'},
+        dark:{bg1:'#0B0D12',bg2:'#0E1018',bg3:'#11131C',card:'#181A26',text:'#D8E0F0',text2:'#9AA8C0',text3:'#6A7890',accent:'#88B0D4',accent2:'#D4A878',accent3:'#A89AC8',border:'rgba(130,150,180,.18)'}},
+  moss:{name:'苔藓绿', light:{bg1:'#F6F7F4',bg2:'#EFF2EB',bg3:'#E5EAE0',card:'#FCFDFB',text:'#2E3328',text2:'#5A6450',text3:'#8A9480',accent:'#7BA06E',accent2:'#C4A06B',accent3:'#A088B0',border:'rgba(100,122,90,.30)'},
+        dark:{bg1:'#0B0D0A',bg2:'#0E110D',bg3:'#111410',card:'#181C16',text:'#D8E4D0',text2:'#9AAA90',text3:'#6A7A60',accent:'#8BC07A',accent2:'#D4B078',accent3:'#B098C4',border:'rgba(100,122,90,.16)'}},
+  ocean:{name:'海潮蓝', light:{bg1:'#F2FBFC',bg2:'#E8F6FA',bg3:'#E2F0F6',card:'#FFFFFF',text:'#173D46',text2:'#4F6E79',text3:'#7A93A0',accent:'#5A9EA0',accent2:'#6B93C4',accent3:'#7D94B8',border:'rgba(123,184,199,.30)'},
+        dark:{bg1:'#091318',bg2:'#0C1820',bg3:'#101E29',card:'#15212B',text:'#D9EEF0',text2:'#9AB7C0',text3:'#6E8790',accent:'#7BBCBE',accent2:'#7DA0D4',accent3:'#8FA0C7',border:'rgba(123,184,199,.17)'}},
+  petal:{name:'陶粉玫瑰', light:{bg1:'#FFF8F7',bg2:'#FFEFED',bg3:'#F8E6E3',card:'#FFFFFF',text:'#422A2A',text2:'#72585A',text3:'#9A8587',accent:'#C48880',accent2:'#B08AA8',accent3:'#D4A090',border:'rgba(211,138,128,.30)'},
+        dark:{bg1:'#181013',bg2:'#1E1216',bg3:'#27181B',card:'#281A1D',text:'#F2DCDC',text2:'#C3A7A7',text3:'#9C8587',accent:'#D4A098',accent2:'#C49BC4',accent3:'#D8B098',border:'rgba(224,141,132,.17)'}},
+  sand:{name:'沙金琥珀', light:{bg1:'#FCFAF3',bg2:'#F7F1E6',bg3:'#F0E5D3',card:'#FFFFFF',text:'#42361D',text2:'#6C5C40',text3:'#9A8C73',accent:'#B89860',accent2:'#BF8878',accent3:'#A09070',border:'rgba(201,163,94,.30)'},
+        dark:{bg1:'#17140F',bg2:'#1D1812',bg3:'#251F17',card:'#2A221A',text:'#F0E5D4',text2:'#C0AD8A',text3:'#9C8C73',accent:'#CCAD70',accent2:'#CCA088',accent3:'#B8A080',border:'rgba(207,165,91,.17)'}},
+  clay:{name:'陶土', light:{bg1:'#FBF5F0',bg2:'#F4E7DD',bg3:'#EAD7CB',card:'#FFFCFA',text:'#40302A',text2:'#6C574D',text3:'#9A8579',accent:'#B89080',accent2:'#809A88',accent3:'#A090A8',border:'rgba(196,119,95,.30)'},
+        dark:{bg1:'#17120F',bg2:'#1C1511',bg3:'#241B16',card:'#281D18',text:'#F2E3DA',text2:'#C3AEA0',text3:'#8D7769',accent:'#CCA090',accent2:'#90A898',accent3:'#B0A0B8',border:'rgba(208,139,115,.17)'}},
+  ink:{name:'墨石', light:{bg1:'#F3F5FA',bg2:'#E7EBF5',bg3:'#DCE3F0',card:'#FFFFFF',text:'#1F2735',text2:'#506176',text3:'#7A8698',accent:'#4D6AA8',accent2:'#6E83C4',accent3:'#9A7FAF',border:'rgba(77,106,168,.30)'},
+        dark:{bg1:'#0A0D14',bg2:'#0E121B',bg3:'#121824',card:'#1A2030',text:'#D9E1EF',text2:'#9AA8C1',text3:'#6D7893',accent:'#8AA8E0',accent2:'#A48BD4',accent3:'#6FB0C2',border:'rgba(138,168,224,.17)'}}
+};
+const ORDER=['fog','moss','ocean','petal','sand','clay','ink'];
+const MOODNAMES=['','沮丧','低落','平静','开心','愉快','兴奋'];
+const MOODCOLORS=['','#CF7B7B','#D4A06A','#7BA7C9','#7BC9A0','#6BC0B0','#A88BC9'];
+
+let cur='fog', dark=false, period='month';
+function C(k){const t=dark?THEMES[cur].dark:THEMES[cur].light;return {accent:t.accent,accent2:t.accent2,accent3:t.accent3}[k]||t.accent;}
+function T(){return dark?THEMES[cur].dark:THEMES[cur].light;}
+
+/* 样本数据 */
+const DATA={
+  month:{label:'2026 年 7 月',
+    entries:26,words:18420,activeDays:22,monthDays:31,avgMood:4.3,photos:41,prevEntries:21,prevWords:15200,
+    dailyWords:[0,320,540,0,880,760,1200,0,640,910,1330,0,0,720,1180,860,540,0,990,1240,780,0,1420,660,930,1100,0,840,1210,970,0],
+    dailyMood:[0,4,5,0,3,4,5,0,4,4,6,0,0,3,5,4,4,0,5,6,4,0,5,3,4,5,0,4,6,4,0],
+    moodDist:[1,2,4,9,6,4],
+    time:[3,2,5,9,4,3],
+    night:3,earliest:'06:42',latest:'01:18',streak:9,
+    happiestTitle:'海边看日落',happiestMood:6,happiestDate:'7月20日',
+    longestTitle:'关于这半年的复盘',longestWords:1420,longestDate:'7月23日',productiveDate:'7月11日',productiveCount:3},
+  year:{label:'2026 年度',
+    entries:281,words:208500,activeDays:214,yearDays:365,avgMood:4.2,photos:436,
+    monthly:[18,21,24,19,26,28,31,29,33,27,25,20],
+    prevEntries:243,prevWords:176300,prevActive:190,prevLabel:'2025',
+    time:[34,22,58,92,45,30],
+    night:30,earliest:'05:48',latest:'03:22',streak:28,longestSilence:9,
+    happiestTitle:'海边看日落',happiestMood:6,happiestDate:'7月20日',
+    longestTitle:'写给十年后的自己',longestWords:2680,longestDate:'12月31日'}
+};
+
+/* ===== 自包含手绘风图表（内联 SVG，无外部依赖） ===== */
+let PID=0;
+function sketchFilter(){return '<filter id="sketch" x="-6%" y="-6%" width="112%" height="112%"><feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/></filter>';}
+function hachure(color){const id='h'+(PID++);return {id,def:'<pattern id="'+id+'" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="5" stroke="'+color+'" stroke-width="1.3"/></pattern>'};}
+
+function drawBar(id,labels,values,color){
+  const el=document.getElementById(id); if(!el) return;
+  const W=340,H=160,padL=10,padR=10,padB=22,padT=12;
+  const max=Math.max(...values,1), n=values.length;
+  const gap=2, bw=(W-padL-padR-gap*(n-1))/n, baseY=H-padB;
+  const hc=hachure(color); let bars='';
+  values.forEach((v,i)=>{
+    const x=padL+i*(bw+gap), h=Math.max(0,(v/max)*(baseY-padT)), y=baseY-h;
+    bars+='<g filter="url(#sketch)"><rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="url(#'+hc.id+')" stroke="'+color+'" stroke-width="1.4"/></g>';
+    if(n<=14 && v>0) bars+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3).toFixed(1)+'" text-anchor="middle" font-size="8" fill="'+T().text3+'" font-family="LXGW WenKai TC">'+v+'</text>';
+  });
+  const base='<g filter="url(#sketch)"><path d="M'+padL+' '+baseY+' L'+(W-padR)+' '+baseY+'" stroke="'+T().text3+'" stroke-width="1.2" fill="none"/></g>';
+  let labs='';
+  values.forEach((v,i)=>{const x=padL+i*(bw+gap)+bw/2;labs+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="8" fill="'+T().text3+'" font-family="LXGW WenKai TC">'+labels[i]+'</text>';});
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+sketchFilter()+hc.def+base+bars+labs+'</svg>';
+}
+
+function drawBarH(id,labels,values,colors){
+  const el=document.getElementById(id); if(!el) return;
+  const rowH=26,W=340,padL=48,padR=34,padT=6;
+  const H=padT+values.length*rowH+6, max=Math.max(...values,1);
+  let defs='',rows='';
+  values.forEach((v,i)=>{
+    const c=colors[i%colors.length], hc=hachure(c); defs+=hc.def;
+    const y=padT+i*rowH+4, w=(v/max)*(W-padL-padR);
+    rows+='<g filter="url(#sketch)"><rect x="'+padL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+(rowH-10)+'" fill="url(#'+hc.id+')" stroke="'+c+'" stroke-width="1.4"/></g>';
+    rows+='<text x="'+(padL-6)+'" y="'+(y+(rowH-10)/2+3).toFixed(1)+'" text-anchor="end" font-size="10" fill="'+T().text2+'" font-family="LXGW WenKai TC">'+labels[i]+'</text>';
+    rows+='<text x="'+(padL+w+6).toFixed(1)+'" y="'+(y+(rowH-10)/2+3).toFixed(1)+'" font-size="10" fill="'+T().text3+'" font-family="LXGW WenKai TC">'+v+'</text>';
+  });
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'">'+sketchFilter()+defs+rows+'</svg>';
+}
+
+function drawLine(id,labels,values,color){
+  const el=document.getElementById(id); if(!el) return;
+  const W=340,H=150,padL=10,padR=10,padB=18,padT=12;
+  const max=Math.max(...values,6), min=Math.min(...values,1), n=values.length;
+  const bw=(W-padL-padR)/(n-1), baseY=H-padB;
+  const pts=values.map((v,i)=>[padL+i*bw, baseY-((v-min)/((max-min)||1))*(baseY-padT)]);
+  let d='M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L');
+  const area=d+' L'+pts[n-1][0].toFixed(1)+' '+baseY+' L'+pts[0][0].toFixed(1)+' '+baseY+' Z';
+  const hc=hachure(color);
+  let svg='<svg viewBox="0 0 '+W+' '+H+'">'+sketchFilter()+hc.def;
+  svg+='<g filter="url(#sketch)"><path d="'+area+'" fill="url(#'+hc.id+')" opacity="0.45"/></g>';
+  svg+='<g filter="url(#sketch)"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linejoin="round"/></g>';
+  pts.forEach(p=>{svg+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.2" fill="'+color+'"/>';});
+  svg+='</svg>';
+  el.innerHTML=svg;
+}
+
+function safe(fn){try{fn();}catch(e){console.warn(e);}}
+
+/* ===== 渲染 ===== */
+function secH(step,title,desc){return '<div class="sec-h"><div class="step">'+step+'</div><div class="tt">'+title+'</div><div class="desc">'+desc+'</div></div>';}
+function hlItem(color,head,desc){return '<div class="hl-row"><div class="mk" style="background:'+color+'"></div><div><div class="h">'+head+'</div><div class="d">'+desc+'</div></div></div>';}
+
+function renderMonth(){
+  const d=DATA.month;const rate=Math.round(d.activeDays/d.monthDays*100);
+  const days=Array.from({length:31},(_,i)=>i+1);
+  return `
+  <div class="sec">${secH(1,'本月概览','规模一览')}
+    <div class="ov">
+      <div class="b hl"><div class="k">记录篇数</div><div class="v">${d.entries}<small>篇</small></div><div class="delta up">较 6 月 +5 篇</div></div>
+      <div class="b"><div class="k">累计字数</div><div class="v">${(d.words/1000).toFixed(1)}<small>k</small></div><div class="delta up">较上月 +3.2k</div></div>
+      <div class="b"><div class="k">活跃天数</div><div class="v">${d.activeDays}<small>/${d.monthDays}</small></div><div class="delta neu">记录率 ${rate}%</div></div>
+      <div class="b"><div class="k">平均心情</div><div class="v" style="color:${MOODCOLORS[Math.round(d.avgMood)]}">${d.avgMood}</div><div class="delta neu">${MOODNAMES[Math.round(d.avgMood)]}偏多</div></div>
+      <div class="b"><div class="k">照片</div><div class="v">${d.photos}<small>张</small></div><div class="delta neu">均 ${(d.photos/d.entries).toFixed(1)} 张/篇</div></div>
+    </div>
+  </div>
+  <div class="sec">${secH(2,'每日节奏','逐日字数')}
+    <div class="card"><div class="cap"><span>每天写了多少字</span><b>峰值 ${Math.max(...d.dailyWords)} 字</b></div><div class="chart" id="m-words"></div></div>
+  </div>
+  <div class="sec">${secH(3,'心情走势','逐日 + 分布')}
+    <div class="card"><div class="cap"><span>每日心情曲线</span><b>均 ${d.avgMood}/6</b></div><div class="chart" id="m-mood"></div></div>
+    <div class="card"><div class="cap"><span>心情占比</span></div><div class="chart" id="m-dist"></div></div>
+  </div>
+  <div class="sec">${secH(4,'书写习惯','时段分布')}
+    <div class="card"><div class="cap"><span>你常在什么时候写</span></div><div class="chart" id="m-time"></div></div>
+  </div>
+  <div class="sec">${secH(5,'高光时刻','记忆点')}
+    <div class="card">
+      ${hlItem(C('accent2'),'最开心 · '+d.happiestDate,d.happiestTitle)}
+      ${hlItem(C('accent'),'最长 · '+d.longestDate,d.longestTitle+'（'+d.longestWords+' 字）')}
+    </div>
+  </div>
+  ${storyCard(`这个月你记录了 <b>${d.entries}</b> 篇、<b>${(d.words/1000).toFixed(1)}k</b> 字，${rate}% 的日子都有笔迹。心情稳定在 <b>${MOODNAMES[Math.round(d.avgMood)]}</b>，最难忘的是 <b>${d.happiestTitle}</b>。`,'—— 7 月的你')}
+  `;
+}
+
+function renderYear(){
+  const d=DATA.year;const topM=d.monthly.indexOf(Math.max(...d.monthly));
+  const months=Array.from({length:12},(_,i)=>i+1);
+  return `
+  <div class="sec" style="margin-top:4px;">${secH(1,'年度概览','一整年')}
+    <div class="ov">
+      <div class="b hl"><div class="k">全年篇数</div><div class="v">${d.entries}<small>篇</small></div><div class="delta up">较 2025 +38 篇</div></div>
+      <div class="b"><div class="k">总字数</div><div class="v">${(d.words/10000).toFixed(1)}<small>万</small></div><div class="delta up">较 2025 +3.2 万</div></div>
+      <div class="b"><div class="k">有记录天</div><div class="v">${d.activeDays}<small>/365</small></div><div class="delta neu">记录率 ${Math.round(d.activeDays/365*100)}%</div></div>
+      <div class="b"><div class="k">照片</div><div class="v">${d.photos}<small>张</small></div><div class="delta neu">最活跃 ${months[topM]} 月</div></div>
+      <div class="b"><div class="k">最长连续</div><div class="v">${d.streak}<small>天</small></div><div class="delta neu">深夜 ${d.night} 篇</div></div>
+    </div>
+  </div>
+  <div class="sec">${secH(2,'每月书写','12 个月篇数')}
+    <div class="card"><div class="cap"><span>哪个月写得最多</span><b>峰值 ${Math.max(...d.monthly)} 篇（${months[topM]}月）</b></div><div class="chart" id="y-month"></div></div>
+  </div>
+  <div class="sec">${secH(3,'书写时段','集中在何时')}
+    <div class="card"><div class="cap"><span>全年时段分布</span></div><div class="chart" id="y-time"></div></div>
+  </div>
+  <div class="sec">${secH(4,'高光时刻','记忆点')}
+    <div class="card">
+      ${hlItem(C('accent2'),'最开心 · '+d.happiestDate,d.happiestTitle)}
+      ${hlItem(C('accent'),'最长 · '+d.longestDate,d.longestTitle+'（'+d.longestWords+' 字）')}
+    </div>
+  </div>
+  <div class="sec">${secH(5,'空状态示例','小黑手绘插画风')}
+    <div class="card">
+      <div class="illus">
+        <svg width="220" height="130" viewBox="0 0 220 130">
+          <g fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2" stroke-linejoin="round">
+            <path d="M70 70 q-2 -34 30 -34 q32 0 30 34 q1 22 -30 22 q-31 0 -30 -22 z"/>
+          </g>
+          <circle cx="86" cy="60" r="3.4" fill="#fff"/><circle cx="104" cy="60" r="3.4" fill="#fff"/>
+          <path d="M86 72 q9 6 18 0" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+          <g stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round">
+            <path d="M78 92 l-4 14"/><path d="M100 92 l4 14"/><path d="M112 90 l10 12"/>
+          </g>
+          <g>
+            <rect x="128" y="58" width="58" height="46" rx="5" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+            <line x1="157" y1="58" x2="157" y2="104" stroke="#1a1a1a" stroke-width="1.6"/>
+            <path d="M134 72 h18 M134 82 h18 M134 92 h12" stroke="#C48880" stroke-width="2" stroke-linecap="round"/>
+          </g>
+          <path d="M150 56 l16 -22 l6 6 l-16 22 z" fill="#B5926B" stroke="#1a1a1a" stroke-width="1.6"/>
+          <text x="60" y="40" font-size="11" fill="#CF7B7B" font-family="LXGW WenKai TC" transform="rotate(-6 60 40)">还没写哦~</text>
+          <text x="158" y="36" font-size="10" fill="#5A9EA0" font-family="LXGW WenKai TC" transform="rotate(5 158 36)">今天也试试</text>
+        </svg>
+        <div class="note">空状态插画参考：<b>小黑</b>手绘风（白底 / 黑抖线 / 红橙蓝批注）</div>
+      </div>
+    </div>
+  </div>
+  ${storyCard(`2026，你把 <b>${d.activeDays}</b> 个日子写成了故事。最长连续 <b>${d.streak}</b> 天，最晚熬到 <b>${d.latest}</b>。明年，请继续对自己温柔。`,'—— 2026 年的你')}
+  `;
+}
+
+function storyCard(html,sign){return '<div class="sec"><div class="story"><div class="q">'+html+'</div><div class="sign">'+sign+'</div></div></div>';}
+
+/* ===== 主题 + 图表重绘 ===== */
+function applyTheme(){
+  const t=T();const r=document.documentElement.style;
+  r.setProperty('--bg1',t.bg1);r.setProperty('--bg2',t.bg2);r.setProperty('--bg3',t.bg3);
+  r.setProperty('--card',t.card);r.setProperty('--text',t.text);r.setProperty('--text2',t.text2);
+  r.setProperty('--text3',t.text3);r.setProperty('--accent',t.accent);r.setProperty('--accent2',t.accent2);
+  r.setProperty('--accent3',t.accent3);r.setProperty('--border',t.border);
+  document.querySelectorAll('.dock .dot').forEach(d=>d.classList.toggle('on',d.dataset.k===cur));
+  drawAll();
+}
+function drawAll(){
+  if(period==='month'){
+    const d=DATA.month;const days=Array.from({length:31},(_,i)=>i+1);
+    safe(()=>drawBar('m-words',days,d.dailyWords,C('accent')));
+    safe(()=>drawLine('m-mood',days,d.dailyMood.map(v=>v||d.avgMood),MOODCOLORS[Math.round(d.avgMood)]));
+    safe(()=>drawBarH('m-dist',MOODNAMES.slice(1),d.moodDist,MOODCOLORS.slice(1)));
+    safe(()=>drawBarH('m-time',['上午','中午','下午','傍晚','深夜','凌晨'],d.time,[C('accent'),C('accent2'),C('accent3'),C('accent'),C('accent3'),C('accent2')]));
+  }else{
+    const d=DATA.year;const months=Array.from({length:12},(_,i)=>i+1);
+    safe(()=>drawBar('y-month',months,d.monthly,C('accent')));
+    safe(()=>drawBarH('y-time',['上午','中午','下午','傍晚','深夜','凌晨'],d.time,[C('accent'),C('accent2'),C('accent3'),C('accent'),C('accent3'),C('accent2')]));
+  }
+}
+function buildDock(){
+  const dock=document.getElementById('dock');
+  dock.innerHTML=ORDER.map(k=>'<div class="dot" data-k="'+k+'" title="'+THEMES[k].name+'" style="background:'+THEMES[k].light.accent+'"></div>').join('')
+    +'<div class="dm" id="dm">深色</div>';
+  dock.querySelectorAll('.dot').forEach(d=>d.onclick=()=>{cur=d.dataset.k;applyTheme();});
+  document.getElementById('dm').onclick=()=>{dark=!dark;document.getElementById('dm').textContent=dark?'浅色':'深色';applyTheme();};
+}
+function mount(){
+  buildDock();
+  document.getElementById('seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    period=b.dataset.p;document.getElementById('seg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+    document.getElementById('scroll').innerHTML=period==='month'?renderMonth():renderYear();
+    applyTheme();reveal();
+  });
+  document.getElementById('scroll').innerHTML=renderMonth();
+  applyTheme();reveal();
+}
+function reveal(){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+  document.querySelectorAll('.sec').forEach(s=>io.observe(s));
+}
+mount();
+</script>
+</body>
+</html>

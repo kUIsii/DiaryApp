@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiaryApp 时间线设计稿预览</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #1c1c1e; color: #f2f2f2; padding-bottom: 40px;
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(28,28,30,0.92); backdrop-filter: blur(10px);
+      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    header h1 { font-size: 17px; font-weight: 600; }
+    header p { font-size: 12px; color: #9a9a9e; margin-top: 2px; }
+    .group-title {
+      font-size: 13px; color: #9a9a9e; letter-spacing: 1px;
+      padding: 18px 16px 8px; text-transform: uppercase;
+    }
+    .card {
+      margin: 10px 12px; background: #2c2c2e; border-radius: 16px;
+      overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+    }
+    .card .label {
+      padding: 10px 14px; font-size: 14px; font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    iframe { width: 100%; height: 720px; border: 0; display: block; background: #f5efe3; }
+    img.mock { width: 100%; display: block; }
+    .hint { font-size: 12px; color: #9a9a9e; padding: 6px 14px 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DiaryApp · 时间线设计稿</h1>
+    <p>手机预览 · 上下滑动浏览 · 含交互原型与静态 Mockup</p>
+  </header>
+
+  <div class="group-title">★ 新 · 卡片方案对比（推荐先看）</div>
+
+  <div class="card">
+    <div class="label">v3 · 四套统一卡片方案实时切换</div>
+    <iframe src="timeline-cards-v3.html" loading="lazy"></iframe>
+  </div>
+
+  <div class="group-title">交互原型（可滚动/点按）</div>
+
+  <div class="card">
+    <div class="label">① 完整愿景版 timeline-vision-full</div>
+    <iframe src="timeline-vision-full.html" loading="lazy"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="label">② 重设计 v2 timeline-redesign-v2</div>
+    <iframe src="timeline-redesign-v2.html" loading="lazy"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="label">③ 原型 timeline-redesign-prototype</div>
+    <iframe src="timeline-redesign-prototype.html" loading="lazy"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="label">④ 杂志信笺版 timeline-magazine-letter</div>
+    <iframe src="timeline-magazine-letter.html" loading="lazy"></iframe>
+  </div>
+
+  <div class="group-title">静态 Mockup（AI 生成）</div>
+
+  <div class="card">
+    <div class="label">Mockup A · 日记应用</div>
+    <img class="mock" src="Mobile_app_UI_mockup__diary_ap_2026-07-09T14-48-25.png" loading="lazy">
+  </div>
+
+  <div class="card">
+    <div class="label">Mockup B · 日记应用</div>
+    <img class="mock" src="Mobile_app_UI_mockup__diary_ap_2026-07-09T14-49-25.png" loading="lazy">
+  </div>
+
+  <div class="card">
+    <div class="label">Mockup C · AI 伴侣</div>
+    <img class="mock" src="Mobile_app_UI_mockup__AI_compa_2026-07-09T14-48-55.png" loading="lazy">
+  </div>
+</body>
+</html>

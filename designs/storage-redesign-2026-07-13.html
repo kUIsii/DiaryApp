@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="fog" data-mode="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>存储管理 · DiaryApp</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --radius: 26px;
+      --radius-sm: 16px;
+      --pad: 20px;
+      --sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      --serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+      --shadow: 0 14px 44px rgba(30, 40, 60, 0.10);
+      --shadow-lg: 0 30px 90px rgba(20, 25, 40, 0.18);
+      --success: #6ABF8A; --warning: #E8A84C; --error: #E07070; --info: #7BA7E0;
+    }
+
+    /* —— 7 主题 × 明暗（取自 App Color.kt）—— */
+    /* 浅色：保留原有暖冷主题色板 */
+    :root[data-theme="fog"][data-mode="light"] {
+      --bg-1:#F5F7FA; --bg-2:#EEF3F9; --bg-3:#E6ECF4; --surface:#FFFFFF;
+      --text:#2C3344; --text-2:#5A6577; --text-3:#8A96A8;
+      --accent:#6B8DB5; --accent-2:#B5926B; --accent-3:#9B8EBA;
+      --card:rgba(255,255,255,0.82); --card-solid:#FFFFFF;
+      --card-border:rgba(130,150,180,0.30); --hairline:rgba(130,150,180,0.16);
+      --glow:rgba(107,141,181,0.22); --glow-2:rgba(181,146,107,0.14);
+    }
+    /* 深色：主体统一中性黑，主题色只用于强调（图标/进度条/文字），不再整屏染色 */
+    :root[data-theme="fog"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#E8EAF0; --text-2:#A8AEBE; --text-3:#767C8C;
+      --accent:#88B0D4; --accent-2:#D4A878; --accent-3:#A89AC8;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(136,176,212,0.16); --glow-2:rgba(212,168,120,0.10);
+    }
+    :root[data-theme="moss"][data-mode="light"] {
+      --bg-1:#F6F7F4; --bg-2:#EFF2EB; --bg-3:#E5EAE0; --surface:#FCFDFB;
+      --text:#2E3328; --text-2:#5A6450; --text-3:#8A9480;
+      --accent:#7BA06E; --accent-2:#C4A06B; --accent-3:#A088B0;
+      --card:rgba(252,253,251,0.82); --card-solid:#FCFDFB;
+      --card-border:rgba(100,122,90,0.28); --hairline:rgba(100,122,90,0.15);
+      --glow:rgba(123,160,110,0.20); --glow-2:rgba(196,160,107,0.14);
+    }
+    :root[data-theme="moss"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#E5ECE0; --text-2:#AEBEA4; --text-3:#76846C;
+      --accent:#8BC07A; --accent-2:#D4B078; --accent-3:#B098C4;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(139,192,122,0.16); --glow-2:rgba(212,176,120,0.10);
+    }
+    :root[data-theme="ocean"][data-mode="light"] {
+      --bg-1:#F2FBFC; --bg-2:#E8F6FA; --bg-3:#E2F0F6; --surface:#FFFFFF;
+      --text:#173D46; --text-2:#4F6E79; --text-3:#7D94B8;
+      --accent:#5A9EA0; --accent-2:#6B93C4; --accent-3:#7D94B8;
+      --card:rgba(255,255,255,0.82); --card-solid:#FFFFFF;
+      --card-border:rgba(123,184,199,0.30); --hairline:rgba(123,184,199,0.15);
+      --glow:rgba(90,158,160,0.20); --glow-2:rgba(107,147,196,0.14);
+    }
+    :root[data-theme="ocean"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#DEEAEC; --text-2:#A6C2C6; --text-3:#6C8488;
+      --accent:#7BBCBE; --accent-2:#7DA0D4; --accent-3:#8FA0C7;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(123,188,190,0.16); --glow-2:rgba(125,160,212,0.10);
+    }
+    :root[data-theme="petal"][data-mode="light"] {
+      --bg-1:#FFF8F7; --bg-2:#FFEFED; --bg-3:#F8E6E3; --surface:#FFFFFF;
+      --text:#422A2A; --text-2:#72585A; --text-3:#A88A8C;
+      --accent:#C48880; --accent-2:#B08AA8; --accent-3:#D4A090;
+      --card:rgba(255,255,255,0.82); --card-solid:#FFFFFF;
+      --card-border:rgba(211,138,128,0.28); --hairline:rgba(211,138,128,0.15);
+      --glow:rgba(196,136,128,0.20); --glow-2:rgba(176,138,168,0.14);
+    }
+    :root[data-theme="petal"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#F1DCDC; --text-2:#CBAFAF; --text-3:#977A7A;
+      --accent:#D4A098; --accent-2:#C49BC4; --accent-3:#D8B098;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(212,160,152,0.16); --glow-2:rgba(196,155,196,0.10);
+    }
+    :root[data-theme="sand"][data-mode="light"] {
+      --bg-1:#FCFAF3; --bg-2:#F7F1E6; --bg-3:#F0E5D3; --surface:#FFFFFF;
+      --text:#42361D; --text-2:#6C5C40; --text-3:#9A8A70;
+      --accent:#B89860; --accent-2:#BF8878; --accent-3:#A09070;
+      --card:rgba(255,255,255,0.82); --card-solid:#FFFFFF;
+      --card-border:rgba(201,163,94,0.28); --hairline:rgba(201,163,94,0.15);
+      --glow:rgba(184,152,96,0.20); --glow-2:rgba(191,136,120,0.14);
+    }
+    :root[data-theme="sand"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#F0E7D6; --text-2:#C9B690; --text-3:#94846A;
+      --accent:#CCAD70; --accent-2:#CCA088; --accent-3:#B8A080;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(204,173,112,0.16); --glow-2:rgba(204,160,136,0.10);
+    }
+    :root[data-theme="clay"][data-mode="light"] {
+      --bg-1:#FBF5F0; --bg-2:#F4E7DD; --bg-3:#EAD7CB; --surface:#FFFCFA;
+      --text:#40302A; --text-2:#6C574D; --text-3:#9A8579;
+      --accent:#B89080; --accent-2:#809A88; --accent-3:#A090A8;
+      --card:rgba(255,252,250,0.82); --card-solid:#FFFCFA;
+      --card-border:rgba(196,119,95,0.26); --hairline:rgba(196,119,95,0.15);
+      --glow:rgba(184,144,128,0.20); --glow-2:rgba(128,154,136,0.14);
+    }
+    :root[data-theme="clay"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#F0E3DA; --text-2:#CBB6A8; --text-3:#927C6E;
+      --accent:#CCA090; --accent-2:#90A898; --accent-3:#B0A0B8;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(204,160,144,0.16); --glow-2:rgba(144,168,152,0.10);
+    }
+    :root[data-theme="ink"][data-mode="light"] {
+      --bg-1:#F3F5FA; --bg-2:#E7EBF5; --bg-3:#DCE3F0; --surface:#FFFFFF;
+      --text:#1F2735; --text-2:#506176; --text-3:#7A8698;
+      --accent:#4D6AA8; --accent-2:#6E83C4; --accent-3:#9A7FAF;
+      --card:rgba(255,255,255,0.82); --card-solid:#FFFFFF;
+      --card-border:rgba(77,106,168,0.28); --hairline:rgba(77,106,168,0.15);
+      --glow:rgba(77,106,168,0.20); --glow-2:rgba(110,131,196,0.14);
+    }
+    :root[data-theme="ink"][data-mode="dark"] {
+      --bg-1:#0A0B0E; --bg-2:#0C0D11; --bg-3:#101116; --surface:#141519;
+      --text:#E0E5F1; --text-2:#A6B2CB; --text-3:#78829E;
+      --accent:#8AA8E0; --accent-2:#A48BD4; --accent-3:#6FB0C2;
+      --card:rgba(255,255,255,0.05); --card-solid:#141519;
+      --card-border:rgba(255,255,255,0.20); --hairline:rgba(255,255,255,0.11);
+      --glow:rgba(138,168,224,0.16); --glow-2:rgba(164,139,212,0.10);
+    }
+
+    /* 深色模式：清晰浅色边框 + 主体中性黑（柔光/大渐变压低，避免被主题色糊住） */
+    :root[data-mode="dark"] {
+      --card-border: rgba(255,255,255,0.20) !important;
+      --hairline: rgba(255,255,255,0.11) !important;
+    }
+    :root[data-mode="dark"] .ambient-glow { opacity:.28; }
+    :root[data-mode="dark"] .hero::before { opacity:.15; }
+    :root[data-mode="dark"] .grain { opacity:.035; }
+
+    body {
+      margin:0; font-family:var(--sans); color:var(--text); font-weight:500;
+      background:var(--bg-2); min-height:100vh; display:flex; justify-content:center;
+      align-items:flex-start; padding:24px 16px; transition:background .25s ease, color .25s ease;
+    }
+
+    .mobile-shell {
+      width:100%; max-width:400px;
+      background:linear-gradient(180deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+      border-radius:38px; box-shadow:var(--shadow-lg); overflow:hidden; position:relative;
+      padding:18px 18px 26px;
+    }
+    /* 缓慢漂移的柔光网（小墨语言） */
+    .ambient-glow {
+      position:absolute; inset:-20%; pointer-events:none; z-index:0;
+      background:
+        radial-gradient(circle at 12% 10%, var(--glow), transparent 42%),
+        radial-gradient(circle at 88% 16%, var(--glow-2), transparent 38%),
+        radial-gradient(circle at 75% 94%, var(--glow), transparent 44%);
+      background-size:200% 200%;
+      animation:drift 20s ease-in-out infinite alternate;
+      opacity:.85;
+    }
+    @keyframes drift { from{background-position:0% 0%;} to{background-position:100% 100%;} }
+    /* 纸张颗粒，去掉“塑料感” */
+    .grain {
+      position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.05; mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .content { position:relative; z-index:1; }
+
+    header { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+    .back {
+      width:34px; height:34px; border-radius:50%; border:none; background:transparent;
+      color:var(--text-2); display:grid; place-items:center; cursor:pointer;
+      transition:background .15s ease; flex-shrink:0;
+    }
+    .back:hover { background:color-mix(in srgb,var(--text-3) 12%, transparent); }
+    .back .icon { width:24px; height:24px; }
+    .page-title { margin:0; font-family:var(--serif); font-size:25px; font-weight:800; letter-spacing:.03em; color:var(--text); flex:1; line-height:1.1; }
+
+    .theme-strip { display:flex; gap:9px; justify-content:center; margin-bottom:16px; }
+    .theme-dot {
+      width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform .15s ease;
+    }
+    .theme-dot:hover { transform:scale(1.12); }
+    .theme-dot.active { border-color:var(--text); transform:scale(1.16); }
+    .theme-dot[data-theme="fog"]{background:#6B8DB5;} .theme-dot[data-theme="moss"]{background:#7BA06E;}
+    .theme-dot[data-theme="ocean"]{background:#5A9EA0;} .theme-dot[data-theme="petal"]{background:#C48880;}
+    .theme-dot[data-theme="sand"]{background:#B89860;} .theme-dot[data-theme="clay"]{background:#B89080;}
+    .theme-dot[data-theme="ink"]{background:#4D6AA8;}
+
+    /* 图标：真实 Heroicons Solid 矢量，经 CSS mask 上色，随主题自适应 */
+    .ic-broom{--src:url("assets/phosphor/broom-fill.svg");}
+    .ic-images{--src:url("assets/phosphor/images-fill.svg");}
+    .ic-cloud{--src:url("assets/phosphor/cloud-arrow-up-fill.svg");}
+
+    .icon {
+      display:inline-block; width:22px; height:22px; background-color:currentColor;
+      -webkit-mask:var(--src) center/contain no-repeat; mask:var(--src) center/contain no-repeat;
+    }
+    .ic-total{--src:url("assets/heroicons/device-phone-mobile.svg");}
+    .ic-db{--src:url("assets/heroicons/circle-stack.svg");}
+    .ic-media{--src:url("assets/heroicons/photo.svg");}
+    .ic-thumb{--src:url("assets/heroicons/squares-2x2.svg");}
+    .ic-backup{--src:url("assets/heroicons/cloud-arrow-up.svg");}
+    .ic-cache{--src:url("assets/heroicons/clock.svg");}
+    .ic-clean{--src:url("assets/heroicons/sparkles.svg");}
+    .ic-trash{--src:url("assets/heroicons/trash.svg");}
+    .ic-sync{--src:url("assets/heroicons/arrow-path.svg");}
+    .ic-back{--src:url("assets/heroicons/chevron-left.svg");}
+
+    /* —— 主视觉：一张有呼吸感的“纸卡”—— */
+    .hero {
+      position:relative; padding:24px 22px 20px; margin-bottom:14px; border-radius:var(--radius);
+      background:var(--card); border:1px solid var(--card-border); box-shadow:var(--shadow);
+      backdrop-filter:blur(16px); overflow:hidden;
+    }
+    .hero::before {
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(135deg, var(--glow), var(--glow-2)); opacity:.4;
+    }
+    .hero-inner { position:relative; z-index:1; }
+    .usage { display:none; }
+    .hero-label { font-size:13px; font-weight:600; color:var(--text-2); letter-spacing:.05em; }
+    .hero-num {
+      font-family:var(--serif); font-size:46px; font-weight:800; color:var(--text); line-height:1.05;
+      margin:2px 0 0; display:inline-block;
+    }
+    .hero-num .unit { font-size:18px; font-weight:700; color:var(--text-2); margin-left:4px; }
+    .underline { display:block; width:170px; height:10px; margin:-2px 0 8px; }
+    .hero-meta { font-size:12px; font-weight:600; color:var(--text-3); }
+    .stats-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .pill {
+      display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px;
+      background:color-mix(in srgb, var(--text-3) 10%, transparent);
+      border:1px solid color-mix(in srgb, var(--text-3) 16%, transparent);
+      font-size:11px; font-weight:700; color:var(--text-2);
+    }
+    .pill .icon { width:14px; height:14px; color:var(--accent); }
+
+    .segment-bar { display:flex; height:14px; border-radius:7px; overflow:hidden; margin-top:16px; gap:3px; background:rgba(128,130,150,0.16); }
+    .segment { height:100%; transition:width .5s ease; }
+    .seg-db{background:var(--accent);} .seg-media{background:var(--accent-2);}
+    .seg-thumb{background:var(--accent-3);} .seg-backup{background:color-mix(in srgb,var(--accent) 55%,var(--accent-2));}
+    .seg-cache{background:var(--text-3);}
+    .legend { display:flex; flex-wrap:wrap; gap:9px 12px; margin-top:13px; font-size:11px; font-weight:600; color:var(--text-2); }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .legend-dot { width:9px; height:9px; border-radius:50%; }
+
+    .sec-label {
+      display:flex; align-items:center; gap:9px; font-size:12px; font-weight:800; color:var(--text-3);
+      text-transform:uppercase; letter-spacing:.1em; margin:0 4px 11px;
+    }
+    .sec-label::before { content:""; width:7px; height:7px; border-radius:2px; background:var(--accent); transform:rotate(45deg); }
+
+    /* 空间构成：可点击行，点一下下钻到对应管理页 */
+    .panel {
+      background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:6px 12px; margin-bottom:18px; backdrop-filter:blur(16px);
+    }
+    .cat-row {
+      display:flex; align-items:center; gap:14px; padding:14px 10px; border-radius:14px; cursor:pointer;
+      transition:background .15s ease;
+    }
+    .cat-row:hover { background:color-mix(in srgb,var(--text-3) 9%, transparent); }
+    .cat-row::after {
+      content:"›"; margin-left:6px; color:var(--text-3); font-size:22px; font-weight:700; line-height:1;
+      flex-shrink:0;
+    }
+    .cat-icon {
+      width:44px; height:44px; border-radius:14px; display:grid; place-items:center; flex-shrink:0;
+      background:color-mix(in srgb, var(--accent) 16%, transparent);
+      border:1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+      color:var(--accent);
+    }
+    .cat-info { flex:1; min-width:0; }
+    .cat-name { font-size:14px; font-weight:700; color:var(--text); }
+    .cat-meta { font-size:11px; font-weight:600; color:var(--text-2); margin-top:2px; }
+    .cat-bar { height:6px; border-radius:3px; background:color-mix(in srgb,var(--text-3) 24%, transparent); margin-top:9px; overflow:hidden; }
+    .cat-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+    .cat-size { font-family:var(--serif); font-size:16px; font-weight:800; color:var(--text); text-align:right; white-space:nowrap; }
+
+    .tool-row {
+      display:flex; align-items:center; gap:12px; width:100%; padding:13px 10px; border-radius:14px;
+      background:transparent; border:none; color:var(--text); cursor:pointer; transition:background .15s ease;
+      text-align:left; font-family:inherit;
+    }
+    .tool-row:hover { background:color-mix(in srgb,var(--text-3) 9%, transparent); }
+    .tool-row .ti {
+      width:36px; height:36px; border-radius:11px; display:grid; place-items:center; flex-shrink:0;
+    }
+    .tool-row.clean .ti  { background:color-mix(in srgb,var(--success) 16%,transparent); color:var(--success); }
+    .tool-row.thumb .ti  { background:color-mix(in srgb,var(--warning) 16%,transparent); color:var(--warning); }
+    .tool-row.backup .ti { background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); }
+    .tool-row.auto .ti   { background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); }
+    .tool-row.auto { cursor:default; }
+    .tool-row.auto:hover { background:transparent; }
+    .tool-name { flex:1; font-size:14px; font-weight:700; }
+    .tool-row .tool-size { font-size:12px; font-weight:700; color:var(--text-2); }
+    .tool-row .tool-arrow { font-size:20px; font-weight:400; color:var(--text-3); margin-left:2px; }
+
+    .cloud-row {
+      display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px;
+      background:var(--card); border:1px solid var(--card-border); box-shadow:var(--shadow);
+    }
+    .cloud-icon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; flex-shrink:0;
+      background:color-mix(in srgb, var(--accent-2) 18%, transparent); color:var(--accent-2); }
+    .cloud-info { flex:1; }
+    .cloud-title { font-size:14px; font-weight:700; color:var(--text); }
+    .cloud-meta { font-size:11px; font-weight:600; color:var(--text-2); margin-top:1px; }
+    .cloud-action { font-size:12px; font-weight:800; color:var(--accent); cursor:pointer; }
+
+    .tip-row {
+      display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:16px;
+      background:color-mix(in srgb, var(--info) 8%, var(--card));
+      border:1px solid color-mix(in srgb, var(--info) 20%, transparent);
+      color:var(--text-2); font-size:12px; font-weight:700; margin-top:14px;
+    }
+    .tip-dot {
+      width:22px; height:22px; border-radius:50%; display:grid; place-items:center; flex-shrink:0;
+      background:color-mix(in srgb, var(--info) 16%, transparent); color:var(--info);
+      font-size:13px; font-weight:800; font-family:Georgia,serif;
+    }
+    .tip-text { flex:1; }
+
+    /* 存储趋势（折线图） */
+    .trend-head { padding:0 3.75%; margin:8px 0 10px; }
+    .trend-title { font-size:14px; font-weight:800; color:var(--text); }
+    .trend-sub { font-size:11px; font-weight:600; color:var(--text-2); margin-top:2px; }
+    .trend-chart { width:100%; height:auto; display:block; }
+    .trend-dot { fill:var(--surface); stroke:var(--accent); stroke-width:2.5; }
+    .trend-x { display:flex; justify-content:space-between; font-size:9px; font-weight:700; color:var(--text-3); margin-top:6px; padding:0 3.75%; }
+
+    /* 自动维护开关 */
+    .switch { width:46px; height:26px; border-radius:999px; border:none; background:color-mix(in srgb,var(--text-3) 32%,transparent); position:relative; cursor:pointer; transition:background .2s ease; flex-shrink:0; padding:0; }
+    .switch.on { background:var(--accent); }
+    .switch .knob { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.28); transition:transform .2s ease; }
+    .switch.on .knob { transform:translateX(20px); }
+
+    .toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+      background:var(--surface); color:var(--text); border:1px solid var(--card-border);
+      padding:10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:var(--shadow-lg);
+      pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:100;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    @media (max-width:480px) { body{padding:0;} .mobile-shell{max-width:100%; border-radius:0; box-shadow:none;} }
+  </style>
+</head>
+<body>
+  <div class="mobile-shell">
+    <div class="ambient-glow"></div>
+    <div class="grain"></div>
+    <div class="content">
+      <header>
+        <button class="back" aria-label="返回"><span class="icon ic-back"></span></button>
+        <h1 class="page-title">存储管理</h1>
+      </header>
+
+      <div class="theme-strip" id="themeStrip">
+        <button class="theme-dot active" data-theme="fog" aria-label="雾蓝"></button>
+        <button class="theme-dot" data-theme="moss" aria-label="苔绿"></button>
+        <button class="theme-dot" data-theme="ocean" aria-label="海潮"></button>
+        <button class="theme-dot" data-theme="petal" aria-label="陶粉"></button>
+        <button class="theme-dot" data-theme="sand" aria-label="沙金"></button>
+        <button class="theme-dot" data-theme="clay" aria-label="陶土"></button>
+        <button class="theme-dot" data-theme="ink" aria-label="墨石"></button>
+      </div>
+
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-label">已用空间</div>
+          <div class="hero-num">432<span class="unit">MB</span></div>
+          <svg class="underline" viewBox="0 0 170 10" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2 7 Q 42 2 85 6 T 168 5" stroke="var(--accent)" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+          <div class="hero-meta">已用 36% · 应用数据 1.2 GB · 日记内容很轻巧</div>
+          <div class="stats-pills">
+            <span class="pill"><i class="icon ic-db"></i>142 篇日记</span>
+            <span class="pill"><i class="icon ic-media"></i>328 张照片</span>
+            <span class="pill"><i class="icon ic-backup"></i>5 个备份</span>
+          </div>
+          <div class="segment-bar" id="segmentBar">
+            <div class="segment seg-db" style="width:20%"></div>
+            <div class="segment seg-media" style="width:36%"></div>
+            <div class="segment seg-thumb" style="width:10%"></div>
+            <div class="segment seg-backup" style="width:29%"></div>
+            <div class="segment seg-cache" style="width:5%"></div>
+          </div>
+          <div class="legend">
+            <span><i class="legend-dot" style="background:var(--accent)"></i>数据库 86 MB</span>
+            <span><i class="legend-dot" style="background:var(--accent-2)"></i>媒体 156 MB</span>
+            <span><i class="legend-dot" style="background:var(--accent-3)"></i>缩略图 42 MB</span>
+            <span><i class="legend-dot" style="background:color-mix(in srgb,var(--accent) 55%,var(--accent-2))"></i>备份 124 MB</span>
+            <span><i class="legend-dot" style="background:var(--text-3)"></i>缓存 24 MB</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="sec-label">快速整理 · 可释放 66 MB</div>
+      <div class="panel">
+        <button class="tool-row clean" data-action="clean">
+          <span class="ti"><span class="icon ic-broom"></span></span>
+          <span class="tool-name">清理缓存</span>
+          <span class="tool-size">24 MB</span>
+          <span class="tool-arrow">›</span>
+        </button>
+        <button class="tool-row thumb" data-action="thumb">
+          <span class="ti"><span class="icon ic-images"></span></span>
+          <span class="tool-name">清理缩略图</span>
+          <span class="tool-size">42 MB</span>
+          <span class="tool-arrow">›</span>
+        </button>
+        <button class="tool-row backup" data-action="backup">
+          <span class="ti"><span class="icon ic-cloud"></span></span>
+          <span class="tool-name">立即备份</span>
+          <span class="tool-arrow">›</span>
+        </button>
+        <div class="tool-row auto" role="group" aria-label="自动维护">
+          <span class="ti"><span class="icon ic-sync"></span></span>
+          <span class="tool-name">自动维护</span>
+          <button class="switch on" id="autoSwitch" role="switch" aria-checked="true" aria-label="自动维护"><span class="knob"></span></button>
+        </div>
+      </div>
+
+      <div class="sec-label">空间构成 · 点击管理</div>
+      <div class="panel">
+        <div class="cat-row" data-nav="数据库">
+          <div class="cat-icon"><span class="icon ic-db"></span></div>
+          <div class="cat-info">
+            <div class="cat-name">数据库</div>
+            <div class="cat-meta">142 篇日记 · 文字与心情</div>
+            <div class="cat-bar"><div class="cat-fill" style="width:20%; background:var(--accent)"></div></div>
+          </div>
+          <div class="cat-size">86 MB</div>
+        </div>
+        <div class="cat-row" data-nav="媒体文件">
+          <div class="cat-icon" style="color:var(--accent-2); background:color-mix(in srgb,var(--accent-2) 16%,transparent); border-color:color-mix(in srgb,var(--accent-2) 26%,transparent)"><span class="icon ic-media"></span></div>
+          <div class="cat-info">
+            <div class="cat-name">媒体文件</div>
+            <div class="cat-meta">328 张照片</div>
+            <div class="cat-bar"><div class="cat-fill" style="width:36%; background:var(--accent-2)"></div></div>
+          </div>
+          <div class="cat-size">156 MB</div>
+        </div>
+        <div class="cat-row" data-nav="缩略图">
+          <div class="cat-icon" style="color:var(--accent-3); background:color-mix(in srgb,var(--accent-3) 16%,transparent); border-color:color-mix(in srgb,var(--accent-3) 26%,transparent)"><span class="icon ic-thumb"></span></div>
+          <div class="cat-info">
+            <div class="cat-name">缩略图</div>
+            <div class="cat-meta">自动生成预览</div>
+            <div class="cat-bar"><div class="cat-fill" style="width:10%; background:var(--accent-3)"></div></div>
+          </div>
+          <div class="cat-size">42 MB</div>
+        </div>
+        <div class="cat-row" data-nav="备份">
+          <div class="cat-icon"><span class="icon ic-backup"></span></div>
+          <div class="cat-info">
+            <div class="cat-name">备份</div>
+            <div class="cat-meta">5 份本地备份</div>
+            <div class="cat-bar"><div class="cat-fill" style="width:29%; background:color-mix(in srgb,var(--accent) 55%,var(--accent-2))"></div></div>
+          </div>
+          <div class="cat-size">124 MB</div>
+        </div>
+        <div class="cat-row" data-nav="缓存">
+          <div class="cat-icon" style="color:var(--text-3); background:color-mix(in srgb,var(--text-3) 18%,transparent); border-color:color-mix(in srgb,var(--text-3) 28%,transparent)"><span class="icon ic-cache"></span></div>
+          <div class="cat-info">
+            <div class="cat-name">缓存</div>
+            <div class="cat-meta">临时文件，可安全清理</div>
+            <div class="cat-bar"><div class="cat-fill" style="width:5%; background:var(--text-3)"></div></div>
+          </div>
+          <div class="cat-size">24 MB</div>
+        </div>
+      </div>
+
+      <div class="sec-label">存储趋势</div>
+      <div class="panel">
+        <div class="trend-head">
+          <div class="trend-title">近半年占用</div>
+          <div class="trend-sub">1 月 → 6 月稳步增长</div>
+        </div>
+        <svg class="trend-chart" viewBox="0 0 320 90" aria-hidden="true">
+          <defs>
+            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.26"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M12 68 L71 62 L130 56 L190 50 L249 46 L308 34 L308 90 L12 90 Z" fill="url(#trendFill)"/>
+          <path d="M12 68 L71 62 L130 56 L190 50 L249 46 L308 34" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle class="trend-dot" cx="12" cy="68" r="3"/>
+          <circle class="trend-dot" cx="71" cy="62" r="3"/>
+          <circle class="trend-dot" cx="130" cy="56" r="3"/>
+          <circle class="trend-dot" cx="190" cy="50" r="3"/>
+          <circle class="trend-dot" cx="249" cy="46" r="3"/>
+          <circle class="trend-dot" cx="308" cy="34" r="3"/>
+        </svg>
+        <div class="trend-x"><span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span></div>
+      </div>
+
+      <div class="cloud-row">
+        <div class="cloud-icon"><span class="icon ic-sync"></span></div>
+        <div class="cloud-info">
+          <div class="cloud-title">云端同步</div>
+          <div class="cloud-meta">2 天前 · 自动同步已开启</div>
+        </div>
+        <div class="cloud-action" data-action="sync">同步</div>
+      </div>
+
+      <div class="tip-row">
+        <span class="tip-dot">i</span>
+        <span class="tip-text">媒体文件占 36%，建议开启自动云端备份</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">操作已完成</div>
+
+  <script>
+    const root = document.documentElement;
+    const themeDots = document.querySelectorAll('.theme-dot');
+    const toast = document.getElementById('toast');
+
+    function setTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      themeDots.forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+    }
+    themeDots.forEach(dot => dot.addEventListener('click', () => setTheme(dot.dataset.theme)));
+
+    function showToast(msg) {
+      toast.textContent = msg; toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    const autoSwitch = document.getElementById('autoSwitch');
+    autoSwitch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const on = autoSwitch.classList.toggle('on');
+      autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+      showToast(on ? '已开启自动维护' : '已关闭自动维护');
+    });
+
+    document.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', () => {
+        const map = { clean:'已清理缓存 24 MB', thumb:'已清理缩略图 42 MB', backup:'本地备份已创建', freeall:'已释放 66 MB', sync:'同步已开始' };
+        showToast(map[el.dataset.action] || '操作已完成');
+      });
+    });
+    document.querySelectorAll('.cat-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const name = row.getAttribute('data-nav');
+        if (!name) return;
+        showToast('跳转至「' + name + '」管理');
+      });
+    });
+    window.addEventListener('load', () => {
+      document.querySelectorAll('.cat-fill').forEach(bar => {
+        const w = bar.style.width; bar.style.width = '0';
+        setTimeout(() => bar.style.width = w, 120);
+      });
+    });
+  </script>
+</body>
+</html>

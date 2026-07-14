@@ -347,9 +347,9 @@ internal fun HomeHeaderActionButton(
 }
 
 @Composable
-internal fun HomeNoEntriesForDate() {
+internal fun HomeNoEntriesForDate(modifier: Modifier = Modifier) {
     GlassCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         cornerRadius = 20.dp
     ) {
         EmptyState(

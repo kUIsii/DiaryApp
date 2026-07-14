@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiaryApp 成就收藏 · 藏宝册 v4</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2b332e;
+      --muted: #6c766f;
+      --paper: #fbf6ec;
+      --bg-base: #f3ede1;
+      --line: rgba(54, 60, 53, 0.14);
+      --line-strong: rgba(54, 60, 53, 0.26);
+      --grid-line: rgba(80, 66, 40, 0.045);
+      --teal: #4ea89b;
+      --sage: #a9bf95;
+      --peach: #e7a98c;
+      --apricot: #efce97;
+      --gold: #d8b15a;
+      --blue: #9cc1dc;
+      --card: rgba(255, 252, 244, 0.82);
+      --card-solid: #fffaf1;
+      --brand: #4ea89b;
+      --brand-2: #e6a683;
+      --radius: 24px;
+      --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 16% 12%, rgba(246, 216, 168, 0.5), transparent 30%),
+        radial-gradient(circle at 84% 8%, rgba(184, 215, 238, 0.42), transparent 28%),
+        radial-gradient(circle at 78% 82%, rgba(203, 193, 232, 0.34), transparent 32%),
+        radial-gradient(circle at 14% 86%, rgba(220, 235, 216, 0.5), transparent 32%),
+        var(--bg-base);
+      background-size: 46px 46px, 46px 46px, auto, auto, auto, auto, auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 90px; }
+
+    /* ---- header (original, not copied) ---- */
+    .masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+    .kicker { margin: 0 0 14px; color: var(--peach); font-size: 12px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; }
+    h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(34px, 4.4vw, 58px); line-height: 1.02; font-weight: 900; letter-spacing: 0.01em; }
+    .lede { margin: 16px 0 0; max-width: 460px; color: #49524c; font-size: 15px; line-height: 1.85; }
+    .lede b { color: var(--ink); font-weight: 800; }
+    .stats { display: flex; gap: 26px; }
+    .stat b { display: block; font-family: var(--font-serif); font-size: 30px; line-height: 1; color: var(--ink); }
+    .stat span { display: block; margin-top: 7px; font-size: 11px; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
+    .stat + .stat { padding-left: 26px; border-left: 1px solid var(--line); }
+
+    /* ---- filters (quiet) ---- */
+    .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 30px 0 30px; align-items: center; }
+    .chip { min-height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.45); color: #3c463f; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+    .chip:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+    .chip[aria-pressed="true"] { border-color: rgba(78,168,155,.5); background: rgba(255,252,244,.95); }
+    .chip .sw { width: 9px; height: 9px; border-radius: 999px; }
+    .glabel { font-size: 11px; font-weight: 800; color: var(--muted); margin-right: 4px; letter-spacing: .04em; }
+
+    /* ---- album grid ---- */
+    .album { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 20px; }
+    .seal {
+      position: relative; padding: 22px 16px 18px; border: 1px solid rgba(54,60,53,.12);
+      border-radius: 20px; background: var(--card); box-shadow: 0 10px 26px rgba(60,55,40,.06);
+      text-align: center; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .seal:hover { transform: translateY(-3px); box-shadow: 0 18px 36px rgba(60,55,40,.11); border-color: rgba(78,168,155,.38); }
+    .seal.locked { background: rgba(255,255,255,.32); }
+    .seal.locked .emblem { filter: grayscale(1) opacity(.42); }
+    .seal.wish { border-color: rgba(216,177,90,.5); box-shadow: 0 10px 26px rgba(216,177,90,.12); }
+    .emblem { width: 84px; height: 84px; margin: 0 auto 14px; border-radius: 999px; display: grid; place-items: center; position: relative; }
+    .emblem .ring { position: absolute; inset: 0; border-radius: 999px; border: 2.5px solid var(--tier); background: radial-gradient(circle at 32% 26%, #fffdf8, var(--tier-bg)); }
+    .emblem.leg .ring { box-shadow: 0 0 0 4px rgba(216,177,90,.16); }
+    .emblem svg { position: relative; width: 52px; height: 52px; color: #36403a; }
+    .emblem svg .ac { fill: var(--accent); }
+    .seal h3 { margin: 0; font-family: var(--font-serif); font-size: 16px; line-height: 1.18; }
+    .seal .cat { display: block; margin-top: 5px; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .seal .tier { display: inline-block; margin-top: 9px; font-size: 10px; font-weight: 800; padding: 2px 10px; border-radius: 999px; }
+    .t-com { background: rgba(169,191,149,.26); color: #566b3f; } .t-rare { background: rgba(156,193,220,.32); color: #3c6488; }
+    .t-epic { background: rgba(231,169,140,.28); color: #9c5736; } .t-leg { background: rgba(216,177,90,.26); color: #86661f; }
+    .wish-star { position: absolute; top: 11px; right: 11px; width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.62); border: 1px solid var(--line); color: var(--gold); }
+    .wish-star svg { width: 13px; height: 13px; }
+    .prog { margin: 12px auto 0; width: 78%; height: 5px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--brand-2)); }
+
+    /* ---- detail panel ---- */
+    .reader { margin-top: 56px; padding: 30px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: rgba(255,250,241,.7); box-shadow: 0 18px 46px rgba(43,50,46,.08); display: none; gap: 30px; }
+    .reader.open { display: grid; grid-template-columns: 170px 1fr; }
+    .reader .r-emblem { width: 150px; height: 150px; margin: 0 auto; border-radius: 999px; display: grid; place-items: center; position: relative; }
+    .reader .r-emblem .ring { position: absolute; inset: 0; border-radius: 999px; border: 3px solid var(--tier); background: radial-gradient(circle at 32% 26%, #fffdf8, var(--tier-bg)); }
+    .reader .r-emblem svg { position: relative; width: 92px; height: 92px; color: #36403a; }
+    .reader .r-emblem svg .ac { fill: var(--accent); }
+    .reader h2 { margin: 0; font-family: var(--font-serif); font-size: 30px; line-height: 1.06; }
+    .reader .r-cat { margin-top: 8px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .reader .r-tier { display: inline-block; margin-top: 12px; font-size: 11px; font-weight: 800; padding: 3px 12px; border-radius: 999px; }
+    .flavor { margin: 18px 0 0; padding: 15px 18px; border-radius: 16px; border: 1px dashed rgba(54,60,53,.24); background: rgba(255,252,244,.6); font-family: var(--font-serif); font-size: 15px; line-height: 1.8; color: #3a433d; }
+    .footprint { margin-top: 20px; }
+    .footprint .fl { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .trail { border-left: 2px solid var(--line); padding-left: 18px; display: grid; gap: 13px; }
+    .trail li { list-style: none; position: relative; }
+    .trail li::before { content: ""; position: absolute; left: -25px; top: 4px; width: 10px; height: 10px; border-radius: 999px; background: var(--teal); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--teal); }
+    .trail b { font-size: 13px; display: block; }
+    .trail span { font-size: 11px; color: var(--muted); }
+    .actions { margin-top: 22px; display: flex; gap: 9px; flex-wrap: wrap; }
+    .pill { min-height: 40px; padding: 0 17px; border: 1px solid rgba(54,60,53,.14); border-radius: 999px; display: inline-grid; place-items: center; color: #34433c; background: rgba(255,255,255,.6); font-size: 12px; font-weight: 800; }
+    .pill.primary { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--teal), var(--brand-2)); }
+    .pill.gold { color: #6b521c; border-color: rgba(216,177,90,.55); background: rgba(216,177,90,.2); }
+
+    /* ---- showcase wall ---- */
+    .section-title { margin: 64px 0 24px; font-family: var(--font-serif); font-size: clamp(26px, 3.4vw, 40px); font-weight: 900; }
+    .section-title small { display: block; margin-top: 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+    .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 22px 18px; }
+    .frame { text-align: center; }
+    .frame .f-emblem { width: 92px; height: 92px; margin: 0 auto 11px; border-radius: 18px; display: grid; place-items: center; position: relative; border: 1px solid rgba(54,60,53,.14); background: linear-gradient(160deg, #fffdf8, var(--tier-bg)); box-shadow: 0 10px 24px rgba(60,55,40,.07); }
+    .frame .f-emblem::after { content: ""; position: absolute; inset: 6px; border-radius: 13px; border: 1px solid rgba(54,60,53,.1); }
+    .frame .f-emblem svg { position: relative; width: 52px; height: 52px; color: #36403a; }
+    .frame .f-emblem svg .ac { fill: var(--accent); }
+    .frame b { font-size: 12.5px; font-family: var(--font-serif); display: block; line-height: 1.2; }
+    .frame span { font-size: 10px; color: var(--muted); }
+
+    /* ---- monthly ---- */
+    .monthly { margin-top: 64px; display: grid; grid-template-columns: 130px 1fr; gap: 26px; align-items: center; padding: 26px; border-radius: var(--radius); border: 1px solid rgba(78,168,155,.24); background: linear-gradient(135deg, rgba(220,235,216,.5), rgba(255,250,241,.7)); }
+    .monthly .m-emblem { width: 110px; height: 110px; margin: 0 auto; border-radius: 26px; display: grid; place-items: center; position: relative; border: 2.5px solid var(--gold); background: rgba(255,255,255,.6); box-shadow: 0 12px 26px rgba(216,177,90,.18); }
+    .monthly .m-emblem svg { width: 60px; height: 60px; color: #36403a; }
+    .monthly .m-emblem svg .ac { fill: var(--accent); }
+    .monthly h3 { font-family: var(--font-serif); font-size: 24px; margin: 0; }
+    .monthly p { margin: 9px 0 14px; color: #46534c; font-size: 13.5px; line-height: 1.75; }
+    .monthly .mbar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.7); overflow: hidden; }
+    .monthly .mbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--brand-2)); }
+
+    .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(16px); z-index: 60; min-height: 42px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: rgba(43,50,46,.92); color: #fff; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .22s ease, transform .22s ease; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .flash { animation: fl .9s ease; }
+    @keyframes fl { 0% { box-shadow: 0 0 0 0 rgba(216,177,90,.5); } 60% { box-shadow: 0 0 0 14px rgba(216,177,90,0); } 100% { box-shadow: 0 0 0 0 rgba(216,177,90,0); } }
+
+    @media (max-width: 720px) { .reader.open { grid-template-columns: 1fr; text-align: center; } .reader .r-emblem { margin: 0 auto 8px; } .monthly { grid-template-columns: 1fr; text-align: center; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <div>
+        <p class="kicker">Achievements · 藏宝册</p>
+        <h1>把日子，<br>收成一枚枚徽章。</h1>
+        <p class="lede">每一枚成就都是一段被记住的时光——连着一篇真实的日记、一个具体的瞬间。它们不为排名，只为让你偶尔翻起时，<b>觉得自己把生活过得挺认真</b>。</p>
+      </div>
+      <div class="stats" id="stats"><!-- filled --></div>
+    </header>
+
+    <div class="filters" id="filters"><!-- filled --></div>
+
+    <section class="album" id="album"><!-- filled --></section>
+
+    <section class="reader" id="reader" aria-live="polite">
+      <div class="r-emblem" id="r-emblem"></div>
+      <div>
+        <h2 id="r-name"></h2>
+        <div class="r-cat" id="r-cat"></div>
+        <span class="r-tier" id="r-tier"></span>
+        <p class="flavor" id="r-flavor"></p>
+        <div class="footprint" id="r-foot-wrap">
+          <div class="fl">解锁足迹</div>
+          <ul class="trail" id="r-trail"></ul>
+        </div>
+        <div class="actions" id="r-actions"></div>
+      </div>
+    </section>
+
+    <h2 class="section-title">陈列柜 <small>已经解锁的徽章，像一排被裱起来的旧照片，安静地挂在这儿。</small></h2>
+    <section class="wall" id="wall"><!-- filled --></section>
+
+    <section class="monthly" id="monthly"><!-- filled --></section>
+
+    <footer style="margin-top:70px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.8">
+      成就收藏 · 藏宝册交互原型 v4 · 原创视觉语言（每枚徽章为手绘 SVG 场景插画，非通用图标）。风格取「暖纸 / 克制 / 玻璃 / 青绿+蜜桃 / 衬线 / 语义色 / 不 emoji」，构图与参考页无关。
+    </footer>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- 原创徽章插画：每枚成就一幅独立小场景（viewBox 0 0 64 64，线条 currentColor + 一处暖色 .ac）----
+    const EMB = {
+      time_first: '<svg viewBox="0 0 64 64" fill="none"><path class="ac" d="M32 16a12 12 0 0 1 12 12H20a12 12 0 0 1 12-12Z"/><path d="M14 45h36" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M24 45c0-7 4-12 8-12s8 5 8 12" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M27 53h10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      time_night: '<svg viewBox="0 0 64 64" fill="none"><path class="ac" d="M40 14a13 13 0 1 0 9 22 15 15 0 0 1-9-22Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M18 46c3-2 5-1 7 1s3 4 6 3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M21 50l3-1-1 3M30 51l2-1-1 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      time_century: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 4.4"/><path class="ac" d="M32 16l3 6 6.5 1-4.7 4.6 1.1 6.5L32 40.4 26.1 34.7l1.1-6.5L22.5 23l6.5-1 3-6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="32" cy="32" r="3.4" fill="currentColor"/></svg>',
+      mood_first: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="30" r="15" stroke="currentColor" stroke-width="2.4"/><path d="M25 27c2-2.4 4.6-2.4 6.6 0M32.4 27c2-2.4 4.6-2.4 6.6 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="ac" d="M24 36c3.5 4 7 6 8 6s4.5-2 8-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>',
+      mood_rainbow: '<svg viewBox="0 0 64 64" fill="none"><path class="ac" d="M16 42a16 16 0 0 1 32 0" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M21 42a11 11 0 0 1 22 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M26 42a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M14 46h36" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      mood_calm: '<svg viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="40" rx="20" ry="9" stroke="currentColor" stroke-width="2.4"/><path d="M24 40c2 2.4 5 2.4 7 0s5-2.4 7 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="ac" d="M32 26c-3 3-3 7 0 10 3-3 3-7 0-10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+      weather_rain: '<svg viewBox="0 0 64 64" fill="none"><rect x="18" y="16" width="28" height="32" rx="4" stroke="currentColor" stroke-width="2.4"/><path class="ac" d="M23 24l6 9M41 24l-6 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M27 47c0 3 2 4 2 6M35 47c0 3 2 4 2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      weather_snow: '<svg viewBox="0 0 64 64" fill="none"><path d="M20 44c6-10 18-14 26-22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path class="ac" d="M44 16c1.5 2.6 1.5 4.4 0 7-1.5-2.6-1.5-4.4 0-7ZM44 19c2.5-.4 4.3.4 5 2.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 50h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      weather_storm: '<svg viewBox="0 0 64 64" fill="none"><path d="M20 30a9 9 0 0 1 1-17 11 11 0 0 1 21 2 8 8 0 0 1 1 15" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M33 33l-7 11h6l-3 9 11-13h-6l4-7" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+      write_first: '<svg viewBox="0 0 64 64" fill="none"><path d="M18 48l3-9 22-22a4 4 0 0 1 6 6L27 45l-9 3Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M14 50l4-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M40 16l8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      write_marathon: '<svg viewBox="0 0 64 64" fill="none"><path d="M20 18h24v30H20z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 26h16M24 32h16M24 38h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="ac" d="M38 48l4 8 4-8" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+      write_novel: '<svg viewBox="0 0 64 64" fill="none"><path d="M18 18h12v32H18z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M34 18h12v32H34z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M22 26h4M22 32h4M38 26h4M38 32h4M38 38h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      habit_seed: '<svg viewBox="0 0 64 64" fill="none"><path d="M20 46c0-8 5-13 12-13s12 5 12 13" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path class="ac" d="M32 33c-2-5 0-9 3-11-1 4 0 8-3 11Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M24 49h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      habit_streak: '<svg viewBox="0 0 64 64" fill="none"><path class="ac" d="M32 14c4 6 7 10 7 15a7 7 0 0 1-14 0c0-5 3-9 7-15Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M26 50a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="32" cy="30" r="3" fill="#fffdf8"/></svg>',
+      habit_year: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="30" r="17" stroke="currentColor" stroke-width="2.2" stroke-dasharray="2.5 4"/><path class="ac" d="M32 21v8l6 3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M27 51l5-4 5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      explore_map: '<svg viewBox="0 0 64 64" fill="none"><path d="M20 16l8 4 8-4 8 4v28l-8-4-8 4-8-4z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M32 28a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-4v4m0 6v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      explore_city: '<svg viewBox="0 0 64 64" fill="none"><path d="M16 50V30h9v20zM29 50V22h11v28zM44 50V36h6v14z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M34 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-3v3m0 6v3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+      explore_world: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="18" stroke="currentColor" stroke-width="2.4"/><path d="M14 32h36M32 14c7 5 7 21 0 26M32 14c-7 5-7 21 0 26" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="ac" d="M40 24l3-2-1 4 4-1-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      collect_first: '<svg viewBox="0 0 64 64" fill="none"><path d="M18 18h20a4 4 0 0 1 4 4v30l-4-3-4 3-4-3-4 3-4-3-4 3V22a4 4 0 0 1 4-4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path class="ac" d="M26 30h8M26 38h8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      collect_hoard: '<svg viewBox="0 0 64 64" fill="none"><rect x="16" y="20" width="32" height="26" rx="3" stroke="currentColor" stroke-width="2.4"/><path d="M16 28h32" stroke="currentColor" stroke-width="2.2"/><path class="ac" d="M22 34h4M30 34h4M38 34h4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      collect_master: '<svg viewBox="0 0 64 64" fill="none"><rect x="16" y="18" width="32" height="30" rx="3" stroke="currentColor" stroke-width="2.4"/><path d="M16 28h32M32 28v20" stroke="currentColor" stroke-width="2"/><path class="ac" d="M22 34h4v4h-4zM38 34h4v4h-4zM22 41h4v4h-4zM38 41h4v4h-4z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>',
+      legend_dawn: '<svg viewBox="0 0 64 64" fill="none"><path d="M14 44h36" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path class="ac" d="M32 44V22a10 10 0 0 1 0 22Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M24 18l2 4M40 18l-2 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      legend_all: '<svg viewBox="0 0 64 64" fill="none"><path class="ac" d="M32 12l4 8 9 1-6.5 6 1.5 9L32 39l-8 7 1.5-9L19 29l9-1 4-8Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M32 12V6M32 58v-6M10 32H16M48 32h6M16 16l4 4M44 44l4 4M48 16l-4 4M20 44l-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+    };
+
+    const CAT = { time:'时间', mood:'心情', weather:'天气', writing:'写作', habit:'习惯', explorer:'探索', collector:'收藏', legendary:'传奇' };
+    const TIER = { com:'普通', rare:'稀有', epic:'史诗', leg:'传奇' };
+    const TIER_STYLE = {
+      com: { tier:'var(--sage)', bg:'rgba(169,191,149,.22)', accent:'var(--sage)' },
+      rare:{ tier:'var(--blue)', bg:'rgba(156,193,220,.24)', accent:'var(--blue)' },
+      epic:{ tier:'var(--peach)', bg:'rgba(231,169,140,.22)', accent:'var(--peach)' },
+      leg: { tier:'var(--gold)', bg:'rgba(216,177,90,.2)', accent:'var(--gold)' }
+    };
+
+    const DATA = [
+      { id:'time_first', name:'晨光初现', cat:'time', tier:'com', status:'unlocked', flavor:'在清晨六到九点写下第一篇日记。一日的开头，先留一句话给自己。', date:'2025-03-12', entry:'今天醒得早，窗外有鸟。' },
+      { id:'time_night', name:'夜航者', cat:'time', tier:'rare', status:'unlocked', flavor:'在夜晚二十三点之后累计写下十篇。夜里的字迹，往往最诚实。', date:'2025-06-02', entry:'地铁空了，城市安静下来。' },
+      { id:'time_century', name:'百年孤独', cat:'time', tier:'leg', status:'progress', flavor:'连续记录满 365 天。不为打卡，只为不缺席自己的生活。', target:'365 天', progress:312 },
+      { id:'mood_first', name:'初见心情', cat:'mood', tier:'com', status:'unlocked', flavor:'第一次为日记打上心情标签。情绪被看见，才算被记录。', date:'2025-02-20', entry:'有点累，但还好。' },
+      { id:'mood_rainbow', name:'七色情绪', cat:'mood', tier:'epic', status:'progress', flavor:'在日记里集齐全部六种心情。喜怒哀乐，都值得留一份。', target:'6 种', progress:4 },
+      { id:'mood_calm', name:'心如止水', cat:'mood', tier:'rare', status:'locked', flavor:'在连续七天的日记中，心情都标记为平静。' },
+      { id:'weather_rain', name:'听雨人', cat:'weather', tier:'com', status:'unlocked', flavor:'在一个雨天写下日记。雨声是最好的白噪音。', date:'2025-04-08', entry:'雨一直下，反而安心。' },
+      { id:'weather_snow', name:'踏雪寻梅', cat:'weather', tier:'rare', status:'locked', flavor:'在下雪天写下日记。' },
+      { id:'weather_storm', name:'风暴之子', cat:'weather', tier:'epic', status:'locked', flavor:'在暴雨或台风预警日完成记录。' },
+      { id:'write_first', name:'落笔成章', cat:'writing', tier:'com', status:'unlocked', flavor:'写下你的第一篇日记。起点总是最珍贵的。', date:'2025-01-15', entry:'试试看这个 App。' },
+      { id:'write_marathon', name:'千字文', cat:'writing', tier:'rare', status:'unlocked', flavor:'单篇日记突破 1000 字。把一件事说透的感觉，很爽。', date:'2025-05-19', entry:'今天想认真写写那次旅行……' },
+      { id:'write_novel', name:'著作等身', cat:'writing', tier:'leg', status:'progress', flavor:'累计写下 10 万字。回头看，是一整座文字的房子。', target:'10万字', progress:73400 },
+      { id:'habit_seed', name:'习惯之种', cat:'habit', tier:'com', status:'unlocked', flavor:'创建你的第一个习惯追踪。种下，就会生长。', date:'2025-03-30', entry:'决定每天走 8000 步。' },
+      { id:'habit_streak', name:'三十而砺', cat:'habit', tier:'epic', status:'progress', flavor:'任意一个习惯连续坚持 30 天。', target:'30 天', progress:21 },
+      { id:'habit_year', name:'一岁一礼', cat:'habit', tier:'rare', status:'locked', flavor:'坚持同一习惯满一整年。' },
+      { id:'explore_map', name:'地图收藏家', cat:'explorer', tier:'com', status:'unlocked', flavor:'在日记中标记第一个地点。把足迹变成坐标。', date:'2025-04-22', entry:'海边的小馆子。' },
+      { id:'explore_city', name:'城市漫游者', cat:'explorer', tier:'rare', status:'progress', flavor:'在 10 个不同城市留下记录。', target:'10 城', progress:6 },
+      { id:'explore_world', name:'环游日记', cat:'explorer', tier:'leg', status:'locked', flavor:'在 30 个城市写下日记。地球很小，你很大。' },
+      { id:'collect_first', name:'初藏', cat:'collector', tier:'com', status:'unlocked', flavor:'收藏第一条日记。收藏，是另一种书写。', date:'2025-02-11', entry:'这段想留着。' },
+      { id:'collect_hoard', name:'集腋成裘', cat:'collector', tier:'rare', status:'unlocked', flavor:'收藏满 50 条日记。抽屉越来越满。', date:'2025-07-01', entry:'第五十张收藏卡。' },
+      { id:'collect_master', name:'收藏大师', cat:'collector', tier:'epic', status:'progress', flavor:'收藏满 200 条。你已是这座私人博物馆的馆长。', target:'200 条', progress:128 },
+      { id:'legend_dawn', name:'破晓', cat:'legendary', tier:'leg', status:'unlocked', flavor:'解锁任意 10 枚传奇成就。天快亮了。', date:'2025-07-10', entry:'第十枚传奇，落定。' },
+      { id:'legend_all', name:'圆满', cat:'legendary', tier:'leg', status:'locked', flavor:'解锁全部成就。那一刻，收藏柜会为你亮一次。' }
+    ];
+    let wish = new Set(['mood_rainbow','explore_world','write_novel']);
+
+    let fTier='all', fStatus='all', fCat='all';
+    const $ = (s,r=document)=>r.querySelector(s);
+    const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+    const get = id => DATA.find(d=>d.id===id);
+
+    function emblemNode(d, cls){
+      const st = TIER_STYLE[d.tier];
+      const el = document.createElement('div');
+      el.className = 'emblem ' + (d.tier==='leg'?'leg':'') + (cls?(' '+cls):'');
+      el.style.setProperty('--tier', st.tier);
+      el.style.setProperty('--tier-bg', st.bg);
+      el.style.setProperty('--accent', st.accent);
+      el.innerHTML = '<span class="ring"></span>' + (EMB[d.id] || EMB.legend_all);
+      return el;
+    }
+    function pct(d){ if(d.status==='unlocked') return 100; if(d.target){ const n=Number(String(d.progress).replace(/[^\d]/g,'')); const t=Number(String(d.target).replace(/[^\d万]/g,'').replace('万','0000')); return Math.min(100, Math.round(n/t*100)); } return d.progress||0; }
+    function pctLabel(d){ if(d.status==='unlocked') return '已解锁'; if(d.target) return (typeof d.progress==='number'? d.progress.toLocaleString():d.progress)+' / '+d.target; return d.progress+'%'; }
+
+    function renderStats(){
+      const u = DATA.filter(d=>d.status==='unlocked').length;
+      $('#stats').innerHTML =
+        '<div class="stat"><b>'+u+'</b><span>已解锁</span></div>'+
+        '<div class="stat"><b>'+Math.round(u/DATA.length*100)+'%</b><span>完成度</span></div>'+
+        '<div class="stat"><b>'+DATA.filter(d=>d.tier==='leg'&&d.status==='unlocked').length+'</b><span>传奇</span></div>';
+    }
+
+    function renderFilters(){
+      const f = $('#filters'); f.innerHTML='';
+      const tiers = [['all','全部'],['com','普通'],['rare','稀有'],['epic','史诗'],['leg','传奇']];
+      const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='7px'; wrap.style.flexWrap='wrap'; wrap.style.alignItems='center';
+      wrap.innerHTML = '<span class="glabel">稀有度</span>';
+      tiers.forEach(([v,l])=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=l; b.dataset.tier=v; if(v==='all')b.setAttribute('aria-pressed','true'); b.onclick=()=>{fTier=v; $$('#filters [data-tier]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.tier===v)); renderAlbum();}; wrap.appendChild(b); });
+      f.appendChild(wrap);
+      const wrap2 = document.createElement('div'); wrap2.style.display='flex'; wrap2.style.gap='7px'; wrap2.style.flexWrap='wrap'; wrap2.style.alignItems='center'; wrap2.style.marginLeft='14px';
+      const status = [['all','全部'],['unlocked','已解锁'],['progress','进行中'],['locked','未解锁'],['wish','心愿单']];
+      wrap2.innerHTML = '<span class="glabel">状态</span>';
+      status.forEach(([v,l])=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=l; b.dataset.status=v; if(v==='all')b.setAttribute('aria-pressed','true'); if(v==='wish')b.style.color='var(--gold)'; b.onclick=()=>{fStatus=v; $$('#filters [data-status]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.status===v)); renderAlbum();}; wrap2.appendChild(b); });
+      f.appendChild(wrap2);
+      const wrap3 = document.createElement('div'); wrap3.style.display='flex'; wrap3.style.gap='7px'; wrap3.style.flexWrap='wrap'; wrap3.style.alignItems='center'; wrap3.style.marginLeft='14px';
+      wrap3.innerHTML = '<span class="glabel">主题</span>';
+      const cats = Object.keys(CAT);
+      const allb=document.createElement('button'); allb.className='chip'; allb.textContent='全部'; allb.dataset.cat='all'; allb.setAttribute('aria-pressed','true');
+      allb.onclick=()=>{fCat='all'; $$('#filters [data-cat]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.cat==='all')); renderAlbum();}; wrap3.appendChild(allb);
+      cats.forEach(c=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=CAT[c]; b.dataset.cat=c; b.onclick=()=>{fCat=c; $$('#filters [data-cat]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.cat===c)); renderAlbum();}; wrap3.appendChild(b); });
+      f.appendChild(wrap3);
+    }
+
+    function renderAlbum(){
+      const g = $('#album'); g.innerHTML='';
+      const list = DATA.filter(d =>
+        (fTier==='all'||d.tier===fTier) && (fCat==='all'||d.cat===fCat) &&
+        (fStatus==='all'||(fStatus==='wish'?wish.has(d.id):d.status===fStatus)));
+      if(!list.length){ g.innerHTML='<p style="color:var(--muted);padding:18px">这个筛选下还没有成就。</p>'; return; }
+      list.forEach(d=>{
+        const card = document.createElement('div');
+        card.className='seal'+(d.status==='locked'?' locked':'')+(wish.has(d.id)?' wish':'');
+        card.appendChild(emblemNode(d));
+        if(wish.has(d.id)){ const s=document.createElement('div'); s.className='wish-star'; s.innerHTML='<svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.8 3.8 4.2.6-3 3 .7 4.2L12 13.8 8.3 15.6l.7-4.2-3-3 4.2-.6L12 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'; card.appendChild(s); }
+        const h=document.createElement('h3'); h.textContent=d.name; card.appendChild(h);
+        const c=document.createElement('span'); c.className='cat'; c.textContent=CAT[d.cat]; card.appendChild(c);
+        const t=document.createElement('span'); t.className='tier t-'+d.tier; t.textContent=TIER[d.tier]; card.appendChild(t);
+        if(d.status==='progress'){ const p=document.createElement('div'); p.className='prog'; p.innerHTML='<i style="width:'+pct(d)+'%"></i>'; card.appendChild(p); }
+        card.onclick=()=>openReader(d.id);
+        g.appendChild(card);
+      });
+    }
+
+    function renderWall(){
+      const w=$('#wall'); w.innerHTML='';
+      DATA.filter(d=>d.status==='unlocked').forEach(d=>{
+        const fr=document.createElement('div'); fr.className='frame';
+        const st=TIER_STYLE[d.tier];
+        const em=document.createElement('div'); em.className='f-emblem';
+        em.style.setProperty('--tier', st.tier); em.style.setProperty('--tier-bg', st.bg); em.style.setProperty('--accent', st.accent);
+        em.innerHTML=EMB[d.id]||EMB.legend_all;
+        fr.appendChild(em);
+        const b=document.createElement('b'); b.textContent=d.name; fr.appendChild(b);
+        const s=document.createElement('span'); s.textContent=CAT[d.cat]; fr.appendChild(s);
+        fr.onclick=()=>openReader(d.id);
+        w.appendChild(fr);
+      });
+    }
+
+    function renderMonthly(){
+      const m=$('#monthly');
+      const st=TIER_STYLE.leg;
+      m.innerHTML='<div class="m-emblem" style="--tier:'+st.tier+';--tier-bg:'+st.bg+';--accent:'+st.accent+'">'+EMB.habit_streak+'</div>'+
+        '<div><h3>七月挑战 · 三十而砺</h3><p>本月让任意一个习惯连续坚持 30 天。完成后获「三十而砺」史诗徽章，与一句只有七月才有的赠言：<i>“把一天过好，就是过好了一生。”</i></p>'+
+        '<div class="mbar"><i style="width:70%"></i></div><p style="margin:9px 0 0;font-size:11px;font-weight:700;color:var(--muted)">21 / 30 天 · 还差 9 天</p></div>';
+    }
+
+    function openReader(id){
+      const d=get(id); if(!d) return;
+      const st=TIER_STYLE[d.tier];
+      const em=$('#r-emblem'); em.style.setProperty('--tier',st.tier); em.style.setProperty('--tier-bg',st.bg); em.style.setProperty('--accent',st.accent);
+      em.className='r-emblem'; em.innerHTML='<span class="ring"></span>'+(EMB[d.id]||EMB.legend_all);
+      $('#r-name').textContent=d.name;
+      $('#r-cat').textContent=CAT[d.cat]+' 主题';
+      const t=$('#r-tier'); t.className='r-tier t-'+d.tier; t.textContent=TIER[d.tier];
+      $('#r-flavor').textContent='“'+d.flavor+'”';
+      const wrap=$('#r-foot-wrap');
+      if(d.status==='unlocked'){
+        wrap.style.display=''; $('#r-trail').innerHTML=
+          '<li><b>写下那篇日记</b><span>'+d.date+' · 触发解锁</span></li>'+
+          '<li><b>关联日记</b><span>“'+d.entry+'”</span></li>'+
+          '<li><b>收入藏宝册</b><span>已陈列 · 可随时回看</span></li>';
+      } else if(d.status==='progress'){
+        wrap.style.display=''; $('#r-trail').innerHTML=
+          '<li><b>开始追踪</b><span>目标 '+d.target+'</span></li>'+
+          '<li><b>当前进度</b><span>'+pctLabel(d)+'</span></li>'+
+          '<li><b>距达成</b><span>还差 '+(100-pct(d))+'%</span></li>';
+      } else { wrap.style.display='none'; }
+      const act=$('#r-actions'); act.innerHTML='';
+      const wb=document.createElement('button'); wb.className='pill'+(wish.has(d.id)?' gold':''); wb.textContent=wish.has(d.id)?'★ 已在心愿单':'☆ 加入心愿单';
+      wb.onclick=()=>toggleWish(d.id); act.appendChild(wb);
+      if(d.status!=='unlocked'){ const sb=document.createElement('button'); sb.className='pill primary'; sb.textContent='模拟解锁'; sb.onclick=()=>simulate(d.id); act.appendChild(sb); }
+      $('#reader').classList.add('open');
+      $('#reader').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    function toggleWish(id){ if(wish.has(id)) wish.delete(id); else wish.add(id); renderAlbum(); renderWall(); if($('#reader').classList.contains('open')) openReader(id); toast(wish.has(id)?'已加入心愿单':'已移出心愿单'); }
+    function simulate(id){ const d=get(id); d.status='unlocked'; d.progress=100; d.date=new Date().toISOString().slice(0,10); d.entry=d.entry||'刚刚达成了它。'; renderAlbum(); renderWall(); renderStats(); const c=$$('#album .seal').find(x=>x.querySelector('h3')&&x.querySelector('h3').textContent===d.name); if(c)c.classList.add('flash'); toast('解锁成功：'+d.name); if($('#reader').classList.contains('open')) openReader(id); }
+
+    let tt; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2200); }
+
+    renderStats(); renderFilters(); renderAlbum(); renderWall(); renderMonthly();
+  </script>
+</body>
+</html>

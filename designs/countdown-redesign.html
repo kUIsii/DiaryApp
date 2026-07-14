@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>倒数日 · 重设计原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg1:#F5F7FA; --bg2:#EFF3F8; --bg3:#E8EDF4;
+    --surface:#FFFFFF; --card:#FFFFFF;
+    --text:#2C3344; --text2:#5A6577; --text3:#8A96A8;
+    --accent:#6B8DB5; --accent2:#B5926B; --accent3:#9B8EBA;
+    --border:rgba(130,150,180,.30);
+    --shadow:0 8px 24px rgba(60,80,120,.10);
+    --radius:22px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:#e9edf2;
+    background:radial-gradient(1200px 600px at 20% -10%, #d7e0ec 0%, #e9edf2 55%, #e3e8ef 100%);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 12px;color:var(--text);
+  }
+  /* phone frame */
+  .phone{
+    width:100%;max-width:412px;height:860px;max-height:92vh;
+    background:linear-gradient(180deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+    border-radius:42px;
+    box-shadow:0 30px 70px rgba(40,55,90,.28), inset 0 0 0 1px rgba(255,255,255,.4);
+    position:relative;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .phone::before{ /* soft mesh accents */
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(360px 240px at 88% 4%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%),
+      radial-gradient(320px 260px at -6% 18%, color-mix(in srgb, var(--accent3) 11%, transparent), transparent 70%),
+      radial-gradient(420px 320px at 70% 100%, color-mix(in srgb, var(--accent2) 10%, transparent), transparent 72%);
+    opacity:.9;
+  }
+  .statusbar{
+    height:46px;flex:0 0 46px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px;font-size:13px;font-weight:600;color:var(--text);position:relative;z-index:2;
+  }
+  .statusbar .right{display:flex;gap:7px;align-items:center;}
+  .statusbar .dot{width:6px;height:6px;border-radius:50%;background:var(--text3);opacity:.6;}
+  .topbar{
+    flex:0 0 auto;display:flex;align-items:center;gap:12px;
+    padding:6px 18px 12px;position:relative;z-index:2;
+  }
+  .iconbtn{
+    width:40px;height:40px;border-radius:50%;flex:0 0 40px;
+    background:color-mix(in srgb, var(--surface) 70%, transparent);
+    border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    color:var(--text2);transition:transform .15s;
+  }
+  .iconbtn:active{transform:scale(.94);}
+  .topbar .titlewrap{flex:1;min-width:0;}
+  .topbar h1{
+    font-family:"Noto Serif SC",serif;font-weight:900;font-size:23px;margin:0;line-height:1.1;
+    letter-spacing:.5px;color:var(--text);
+  }
+  .topbar .sub{font-size:12px;color:var(--text3);margin-top:3px;}
+  .iconbtn.add{background:color-mix(in srgb,var(--accent) 14%, transparent);border-color:transparent;color:var(--accent);}
+
+  .scroll{flex:1;overflow-y:auto;padding:4px 18px 96px;position:relative;z-index:2;}
+  .scroll::-webkit-scrollbar{width:0;}
+
+  /* hero */
+  .hero{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .hero .label{font-size:12px;color:var(--text3);letter-spacing:2px;margin-bottom:12px;}
+  .hero .row{display:flex;align-items:center;gap:16px;}
+  .ring{position:relative;width:96px;height:96px;flex:0 0 96px;}
+  .ring .num{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:"Noto Serif SC",serif;
+  }
+  .ring .num b{font-size:30px;font-weight:900;line-height:1;color:var(--accent);}
+  .ring .num span{font-size:12px;color:var(--text3);margin-top:3px;}
+  .hero .meta{flex:1;min-width:0;}
+  .hero .meta .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hero .meta .d{font-size:13px;color:var(--text2);}
+  .hero .meta .next{font-size:12px;color:var(--text3);margin-top:8px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hero .meta .next b{color:var(--accent2);font-weight:700;}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  .stat{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px 8px;text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .stat b{display:block;font-family:"Noto Serif SC",serif;font-size:20px;font-weight:900;color:var(--text);line-height:1;}
+  .stat span{font-size:11px;color:var(--text3);margin-top:6px;display:block;}
+
+  /* filter chips */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin:0 -2px;}
+  .chips::-webkit-scrollbar{height:0;}
+  .chip{
+    flex:0 0 auto;padding:7px 14px;border-radius:999px;font-size:13px;cursor:pointer;
+    background:color-mix(in srgb,var(--surface) 60%, transparent);border:1px solid var(--border);color:var(--text2);
+    transition:all .18s;white-space:nowrap;
+  }
+  .chip.on{background:color-mix(in srgb,var(--accent) 16%, transparent);border-color:transparent;color:var(--accent);font-weight:700;}
+
+  /* list */
+  .list{display:flex;flex-direction:column;gap:12px;}
+  .item{
+    background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:13px;cursor:pointer;
+    transition:transform .15s;
+  }
+  .item:active{transform:scale(.985);}
+  .badge{
+    flex:0 0 auto;width:58px;height:58px;border-radius:15px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-family:"Noto Serif SC",serif;
+  }
+  .badge b{font-size:21px;font-weight:900;line-height:1;}
+  .badge span{font-size:10px;margin-top:2px;opacity:.75;}
+  .item .body{flex:1;min-width:0;}
+  .item .body .ttl{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;}
+  .item .body .ttl .pin{color:var(--accent2);display:flex;}
+  .item .body .dt{font-size:12px;color:var(--text3);margin-top:3px;}
+  .cat{
+    font-size:11px;padding:2px 9px;border-radius:999px;margin-top:7px;display:inline-block;
+    background:color-mix(in srgb,var(--accent3) 16%, transparent);color:var(--accent3);font-weight:600;
+  }
+  .item .del{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:var(--text3);cursor:pointer;}
+  .item .del:active{color:var(--accent);}
+
+  .section-h{font-size:13px;font-weight:700;color:var(--text2);margin:18px 2px 10px;letter-spacing:1px;}
+
+  /* theme switcher */
+  .themes{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;
+    display:flex;align-items:center;gap:9px;padding:12px 16px 16px;
+    background:linear-gradient(180deg,transparent, color-mix(in srgb,var(--bg3) 85%, transparent) 60%, var(--bg3));
+  }
+  .themes .sw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex:0 0 24px;
+    box-shadow:0 2px 6px rgba(0,0,0,.12);}
+  .themes .sw.on{border-color:var(--text);}
+  .themes .dark{margin-left:auto;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;
+    background:color-mix(in srgb,var(--surface) 60%, transparent);border:1px solid var(--border);
+    padding:6px 11px;border-radius:999px;}
+
+  /* sheet */
+  .mask{position:absolute;inset:0;background:rgba(20,28,45,.32);z-index:8;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .mask.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:9;
+    background:var(--card);border-top-left-radius:28px;border-top-right-radius:28px;
+    border:1px solid var(--border);border-bottom:none;
+    box-shadow:0 -16px 40px rgba(30,45,80,.18);
+    transform:translateY(105%);transition:transform .3s cubic-bezier(.22,1,.36,1);
+    padding:18px 20px 26px;max-height:86%;overflow-y:auto;
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet .grab{width:40px;height:4px;border-radius:4px;background:var(--border);margin:0 auto 14px;}
+  .sheet h2{font-family:"Noto Serif SC",serif;font-size:19px;font-weight:900;margin:0 0 16px;color:var(--text);}
+  .field{margin-bottom:16px;}
+  .field>label{font-size:13px;color:var(--text2);display:block;margin-bottom:8px;font-weight:600;}
+  .input{
+    width:100%;padding:13px 14px;border-radius:13px;border:1px solid var(--border);
+    background:color-mix(in srgb,var(--surface) 70%, transparent);font-size:15px;color:var(--text);outline:none;
+  }
+  .seg{display:flex;gap:10px;}
+  .seg .opt{flex:1;text-align:center;padding:11px;border-radius:13px;font-size:14px;cursor:pointer;
+    border:1px solid var(--border);color:var(--text2);background:color-mix(in srgb,var(--surface) 60%, transparent);}
+  .seg .opt.on{background:color-mix(in srgb,var(--accent) 16%, transparent);border-color:transparent;color:var(--accent);font-weight:700;}
+  .row2{display:flex;gap:10px;}
+  .row2 .input{flex:1;}
+  .picker{display:flex;flex-wrap:wrap;gap:12px;}
+  .picker .c{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;
+    box-shadow:0 2px 6px rgba(0,0,0,.12);}
+  .picker .c.on{border-color:var(--text);}
+  .toggle{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+  .toggle .tx b{font-size:14px;color:var(--text);font-weight:600;display:block;}
+  .toggle .tx span{font-size:12px;color:var(--text3);}
+  .sw{width:46px;height:27px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex:0 0 46px;}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .sw.on{background:var(--accent);}
+  .sw.on::after{left:22px;}
+  .sheet .acts{display:flex;gap:10px;margin-top:8px;}
+  .btn{flex:1;padding:13px;border-radius:14px;text-align:center;font-size:15px;font-weight:700;cursor:pointer;border:none;}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.ghost{background:color-mix(in srgb,var(--surface) 60%, transparent);border:1px solid var(--border);color:var(--text2);}
+  .btn.danger{flex:0 0 auto;padding:13px 16px;background:transparent;border:1px solid var(--border);color:var(--text3);}
+  .templates{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+  .templates .t{font-size:12px;padding:6px 12px;border-radius:999px;background:color-mix(in srgb,var(--accent3) 14%, transparent);
+    color:var(--accent3);cursor:pointer;font-weight:600;}
+  .hint{font-size:11px;color:var(--text3);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <div class="right"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  </div>
+
+  <div class="topbar">
+    <div class="iconbtn" title="返回">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="titlewrap">
+      <h1>倒数日</h1>
+      <div class="sub" id="topsub">把重要日子，过成看得见的期待</div>
+    </div>
+    <div class="iconbtn add" id="addBtn" title="新建">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll" id="scroll">
+    <!-- hero -->
+    <div class="hero">
+      <div class="label">最近的日子</div>
+      <div class="row">
+        <div class="ring">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" fill="none" stroke="var(--border)" stroke-width="7"/>
+            <circle id="ringFill" cx="48" cy="48" r="42" fill="none" stroke="var(--accent)" stroke-width="7"
+              stroke-linecap="round" transform="rotate(-90 48 48)" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div class="num"><b id="heroNum">38</b><span id="heroUnit">天后</span></div>
+        </div>
+        <div class="meta">
+          <div class="t" id="heroTitle">结婚纪念日</div>
+          <div class="d" id="heroDate">8月20日 · 周四</div>
+          <div class="next" id="heroNext">下一个：宝宝生日 · 还有 <b>50</b> 天</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- stats -->
+    <div class="stats">
+      <div class="stat"><b id="stTotal">7</b><span>全部</span></div>
+      <div class="stat"><b id="stUp">6</b><span>即将到来</span></div>
+      <div class="stat"><b id="stPast">1</b><span>已过去</span></div>
+      <div class="stat"><b id="stWeek">2</b><span>本周</span></div>
+    </div>
+
+    <!-- filter -->
+    <div class="chips" id="chips"></div>
+
+    <!-- list -->
+    <div class="section-h">所有日子</div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <!-- theme switcher -->
+  <div class="themes" id="themes"></div>
+
+  <!-- sheet -->
+  <div class="mask" id="mask"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <h2 id="sheetTitle">新建倒数日</h2>
+
+    <div class="templates" id="templates">
+      <div class="t" data-t="生日">生日</div>
+      <div class="t" data-t="纪念日">纪念日</div>
+      <div class="t" data-t="旅行">旅行</div>
+      <div class="t" data-t="考试">考试</div>
+      <div class="t" data-t="节日">节日</div>
+    </div>
+
+    <div class="field">
+      <label>事件名称</label>
+      <input class="input" id="fTitle" placeholder="例如：回家、发布会、入职" />
+    </div>
+
+    <div class="field">
+      <label>目标日期</label>
+      <input class="input" id="fDate" type="date" value="2026-08-20" />
+    </div>
+
+    <div class="field">
+      <label>类型</label>
+      <div class="seg" id="segType">
+        <div class="opt on" data-v="false">倒数（距目标还有）</div>
+        <div class="opt" data-v="true">正数（已过去）</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>分类</label>
+      <div class="seg" id="segCat">
+        <div class="opt on" data-v="纪念日">纪念日</div>
+        <div class="opt" data-v="生日">生日</div>
+        <div class="opt" data-v="目标">目标</div>
+        <div class="opt" data-v="节日">节日</div>
+        <div class="opt" data-v="自定义">自定义</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>颜色（取自当前主题）</label>
+      <div class="picker" id="picker"></div>
+      <div class="hint">颜色来自你 App 七套主题自身的强调色，换主题时自动协调。</div>
+    </div>
+
+    <div class="field">
+      <div class="toggle">
+        <div class="tx"><b>每年重复</b><span>每年同一天提醒</span></div>
+        <div class="sw" id="swYear"></div>
+      </div>
+      <div class="toggle">
+        <div class="tx"><b>到期提醒</b><span>当天与提前 1 天通知</span></div>
+        <div class="sw" id="swRemind"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>备注（可选）</label>
+      <input class="input" id="fNote" placeholder="写句想对那天说的话…" />
+    </div>
+
+    <div class="acts">
+      <button class="btn danger" id="delBtn">删除</button>
+      <button class="btn ghost" id="cancelBtn">取消</button>
+      <button class="btn primary" id="saveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 真实主题色（取自 Color.kt，与 App 完全一致） ===== */
+const THEMES = {
+  fog:{name:'雾蓝灰', light:{bg1:'#F5F7FA',bg2:'#EFF3F8',bg3:'#E8EDF4',surface:'#FFFFFF',card:'#FFFFFF',text:'#2C3344',text2:'#5A6577',text3:'#8A96A8',accent:'#6B8DB5',accent2:'#B5926B',accent3:'#9B8EBA',border:'rgba(130,150,180,.30)'},
+        dark:{bg1:'#0B0D12',bg2:'#0E1018',bg3:'#11131C',surface:'#161822',card:'#181A26',text:'#D8E0F0',text2:'#9AA8C0',text3:'#6A7890',accent:'#88B0D4',accent2:'#D4A878',accent3:'#A89AC8',border:'rgba(130,150,180,.18)'}},
+  moss:{name:'苔藓绿', light:{bg1:'#F6F7F4',bg2:'#EFF2EB',bg3:'#E5EAE0',surface:'#FCFDFB',card:'#FCFDFB',text:'#2E3328',text2:'#5A6450',text3:'#8A9480',accent:'#7BA06E',accent2:'#C4A06B',accent3:'#A088B0',border:'rgba(100,122,90,.30)'},
+        dark:{bg1:'#0B0D0A',bg2:'#0E110D',bg3:'#111410',surface:'#161A14',card:'#181C16',text:'#D8E4D0',text2:'#9AAA90',text3:'#6A7A60',accent:'#8BC07A',accent2:'#D4B078',accent3:'#B098C4',border:'rgba(100,122,90,.16)'}},
+  ocean:{name:'海潮蓝', light:{bg1:'#F2FBFC',bg2:'#E8F6FA',bg3:'#E2F0F6',surface:'#FFFFFF',card:'#FFFFFF',text:'#173D46',text2:'#4F6E79',text3:'#7A93A0',accent:'#5A9EA0',accent2:'#6B93C4',accent3:'#7D94B8',border:'rgba(123,184,199,.30)'},
+        dark:{bg1:'#091318',bg2:'#0C1820',bg3:'#101E29',surface:'#121B24',card:'#15212B',text:'#D9EEF0',text2:'#9AB7C0',text3:'#6E8790',accent:'#7BBCBE',accent2:'#7DA0D4',accent3:'#8FA0C7',border:'rgba(123,184,199,.17)'}},
+  petal:{name:'陶粉玫瑰', light:{bg1:'#FFF8F7',bg2:'#FFFEFED',bg3:'#F8E6E3',surface:'#FFFFFF',card:'#FFFFFF',text:'#422A2A',text2:'#72585A',text3:'#9A8587',accent:'#C48880',accent2:'#B08AA8',accent3:'#D4A090',border:'rgba(211,138,128,.30)'},
+        dark:{bg1:'#181013',bg2:'#1E1216',bg3:'#27181B',surface:'#221619',card:'#281A1D',text:'#F2DCDC',text2:'#C3A7A7',text3:'#9C8587',accent:'#D4A098',accent2:'#C49BC4',accent3:'#D8B098',border:'rgba(224,141,132,.17)'}},
+  sand:{name:'沙金琥珀', light:{bg1:'#FCFAF3',bg2:'#F7F1E6',bg3:'#F0E5D3',surface:'#FFFFFF',card:'#FFFFFF',text:'#42361D',text2:'#6C5C40',text3:'#9A8C73',accent:'#B89860',accent2:'#BF8878',accent3:'#A09070',border:'rgba(201,163,94,.30)'},
+        dark:{bg1:'#17140F',bg2:'#1D1812',bg3:'#251F17',surface:'#231D16',card:'#2A221A',text:'#F0E5D4',text2:'#C0AD8A',text3:'#9C8C73',accent:'#CCAD70',accent2:'#CCA088',accent3:'#B8A080',border:'rgba(207,165,91,.17)'}},
+  clay:{name:'陶土', light:{bg1:'#FBF5F0',bg2:'#F4E7DD',bg3:'#EAD7CB',surface:'#FFFCFA',card:'#FFFCFA',text:'#40302A',text2:'#6C574D',text3:'#9A8579',accent:'#B89080',accent2:'#809A88',accent3:'#A090A8',border:'rgba(196,119,95,.30)'},
+        dark:{bg1:'#17120F',bg2:'#1C1511',bg3:'#241B16',surface:'#211713',card:'#281D18',text:'#F2E3DA',text2:'#C3AEA0',text3:'#8D7769',accent:'#CCA090',accent2:'#90A898',accent3:'#B0A0B8',border:'rgba(208,139,115,.17)'}},
+  ink:{name:'墨石', light:{bg1:'#F3F5FA',bg2:'#E7EBF5',bg3:'#DCE3F0',surface:'#FFFFFF',card:'#FFFFFF',text:'#1F2735',text2:'#506176',text3:'#7A8698',accent:'#4D6AA8',accent2:'#6E83C4',accent3:'#9A7FAF',border:'rgba(77,106,168,.30)'},
+        dark:{bg1:'#0A0D14',bg2:'#0E121B',bg3:'#121824',surface:'#161B27',card:'#1A2030',text:'#D9E1EF',text2:'#9AA8C1',text3:'#6D7893',accent:'#8AA8E0',accent2:'#A48BD4',accent3:'#6FB0C2',border:'rgba(138,168,224,.17)'}}
+};
+const ORDER=['fog','moss','ocean','petal','sand','clay','ink'];
+
+/* ===== 样本数据（颜色用主题强调色键，换主题自动协调） ===== */
+const CATS=['全部','纪念日','生日','目标','节日','自定义'];
+let DATA=[
+  {id:1,title:'结婚纪念日',date:'2026-08-20',countUp:false,cat:'纪念日',ck:'accent',year:true},
+  {id:2,title:'宝宝生日',date:'2026-09-01',countUp:false,cat:'生日',ck:'accent2',year:true},
+  {id:3,title:'三亚旅行',date:'2026-10-01',countUp:false,cat:'目标',ck:'accent3',year:false},
+  {id:4,title:'雅思考试',date:'2026-07-25',countUp:false,cat:'目标',ck:'accent',year:false},
+  {id:5,title:'春节',date:'2027-02-17',countUp:false,cat:'节日',ck:'accent3',year:true},
+  {id:6,title:'项目截止',date:'2026-07-10',countUp:false,cat:'目标',ck:'accent2',year:false},
+  {id:7,title:'在一起',date:'2021-03-14',countUp:true,cat:'纪念日',ck:'accent2',year:false}
+];
+
+const TODAY=new Date('2026-07-13');
+const WK=['周日','周一','周二','周三','周四','周五','周六'];
+function dib(a,b){return Math.round((b-a)/86400000);}
+function getDays(it){
+  let t=new Date(it.date+'T00:00:00');const today=TODAY;
+  if(it.year){let nx=new Date(t);nx.setFullYear(today.getFullYear());
+    if(nx<today){nx.setFullYear(today.getFullYear()+1);}return dib(today,nx);}
+  const d=dib(today,t);return it.countUp?-d:d;
+}
+function fmtDate(s){const d=new Date(s+'T00:00:00');return (d.getMonth()+1)+'月'+d.getDate()+'日 · '+WK[d.getDay()];}
+function colorOf(ck){const t=THEMES[cur].light;if(dark)t=THEMES[cur].dark;return {accent:t.accent,accent2:t.accent2,accent3:t.accent3}[ck];}
+
+/* ===== 状态 ===== */
+let cur='fog',dark=false,filter='全部';
+
+function applyTheme(){
+  const t=dark?THEMES[cur].dark:THEMES[cur].light;
+  const r=document.documentElement.style;
+  r.setProperty('--bg1',t.bg1);r.setProperty('--bg2',t.bg2);r.setProperty('--bg3',t.bg3);
+  r.setProperty('--surface',t.surface);r.setProperty('--card',t.card);
+  r.setProperty('--text',t.text);r.setProperty('--text2',t.text2);r.setProperty('--text3',t.text3);
+  r.setProperty('--accent',t.accent);r.setProperty('--accent2',t.accent2);r.setProperty('--accent3',t.accent3);
+  r.setProperty('--border',t.border);
+  const body=document.body;body.style.color=t.text;
+  render();renderThemes();
+}
+
+function renderThemes(){
+  const box=document.getElementById('themes');
+  let h='';
+  ORDER.forEach(k=>{
+    const c=THEMES[k].light.accent;
+    h+=`<div class="sw ${k===cur?'on':''}" data-k="${k}" style="background:${c}"></div>`;
+  });
+  h+=`<div class="dark" id="darkToggle">${dark?'浅色':'深色'}模式</div>`;
+  box.innerHTML=h;
+  box.querySelectorAll('.sw').forEach(el=>el.onclick=()=>{cur=el.dataset.k;applyTheme();});
+  document.getElementById('darkToggle').onclick=()=>{dark=!dark;applyTheme();};
+}
+
+function render(){
+  // compute
+  const items=DATA.map(it=>({...it,days:getDays(it)})).sort((a,b)=>{
+    if(a.cat===''&&b.cat===''){}
+    const ap=a.days<0, bp=b.days<0; return ap===bp ? a.days-b.days : (ap?1:-1);
+  });
+  const upcoming=items.filter(i=>i.days>=0).sort((a,b)=>a.days-b.days);
+  const past=items.filter(i=>i.days<0);
+  const week=items.filter(i=>i.days>=0&&i.days<=7).length;
+
+  document.getElementById('stTotal').textContent=items.length;
+  document.getElementById('stUp').textContent=upcoming.length;
+  document.getElementById('stPast').textContent=past.length;
+  document.getElementById('stWeek').textContent=week;
+
+  // hero = nearest upcoming
+  const near=upcoming[0];
+  const hero=document.getElementById('heroNum');
+  if(near){
+    const c=colorOf(near.ck);
+    document.getElementById('heroTitle').textContent=near.title;
+    document.getElementById('heroDate').textContent=fmtDate(near.date);
+    hero.textContent=near.days===0?'今天':near.days;
+    document.getElementById('heroUnit').textContent=near.days===0?'就是今天':'天后';
+    hero.style.color=c;
+    const frac=Math.max(0,Math.min(1,Math.abs(near.days)/365));
+    document.getElementById('ringFill').setAttribute('stroke',c);
+    document.getElementById('ringFill').style.strokeDashoffset=263.9*(1-frac);
+    const nx=upcoming[1];
+    document.getElementById('heroNext').innerHTML=nx?('下一个：'+nx.title+' · 还有 <b>'+nx.days+'</b> 天'):'今年没有更近的日子了';
+  }
+
+  // chips
+  const chips=document.getElementById('chips');
+  chips.innerHTML=CATS.map(c=>`<div class="chip ${c===filter?'on':''}" data-c="${c}">${c}</div>`).join('');
+  chips.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{filter=el.dataset.c;render();});
+
+  // list
+  const list=document.getElementById('list');
+  const view=filter==='全部'?items:items.filter(i=>i.cat===filter);
+  list.innerHTML=view.map(it=>{
+    const c=colorOf(it.ck);
+    const dn=it.days===0?'今天':Math.abs(it.days);
+    const du=it.days===0?'':(it.days<0?'天前':'天');
+    return `<div class="item" data-id="${it.id}">
+      <div class="badge" style="background:${hexA(c,.13)};color:${c}">
+        <b>${dn}</b><span>${du}</span>
+      </div>
+      <div class="body">
+        <div class="ttl">${it.title}${it.year?'<span class="pin">'+pinSvg()+'</span>':''}</div>
+        <div class="dt">${fmtDate(it.date)}</div>
+        <div class="cat" style="background:${hexA(c,.16)};color:${c}">${it.cat}</div>
+      </div>
+      <div class="del" data-del="${it.id}">${trashSvg()}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.item').forEach(el=>el.onclick=e=>{
+    if(e.target.dataset.del)return; openSheet(el.dataset.id);
+  });
+  list.querySelectorAll('.del').forEach(el=>el.onclick=e=>{
+    e.stopPropagation();const id=+e.currentTarget.dataset.del;DATA=DATA.filter(d=>d.id!==id);render();
+  });
+}
+
+function hexA(hex,a){
+  hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(x=>x+x).join('');
+  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function pinSvg(){return '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3l5 5-4 1-3 3 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 3-3 1-4z"/></svg>';}
+function trashSvg(){return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';}
+
+/* ===== sheet (新建/编辑) ===== */
+let editing=null;
+function renderPicker(){
+  const t=dark?THEMES[cur].dark:THEMES[cur].light;
+  const cols=[t.accent,t.accent2,t.accent3];
+  const p=document.getElementById('picker');
+  p.innerHTML=cols.map((c,i)=>`<div class="c ${i===0?'on':''}" data-c="${['accent','accent2','accent3'][i]}" style="background:${c}"></div>`).join('');
+  p.querySelectorAll('.c').forEach(el=>el.onclick=()=>{p.querySelectorAll('.c').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
+}
+function openSheet(id){
+  editing=id?DATA.find(d=>d.id==id):null;
+  document.getElementById('sheetTitle').textContent=editing?'编辑倒数日':'新建倒数日';
+  document.getElementById('fTitle').value=editing?editing.title:'';
+  document.getElementById('fDate').value=editing?editing.date:(editing?editing.date:'2026-08-20');
+  document.getElementById('fNote').value='';
+  setSeg('segType',editing?(editing.countUp?'true':'false'):'false');
+  setSeg('segCat',editing?editing.cat:'纪念日');
+  setSw('swYear',editing?editing.year:false);
+  setSw('swRemind',false);
+  renderPicker();
+  document.getElementById('delBtn').style.display=editing?'block':'none';
+  document.getElementById('mask').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet(){document.getElementById('mask').classList.remove('show');document.getElementById('sheet').classList.remove('show');}
+function setSeg(id,v){document.getElementById(id).querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.v===v));}
+function getSeg(id){return document.getElementById(id).querySelector('.opt.on').dataset.v;}
+function setSw(id,on){document.getElementById(id).classList.toggle('on',on);}
+function getSw(id){return document.getElementById(id).classList.contains('on');}
+
+document.getElementById('addBtn').onclick=()=>openSheet(null);
+document.getElementById('mask').onclick=closeSheet;
+document.getElementById('cancelBtn').onclick=closeSheet;
+document.getElementById('saveBtn').onclick=()=>{
+  const title=document.getElementById('fTitle').value.trim();
+  if(!title)return;
+  const ck=document.querySelector('#picker .c.on').dataset.c;
+  const obj={title,date:document.getElementById('fDate').value,countUp:getSeg('segType')==='true',
+    cat:getSeg('segCat'),ck,year:getSw('swYear')};
+  if(editing){Object.assign(editing,obj);}else{DATA.push({id:Date.now(),...obj});}
+  closeSheet();render();
+};
+document.getElementById('delBtn').onclick=()=>{if(editing){DATA=DATA.filter(d=>d.id!==editing.id);}closeSheet();render();};
+document.getElementById('segType').querySelectorAll('.opt').forEach(o=>o.onclick=()=>setSeg('segType',o.dataset.v));
+document.getElementById('segCat').querySelectorAll('.opt').forEach(o=>o.onclick=()=>setSeg('segCat',o.dataset.v));
+document.getElementById('swYear').onclick=()=>setSw('swYear',!getSw('swYear'));
+document.getElementById('swRemind').onclick=()=>setSw('swRemind',!getSw('swRemind'));
+document.querySelectorAll('#templates .t').forEach(el=>el.onclick=()=>{
+  document.getElementById('fTitle').value=el.dataset.t;
+  const map={生日:'accent2',纪念日:'accent',旅行:'accent3',考试:'accent',节日:'accent3'};
+  setSeg('segCat',['生日','纪念日','目标','节日','自定义'].includes(el.dataset.t)?el.dataset.t:'自定义');
+});
+
+applyTheme();
+</script>
+</body>
+</html>

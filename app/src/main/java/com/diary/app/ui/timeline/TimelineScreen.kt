@@ -82,6 +82,8 @@ import coil.request.ImageRequest
 import com.diary.app.data.DiaryPreview
 import com.diary.app.ui.components.GlassCard
 import com.diary.app.ui.components.GradientBackground
+import com.diary.app.ui.components.ScreenTopBar
+import com.diary.app.ui.theme.DesignTokens
 import com.diary.app.ui.components.cleanPreviewText
 import com.diary.app.ui.components.moodColorForLevel
 import com.diary.app.ui.components.moodIconForLevel
@@ -213,39 +215,17 @@ fun TimelineScreen(
                     )
                 }
         ) {
-            LazyColumn(
+            ScreenTopBar(
+                title = "\u65F6\u95F4\u7EBF",
+                subtitle = "${entries.size} \u7BC7\u65E5\u8BB0"
+            )
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Page header
-                item(key = "header") {
-                    Column(modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                    ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "时间线",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                Text(
-                                    text = "${entries.size} 篇日记",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
-
                 // Integrated search + filter bar (collapsible)
                 item(key = "search_bar") {
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -393,31 +373,6 @@ fun TimelineScreen(
                 item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
-            // Scroll to top button
-            if (showScrollToTop) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 16.dp)
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
-                        .clickable {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(0)
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = "回到顶部",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
             // Multi-select action bar
             if (multiSelectState.isEnabled) {
                 TimelineMultiSelectBar(
@@ -461,7 +416,31 @@ fun TimelineScreen(
                 )
             }
         }
+        if (showScrollToTop) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                    .clickable {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(0)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowUpward,
+                    contentDescription = "回到顶部",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
     }
+}
 }
 
 // ========== Multi-select action bar ==========
